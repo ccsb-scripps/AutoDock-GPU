@@ -1,0 +1,17 @@
+npts 40 54 40                        # num.grid points in xyz
+gridfld 3ce3_protein.maps.fld        # grid_data_file
+spacing 0.375                        # spacing(A)
+receptor_types A C H HD N OA SA      # receptor atom types
+ligand_types A C F OA N HD           # ligand atom types
+receptor 3ce3_protein.pdbqt          # macromolecule
+gridcenter 20.402 18.013 56.855      # xyz-coordinates or auto
+smooth 0.5                           # store minimum energy w/in rad(A)
+map 3ce3_protein.A.map               # atom-specific affinity map
+map 3ce3_protein.C.map               # atom-specific affinity map
+map 3ce3_protein.F.map               # atom-specific affinity map
+map 3ce3_protein.OA.map              # atom-specific affinity map
+map 3ce3_protein.N.map               # atom-specific affinity map
+map 3ce3_protein.HD.map              # atom-specific affinity map
+elecmap 3ce3_protein.e.map           # electrostatic potential map
+dsolvmap 3ce3_protein.d.map              # desolvation potential map
+dielectric -0.1465                   # <0, AD4 distance-dep.diel;>0, constant

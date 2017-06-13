@@ -1,0 +1,42 @@
+# AVS field file
+#
+# AutoDock Atomic Affinity and Electrostatic Grids
+#
+# Created by /home/wimi/lvs/ESA_Projects/bioinfo/docking_src/autodock/Run_Experiments/bin/autogrid_link.
+#
+#SPACING 0.375
+#NELEMENTS 40 54 40
+#CENTER 20.402 18.013 56.855
+#MACROMOLECULE 3ce3_protein.pdbqt
+#GRID_PARAMETER_FILE ./3ce3.gpf
+#
+ndim=3			# number of dimensions in the field
+dim1=41			# number of x-elements
+dim2=55			# number of y-elements
+dim3=41			# number of z-elements
+nspace=3		# number of physical coordinates per point
+veclen=8		# number of affinity values at each point
+data=float		# data type (byte, integer, float, double)
+field=uniform		# field type (uniform, rectilinear, irregular)
+coord 1 file=3ce3_protein.maps.xyz filetype=ascii offset=0
+coord 2 file=3ce3_protein.maps.xyz filetype=ascii offset=2
+coord 3 file=3ce3_protein.maps.xyz filetype=ascii offset=4
+label=A-affinity	# component label for variable 1
+label=C-affinity	# component label for variable 2
+label=F-affinity	# component label for variable 3
+label=OA-affinity	# component label for variable 4
+label=N-affinity	# component label for variable 5
+label=HD-affinity	# component label for variable 6
+label=Electrostatics	# component label for variable 6
+label=Desolvation	# component label for variable 7
+#
+# location of affinity grid files and how to read them
+#
+variable 1 file=3ce3_protein.A.map filetype=ascii skip=6
+variable 2 file=3ce3_protein.C.map filetype=ascii skip=6
+variable 3 file=3ce3_protein.F.map filetype=ascii skip=6
+variable 4 file=3ce3_protein.OA.map filetype=ascii skip=6
+variable 5 file=3ce3_protein.N.map filetype=ascii skip=6
+variable 6 file=3ce3_protein.HD.map filetype=ascii skip=6
+variable 7 file=3ce3_protein.e.map filetype=ascii skip=6
+variable 8 file=3ce3_protein.d.map filetype=ascii skip=6

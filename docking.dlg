@@ -1,0 +1,792 @@
+**********************************************************
+**       GDOCK  AUTODOCKTOOLS-COMPATIBLE DLG FILE       **
+**********************************************************
+
+
+    DOCKING PARAMETERS
+    ________________________
+
+
+Ligand file:                               ./input_data/1stp/derived/1stp_ligand.pdbqt
+Grid fld file:                             ./input_data/1stp/derived/1stp_protein.maps.fld
+
+Number of runs:                            10
+Number of energy evaluations:              2500000
+Number of generations:                     27000
+Size of population:                        150
+Rate of crossover:                         80.000000%
+Tournament selection probability limit:    60.000000%
+Rate of mutation:                          2.000000%
+Maximal allowed delta movement:            +/- 6.000000A
+Maximal allowed delta angle:               +/- 90.000000°
+
+Rate of local search:                      6.000000%
+Maximal number of local search iterations: 300
+Rho lower bound:                           0.010000
+Spread of local search delta movement:     2.000000A
+Spread of local search delta angle:        74.999999°
+Limit of consecutive successes/failures:   4
+
+Handle symmetry during clustering:         NO
+RMSD tolerance:                            2.000000A
+
+Program call in command line was:          ./ocladock_64wi -ffile ./input_data/1stp/derived/1stp_protein.maps.fld -lfile ./input_data/1stp/derived/1stp_ligand.pdbqt -nrun 10 
+
+
+    GRID PARAMETERS
+    ________________________
+
+
+Receptor name:                             1stp_protein
+Number of grid points (x, y, z):           25, 23, 33
+Grid size (x, y, z):                       9.000000, 8.250000, 12.000000A
+Grid spacing:                              0.375000A
+
+
+    LIGAND PARAMETERS
+    ________________________
+
+
+Ligand name:                               ./input_data/1stp/derived/1stp_ligand
+Number of atoms:                           18
+Number of rotatable bonds:                 5
+Number of atom types:                      6
+
+
+    DUMMY DATA (only for ADT-compatibility)
+    ________________________
+
+
+DPF> outlev 1
+DPF> ga_run 10
+DPF> fld 1stp_protein.maps.fld
+DPF> move ./input_data/1stp/derived/1stp_ligand.pdbqt
+
+
+    INPUT LIGAND PDBQT FILE:
+    ________________________
+
+
+INPUT-LIGAND-PDBQT: REMARK  5 active torsions:
+INPUT-LIGAND-PDBQT: REMARK  status: ('A' for Active; 'I' for Inactive)
+INPUT-LIGAND-PDBQT: REMARK    1  A    between atoms: C11_1  and  C10_4 
+INPUT-LIGAND-PDBQT: REMARK    2  A    between atoms: C10_4  and  C9_5 
+INPUT-LIGAND-PDBQT: REMARK    3  A    between atoms: C9_5  and  C8_6 
+INPUT-LIGAND-PDBQT: REMARK    4  A    between atoms: C8_6  and  C7_7 
+INPUT-LIGAND-PDBQT: REMARK    5  A    between atoms: C7_7  and  C2_8 
+INPUT-LIGAND-PDBQT: ROOT
+INPUT-LIGAND-PDBQT: HETATM    1  C11 BTN A 300       9.051   4.576 -14.459  1.00 21.57     0.172 C 
+INPUT-LIGAND-PDBQT: HETATM    2  O11 BTN A 300       8.147   5.373 -14.172  1.00 21.65    -0.648 OA
+INPUT-LIGAND-PDBQT: HETATM    3  O12 BTN A 300       8.697   3.498 -15.132  1.00 22.67    -0.648 OA
+INPUT-LIGAND-PDBQT: ENDROOT
+INPUT-LIGAND-PDBQT: BRANCH   1   4
+INPUT-LIGAND-PDBQT: HETATM    4  C10 BTN A 300      10.321   4.413 -13.702  1.00 20.77     0.113 C 
+INPUT-LIGAND-PDBQT: BRANCH   4   5
+INPUT-LIGAND-PDBQT: HETATM    5  C9  BTN A 300      10.215   3.247 -12.658  1.00 20.09     0.010 C 
+INPUT-LIGAND-PDBQT: BRANCH   5   6
+INPUT-LIGAND-PDBQT: HETATM    6  C8  BTN A 300      11.487   2.972 -11.964  1.00 19.24     0.002 C 
+INPUT-LIGAND-PDBQT: BRANCH   6   7
+INPUT-LIGAND-PDBQT: HETATM    7  C7  BTN A 300      11.627   1.558 -11.402  1.00 18.33     0.017 C 
+INPUT-LIGAND-PDBQT: BRANCH   7   8
+INPUT-LIGAND-PDBQT: HETATM    8  C2  BTN A 300      10.923   1.086 -10.195  1.00 17.74     0.072 C 
+INPUT-LIGAND-PDBQT: HETATM    9  S1  BTN A 300      10.884   2.103  -8.662  1.00 16.59    -0.160 SA
+INPUT-LIGAND-PDBQT: HETATM   10  C6  BTN A 300      10.299   0.620  -7.760  1.00 17.06     0.101 C 
+INPUT-LIGAND-PDBQT: HETATM   11  C5  BTN A 300      11.142  -0.543  -8.274  1.00 17.47     0.119 A 
+INPUT-LIGAND-PDBQT: HETATM   12  N1  BTN A 300      12.443  -0.631  -7.613  1.00 17.73    -0.336 N 
+INPUT-LIGAND-PDBQT: HETATM   13  C4  BTN A 300      11.513  -0.265  -9.727  1.00 17.65     0.123 A 
+INPUT-LIGAND-PDBQT: HETATM   14  C3  BTN A 300      13.467  -0.443  -8.453  1.00 17.95     0.316 A 
+INPUT-LIGAND-PDBQT: HETATM   15  H1  BTN A 300      12.558  -0.816  -6.617  1.00  0.00     0.164 HD
+INPUT-LIGAND-PDBQT: HETATM   16  O3  BTN A 300      14.692  -0.446  -8.205  1.00 17.93    -0.247 OA
+INPUT-LIGAND-PDBQT: HETATM   17  N2  BTN A 300      12.974  -0.237  -9.695  1.00 17.92    -0.335 N 
+INPUT-LIGAND-PDBQT: HETATM   18  H2  BTN A 300      13.556  -0.080 -10.517  1.00  0.00     0.164 HD
+INPUT-LIGAND-PDBQT: ENDBRANCH   7   8
+INPUT-LIGAND-PDBQT: ENDBRANCH   6   7
+INPUT-LIGAND-PDBQT: ENDBRANCH   5   6
+INPUT-LIGAND-PDBQT: ENDBRANCH   4   5
+INPUT-LIGAND-PDBQT: ENDBRANCH   1   4
+INPUT-LIGAND-PDBQT: TORSDOF 5
+
+
+    FINAL DOCKED STATE:
+    ________________________
+
+
+Run:   1 / 10
+Time taken for this run:   0.038s
+
+DOCKED: MODEL        1
+DOCKED: USER    Run = 1
+DOCKED: USER
+DOCKED: USER    Estimated Free Energy of Binding    =  -8.24 kcal/mol  [=(1)+(2)+(3)-(4)]
+DOCKED: USER
+DOCKED: USER    (1) Final Intermolecular Energy     =  -9.74 kcal/mol
+DOCKED: USER        vdW + Hbond + desolv Energy     =  -9.04 kcal/mol
+DOCKED: USER        Electrostatic Energy            =  -0.70 kcal/mol
+DOCKED: USER    (2) Final Total Internal Energy     =  -0.21 kcal/mol
+DOCKED: USER    (3) Torsional Free Energy           =  +1.49 kcal/mol
+DOCKED: USER    (4) Unbound System's Energy         =  -0.21 kcal/mol
+DOCKED: USER
+DOCKED: USER
+DOCKED: REMARK  5 active torsions:
+DOCKED: REMARK  status: ('A' for Active; 'I' for Inactive)
+DOCKED: REMARK    1  A    between atoms: C11_1  and  C10_4 
+DOCKED: REMARK    2  A    between atoms: C10_4  and  C9_5 
+DOCKED: REMARK    3  A    between atoms: C9_5  and  C8_6 
+DOCKED: REMARK    4  A    between atoms: C8_6  and  C7_7 
+DOCKED: REMARK    5  A    between atoms: C7_7  and  C2_8 
+DOCKED: USER                              x       y       z     vdW  Elec       q    Type
+DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____
+DOCKED: ROOT
+DOCKED: HETATM    1  C11 BTN A 300       8.977   4.461 -14.295 -0.55 +0.04    +0.172 C 
+DOCKED: HETATM    2  O11 BTN A 300       7.925   5.115 -14.253 -1.02 -0.20    -0.648 OA
+DOCKED: HETATM    3  O12 BTN A 300       8.904   3.257 -14.828 -0.85 -0.26    -0.648 OA
+DOCKED: ENDROOT
+DOCKED: BRANCH   1   4
+DOCKED: HETATM    4  C10 BTN A 300      10.128   4.631 -13.368 -0.66 +0.01    +0.113 C 
+DOCKED: BRANCH   4   5
+DOCKED: HETATM    5  C9  BTN A 300      11.071   3.378 -13.397 -0.67 +0.00    +0.010 C 
+DOCKED: BRANCH   5   6
+DOCKED: HETATM    6  C8  BTN A 300      11.695   3.091 -12.092 -0.58 +0.00    +0.002 C 
+DOCKED: BRANCH   6   7
+DOCKED: HETATM    7  C7  BTN A 300      11.425   1.693 -11.538 -0.50 +0.00    +0.017 C 
+DOCKED: BRANCH   7   8
+DOCKED: HETATM    8  C2  BTN A 300      10.806   1.441 -10.223 -0.48 -0.00    +0.072 C 
+DOCKED: HETATM    9  S1  BTN A 300      11.121   2.561  -8.798 -0.81 -0.01    -0.160 SA
+DOCKED: HETATM   10  C6  BTN A 300      10.416   1.273  -7.702 -0.73 -0.03    +0.101 C 
+DOCKED: HETATM   11  C5  BTN A 300      10.988  -0.054  -8.192 -0.50 -0.06    +0.119 A 
+DOCKED: HETATM   12  N1  BTN A 300      12.328  -0.316  -7.670 -0.59 +0.28    -0.336 N 
+DOCKED: HETATM   13  C4  BTN A 300      11.219   0.047  -9.697 -0.36 -0.02    +0.123 A 
+DOCKED: HETATM   14  C3  BTN A 300      13.259  -0.372  -8.630 -0.58 -0.09    +0.316 A 
+DOCKED: HETATM   15  H1  BTN A 300      12.532  -0.444  -6.679 -0.63 -0.33    +0.164 HD
+DOCKED: HETATM   16  O3  BTN A 300      14.488  -0.569  -8.516 -1.83 -0.06    -0.247 OA
+DOCKED: HETATM   17  N2  BTN A 300      12.658  -0.177  -9.825 -0.45 +0.06    -0.335 N 
+DOCKED: HETATM   18  H2  BTN A 300      13.153  -0.185 -10.716 -0.35 -0.04    +0.164 HD
+DOCKED: ENDBRANCH   7   8
+DOCKED: ENDBRANCH   6   7
+DOCKED: ENDBRANCH   5   6
+DOCKED: ENDBRANCH   4   5
+DOCKED: ENDBRANCH   1   4
+DOCKED: TORSDOF 5
+DOCKED: TER
+DOCKED: ENDMDL
+________________________________________________________________________________
+
+
+    FINAL DOCKED STATE:
+    ________________________
+
+
+Run:   2 / 10
+Time taken for this run:   0.038s
+
+DOCKED: MODEL        2
+DOCKED: USER    Run = 2
+DOCKED: USER
+DOCKED: USER    Estimated Free Energy of Binding    =  -8.16 kcal/mol  [=(1)+(2)+(3)-(4)]
+DOCKED: USER
+DOCKED: USER    (1) Final Intermolecular Energy     =  -9.65 kcal/mol
+DOCKED: USER        vdW + Hbond + desolv Energy     =  -8.89 kcal/mol
+DOCKED: USER        Electrostatic Energy            =  -0.76 kcal/mol
+DOCKED: USER    (2) Final Total Internal Energy     =  -0.15 kcal/mol
+DOCKED: USER    (3) Torsional Free Energy           =  +1.49 kcal/mol
+DOCKED: USER    (4) Unbound System's Energy         =  -0.15 kcal/mol
+DOCKED: USER
+DOCKED: USER
+DOCKED: REMARK  5 active torsions:
+DOCKED: REMARK  status: ('A' for Active; 'I' for Inactive)
+DOCKED: REMARK    1  A    between atoms: C11_1  and  C10_4 
+DOCKED: REMARK    2  A    between atoms: C10_4  and  C9_5 
+DOCKED: REMARK    3  A    between atoms: C9_5  and  C8_6 
+DOCKED: REMARK    4  A    between atoms: C8_6  and  C7_7 
+DOCKED: REMARK    5  A    between atoms: C7_7  and  C2_8 
+DOCKED: USER                              x       y       z     vdW  Elec       q    Type
+DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____
+DOCKED: ROOT
+DOCKED: HETATM    1  C11 BTN A 300       9.358   4.550 -14.333 -0.58 +0.04    +0.172 C 
+DOCKED: HETATM    2  O11 BTN A 300       8.464   5.039 -13.630 -0.93 -0.16    -0.648 OA
+DOCKED: HETATM    3  O12 BTN A 300       9.010   3.551 -15.122 -0.80 -0.31    -0.648 OA
+DOCKED: ENDROOT
+DOCKED: BRANCH   1   4
+DOCKED: HETATM    4  C10 BTN A 300      10.810   4.574 -14.012 -0.70 +0.01    +0.113 C 
+DOCKED: BRANCH   4   5
+DOCKED: HETATM    5  C9  BTN A 300      11.291   3.192 -13.446 -0.68 +0.00    +0.010 C 
+DOCKED: BRANCH   5   6
+DOCKED: HETATM    6  C8  BTN A 300      11.341   3.155 -11.972 -0.59 +0.00    +0.002 C 
+DOCKED: BRANCH   6   7
+DOCKED: HETATM    7  C7  BTN A 300      11.438   1.757 -11.362 -0.51 +0.00    +0.017 C 
+DOCKED: BRANCH   7   8
+DOCKED: HETATM    8  C2  BTN A 300      10.824   1.385 -10.074 -0.48 -0.00    +0.072 C 
+DOCKED: HETATM    9  S1  BTN A 300      11.078   2.415  -8.570 -0.90 -0.01    -0.160 SA
+DOCKED: HETATM   10  C6  BTN A 300      10.427   1.022  -7.574 -0.69 -0.03    +0.101 C 
+DOCKED: HETATM   11  C5  BTN A 300      11.064  -0.239  -8.151 -0.50 -0.06    +0.119 A 
+DOCKED: HETATM   12  N1  BTN A 300      12.412  -0.475  -7.636 -0.58 +0.31    -0.336 N 
+DOCKED: HETATM   13  C4  BTN A 300      11.299  -0.022  -9.642 -0.37 -0.02    +0.123 A 
+DOCKED: HETATM   14  C3  BTN A 300      13.350  -0.420  -8.589 -0.58 -0.09    +0.316 A 
+DOCKED: HETATM   15  H1  BTN A 300      12.616  -0.663  -6.655 -0.62 -0.37    +0.164 HD
+DOCKED: HETATM   16  O3  BTN A 300      14.586  -0.567  -8.478 -1.74 -0.07    -0.247 OA
+DOCKED: HETATM   17  N2  BTN A 300      12.748  -0.169  -9.773 -0.46 +0.06    -0.335 N 
+DOCKED: HETATM   18  H2  BTN A 300      13.248  -0.091 -10.658 -0.38 -0.04    +0.164 HD
+DOCKED: ENDBRANCH   7   8
+DOCKED: ENDBRANCH   6   7
+DOCKED: ENDBRANCH   5   6
+DOCKED: ENDBRANCH   4   5
+DOCKED: ENDBRANCH   1   4
+DOCKED: TORSDOF 5
+DOCKED: TER
+DOCKED: ENDMDL
+________________________________________________________________________________
+
+
+    FINAL DOCKED STATE:
+    ________________________
+
+
+Run:   3 / 10
+Time taken for this run:   0.038s
+
+DOCKED: MODEL        3
+DOCKED: USER    Run = 3
+DOCKED: USER
+DOCKED: USER    Estimated Free Energy of Binding    =  -8.20 kcal/mol  [=(1)+(2)+(3)-(4)]
+DOCKED: USER
+DOCKED: USER    (1) Final Intermolecular Energy     =  -9.69 kcal/mol
+DOCKED: USER        vdW + Hbond + desolv Energy     =  -8.89 kcal/mol
+DOCKED: USER        Electrostatic Energy            =  -0.80 kcal/mol
+DOCKED: USER    (2) Final Total Internal Energy     =  -0.15 kcal/mol
+DOCKED: USER    (3) Torsional Free Energy           =  +1.49 kcal/mol
+DOCKED: USER    (4) Unbound System's Energy         =  -0.15 kcal/mol
+DOCKED: USER
+DOCKED: USER
+DOCKED: REMARK  5 active torsions:
+DOCKED: REMARK  status: ('A' for Active; 'I' for Inactive)
+DOCKED: REMARK    1  A    between atoms: C11_1  and  C10_4 
+DOCKED: REMARK    2  A    between atoms: C10_4  and  C9_5 
+DOCKED: REMARK    3  A    between atoms: C9_5  and  C8_6 
+DOCKED: REMARK    4  A    between atoms: C8_6  and  C7_7 
+DOCKED: REMARK    5  A    between atoms: C7_7  and  C2_8 
+DOCKED: USER                              x       y       z     vdW  Elec       q    Type
+DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____
+DOCKED: ROOT
+DOCKED: HETATM    1  C11 BTN A 300       8.776   4.747 -14.473 -0.54 +0.04    +0.172 C 
+DOCKED: HETATM    2  O11 BTN A 300       7.728   5.372 -14.256 -1.02 -0.25    -0.648 OA
+DOCKED: HETATM    3  O12 BTN A 300       8.685   3.699 -15.269 -0.84 -0.28    -0.648 OA
+DOCKED: ENDROOT
+DOCKED: BRANCH   1   4
+DOCKED: HETATM    4  C10 BTN A 300       9.948   4.698 -13.559 -0.66 +0.01    +0.113 C 
+DOCKED: BRANCH   4   5
+DOCKED: HETATM    5  C9  BTN A 300      10.118   3.272 -12.927 -0.56 +0.00    +0.010 C 
+DOCKED: BRANCH   5   6
+DOCKED: HETATM    6  C8  BTN A 300      11.385   3.111 -12.190 -0.62 +0.00    +0.002 C 
+DOCKED: BRANCH   6   7
+DOCKED: HETATM    7  C7  BTN A 300      11.558   1.769 -11.481 -0.48 +0.00    +0.017 C 
+DOCKED: BRANCH   7   8
+DOCKED: HETATM    8  C2  BTN A 300      10.895   1.426 -10.209 -0.48 -0.00    +0.072 C 
+DOCKED: HETATM    9  S1  BTN A 300      11.131   2.464  -8.708 -0.86 -0.01    -0.160 SA
+DOCKED: HETATM   10  C6  BTN A 300      10.415   1.099  -7.719 -0.70 -0.03    +0.101 C 
+DOCKED: HETATM   11  C5  BTN A 300      11.035  -0.184  -8.264 -0.49 -0.06    +0.119 A 
+DOCKED: HETATM   12  N1  BTN A 300      12.360  -0.449  -7.706 -0.58 +0.29    -0.336 N 
+DOCKED: HETATM   13  C4  BTN A 300      11.321   0.012  -9.749 -0.36 -0.02    +0.123 A 
+DOCKED: HETATM   14  C3  BTN A 300      13.327  -0.428  -8.630 -0.58 -0.09    +0.316 A 
+DOCKED: HETATM   15  H1  BTN A 300      12.529  -0.632  -6.717 -0.62 -0.35    +0.164 HD
+DOCKED: HETATM   16  O3  BTN A 300      14.555  -0.606  -8.480 -1.77 -0.07    -0.247 OA
+DOCKED: HETATM   17  N2  BTN A 300      12.768  -0.174  -9.834 -0.46 +0.06    -0.335 N 
+DOCKED: HETATM   18  H2  BTN A 300      13.297  -0.118 -10.704 -0.40 -0.04    +0.164 HD
+DOCKED: ENDBRANCH   7   8
+DOCKED: ENDBRANCH   6   7
+DOCKED: ENDBRANCH   5   6
+DOCKED: ENDBRANCH   4   5
+DOCKED: ENDBRANCH   1   4
+DOCKED: TORSDOF 5
+DOCKED: TER
+DOCKED: ENDMDL
+________________________________________________________________________________
+
+
+    FINAL DOCKED STATE:
+    ________________________
+
+
+Run:   4 / 10
+Time taken for this run:   0.038s
+
+DOCKED: MODEL        4
+DOCKED: USER    Run = 4
+DOCKED: USER
+DOCKED: USER    Estimated Free Energy of Binding    =  -7.43 kcal/mol  [=(1)+(2)+(3)-(4)]
+DOCKED: USER
+DOCKED: USER    (1) Final Intermolecular Energy     =  -8.92 kcal/mol
+DOCKED: USER        vdW + Hbond + desolv Energy     =  -8.38 kcal/mol
+DOCKED: USER        Electrostatic Energy            =  -0.54 kcal/mol
+DOCKED: USER    (2) Final Total Internal Energy     =  -0.19 kcal/mol
+DOCKED: USER    (3) Torsional Free Energy           =  +1.49 kcal/mol
+DOCKED: USER    (4) Unbound System's Energy         =  -0.19 kcal/mol
+DOCKED: USER
+DOCKED: USER
+DOCKED: REMARK  5 active torsions:
+DOCKED: REMARK  status: ('A' for Active; 'I' for Inactive)
+DOCKED: REMARK    1  A    between atoms: C11_1  and  C10_4 
+DOCKED: REMARK    2  A    between atoms: C10_4  and  C9_5 
+DOCKED: REMARK    3  A    between atoms: C9_5  and  C8_6 
+DOCKED: REMARK    4  A    between atoms: C8_6  and  C7_7 
+DOCKED: REMARK    5  A    between atoms: C7_7  and  C2_8 
+DOCKED: USER                              x       y       z     vdW  Elec       q    Type
+DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____
+DOCKED: ROOT
+DOCKED: HETATM    1  C11 BTN A 300       9.091   5.063 -14.133 -0.59 +0.03    +0.172 C 
+DOCKED: HETATM    2  O11 BTN A 300       9.668   6.156 -14.048 -0.69 -0.07    -0.648 OA
+DOCKED: HETATM    3  O12 BTN A 300       7.826   5.032 -13.760 -1.06 -0.20    -0.648 OA
+DOCKED: ENDROOT
+DOCKED: BRANCH   1   4
+DOCKED: HETATM    4  C10 BTN A 300       9.760   3.736 -14.076 -0.54 +0.02    +0.113 C 
+DOCKED: BRANCH   4   5
+DOCKED: HETATM    5  C9  BTN A 300      10.196   3.381 -12.612 -0.57 +0.00    +0.010 C 
+DOCKED: BRANCH   5   6
+DOCKED: HETATM    6  C8  BTN A 300      11.286   2.389 -12.555 -0.59 +0.00    +0.002 C 
+DOCKED: BRANCH   6   7
+DOCKED: HETATM    7  C7  BTN A 300      11.877   2.153 -11.165 -0.50 +0.00    +0.017 C 
+DOCKED: BRANCH   7   8
+DOCKED: HETATM    8  C2  BTN A 300      11.097   1.642 -10.023 -0.52 -0.00    +0.072 C 
+DOCKED: HETATM    9  S1  BTN A 300      11.195   2.448  -8.372 -0.83 -0.01    -0.160 SA
+DOCKED: HETATM   10  C6  BTN A 300      10.384   0.967  -7.662 -0.68 -0.03    +0.101 C 
+DOCKED: HETATM   11  C5  BTN A 300      11.048  -0.234  -8.328 -0.48 -0.06    +0.119 A 
+DOCKED: HETATM   12  N1  BTN A 300      12.314  -0.601  -7.696 -0.57 +0.31    -0.336 N 
+DOCKED: HETATM   13  C4  BTN A 300      11.472   0.169  -9.737 -0.38 -0.02    +0.123 A 
+DOCKED: HETATM   14  C3  BTN A 300      13.364  -0.463  -8.513 -0.59 -0.10    +0.316 A 
+DOCKED: HETATM   15  H1  BTN A 300      12.390  -0.927  -6.732 -0.61 -0.38    +0.164 HD
+DOCKED: HETATM   16  O3  BTN A 300      14.572  -0.681  -8.278 -1.65 -0.06    -0.247 OA
+DOCKED: HETATM   17  N2  BTN A 300      12.921  -0.027  -9.714 -0.49 +0.06    -0.335 N 
+DOCKED: HETATM   18  H2  BTN A 300      13.528   0.144 -10.515 -0.48 -0.05    +0.164 HD
+DOCKED: ENDBRANCH   7   8
+DOCKED: ENDBRANCH   6   7
+DOCKED: ENDBRANCH   5   6
+DOCKED: ENDBRANCH   4   5
+DOCKED: ENDBRANCH   1   4
+DOCKED: TORSDOF 5
+DOCKED: TER
+DOCKED: ENDMDL
+________________________________________________________________________________
+
+
+    FINAL DOCKED STATE:
+    ________________________
+
+
+Run:   5 / 10
+Time taken for this run:   0.038s
+
+DOCKED: MODEL        5
+DOCKED: USER    Run = 5
+DOCKED: USER
+DOCKED: USER    Estimated Free Energy of Binding    =  -8.21 kcal/mol  [=(1)+(2)+(3)-(4)]
+DOCKED: USER
+DOCKED: USER    (1) Final Intermolecular Energy     =  -9.70 kcal/mol
+DOCKED: USER        vdW + Hbond + desolv Energy     =  -8.93 kcal/mol
+DOCKED: USER        Electrostatic Energy            =  -0.77 kcal/mol
+DOCKED: USER    (2) Final Total Internal Energy     =  -0.18 kcal/mol
+DOCKED: USER    (3) Torsional Free Energy           =  +1.49 kcal/mol
+DOCKED: USER    (4) Unbound System's Energy         =  -0.18 kcal/mol
+DOCKED: USER
+DOCKED: USER
+DOCKED: REMARK  5 active torsions:
+DOCKED: REMARK  status: ('A' for Active; 'I' for Inactive)
+DOCKED: REMARK    1  A    between atoms: C11_1  and  C10_4 
+DOCKED: REMARK    2  A    between atoms: C10_4  and  C9_5 
+DOCKED: REMARK    3  A    between atoms: C9_5  and  C8_6 
+DOCKED: REMARK    4  A    between atoms: C8_6  and  C7_7 
+DOCKED: REMARK    5  A    between atoms: C7_7  and  C2_8 
+DOCKED: USER                              x       y       z     vdW  Elec       q    Type
+DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____
+DOCKED: ROOT
+DOCKED: HETATM    1  C11 BTN A 300       8.899   4.603 -14.279 -0.55 +0.04    +0.172 C 
+DOCKED: HETATM    2  O11 BTN A 300       7.827   5.188 -14.069 -1.03 -0.22    -0.648 OA
+DOCKED: HETATM    3  O12 BTN A 300       8.862   3.584 -15.116 -0.84 -0.29    -0.648 OA
+DOCKED: ENDROOT
+DOCKED: BRANCH   1   4
+DOCKED: HETATM    4  C10 BTN A 300      10.047   4.554 -13.335 -0.66 +0.01    +0.113 C 
+DOCKED: BRANCH   4   5
+DOCKED: HETATM    5  C9  BTN A 300      10.740   3.147 -13.353 -0.62 +0.00    +0.010 C 
+DOCKED: BRANCH   5   6
+DOCKED: HETATM    6  C8  BTN A 300      11.521   2.868 -12.134 -0.61 +0.00    +0.002 C 
+DOCKED: BRANCH   6   7
+DOCKED: HETATM    7  C7  BTN A 300      11.320   1.475 -11.539 -0.48 +0.00    +0.017 C 
+DOCKED: BRANCH   7   8
+DOCKED: HETATM    8  C2  BTN A 300      10.731   1.233 -10.209 -0.45 -0.00    +0.072 C 
+DOCKED: HETATM    9  S1  BTN A 300      11.020   2.401  -8.817 -0.89 -0.01    -0.160 SA
+DOCKED: HETATM   10  C6  BTN A 300      10.386   1.114  -7.678 -0.70 -0.03    +0.101 C 
+DOCKED: HETATM   11  C5  BTN A 300      11.005  -0.200  -8.144 -0.50 -0.06    +0.119 A 
+DOCKED: HETATM   12  N1  BTN A 300      12.362  -0.394  -7.636 -0.58 +0.30    -0.336 N 
+DOCKED: HETATM   13  C4  BTN A 300      11.210  -0.129  -9.653 -0.36 -0.02    +0.123 A 
+DOCKED: HETATM   14  C3  BTN A 300      13.280  -0.436  -8.608 -0.58 -0.10    +0.316 A 
+DOCKED: HETATM   15  H1  BTN A 300      12.586  -0.487  -6.646 -0.63 -0.35    +0.164 HD
+DOCKED: HETATM   16  O3  BTN A 300      14.518  -0.579  -8.509 -1.81 -0.06    -0.247 OA
+DOCKED: HETATM   17  N2  BTN A 300      12.655  -0.297  -9.799 -0.45 +0.07    -0.335 N 
+DOCKED: HETATM   18  H2  BTN A 300      13.137  -0.307 -10.697 -0.32 -0.04    +0.164 HD
+DOCKED: ENDBRANCH   7   8
+DOCKED: ENDBRANCH   6   7
+DOCKED: ENDBRANCH   5   6
+DOCKED: ENDBRANCH   4   5
+DOCKED: ENDBRANCH   1   4
+DOCKED: TORSDOF 5
+DOCKED: TER
+DOCKED: ENDMDL
+________________________________________________________________________________
+
+
+    FINAL DOCKED STATE:
+    ________________________
+
+
+Run:   6 / 10
+Time taken for this run:   0.038s
+
+DOCKED: MODEL        6
+DOCKED: USER    Run = 6
+DOCKED: USER
+DOCKED: USER    Estimated Free Energy of Binding    =  -8.26 kcal/mol  [=(1)+(2)+(3)-(4)]
+DOCKED: USER
+DOCKED: USER    (1) Final Intermolecular Energy     =  -9.75 kcal/mol
+DOCKED: USER        vdW + Hbond + desolv Energy     =  -9.00 kcal/mol
+DOCKED: USER        Electrostatic Energy            =  -0.75 kcal/mol
+DOCKED: USER    (2) Final Total Internal Energy     =  -0.16 kcal/mol
+DOCKED: USER    (3) Torsional Free Energy           =  +1.49 kcal/mol
+DOCKED: USER    (4) Unbound System's Energy         =  -0.16 kcal/mol
+DOCKED: USER
+DOCKED: USER
+DOCKED: REMARK  5 active torsions:
+DOCKED: REMARK  status: ('A' for Active; 'I' for Inactive)
+DOCKED: REMARK    1  A    between atoms: C11_1  and  C10_4 
+DOCKED: REMARK    2  A    between atoms: C10_4  and  C9_5 
+DOCKED: REMARK    3  A    between atoms: C9_5  and  C8_6 
+DOCKED: REMARK    4  A    between atoms: C8_6  and  C7_7 
+DOCKED: REMARK    5  A    between atoms: C7_7  and  C2_8 
+DOCKED: USER                              x       y       z     vdW  Elec       q    Type
+DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____
+DOCKED: ROOT
+DOCKED: HETATM    1  C11 BTN A 300       8.711   4.486 -14.570 -0.51 +0.04    +0.172 C 
+DOCKED: HETATM    2  O11 BTN A 300       7.733   5.093 -14.111 -1.06 -0.20    -0.648 OA
+DOCKED: HETATM    3  O12 BTN A 300       8.454   3.479 -15.382 -0.88 -0.29    -0.648 OA
+DOCKED: ENDROOT
+DOCKED: BRANCH   1   4
+DOCKED: HETATM    4  C10 BTN A 300      10.047   4.399 -13.920 -0.65 +0.02    +0.113 C 
+DOCKED: BRANCH   4   5
+DOCKED: HETATM    5  C9  BTN A 300      10.033   3.384 -12.725 -0.56 +0.00    +0.010 C 
+DOCKED: BRANCH   5   6
+DOCKED: HETATM    6  C8  BTN A 300      11.381   3.059 -12.224 -0.62 +0.00    +0.002 C 
+DOCKED: BRANCH   6   7
+DOCKED: HETATM    7  C7  BTN A 300      11.506   1.704 -11.528 -0.49 +0.00    +0.017 C 
+DOCKED: BRANCH   7   8
+DOCKED: HETATM    8  C2  BTN A 300      10.870   1.391 -10.234 -0.47 -0.00    +0.072 C 
+DOCKED: HETATM    9  S1  BTN A 300      11.136   2.463  -8.763 -0.86 -0.01    -0.160 SA
+DOCKED: HETATM   10  C6  BTN A 300      10.442   1.121  -7.728 -0.71 -0.03    +0.101 C 
+DOCKED: HETATM   11  C5  BTN A 300      11.053  -0.174  -8.256 -0.49 -0.06    +0.119 A 
+DOCKED: HETATM   12  N1  BTN A 300      12.389  -0.426  -7.720 -0.58 +0.28    -0.336 N 
+DOCKED: HETATM   13  C4  BTN A 300      11.307  -0.013  -9.751 -0.36 -0.02    +0.123 A 
+DOCKED: HETATM   14  C3  BTN A 300      13.337  -0.425  -8.664 -0.58 -0.09    +0.316 A 
+DOCKED: HETATM   15  H1  BTN A 300      12.579  -0.585  -6.731 -0.62 -0.34    +0.164 HD
+DOCKED: HETATM   16  O3  BTN A 300      14.568  -0.599  -8.536 -1.78 -0.07    -0.247 OA
+DOCKED: HETATM   17  N2  BTN A 300      12.752  -0.199  -9.862 -0.46 +0.06    -0.335 N 
+DOCKED: HETATM   18  H2  BTN A 300      13.262  -0.163 -10.744 -0.39 -0.04    +0.164 HD
+DOCKED: ENDBRANCH   7   8
+DOCKED: ENDBRANCH   6   7
+DOCKED: ENDBRANCH   5   6
+DOCKED: ENDBRANCH   4   5
+DOCKED: ENDBRANCH   1   4
+DOCKED: TORSDOF 5
+DOCKED: TER
+DOCKED: ENDMDL
+________________________________________________________________________________
+
+
+    FINAL DOCKED STATE:
+    ________________________
+
+
+Run:   7 / 10
+Time taken for this run:   0.038s
+
+DOCKED: MODEL        7
+DOCKED: USER    Run = 7
+DOCKED: USER
+DOCKED: USER    Estimated Free Energy of Binding    =  -8.08 kcal/mol  [=(1)+(2)+(3)-(4)]
+DOCKED: USER
+DOCKED: USER    (1) Final Intermolecular Energy     =  -9.57 kcal/mol
+DOCKED: USER        vdW + Hbond + desolv Energy     =  -8.89 kcal/mol
+DOCKED: USER        Electrostatic Energy            =  -0.68 kcal/mol
+DOCKED: USER    (2) Final Total Internal Energy     =  -0.17 kcal/mol
+DOCKED: USER    (3) Torsional Free Energy           =  +1.49 kcal/mol
+DOCKED: USER    (4) Unbound System's Energy         =  -0.17 kcal/mol
+DOCKED: USER
+DOCKED: USER
+DOCKED: REMARK  5 active torsions:
+DOCKED: REMARK  status: ('A' for Active; 'I' for Inactive)
+DOCKED: REMARK    1  A    between atoms: C11_1  and  C10_4 
+DOCKED: REMARK    2  A    between atoms: C10_4  and  C9_5 
+DOCKED: REMARK    3  A    between atoms: C9_5  and  C8_6 
+DOCKED: REMARK    4  A    between atoms: C8_6  and  C7_7 
+DOCKED: REMARK    5  A    between atoms: C7_7  and  C2_8 
+DOCKED: USER                              x       y       z     vdW  Elec       q    Type
+DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____
+DOCKED: ROOT
+DOCKED: HETATM    1  C11 BTN A 300       8.716   4.432 -14.497 -0.51 +0.04    +0.172 C 
+DOCKED: HETATM    2  O11 BTN A 300       7.718   5.015 -14.051 -1.06 -0.19    -0.648 OA
+DOCKED: HETATM    3  O12 BTN A 300       8.507   3.272 -15.090 -0.90 -0.27    -0.648 OA
+DOCKED: ENDROOT
+DOCKED: BRANCH   1   4
+DOCKED: HETATM    4  C10 BTN A 300      10.103   4.595 -13.985 -0.67 +0.01    +0.113 C 
+DOCKED: BRANCH   4   5
+DOCKED: HETATM    5  C9  BTN A 300      10.646   3.255 -13.377 -0.62 +0.00    +0.010 C 
+DOCKED: BRANCH   5   6
+DOCKED: HETATM    6  C8  BTN A 300      11.605   3.464 -12.277 -0.57 +0.00    +0.002 C 
+DOCKED: BRANCH   6   7
+DOCKED: HETATM    7  C7  BTN A 300      11.938   2.215 -11.461 -0.41 +0.00    +0.017 C 
+DOCKED: BRANCH   7   8
+DOCKED: HETATM    8  C2  BTN A 300      11.121   1.738 -10.329 -0.51 +0.00    +0.072 C 
+DOCKED: HETATM    9  S1  BTN A 300      11.198   2.567  -8.688 -0.80 -0.01    -0.160 SA
+DOCKED: HETATM   10  C6  BTN A 300      10.340   1.114  -7.976 -0.69 -0.02    +0.101 C 
+DOCKED: HETATM   11  C5  BTN A 300      10.993  -0.110  -8.609 -0.45 -0.04    +0.119 A 
+DOCKED: HETATM   12  N1  BTN A 300      12.236  -0.494  -7.941 -0.55 +0.25    -0.336 N 
+DOCKED: HETATM   13  C4  BTN A 300      11.458   0.262 -10.013 -0.37 -0.02    +0.123 A 
+DOCKED: HETATM   14  C3  BTN A 300      13.307  -0.390  -8.736 -0.57 -0.08    +0.316 A 
+DOCKED: HETATM   15  H1  BTN A 300      12.282  -0.807  -6.972 -0.56 -0.29    +0.164 HD
+DOCKED: HETATM   16  O3  BTN A 300      14.504  -0.631  -8.470 -1.80 -0.06    -0.247 OA
+DOCKED: HETATM   17  N2  BTN A 300      12.901   0.035  -9.953 -0.46 +0.06    -0.335 N 
+DOCKED: HETATM   18  H2  BTN A 300      13.531   0.182 -10.742 -0.46 -0.06    +0.164 HD
+DOCKED: ENDBRANCH   7   8
+DOCKED: ENDBRANCH   6   7
+DOCKED: ENDBRANCH   5   6
+DOCKED: ENDBRANCH   4   5
+DOCKED: ENDBRANCH   1   4
+DOCKED: TORSDOF 5
+DOCKED: TER
+DOCKED: ENDMDL
+________________________________________________________________________________
+
+
+    FINAL DOCKED STATE:
+    ________________________
+
+
+Run:   8 / 10
+Time taken for this run:   0.038s
+
+DOCKED: MODEL        8
+DOCKED: USER    Run = 8
+DOCKED: USER
+DOCKED: USER    Estimated Free Energy of Binding    =  -6.58 kcal/mol  [=(1)+(2)+(3)-(4)]
+DOCKED: USER
+DOCKED: USER    (1) Final Intermolecular Energy     =  -8.08 kcal/mol
+DOCKED: USER        vdW + Hbond + desolv Energy     =  -7.59 kcal/mol
+DOCKED: USER        Electrostatic Energy            =  -0.49 kcal/mol
+DOCKED: USER    (2) Final Total Internal Energy     =  -0.33 kcal/mol
+DOCKED: USER    (3) Torsional Free Energy           =  +1.49 kcal/mol
+DOCKED: USER    (4) Unbound System's Energy         =  -0.33 kcal/mol
+DOCKED: USER
+DOCKED: USER
+DOCKED: REMARK  5 active torsions:
+DOCKED: REMARK  status: ('A' for Active; 'I' for Inactive)
+DOCKED: REMARK    1  A    between atoms: C11_1  and  C10_4 
+DOCKED: REMARK    2  A    between atoms: C10_4  and  C9_5 
+DOCKED: REMARK    3  A    between atoms: C9_5  and  C8_6 
+DOCKED: REMARK    4  A    between atoms: C8_6  and  C7_7 
+DOCKED: REMARK    5  A    between atoms: C7_7  and  C2_8 
+DOCKED: USER                              x       y       z     vdW  Elec       q    Type
+DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____
+DOCKED: ROOT
+DOCKED: HETATM    1  C11 BTN A 300       8.810   1.511 -13.888 -0.29 +0.04    +0.172 C 
+DOCKED: HETATM    2  O11 BTN A 300       9.456   0.598 -13.357 -0.35 -0.09    -0.648 OA
+DOCKED: HETATM    3  O12 BTN A 300       8.081   1.186 -14.939 -0.33 -0.18    -0.648 OA
+DOCKED: ENDROOT
+DOCKED: BRANCH   1   4
+DOCKED: HETATM    4  C10 BTN A 300       9.165   2.955 -13.835 -0.42 +0.02    +0.113 C 
+DOCKED: BRANCH   4   5
+DOCKED: HETATM    5  C9  BTN A 300       9.840   3.324 -12.468 -0.51 +0.00    +0.010 C 
+DOCKED: BRANCH   5   6
+DOCKED: HETATM    6  C8  BTN A 300      11.307   3.174 -12.487 -0.64 +0.00    +0.002 C 
+DOCKED: BRANCH   6   7
+DOCKED: HETATM    7  C7  BTN A 300      11.894   2.380 -11.320 -0.52 +0.00    +0.017 C 
+DOCKED: BRANCH   7   8
+DOCKED: HETATM    8  C2  BTN A 300      11.085   1.847 -10.208 -0.53 +0.00    +0.072 C 
+DOCKED: HETATM    9  S1  BTN A 300      11.176   2.593  -8.528 -0.80 -0.01    -0.160 SA
+DOCKED: HETATM   10  C6  BTN A 300      10.321   1.106  -7.883 -0.69 -0.03    +0.101 C 
+DOCKED: HETATM   11  C5  BTN A 300      10.968  -0.086  -8.582 -0.46 -0.04    +0.119 A 
+DOCKED: HETATM   12  N1  BTN A 300      12.215  -0.503  -7.944 -0.55 +0.25    -0.336 N 
+DOCKED: HETATM   13  C4  BTN A 300      11.423   0.357  -9.969 -0.37 -0.02    +0.123 A 
+DOCKED: HETATM   14  C3  BTN A 300      13.280  -0.361  -8.741 -0.57 -0.08    +0.316 A 
+DOCKED: HETATM   15  H1  BTN A 300      12.268  -0.865  -6.992 -0.57 -0.29    +0.164 HD
+DOCKED: HETATM   16  O3  BTN A 300      14.479  -0.616  -8.497 -1.83 -0.05    -0.247 OA
+DOCKED: HETATM   17  N2  BTN A 300      12.865   0.126  -9.932 -0.46 +0.05    -0.335 N 
+DOCKED: HETATM   18  H2  BTN A 300      13.489   0.312 -10.717 -0.44 -0.06    +0.164 HD
+DOCKED: ENDBRANCH   7   8
+DOCKED: ENDBRANCH   6   7
+DOCKED: ENDBRANCH   5   6
+DOCKED: ENDBRANCH   4   5
+DOCKED: ENDBRANCH   1   4
+DOCKED: TORSDOF 5
+DOCKED: TER
+DOCKED: ENDMDL
+________________________________________________________________________________
+
+
+    FINAL DOCKED STATE:
+    ________________________
+
+
+Run:   9 / 10
+Time taken for this run:   0.038s
+
+DOCKED: MODEL        9
+DOCKED: USER    Run = 9
+DOCKED: USER
+DOCKED: USER    Estimated Free Energy of Binding    =  -8.05 kcal/mol  [=(1)+(2)+(3)-(4)]
+DOCKED: USER
+DOCKED: USER    (1) Final Intermolecular Energy     =  -9.55 kcal/mol
+DOCKED: USER        vdW + Hbond + desolv Energy     =  -8.82 kcal/mol
+DOCKED: USER        Electrostatic Energy            =  -0.73 kcal/mol
+DOCKED: USER    (2) Final Total Internal Energy     =  -0.21 kcal/mol
+DOCKED: USER    (3) Torsional Free Energy           =  +1.49 kcal/mol
+DOCKED: USER    (4) Unbound System's Energy         =  -0.21 kcal/mol
+DOCKED: USER
+DOCKED: USER
+DOCKED: REMARK  5 active torsions:
+DOCKED: REMARK  status: ('A' for Active; 'I' for Inactive)
+DOCKED: REMARK    1  A    between atoms: C11_1  and  C10_4 
+DOCKED: REMARK    2  A    between atoms: C10_4  and  C9_5 
+DOCKED: REMARK    3  A    between atoms: C9_5  and  C8_6 
+DOCKED: REMARK    4  A    between atoms: C8_6  and  C7_7 
+DOCKED: REMARK    5  A    between atoms: C7_7  and  C2_8 
+DOCKED: USER                              x       y       z     vdW  Elec       q    Type
+DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____
+DOCKED: ROOT
+DOCKED: HETATM    1  C11 BTN A 300       8.751   4.398 -14.362 -0.52 +0.04    +0.172 C 
+DOCKED: HETATM    2  O11 BTN A 300       7.744   5.095 -14.549 -0.98 -0.18    -0.648 OA
+DOCKED: HETATM    3  O12 BTN A 300       8.740   3.190 -14.892 -0.89 -0.26    -0.648 OA
+DOCKED: ENDROOT
+DOCKED: BRANCH   1   4
+DOCKED: HETATM    4  C10 BTN A 300       9.684   4.534 -13.212 -0.62 +0.01    +0.113 C 
+DOCKED: BRANCH   4   5
+DOCKED: HETATM    5  C9  BTN A 300       9.868   3.167 -12.464 -0.50 +0.00    +0.010 C 
+DOCKED: BRANCH   5   6
+DOCKED: HETATM    6  C8  BTN A 300      11.224   2.605 -12.606 -0.60 +0.00    +0.002 C 
+DOCKED: BRANCH   6   7
+DOCKED: HETATM    7  C7  BTN A 300      11.857   2.103 -11.309 -0.49 +0.00    +0.017 C 
+DOCKED: BRANCH   7   8
+DOCKED: HETATM    8  C2  BTN A 300      11.079   1.583 -10.169 -0.50 -0.00    +0.072 C 
+DOCKED: HETATM    9  S1  BTN A 300      11.123   2.420  -8.531 -0.90 -0.01    -0.160 SA
+DOCKED: HETATM   10  C6  BTN A 300      10.356   0.922  -7.807 -0.68 -0.03    +0.101 C 
+DOCKED: HETATM   11  C5  BTN A 300      11.072  -0.265  -8.443 -0.47 -0.05    +0.119 A 
+DOCKED: HETATM   12  N1  BTN A 300      12.341  -0.575  -7.786 -0.57 +0.28    -0.336 N 
+DOCKED: HETATM   13  C4  BTN A 300      11.503   0.129  -9.852 -0.37 -0.02    +0.123 A 
+DOCKED: HETATM   14  C3  BTN A 300      13.397  -0.413  -8.591 -0.58 -0.09    +0.316 A 
+DOCKED: HETATM   15  H1  BTN A 300      12.413  -0.882  -6.817 -0.60 -0.35    +0.164 HD
+DOCKED: HETATM   16  O3  BTN A 300      14.608  -0.585  -8.336 -1.68 -0.07    -0.247 OA
+DOCKED: HETATM   17  N2  BTN A 300      12.956  -0.014  -9.806 -0.48 +0.06    -0.335 N 
+DOCKED: HETATM   18  H2  BTN A 300      13.569   0.166 -10.600 -0.48 -0.06    +0.164 HD
+DOCKED: ENDBRANCH   7   8
+DOCKED: ENDBRANCH   6   7
+DOCKED: ENDBRANCH   5   6
+DOCKED: ENDBRANCH   4   5
+DOCKED: ENDBRANCH   1   4
+DOCKED: TORSDOF 5
+DOCKED: TER
+DOCKED: ENDMDL
+________________________________________________________________________________
+
+
+    FINAL DOCKED STATE:
+    ________________________
+
+
+Run:   10 / 10
+Time taken for this run:   0.038s
+
+DOCKED: MODEL        10
+DOCKED: USER    Run = 10
+DOCKED: USER
+DOCKED: USER    Estimated Free Energy of Binding    =  -7.99 kcal/mol  [=(1)+(2)+(3)-(4)]
+DOCKED: USER
+DOCKED: USER    (1) Final Intermolecular Energy     =  -9.48 kcal/mol
+DOCKED: USER        vdW + Hbond + desolv Energy     =  -8.84 kcal/mol
+DOCKED: USER        Electrostatic Energy            =  -0.65 kcal/mol
+DOCKED: USER    (2) Final Total Internal Energy     =  -0.22 kcal/mol
+DOCKED: USER    (3) Torsional Free Energy           =  +1.49 kcal/mol
+DOCKED: USER    (4) Unbound System's Energy         =  -0.22 kcal/mol
+DOCKED: USER
+DOCKED: USER
+DOCKED: REMARK  5 active torsions:
+DOCKED: REMARK  status: ('A' for Active; 'I' for Inactive)
+DOCKED: REMARK    1  A    between atoms: C11_1  and  C10_4 
+DOCKED: REMARK    2  A    between atoms: C10_4  and  C9_5 
+DOCKED: REMARK    3  A    between atoms: C9_5  and  C8_6 
+DOCKED: REMARK    4  A    between atoms: C8_6  and  C7_7 
+DOCKED: REMARK    5  A    between atoms: C7_7  and  C2_8 
+DOCKED: USER                              x       y       z     vdW  Elec       q    Type
+DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____
+DOCKED: ROOT
+DOCKED: HETATM    1  C11 BTN A 300       8.839   4.451 -14.365 -0.53 +0.04    +0.172 C 
+DOCKED: HETATM    2  O11 BTN A 300       7.730   5.000 -14.421 -0.99 -0.17    -0.648 OA
+DOCKED: HETATM    3  O12 BTN A 300       8.887   3.178 -14.706 -0.83 -0.24    -0.648 OA
+DOCKED: ENDROOT
+DOCKED: BRANCH   1   4
+DOCKED: HETATM    4  C10 BTN A 300       9.958   4.871 -13.479 -0.66 +0.01    +0.113 C 
+DOCKED: BRANCH   4   5
+DOCKED: HETATM    5  C9  BTN A 300      10.180   3.841 -12.317 -0.58 +0.00    +0.010 C 
+DOCKED: BRANCH   5   6
+DOCKED: HETATM    6  C8  BTN A 300      11.545   3.282 -12.290 -0.61 +0.00    +0.002 C 
+DOCKED: BRANCH   6   7
+DOCKED: HETATM    7  C7  BTN A 300      11.679   1.932 -11.585 -0.45 +0.00    +0.017 C 
+DOCKED: BRANCH   7   8
+DOCKED: HETATM    8  C2  BTN A 300      10.951   1.579 -10.352 -0.49 -0.00    +0.072 C 
+DOCKED: HETATM    9  S1  BTN A 300      11.158   2.568  -8.814 -0.80 -0.01    -0.160 SA
+DOCKED: HETATM   10  C6  BTN A 300      10.352   1.202  -7.896 -0.71 -0.02    +0.101 C 
+DOCKED: HETATM   11  C5  BTN A 300      10.951  -0.086  -8.450 -0.47 -0.05    +0.119 A 
+DOCKED: HETATM   12  N1  BTN A 300      12.241  -0.415  -7.845 -0.57 +0.26    -0.336 N 
+DOCKED: HETATM   13  C4  BTN A 300      11.307   0.139  -9.916 -0.36 -0.02    +0.123 A 
+DOCKED: HETATM   14  C3  BTN A 300      13.247  -0.403  -8.726 -0.57 -0.09    +0.316 A 
+DOCKED: HETATM   15  H1  BTN A 300      12.360  -0.630  -6.856 -0.58 -0.30    +0.164 HD
+DOCKED: HETATM   16  O3  BTN A 300      14.460  -0.629  -8.530 -1.83 -0.05    -0.247 OA
+DOCKED: HETATM   17  N2  BTN A 300      12.749  -0.096  -9.945 -0.46 +0.06    -0.335 N 
+DOCKED: HETATM   18  H2  BTN A 300      13.317  -0.036 -10.790 -0.41 -0.05    +0.164 HD
+DOCKED: ENDBRANCH   7   8
+DOCKED: ENDBRANCH   6   7
+DOCKED: ENDBRANCH   5   6
+DOCKED: ENDBRANCH   4   5
+DOCKED: ENDBRANCH   1   4
+DOCKED: TORSDOF 5
+DOCKED: TER
+DOCKED: ENDMDL
+________________________________________________________________________________
+
+
+    CLUSTERING HISTOGRAM
+    ____________________
+
+
+________________________________________________________________________________
+     |           |     |           |     |
+Clus | Lowest    | Run | Mean      | Num | Histogram
+-ter | Binding   |     | Binding   | in  |
+Rank | Energy    |     | Energy    | Clus|    5    10   15   20   25   30   35
+_____|___________|_____|___________|_____|____:____|____:____|____:____|____:___
+   1 |     -8.26 |   6 |     -7.92 |  10 |##########
+_____|___________|_____|___________|_____|______________________________________
+
+
+    RMSD TABLE
+    __________
+
+
+_____________________________________________________________________
+     |      |      |           |         |                 |
+Rank | Sub- | Run  | Binding   | Cluster | Reference       | Grep
+     | Rank |      | Energy    | RMSD    | RMSD            | Pattern
+_____|______|______|___________|_________|_________________|___________
+   1      1      6       -8.26      0.00      0.35           RANKING
+   1      2      1       -8.24      0.40      0.48           RANKING
+   1      3      5       -8.21      0.34      0.40           RANKING
+   1      4      3       -8.20      0.19      0.34           RANKING
+   1      5      2       -8.16      0.51      0.47           RANKING
+   1      6      7       -8.08      0.40      0.52           RANKING
+   1      7      9       -8.05      0.41      0.45           RANKING
+   1      8     10       -7.99      0.36      0.49           RANKING
+   1      9      4       -7.43      0.87      0.81           RANKING
+   1     10      8       -6.58      1.56      1.64           RANKING
