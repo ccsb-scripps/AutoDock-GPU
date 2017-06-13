@@ -6,7 +6,7 @@ OpenCL Accelerated Molecular Docking (OCLADock)
 # Features
 
 * OpenCL-accelerated version of the Lamarckian Genetic Algorithm of AutoDock 4.2.
-* It targets platforms based on multi-core CPUs and GPUs accelerators.
+* It targets platforms based on multi-core CPU and GPU accelerators.
 
 # Setup
 ## Requirements
@@ -32,7 +32,7 @@ make
 ```
 After successful compilation, the host binary `ocladock_<N>wi` is placed in the project root-folder.
 
-`N` denotes the OpenCL work-group size. This can be configured in the [Makefile][Makefile]
+`N` denotes the OpenCL work-group size. This can be configured in the [Makefile](Makefile).
 
 ## Compilation on Windows
 
@@ -42,6 +42,9 @@ After successful compilation, the host binary `ocladock_<N>wi` is placed in the 
 ```zsh
 ./ocladock -ffile <protein>.maps.fld -lfile <ligand>.pdbqt -nrun <nruns>
 ```
+Mandatory arguments:
+* Protein file: `-ffile <protein>.maps.fld`
+* Ligand file:  `-lfile <ligand>.pdbqt`
 
 ## Example
 ```zsh
@@ -49,7 +52,7 @@ After successful compilation, the host binary `ocladock_<N>wi` is placed in the 
 ```
 
 ## Supported arguments
-For a complete list of available arguments and their default values, check: [getparameters.cpp][host/src/getparameters.cpp].
+For a complete list of available arguments and their default values, check: [getparameters.cpp](host/src/getparameters.cpp)
 
 | Argument | Description                  | Default value |
 |----------|------------------------------|---------------|
