@@ -1,22 +1,20 @@
-#ocladock
-==================
+OpenCL Accelerated Molecular Docking (OCLADock)
+===============================================
 
-OCLADock: OpenCL Accelerated Molecular Docking
+# Updated commands for open-source release
 
-#Updated commands for open-source release
-
-##Basic command
+## Basic command
 ```zsh
 ./ocladock -ffile <protein>.maps.fld -lfile <ligand>.pdbqt -nrun <nruns>
 ```
 
-##Example
+## Example
 
 ```zsh
 ./ocladock_64wi -ffile ./input_data/1stp/derived/1stp_protein.maps.fld -lfile ./input_data/1stp/derived/1stp_ligand.pdbqt -nrun 10
 ```
 
-##Supported arguments
+## Supported arguments
 For a complete list of available arguments and their default values, check: `host/src/getparameters.cpp`.
 
 | Argument | Description                  | Default value |
