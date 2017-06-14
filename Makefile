@@ -11,7 +11,7 @@ AMD_LIBRARY_PATH=/opt/amdgpu-pro/lib/x86_64-linux-gnu
 # ------------------------------------------------------
 # Choose OpenCL device
 # Valid values: CPU, GPU
-DEVICE=CPU
+DEVICE=GPU
 
 ifeq ($(DEVICE), CPU)
 	DEV =-DCPU_DEVICE
