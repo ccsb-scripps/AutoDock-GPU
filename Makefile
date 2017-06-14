@@ -1,7 +1,29 @@
-# odock Makefile
+# ocladock Makefile
+
+# CPU config
+INTEL_INCLUDE_PATH=/opt/intel/opencl-1.2-sdk-6.0.0.1049/include
+INTEL_LIBRARY_PATH=/opt/intel/opencl-1.2-sdk-6.0.0.1049/
+
+# GPU config
 AMD_INCLUDE_PATH=/opt/AMDAPPSDK-3.0/include
 AMD_LIBRARY_PATH=/opt/amdgpu-pro/lib/x86_64-linux-gnu
 
+# ------------------------------------------------------
+# Choose OpenCL device
+# Valid values: CPU, GPU
+DEVICE=CPU
+
+ifeq ($(DEVICE), CPU)
+	DEV =-DCPU_DEVICE
+	OCLA_INC_PATH=$(INTEL_INCLUDE_PATH)
+	OCLA_LIB_PATH=$(INTEL_LIBRARY_PATH)
+else ifeq ($(DEVICE), GPU)
+	DEV =-DGPU_DEVICE
+	OCLA_INC_PATH=$(AMD_INCLUDE_PATH)
+	OCLA_LIB_PATH=$(AMD_LIBRARY_PATH)
+endif
+
+# ------------------------------------------------------
 # Project directories
 # opencl_lvs: wrapper for OpenCL APIs
 COMMON_DIR=./common
@@ -10,14 +32,15 @@ OCL_SRC_DIR=./opencl_lvs/src
 HOST_INC_DIR=./host/inc
 HOST_SRC_DIR=./host/src
 KRNL_DIR=./device
+KCMN_DIR=$(COMMON_DIR)
 
 # Host sources
 OCL_SRC=$(wildcard $(OCL_SRC_DIR)/*.cpp)
 HOST_SRC=$(wildcard $(HOST_SRC_DIR)/*.cpp)
 SRC=$(OCL_SRC) $(HOST_SRC)
 
-IFLAGS=-I$(COMMON_DIR) -I$(OCL_INC_DIR) -I$(HOST_INC_DIR) -I$(AMD_INCLUDE_PATH)
-LFLAGS=-L$(AMD_LIBRARY_PATH)
+IFLAGS=-I$(COMMON_DIR) -I$(OCL_INC_DIR) -I$(HOST_INC_DIR) -I$(OCLA_INC_PATH)
+LFLAGS=-L$(OCLA_LIB_PATH)
 CFLAGS=$(IFLAGS) $(LFLAGS)
 
 # Device sources
@@ -30,21 +53,12 @@ K3_NAME="perform_LS"
 K4_NAME="gpu_gen_and_eval_newpops"
 K_NAMES=-DK1=$(K1_NAME) -DK2=$(K2_NAME) -DK3=$(K3_NAME) -DK4=$(K4_NAME)
 # Kernel flags
-KFLAGS=-DKRNL_SOURCE=$(KRNL_DIR)/$(KRNL_MAIN) -DKRNL_DIRECTORY=$(KRNL_DIR) $(K_NAMES)
+KFLAGS=-DKRNL_SOURCE=$(KRNL_DIR)/$(KRNL_MAIN) -DKRNL_DIRECTORY=$(KRNL_DIR) -DKCMN_DIRECTORY=$(KCMN_DIR) $(K_NAMES)
 
 TARGET := ocladock
 BIN := $(wildcard $(TARGET)*)
+
 # ------------------------------------------------------
-# Choose OpenCL device
-# Valid values: CPU, GPU
-DEVICE=GPU
-
-ifeq ($(DEVICE), CPU)
-	DEV =-DCPU_DEVICE
-else ifeq ($(DEVICE), GPU)
-	DEV =-DGPU_DEVICE
-endif
-
 # Number of work-items (wi)
 # Valid values: 16, 32, 64, 128
 NWI=
@@ -84,6 +98,7 @@ else
 	OPT =
 endif
 
+# ------------------------------------------------------
 # Host and Device Debug
 DOCK_DEBUG=NO
 

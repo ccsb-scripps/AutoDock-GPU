@@ -11,12 +11,13 @@
 #define STRINGIZE(s)	STRINGIZE2(s)
 #define KRNL_FILE STRINGIZE(KRNL_SOURCE)
 #define KRNL_FOLDER STRINGIZE(KRNL_DIRECTORY)
+#define KRNL_COMMON STRINGIZE(KCMN_DIRECTORY)
 #define KRNL1 STRINGIZE(K1)
 #define KRNL2 STRINGIZE(K2)
 #define KRNL3 STRINGIZE(K3)
 #define KRNL4 STRINGIZE(K4)
 
-#define INC " -I " KRNL_FOLDER
+#define INC " -I " KRNL_FOLDER " -I " KRNL_COMMON
 
 #if defined (N16WI)
 	#define KNWI " -DN16WI "
@@ -341,9 +342,13 @@ filled with clock() */
 	clock_start_docking = clock();
 
 	//print progress bar
+#ifndef DOCK_DEBUG
 	printf("\nExecuting docking runs:\n");
 	printf("        20%%        40%%       60%%       80%%       100%%\n");
 	printf("---------+---------+---------+---------+---------+\n");
+#else
+	printf("\n");
+#endif
 	curr_progress_cnt = 0;
 
 #ifdef DOCK_DEBUG
@@ -385,7 +390,7 @@ filled with clock() */
 	kernel1_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
   kernel1_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("Kernel1: gSize: %u, lSize: %u\n", kernel1_gxsize, kernel1_lxsize); fflush(stdout);
+	printf("%-25s %10s %8u %10s %4u\n", "Kernel1: ", "gSize: ", kernel1_gxsize, "lSize: ", kernel1_lxsize); fflush(stdout);
 #endif
 // End of Kernel1
 
@@ -396,7 +401,7 @@ filled with clock() */
 	kernel2_gxsize = blocksPerGridForEachRun * threadsPerBlock;
   kernel2_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("Kernel2: gSize: %u, lSize: %u\n", kernel2_gxsize, kernel2_lxsize); fflush(stdout);
+	printf("%-25s %10s %8u %10s %4u\n", "Kernel2: ", "gSize: ", kernel2_gxsize, "lSize: ",  kernel2_lxsize); fflush(stdout);
 #endif
 // End of Kernel2
 
@@ -444,7 +449,7 @@ filled with clock() */
 	kernel4_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
   kernel4_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("Kernel4: gSize: %u, lSize: %u\n", kernel4_gxsize, kernel4_lxsize); fflush(stdout);
+	printf("%-25s %10s %8u %10s %4u\n", "K_GENETIC_GENERATION: ", "gSize: ",  kernel4_gxsize, "lSize: ", kernel4_lxsize); fflush(stdout);
 #endif
 // End of Kernel4
 
@@ -491,29 +496,29 @@ filled with clock() */
   kernel3_gxsize = blocksPerGridForEachLSEntity * threadsPerBlock;
   kernel3_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("Kernel3: gSize: %u, lSize: %u\n", kernel3_gxsize, kernel3_lxsize); fflush(stdout);
+	printf("%-25s %10s %8u %10s %4u\n", "K_LOCAL_SEARCH: ", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
 #endif
 // End of Kernel3
 
 
 // Kernel1
-	#ifdef DOCK_DEBUG
-		printf("Start Kernel1 ... ");fflush(stdout);
-	#endif
+	//#ifdef DOCK_DEBUG
+	//	printf("Start Kernel1 ... ");fflush(stdout);
+	//#endif
 	runKernel1D(command_queue,kernel1,kernel1_gxsize,kernel1_lxsize,&time_start_kernel,&time_end_kernel);
-	#ifdef DOCK_DEBUG
-		printf(" ... Finish Kernel1\n");fflush(stdout);
-	#endif
+	//#ifdef DOCK_DEBUG
+	//	printf(" ... Finish Kernel1\n");fflush(stdout);
+	//#endif
 // End of Kernel1
 
 // Kernel2
-	#ifdef DOCK_DEBUG
-		printf("Start Kernel2 ... ");fflush(stdout);
-	#endif
+	//#ifdef DOCK_DEBUG
+	//	printf("Start Kernel2 ... ");fflush(stdout);
+	//#endif
 	runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
-	#ifdef DOCK_DEBUG
-		printf(" ... Finish Kernel2\n");fflush(stdout);
-	#endif
+	//#ifdef DOCK_DEBUG
+	//	printf(" ... Finish Kernel2\n");fflush(stdout);
+	//#endif
 // End of Kernel2
 	// ===============================================================================
 
@@ -542,7 +547,7 @@ filled with clock() */
 	{
 #ifdef DOCK_DEBUG
     ite_cnt++;
-    printf("Iteration # %u\n", ite_cnt);
+    printf("\nIteration # %u\n", ite_cnt);
     fflush(stdout);
 #endif
 
@@ -553,38 +558,40 @@ filled with clock() */
 
 	 while (curr_progress_cnt < new_progress_cnt) {
 		curr_progress_cnt++;
+#ifndef DOCK_DEBUG
 		printf("*");
+#endif
 		fflush(stdout);
 	}
 
 // Kernel4
 	#ifdef DOCK_DEBUG
-		printf("Start Kernel4 ... ");fflush(stdout);
+		printf("%-25s", "K_GENETIC_GENERATION: ");fflush(stdout);
 	#endif
 		runKernel1D(command_queue,kernel4,kernel4_gxsize,kernel4_lxsize,&time_start_kernel,&time_end_kernel);
 	#ifdef DOCK_DEBUG
-		printf(" ... Finish Kernel4\n");fflush(stdout);
+		printf("%15s", " ... Finished\n");fflush(stdout);
 	#endif
 // End of Kernel4
 
 // Kernel3
 	#ifdef DOCK_DEBUG
-		printf("Start Kernel3 ... ");fflush(stdout);
+		printf("%-25s", "K_LOCAL_SEARCH: ");fflush(stdout);
 	#endif
 		runKernel1D(command_queue,kernel3,kernel3_gxsize,kernel3_lxsize,&time_start_kernel,&time_end_kernel);
 	#ifdef DOCK_DEBUG
-		printf(" ... Finish Kernel3\n");fflush(stdout);
+		printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 // End of Kernel3
 
 // Kernel2
-	#ifdef DOCK_DEBUG
-		printf("Start Kernel2 ... ");fflush(stdout);
-	#endif
+	//#ifdef DOCK_DEBUG
+	//	printf("Start Kernel2 ... ");fflush(stdout);
+	//#endif
 		runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
-	#ifdef DOCK_DEBUG
-		printf(" ... Finish Kernel2\n");fflush(stdout);
-	#endif
+	//#ifdef DOCK_DEBUG
+	//	printf(" ... Finish Kernel2\n");fflush(stdout);
+	//#endif
 // End of Kernel2
 		// ===============================================================================
 

@@ -1,4 +1,4 @@
-#include "/home/wimi/lvs/ofdock_amd/ofdock/calcenergy_basic.h"
+#include "calcenergy_basic.h"
 
 // All related pragmas are in defines.h (accesible by host and device code)
 

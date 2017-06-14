@@ -8,8 +8,7 @@
 #include "getparameters.h"
 #include "performdocking.h"
 // ------------------------
-// Correct time measurement
-// Moved to performdocking.cpp to skip measuring build time
+// Time measurement
 #include <sys/time.h>
 // ------------------------
 
@@ -24,8 +23,7 @@ int main(int argc, char* argv[])
 	clock_start_program = clock();
 
 	// ------------------------
-	// Correct time measurement
-	// Moved to performdocking.cpp to skip measuring build time
+	// Time measurement
 	double num_sec, num_usec, elapsed_sec;
 	timeval time_start,time_end;
 	gettimeofday(&time_start,NULL);
@@ -79,13 +77,12 @@ int main(int argc, char* argv[])
 	free(floatgrids);
 
 	// ------------------------
-	// Correct time measurement
-	// Moved to performdocking.cpp to skip measuring build time
+	// Time measurement
 	gettimeofday(&time_end,NULL);
 	num_sec     = time_end.tv_sec  - time_start.tv_sec;
 	num_usec    = time_end.tv_usec - time_start.tv_usec;
 	elapsed_sec = num_sec + (num_usec/1000000);
-	printf("Program run time %.3f sec (CORRECTED, used for EVALUATION)\n",elapsed_sec);
+	printf("Program run time %.3f sec \n\n", elapsed_sec);
 	//// ------------------------
 
 	return 0;

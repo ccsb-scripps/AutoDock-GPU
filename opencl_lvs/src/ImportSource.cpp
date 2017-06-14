@@ -106,7 +106,7 @@ int ImportSource(const char*    filename,
 		fflush(stdout);
 		
 		FILE* plogfile;
-		plogfile = fopen("README_LOG_ProgramBuildInfo.txt","w");
+		plogfile = fopen("KernelProgramBuildInfo.txt","w");
 		fprintf(plogfile,"%s",program_build_log);
 
 		fclose(plogfile);
