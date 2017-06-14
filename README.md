@@ -24,6 +24,8 @@ OCLADock is known to work in the following environment:
 
 Other environments/configurations likely work as well, but are untested.
 
+Verify OpenCL SDK is correctly installed!
+
 # Compilation
 
 ## Compilation on Linux
