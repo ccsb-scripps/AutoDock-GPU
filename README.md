@@ -71,6 +71,8 @@ For a complete list of available arguments and their default values, check: [get
 
 # License
 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 # Credits
 
 Leonardo Solis-Vasquez and Andreas Koch. 2017. A Performance and Energy Evaluation of OpenCL-accelerated Molecular Docking. In Proceedings of the 5th International Workshop on OpenCL (IWOCL 2017). ACM, New York, NY, USA, Article 3, 11 pages. DOI: https://doi.org/10.1145/3078155.3078167
