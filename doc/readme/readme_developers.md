@@ -57,7 +57,7 @@ This is the documentation for developers: source code structure, build instructi
 | processligand{[.h](host/inc/processligand.h)}{[.cpp](host/src/processligand.cpp)} | Auxiliary functions for energy calculation     |
 | processresult{[.h](host/inc/processresult.h)}{[.cpp](host/src/processresult.cpp)} | Auxiliary functions for energy calculation     |
 
-**input**: chemical compounds taken from [PDB](http://www.rcsb.org/pdb/home/home.do)
+**input**: chemical compounds taken from [PDB](http://www.rcsb.org/pdb/home/home.do).
 
 ```
 >
@@ -67,13 +67,17 @@ This is the documentation for developers: source code structure, build instructi
 ```
 
 
-### wrapcl
+**wrapcl**: custom wrapper functions for OpenCL API calls.
+
+| File                 | Description                                                                   |
+|----------------------|-------------------------------------------------------------------------------|
+| BufferObjects{[.h](host/inc/BufferObjects.h)}{[.cpp](host/src/BufferObjects.cpp)} | Auxiliary functions for energy calculation     |
 
 ```
 .
 +-- wrapcl
 |   +-- inc
-    |   +-- BufferObjects.h
+
     |   +-- CommandQueues.h
     |   +-- commonMacros.h
     |   +-- Contexts.h
@@ -85,7 +89,7 @@ This is the documentation for developers: source code structure, build instructi
     |   +-- Platforms.h
     |   +-- Programs.h
 |   +-- src
-|   +-- BufferObjects.cpp
+
 |   +-- CommandQueues.cpp
 |   +-- Contexts.cpp
 |   +-- Devices.cpp
