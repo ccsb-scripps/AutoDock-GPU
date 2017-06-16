@@ -21,7 +21,6 @@
 
 // libgen.h contains basename() and dir() from a fullpath name
 // Specific: to open correctly grid map field fiels and associated files
-// Not only during real execution but also SDAccel cpu-, hw-emulation
 // http://ask.systutorials.com/681/get-the-directory-path-and-file-name-from-absolute-path-linux
 
 #include "miscellaneous.h"

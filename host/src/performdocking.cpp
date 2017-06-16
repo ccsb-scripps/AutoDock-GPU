@@ -88,7 +88,7 @@ filled with clock() */
 	cl_command_queue command_queue;
 
 	const char *filename = KRNL_FILE;
-	printf("%-40s %-40s\n", "Kernel source file: ", filename);  fflush(stdout);
+	printf("\n%-40s %-40s\n", "Kernel source file: ", filename);  fflush(stdout);
 
 	const char* options_program = OPT_PROG;
 	printf("%-40s %-40s\n", "Kernel compilation flags: ", options_program); fflush(stdout);

@@ -45,7 +45,7 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 
 
 	fprintf(fp, "***********************************\n");
-	fprintf(fp, "**   OFDOCK(GDOCK) REPORT FILE   **\n");
+	fprintf(fp, "**   OCLADOCK REPORT FILE   **\n");
 	fprintf(fp, "***********************************\n\n\n");
 
 	//Writing out docking parameters
@@ -138,7 +138,7 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 
 
 	fprintf(fp, "**********************************************************\n");
-	fprintf(fp, "**       GDOCK  AUTODOCKTOOLS-COMPATIBLE DLG FILE       **\n");
+	fprintf(fp, "**       OCLADOCK AUTODOCKTOOLS-COMPATIBLE DLG FILE       **\n");
 	fprintf(fp, "**********************************************************\n\n\n");
 
 	//Writing out docking parameters

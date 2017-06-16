@@ -137,8 +137,6 @@ int get_gridvalues_f(const Gridinfo* mygrid, float** fgrids)
 		//opening corresponding .map file
 		//-------------------------------------
 		// Added the complete path of associated grid files.
-		// Otherwise sdock doesn't find it during SDAccel cpu-, hw-emulation.
-		//strcpy(tempstr, "/home/wimi/lvs/ESA_Projects/bioinfo/docking_src/gdock/leonardo/input_data/");
 		strcpy(tempstr,mygrid->grid_file_path);
 		strcat(tempstr, "/");
 		strcat(tempstr, mygrid->receptor_name);
