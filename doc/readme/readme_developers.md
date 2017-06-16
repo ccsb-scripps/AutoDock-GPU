@@ -48,23 +48,24 @@ This is the documentation for developers: source code structure, build instructi
 
 | File                 | Description                                                                   |
 |----------------------|-------------------------------------------------------------------------------|
-| calcenergy{[.h](host/inc/calcenergy.h)}{[.cpp](host/src/calcenergy.cpp)} | Auxiliary functions for energy calculation     |
+| calcenergy[.h](host/inc/calcenergy.h)[.cpp](host/src/calcenergy.cpp) | Auxiliary functions for energy calculation     |
+| getparameters[.h](host/inc/getparameters.h)[.cpp](host/src/getparameters.cpp) | Auxiliary functions for energy calculation     |
+| miscellaneous[.h](host/inc/miscellaneous.h)[.cpp](host/src/miscellaneous.cpp) | Auxiliary functions for energy calculation     |
 
 
 ```
 .
 +-- host
 |   +-- inc
-    |   +-- calcenergy.h
-    |   +-- getparameters.h
+
+
     |   +-- miscellaneous.h
     |   +-- performdocking.h
     |   +-- processgrid.h
     |   +-- processligand.h
     |   +-- processresult.h
 |   +-- src
-    |   +-- calcenergy.cpp
-    |   +-- getparameters.cpp
+
     |   +-- main.cpp
     |   +-- miscellaneous.cpp
     |   +-- performdocking.cpp
