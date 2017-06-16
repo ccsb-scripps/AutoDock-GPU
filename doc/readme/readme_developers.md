@@ -51,6 +51,8 @@ This is the documentation for developers: source code structure, build instructi
 | calcenergy{[.h](host/inc/calcenergy.h)}{[.cpp](host/src/calcenergy.cpp)} | Auxiliary functions for energy calculation     |
 | getparameters{[.h](host/inc/getparameters.h)}{[.cpp](host/src/getparameters.cpp)}| Auxiliary functions for energy calculation     |
 | miscellaneous{[.h](host/inc/miscellaneous.h)}{[.cpp](host/src/miscellaneous.cpp)} | Auxiliary functions for energy calculation     |
+| [main.cpp](host/src/main.cpp) | Auxiliary functions for energy calculation     |
+
 
 
 ```
@@ -59,15 +61,12 @@ This is the documentation for developers: source code structure, build instructi
 |   +-- inc
 
 
-    |   +-- miscellaneous.h
     |   +-- performdocking.h
     |   +-- processgrid.h
     |   +-- processligand.h
     |   +-- processresult.h
 |   +-- src
 
-    |   +-- main.cpp
-    |   +-- miscellaneous.cpp
     |   +-- performdocking.cpp
     |   +-- processgrid.cpp
     |   +-- processligand.cpp
