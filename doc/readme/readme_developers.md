@@ -44,7 +44,7 @@ This is the documentation for developers: source code structure, build instructi
 
 **doc**: documentation files.
 
-**host**:
+**host**: host source files.
 
 | File                 | Description                                                                   |
 |----------------------|-------------------------------------------------------------------------------|
@@ -71,17 +71,17 @@ This is the documentation for developers: source code structure, build instructi
 
 | File                 | Description                                                                   |
 |----------------------|-------------------------------------------------------------------------------|
-| BufferObjects{[.h](host/inc/BufferObjects.h)}{[.cpp](host/src/BufferObjects.cpp)} | Auxiliary functions for energy calculation     |
-| CommandQueues{[.h](host/inc/CommandQueues.h)}{[.cpp](host/src/CommandQueues.cpp)} | Auxiliary functions for energy calculation     |
-| [commonMacros.h](host/inc/commonMacros.h) | Auxiliary functions for energy calculation     |
-| Contexts{[.h](host/inc/Contexts.h)}{[.cpp](host/src/Contexts.cpp)} | Auxiliary functions for energy calculation     |
-| Devices{[.h](host/inc/Devices.h)}{[.cpp](host/src/Devices.cpp)} | Auxiliary functions for energy calculation     |
-| ImportBinary{[.h](host/inc/ImportBinary.h)}{[.cpp](host/src/ImportBinary.cpp)} | Auxiliary functions for energy calculation     |
-| ImportSource{[.h](host/inc/ImportSource.h)}{[.cpp](host/src/ImportSource.cpp)} | Auxiliary functions for energy calculation     |
-| Kernels{[.h](host/inc/Kernels.h)}{[.cpp](host/src/Kernels.cpp)} | Auxiliary functions for energy calculation     |
-| listAttributes{[.h](host/inc/listAttributes.h)}{[.cpp](host/src/listAttributes.cpp)} | Auxiliary functions for energy calculation     |
-| Platforms{[.h](host/inc/Platforms.h)}{[.cpp](host/src/Platforms.cpp)} | Auxiliary functions for energy calculation     |
-| Programs{[.h](host/inc/Programs.h)}{[.cpp](host/src/Programs.cpp)} | Auxiliary functions for energy calculation     |
+| BufferObjects{[.h](host/inc/BufferObjects.h)}{[.cpp](host/src/BufferObjects.cpp)} | Functions for allocating, mapping, copying, and querying info of buffers |
+| CommandQueues{[.h](host/inc/CommandQueues.h)}{[.cpp](host/src/CommandQueues.cpp)} | Functions for creating and querying info of command queues     |
+| [commonMacros.h](host/inc/commonMacros.h) |      |
+| Contexts{[.h](host/inc/Contexts.h)}{[.cpp](host/src/Contexts.cpp)} |     |
+| Devices{[.h](host/inc/Devices.h)}{[.cpp](host/src/Devices.cpp)} |     |
+| ImportBinary{[.h](host/inc/ImportBinary.h)}{[.cpp](host/src/ImportBinary.cpp)} |      |
+| ImportSource{[.h](host/inc/ImportSource.h)}{[.cpp](host/src/ImportSource.cpp)} |      |
+| Kernels{[.h](host/inc/Kernels.h)}{[.cpp](host/src/Kernels.cpp)} |     |
+| listAttributes{[.h](host/inc/listAttributes.h)}{[.cpp](host/src/listAttributes.cpp)} |      |
+| Platforms{[.h](host/inc/Platforms.h)}{[.cpp](host/src/Platforms.cpp)} |      |
+| Programs{[.h](host/inc/Programs.h)}{[.cpp](host/src/Programs.cpp)} |      |
 
 
 # Compilation
