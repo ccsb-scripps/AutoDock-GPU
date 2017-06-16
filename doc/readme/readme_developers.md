@@ -1,6 +1,7 @@
 This is the documentation for developers: source code structure, build instructions, tools required, etc.
 
 # Source-code structure
+```
 .
 +-- hola
 +-- amigos
@@ -8,6 +9,7 @@ This is the documentation for developers: source code structure, build instructi
 |   +-- muy
 |   +-- buenos
 |-- amigos
+```
 
 # Compilation
 
