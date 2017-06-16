@@ -158,3 +158,10 @@ OCLADock is known to work in the following environment:
 
 Other environments/configurations likely work as well, but are untested.
 
+**Keep in mind that before compiling**
+* CPU: `$(INTELOCLSDKROOT)` must be defined
+* GPU: `$(AMDAPPSDKROOT)` must be defined
+    ** 
+
+
+
