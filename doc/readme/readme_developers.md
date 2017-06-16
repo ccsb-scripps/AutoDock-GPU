@@ -25,18 +25,18 @@ This is the documentation for developers: source code structure, build instructi
 
 **common**: common header files for host and device.
 
-| File                | Description                                                   |
-|---------------------|---------------------------------------------------------------|
-| [calcenergy_basic.h](common/calcenergy_basic.h)  | Basic defines and macros for energy calculation               |
+| File                | Description                                                                       |
+|---------------------|-----------------------------------------------------------------------------------|
+| [calcenergy_basic.h](common/calcenergy_basic.h)  | Basic defines and macros for energy calculation      |
 | [defines.h](common/defines.h)           | Basic defines for energy calculation and kernels optimization |
 
 
 **device**: source files containing kernels.
 
-| File                 | Description                                                        |
-|----------------------|--------------------------------------------------------------------|
-| [auxiliary_genetic.cl](device/auxiliary_genetic.cl) | Auxiliary functions for energy calculation                         |
-| [calcenergy.cl](device/calcenergy.cl)   | Main function for energy calculation                               |
+| File                 | Description                                                                   |
+|----------------------|-------------------------------------------------------------------------------|
+| [auxiliary_genetic.cl](device/auxiliary_genetic.cl) | Auxiliary functions for energy calculation     |
+| [calcenergy.cl](device/calcenergy.cl)   | Main function for energy calculation                       |
 | [kernel1.cl](device/kernel1.cl) | `gpu_calc_initpop`: calculates the energy of initial population    |
 | [kernel2.cl](device/kernel2.cl) | `gpu_sum_evals`: sums the evaluation counter states                |
 | [kernel3.cl](device/kernel3.cl) | `perform_LS`: performs the local search                            |
@@ -45,6 +45,11 @@ This is the documentation for developers: source code structure, build instructi
 **doc**: documentation files.
 
 **host**:
+
+| File                 | Description                                                                   |
+|----------------------|-------------------------------------------------------------------------------|
+| calcenergy[.h](host/inc/calcenergy.h)[.cpp](host/src/calcenergy.cpp) | Auxiliary functions for energy calculation     |
+
 
 ```
 .
