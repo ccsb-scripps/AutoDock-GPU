@@ -53,18 +53,24 @@ This is the documentation for developers: source code structure, build instructi
 | miscellaneous{[.h](host/inc/miscellaneous.h)}{[.cpp](host/src/miscellaneous.cpp)} | General-purpose functions    |
 | [main.cpp](host/src/main.cpp) | Main source file     |
 | performdocking{[.h](host/inc/performdocking.h)}{[.cpp](host/src/performdocking.cpp)} | Entry point for OpenCL-platform setup and kernels execution    |
-| processgrid{[.h](host/inc/processgrid.h)}{[.cpp](host/src/processgrid.cpp)} | Functions processing and converting the energy grids    |
-| processligand{[.h](host/inc/processligand.h)}{[.cpp](host/src/processligand.cpp)} | Functions performing operations in the ligand     |
-| processresult{[.h](host/inc/processresult.h)}{[.cpp](host/src/processresult.cpp)} | Functions processing docking results  |
+| processgrid{[.h](host/inc/processgrid.h)}{[.cpp](host/src/processgrid.cpp)} | Functions for processing and converting the energy grids    |
+| processligand{[.h](host/inc/processligand.h)}{[.cpp](host/src/processligand.cpp)} | Functions for performing operations in the ligand     |
+| processresult{[.h](host/inc/processresult.h)}{[.cpp](host/src/processresult.cpp)} | Functions for processing docking results  |
 
 **input**: chemical compounds taken from [PDB](http://www.rcsb.org/pdb/home/home.do).
 
-```
->
-+-- input
-|   +-- 1stp
-|   +-- 3ce3
-```
+| PDB complex                 | Description                                                                   |
+|----------------------|-------------------------------------------------------------------------------|
+| [1stp](http://www.rcsb.org/pdb/explore/explore.do?structureId=1stp) | STRUCTURAL ORIGINS OF HIGH-AFFINITY BIOTIN BINDING TO STREPTAVIDIN     |
+| [3ce3](http://www.rcsb.org/pdb/explore/explore.do?structureId=3ce3) | Crystal structure of the tyrosine kinase domain of the hepatocyte growth factor receptor C-MET in complex with a Pyrrolopyridinepyridone based inhibitor     |
+
+
+For both complexes, the containing folder has a similar structure:
+
+
+| File                 | Description                                                                   |
+|----------------------|-------------------------------------------------------------------------------|
+|  |     |
 
 
 **wrapcl**: custom wrapper functions for OpenCL API calls (complaint to OpenCL 1.2).
