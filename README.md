@@ -82,7 +82,7 @@ For a complete list of available arguments and their default values, check: [get
 
 # Documentation
 
-For a complete documentation, check the wiki!
+For a complete documentation, check the [Wiki](./Home)
 
 # Credits
 
