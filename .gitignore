@@ -24,13 +24,14 @@
 *.so.*
 *.dylib
 
+# Commented to add binaries
 # Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
+#*.exe
+#*.out
+#*.app
+#*.i*86
+#*.x86_64
+#*.hex
 
 # Debug files
 *.dSYM/
@@ -66,7 +67,8 @@
 *.a
 *.lib
 
+# Commented to add binaries
 # Executables
-*.exe
-*.out
-*.app
+#*.exe
+#*.out
+#*.app
