@@ -2,8 +2,65 @@ This is the documentation for developers: source code structure, build instructi
 
 # Source-code structure
 .
-+-- hola
-+-- amigos
++-- bin
+|   +-- ocladock_<type>_<N>wi
++-- common
+|   +-- calcenergy_basic.h
+|   +-- defines.h
++-- device
+|   +-- auxiliary_genetic.cl
+|   +-- calcenergy.cl
+|   +-- kernel1.cl
+|   +-- kernel2.cl
+|   +-- kernel3.cl
+|   +-- kernel4.cl
++-- doc
++-- host
+|   +-- inc
+    |   +-- calcenergy.h
+    |   +-- getparameters.h
+    |   +-- miscellaneous.h
+    |   +-- performdocking.h
+    |   +-- processgrid.h
+    |   +-- processligand.h
+    |   +-- processresult.h
+|   +-- src
+    |   +-- calcenergy.cpp
+    |   +-- getparameters.cpp
+    |   +-- main.cpp
+    |   +-- miscellaneous.cpp
+    |   +-- performdocking.cpp
+    |   +-- processgrid.cpp
+    |   +-- processligand.cpp
+    |   +-- processresult.cpp
++-- input
+|   +-- 1stp
+|   +-- 3ce3
++-- wrapcl
+|   +-- inc
+    |   +-- BufferObjects.h
+    |   +-- CommandQueues.h
+    |   +-- commonMacros.h
+    |   +-- Contexts.h
+    |   +-- Devices.h
+    |   +-- ImportBinary.h
+    |   +-- ImportSource.h
+    |   +-- Kernels.h
+    |   +-- listAttributes.h
+    |   +-- Platforms.h
+    |   +-- Programs.h
+|   +-- src
+|   +-- BufferObjects.cpp
+|   +-- CommandQueues.cpp
+|   +-- Contexts.cpp
+|   +-- Devices.cpp
+|   +-- ImportBinary.cpp
+|   +-- ImportSource.cpp
+|   +-- Kernels.cpp
+|   +-- listAttributes.cpp
+|   +-- Platforms.cpp
+|   +-- Programs.cpp
++-- prebuilt
 |   +-- son todos
 |   +-- muy
 |   +-- buenos
