@@ -68,12 +68,12 @@ This is the documentation for developers: source code structure, build instructi
 For both complexes, the containing folder has a similar structure:
 
 
-| File                 | Description                                                                   |
+| [input/1stp/derived](input/1stp/derived)                | Description                                |
 |----------------------|-------------------------------------------------------------------------------|
-|  |     |
+|                      |                                                                               |
 
 
-**wrapcl**: custom wrapper functions for OpenCL API calls (complaint to OpenCL 1.2).
+**[wrapcl](wrapcl)**: custom wrapper functions for OpenCL API calls (complaint to OpenCL 1.2).
 
 | File                 | Description                                                                   |
 |----------------------|-------------------------------------------------------------------------------|
