@@ -1,14 +1,42 @@
 This is the documentation for developers: source code structure, build instructions, tools required, etc.
 
 # Source-code structure
+
+## Main structure
 ```
 .
-<<<<<<< HEAD
++-- bin
++-- common
++-- device
++-- doc
++-- host
++-- input
++-- wrapcl
+
+
+```
+
+### bin
+
+```
+.
 +-- bin
 |   +-- ocladock_<type>_<N>wi
+```
+
+### common
+
+```
+.
 +-- common
 |   +-- calcenergy_basic.h
 |   +-- defines.h
+```
+
+### device
+
+```
+.
 +-- device
 |   +-- auxiliary_genetic.cl
 |   +-- calcenergy.cl
@@ -16,7 +44,18 @@ This is the documentation for developers: source code structure, build instructi
 |   +-- kernel2.cl
 |   +-- kernel3.cl
 |   +-- kernel4.cl
-+-- doc
+```
+
+### doc
+
+```
+
+```
+
+### host
+
+```
+.
 +-- host
 |   +-- inc
     |   +-- calcenergy.h
@@ -35,9 +74,22 @@ This is the documentation for developers: source code structure, build instructi
     |   +-- processgrid.cpp
     |   +-- processligand.cpp
     |   +-- processresult.cpp
+```
+
+### input
+
+```
+>
 +-- input
 |   +-- 1stp
 |   +-- 3ce3
+```
+
+
+### wrapcl
+
+```
+.
 +-- wrapcl
 |   +-- inc
     |   +-- BufferObjects.h
@@ -62,16 +114,7 @@ This is the documentation for developers: source code structure, build instructi
 |   +-- listAttributes.cpp
 |   +-- Platforms.cpp
 |   +-- Programs.cpp
-+-- prebuilt
-=======
-+-- hola
-+-- amigos
-|   +-- son todos
-|   +-- muy
-|   +-- buenos
-|-- amigos
 ```
->>>>>>> 765aa7531c94fd16a284e0c605c8f3107acec118
 
 # Compilation
 
