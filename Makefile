@@ -57,23 +57,30 @@ K_NAMES=-DK1=$(K1_NAME) -DK2=$(K2_NAME) -DK3=$(K3_NAME) -DK4=$(K4_NAME)
 KFLAGS=-DKRNL_SOURCE=$(KRNL_DIR)/$(KRNL_MAIN) -DKRNL_DIRECTORY=$(KRNL_DIR) -DKCMN_DIRECTORY=$(KCMN_DIR) $(K_NAMES)
 
 TARGET := ocladock
+ifeq ($(DEVICE), CPU)
+	TARGET:=$(TARGET)_cpu
+else ifeq ($(DEVICE), GPU)
+	NWI=-DN64WI
+	TARGET:=$(TARGET)_gpu
+endif
+
 BIN := $(wildcard $(TARGET)*)
 
 # ------------------------------------------------------
 # Number of work-items (wi)
 # Valid values: 16, 32, 64, 128
-NWI=
+NUMWI=
 
-ifeq ($(NWI), 16)
+ifeq ($(NUMWI), 16)
 	NWI=-DN16WI
 	TARGET:=$(TARGET)_16wi
-else ifeq ($(NWI), 32)
+else ifeq ($(NUMWI), 32)
 	NWI=-DN32WI
 	TARGET:=$(TARGET)_32wi
-else ifeq ($(NWI), 64)
+else ifeq ($(NUMWI), 64)
 	NWI=-DN64WI
 	TARGET:=$(TARGET)_64wi
-else ifeq ($(NWI), 128)
+else ifeq ($(NUMWI), 128)
 	NWI=-DN128WI
 	TARGET:=$(TARGET)_128wi
 else
