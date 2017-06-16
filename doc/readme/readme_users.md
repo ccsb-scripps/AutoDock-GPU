@@ -19,7 +19,7 @@ Other environments/configurations likely work as well, but are untested.
 
 # Usage
 
-## Basic command
+## Basic
 ```zsh
 ./bin/ocladock_<type>_<N>wi -ffile <protein>.maps.fld -lfile <ligand>.pdbqt -nrun <nruns>
 ```
