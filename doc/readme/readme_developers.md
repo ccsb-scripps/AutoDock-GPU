@@ -52,28 +52,12 @@ This is the documentation for developers: source code structure, build instructi
 | getparameters{[.h](host/inc/getparameters.h)}{[.cpp](host/src/getparameters.cpp)}| Auxiliary functions for energy calculation     |
 | miscellaneous{[.h](host/inc/miscellaneous.h)}{[.cpp](host/src/miscellaneous.cpp)} | Auxiliary functions for energy calculation     |
 | [main.cpp](host/src/main.cpp) | Auxiliary functions for energy calculation     |
+| performdocking{[.h](host/inc/performdocking.h)}{[.cpp](host/src/performdocking.cpp)} | Auxiliary functions for energy calculation     |
+| processgrid{[.h](host/inc/processgrid.h)}{[.cpp](host/src/processgrid.cpp)} | Auxiliary functions for energy calculation     |
+| processligand{[.h](host/inc/processligand.h)}{[.cpp](host/src/processligand.cpp)} | Auxiliary functions for energy calculation     |
+| processresult{[.h](host/inc/processresult.h)}{[.cpp](host/src/processresult.cpp)} | Auxiliary functions for energy calculation     |
 
-
-
-```
-.
-+-- host
-|   +-- inc
-
-
-    |   +-- performdocking.h
-    |   +-- processgrid.h
-    |   +-- processligand.h
-    |   +-- processresult.h
-|   +-- src
-
-    |   +-- performdocking.cpp
-    |   +-- processgrid.cpp
-    |   +-- processligand.cpp
-    |   +-- processresult.cpp
-```
-
-### input
+**input**: chemical compounds taken from [PDB](http://www.rcsb.org/pdb/home/home.do)
 
 ```
 >
