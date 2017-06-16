@@ -16,14 +16,14 @@ This is the documentation for developers: source code structure, build instructi
 
 ```
 
-**bin**: binary files.
+**[bin](bin)**: binary files.
 
 | File                     | Description                                                                   |
 |--------------------------|-------------------------------------------------------------------------------|
 | `ocladock_<type>_<N>wi`  | Binary file for `<type>` (cpu, gpu) device with `<N>` (16, 32, 64) work items |
 
 
-**common**: common header files for host and device.
+**[common](common)**: common header files for host and device.
 
 | File                | Description                                                                       |
 |---------------------|-----------------------------------------------------------------------------------|
@@ -31,7 +31,7 @@ This is the documentation for developers: source code structure, build instructi
 | [defines.h](common/defines.h)           | Basic defines for energy calculation and kernels optimization |
 
 
-**device**: source files containing kernels.
+**[device](device)**: source files containing kernels.
 
 | File                 | Description                                                                   |
 |----------------------|-------------------------------------------------------------------------------|
@@ -42,9 +42,9 @@ This is the documentation for developers: source code structure, build instructi
 | [kernel3.cl](device/kernel3.cl) | `perform_LS`: performs the local search                            |
 | [kernel4.cl](device/kernel4.cl) | `gpu_gen_and_eval_newpops`: performs the genetic generation        |
 
-**doc**: documentation files.
+**[doc](doc)**: documentation files.
 
-**host**: host source files.
+**[host](host)**: host source files.
 
 | File                 | Description                                                                   |
 |----------------------|-------------------------------------------------------------------------------|
@@ -57,7 +57,7 @@ This is the documentation for developers: source code structure, build instructi
 | processligand{[.h](host/inc/processligand.h)}{[.cpp](host/src/processligand.cpp)} | Functions for performing operations in the ligand     |
 | processresult{[.h](host/inc/processresult.h)}{[.cpp](host/src/processresult.cpp)} | Functions for processing docking results  |
 
-**input**: chemical compounds taken from [PDB](http://www.rcsb.org/pdb/home/home.do).
+**[input](input)**: chemical compounds taken from [PDB](http://www.rcsb.org/pdb/home/home.do).
 
 | PDB complex                 | Description                                                                   |
 |----------------------|-------------------------------------------------------------------------------|
