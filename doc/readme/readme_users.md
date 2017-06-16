@@ -1,5 +1,3 @@
-This is the documentation for users: installation, required OS/GPU driverversions, at least one usage example with sample input files, etc.
-
 # Installation
 OCLADock is known to work in the following environment:
 
