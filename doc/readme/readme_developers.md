@@ -160,7 +160,7 @@ Other environments/configurations likely work as well, but are untested.
 
 **Keep in mind that before compiling**
 * CPU: 
-    ** `$(INTELOCLSDKROOT)` must be defined
+        **  `$(INTELOCLSDKROOT)` must be defined
 * GPU: 
     ** `$(AMDAPPSDKROOT)` must be defined
     ** `/etc/ld.so.conf.d/amdgpu-pro-x86_64.conf` must contain the path of the GPU driver
