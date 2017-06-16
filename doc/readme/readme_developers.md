@@ -181,10 +181,10 @@ This is the documentation for developers: source code structure, build instructi
 | [3ce3](http://www.rcsb.org/pdb/explore/explore.do?structureId=3ce3) | Crystal structure of the tyrosine kinase domain of the hepatocyte growth factor receptor C-MET in complex with a Pyrrolopyridinepyridone based inhibitor     |
 
 
-For both complexes, the containing folder has a similar structure:
+For both complexes, the containing folder has a similar structure. Input files were preprocessed before docking following the standard protocol using AutoDockTools.
+**[input/1stp/derived](input/1stp/derived)**: 1stp input files 
 
-
-| [input/1stp/derived](input/1stp/derived)                    | Description                                |
+| File                   | Description                                |
 |----------------------|-----------------------------------------------------------------------------------|
 | [1stp_ligand.pdb](input/1stp/derived/1stp_ligand.pdb)       | Ligand file in .pdb format                 |
 | [1stp_ligand.pdbqt](input/1stp/derived/1stp_ligand.pdbqt)   | Ligand file in .pdbqt format (check [usage](doc/readme/readme_users.md))|
