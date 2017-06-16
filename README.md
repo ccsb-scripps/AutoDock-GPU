@@ -55,8 +55,8 @@ Currently only binaries are distributed.
 ./bin/ocladock_<type>_<N>wi -ffile <protein>.maps.fld -lfile <ligand>.pdbqt -nrun <nruns>
 ```
 Mandatory arguments:
-* Protein file: `-ffile <protein>.maps.fld`
-* Ligand file:  `-lfile <ligand>.pdbqt`
+* Protein file: `<protein>.maps.fld`
+* Ligand file:  `<ligand>.pdbqt`
 
 ## Example
 ```zsh
