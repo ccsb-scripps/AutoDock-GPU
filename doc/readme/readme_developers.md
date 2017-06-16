@@ -231,6 +231,12 @@ For both complexes, the containing folder has a similar structure:
 ```zsh
 make DEVICE=<TYPE> NUMWI=<NWI>
 ```
+
+<pre>
+make DEVICE=<TYPE> NUMWI=<NWI>
+</pre>
+
+
 `<TYPE>` : CPU, GPU.
 
 `<NUMWI>` : 16, 32, 64
