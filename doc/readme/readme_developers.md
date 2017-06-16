@@ -72,34 +72,17 @@ This is the documentation for developers: source code structure, build instructi
 | File                 | Description                                                                   |
 |----------------------|-------------------------------------------------------------------------------|
 | BufferObjects{[.h](host/inc/BufferObjects.h)}{[.cpp](host/src/BufferObjects.cpp)} | Auxiliary functions for energy calculation     |
+| CommandQueues{[.h](host/inc/CommandQueues.h)}{[.cpp](host/src/CommandQueues.cpp)} | Auxiliary functions for energy calculation     |
+| [commonMacros.h](host/inc/commonMacros.h) | Auxiliary functions for energy calculation     |
+| Contexts{[.h](host/inc/Contexts.h)}{[.cpp](host/src/Contexts.cpp)} | Auxiliary functions for energy calculation     |
+| Devices{[.h](host/inc/Devices.h)}{[.cpp](host/src/Devices.cpp)} | Auxiliary functions for energy calculation     |
+| ImportBinary{[.h](host/inc/ImportBinary.h)}{[.cpp](host/src/ImportBinary.cpp)} | Auxiliary functions for energy calculation     |
+| ImportSource{[.h](host/inc/ImportSource.h)}{[.cpp](host/src/ImportSource.cpp)} | Auxiliary functions for energy calculation     |
+| Kernels{[.h](host/inc/Kernels.h)}{[.cpp](host/src/Kernels.cpp)} | Auxiliary functions for energy calculation     |
+| listAttributes{[.h](host/inc/listAttributes.h)}{[.cpp](host/src/listAttributes.cpp)} | Auxiliary functions for energy calculation     |
+| Platforms{[.h](host/inc/Platforms.h)}{[.cpp](host/src/Platforms.cpp)} | Auxiliary functions for energy calculation     |
+| Programs{[.h](host/inc/Programs.h)}{[.cpp](host/src/Programs.cpp)} | Auxiliary functions for energy calculation     |
 
-```
-.
-+-- wrapcl
-|   +-- inc
-
-    |   +-- CommandQueues.h
-    |   +-- commonMacros.h
-    |   +-- Contexts.h
-    |   +-- Devices.h
-    |   +-- ImportBinary.h
-    |   +-- ImportSource.h
-    |   +-- Kernels.h
-    |   +-- listAttributes.h
-    |   +-- Platforms.h
-    |   +-- Programs.h
-|   +-- src
-
-|   +-- CommandQueues.cpp
-|   +-- Contexts.cpp
-|   +-- Devices.cpp
-|   +-- ImportBinary.cpp
-|   +-- ImportSource.cpp
-|   +-- Kernels.cpp
-|   +-- listAttributes.cpp
-|   +-- Platforms.cpp
-|   +-- Programs.cpp
-```
 
 # Compilation
 
