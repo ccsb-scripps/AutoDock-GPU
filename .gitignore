@@ -1,7 +1,7 @@
 # OCLADock specific files
 initpop.txt
-docking.dlg
-docking.xml
+*.dlg
+*.xml
 
 # ===================
 # C gitignore
