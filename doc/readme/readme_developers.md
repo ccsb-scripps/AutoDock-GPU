@@ -71,7 +71,7 @@ For both complexes, the containing folder has a similar structure:
 | [input/1stp/derived](input/1stp/derived)                    | Description                                |
 |----------------------|-----------------------------------------------------------------------------------|
 | [1stp_ligand.pdb](input/1stp/derived/1stp_ligand.pdb)       | Ligand file in .pdb format                 |
-| [1stp_ligand.pdbqt](input/1stp/derived/1stp_ligand.pdbqt)   | Ligand file in .pdbqt format               |
+| [1stp_ligand.pdbqt](input/1stp/derived/1stp_ligand.pdbqt)   | Ligand file in .pdbqt format (check [usage](doc/readme/readme_users.md))|
 | [1stp_protein.A.map](input/1stp/derived/1stp_protein.A.map) | Affinity map for aromatic carbon           |
 | [1stp_protein.C.map](input/1stp/derived/1stp_protein.C.map) | Affinity map for aliphatic carbon          |
 | [1stp_protein.d.map](input/1stp/derived/1stp_protein.d.map) | Affinity map for desolvation               |
