@@ -1,21 +1,12 @@
-OpenCL Accelerated Molecular Docking (OCLADock)
-===============================================
+This is the documentation for users: installation, required OS/GPU driverversions, at least one usage example with sample input files, etc.
 
-[logo]
-
-# Features
-
-* OpenCL-accelerated version of AutoDock 4.2 (Lamarckian Genetic Algorithm).
-* It targets platforms based on multi-core CPU and GPU accelerators.
-
-# Setup
-## Requirements
+# Installation
 OCLADock is known to work in the following environment:
 
 * Architecture: Intel x86_64
 * Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04
-
-## Prerequisites
+ 
+# Requirements
 * CPU:
 	* Intel SDK for OpenCL v1.2
 	* Intel OpenCL Runtime v16.1
@@ -25,28 +16,6 @@ OCLADock is known to work in the following environment:
 	* AMDGPU-PRO v16.50
 
 Other environments/configurations likely work as well, but are untested.
-
-# Compilation
-
-## Compilation on Linux
-```zsh
-make DEVICE=<TYPE> NUMWI=<NWI>
-```
-`<TYPE>` : CPU, GPU.
-
-`<NUMWI>` : 16, 32, 64
-
-After successful compilation, the host binary `ocladock_<type>_<N>wi` is placed under [bin](./bin).
-
-`type` denotes the accelerator chosen: `cpu` or `gpu`.
-
-`N` denotes the OpenCL work-group size: `16`, `32`, or `64`.
-
-This can be configured in the [Makefile](Makefile).
-
-## Compilation on Windows
-
-Currently only binaries are distributed.
 
 # Usage
 
@@ -79,15 +48,3 @@ For a complete list of available arguments and their default values, check: [get
 | -lsrat   | Local-search rate            | 6 (%)         |
 | -trat    | Tournament rate              | 60 (%)        |
 | -resname | Name for docking output log  | "docking"     |
-
-# Documentation
-
-For a complete documentation, check the [Documentation](./doc/home)
-
-# Credits
-
-Leonardo Solis-Vasquez and Andreas Koch. 2017. A Performance and Energy Evaluation of OpenCL-accelerated Molecular Docking. In Proceedings of the 5th International Workshop on OpenCL (IWOCL 2017). ACM, New York, NY, USA, Article 3, 11 pages. DOI: https://doi.org/10.1145/3078155.3078167
-
-# License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
