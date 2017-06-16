@@ -18,9 +18,9 @@ This is the documentation for developers: source code structure, build instructi
 
 **bin**: binary files.
 
-| File                   | Description                                                                   |
-|------------------------|-------------------------------------------------------------------------------|
-| ocladock_<type>_<N>wi  | Binary file for `<type>` (cpu, gpu) device with `<N>` (16, 32, 64) work items |
+| File                     | Description                                                                   |
+|--------------------------|-------------------------------------------------------------------------------|
+| `ocladock_<type>_<N>wi`  | Binary file for `<type>` (cpu, gpu) device with `<N>` (16, 32, 64) work items |
 
 
 **common**: common header files for host and device.
@@ -42,7 +42,7 @@ This is the documentation for developers: source code structure, build instructi
 | [kernel3.cl](device/kernel3.cl) | `perform_LS`: performs the local search                            |
 | [kernel4.cl](device/kernel4.cl) | `gpu_gen_and_eval_newpops`: performs the genetic generation        |
 
-**doc**:
+**doc**: documentation files.
 
 **host**:
 
