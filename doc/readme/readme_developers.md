@@ -48,14 +48,14 @@ This is the documentation for developers: source code structure, build instructi
 
 | File                 | Description                                                                   |
 |----------------------|-------------------------------------------------------------------------------|
-| calcenergy{[.h](host/inc/calcenergy.h)}{[.cpp](host/src/calcenergy.cpp)} | Auxiliary functions for energy calculation     |
-| getparameters{[.h](host/inc/getparameters.h)}{[.cpp](host/src/getparameters.cpp)}| Auxiliary functions for energy calculation     |
-| miscellaneous{[.h](host/inc/miscellaneous.h)}{[.cpp](host/src/miscellaneous.cpp)} | Auxiliary functions for energy calculation     |
-| [main.cpp](host/src/main.cpp) | Auxiliary functions for energy calculation     |
-| performdocking{[.h](host/inc/performdocking.h)}{[.cpp](host/src/performdocking.cpp)} | Auxiliary functions for energy calculation     |
-| processgrid{[.h](host/inc/processgrid.h)}{[.cpp](host/src/processgrid.cpp)} | Auxiliary functions for energy calculation     |
-| processligand{[.h](host/inc/processligand.h)}{[.cpp](host/src/processligand.cpp)} | Auxiliary functions for energy calculation     |
-| processresult{[.h](host/inc/processresult.h)}{[.cpp](host/src/processresult.cpp)} | Auxiliary functions for energy calculation     |
+| calcenergy{[.h](host/inc/calcenergy.h)}{[.cpp](host/src/calcenergy.cpp)} | Auxiliary functions for parallel energy-calculation     |
+| getparameters{[.h](host/inc/getparameters.h)}{[.cpp](host/src/getparameters.cpp)}| Functions for processing program input arguments   |
+| miscellaneous{[.h](host/inc/miscellaneous.h)}{[.cpp](host/src/miscellaneous.cpp)} | General-purpose functions    |
+| [main.cpp](host/src/main.cpp) | Main source file     |
+| performdocking{[.h](host/inc/performdocking.h)}{[.cpp](host/src/performdocking.cpp)} | Entry point for OpenCL-platform setup and kernels execution    |
+| processgrid{[.h](host/inc/processgrid.h)}{[.cpp](host/src/processgrid.cpp)} | Functions processing and converting the energy grids    |
+| processligand{[.h](host/inc/processligand.h)}{[.cpp](host/src/processligand.cpp)} | Functions performing operations in the ligand     |
+| processresult{[.h](host/inc/processresult.h)}{[.cpp](host/src/processresult.cpp)} | Functions processing docking results  |
 
 **input**: chemical compounds taken from [PDB](http://www.rcsb.org/pdb/home/home.do).
 
