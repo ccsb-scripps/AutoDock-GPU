@@ -3,7 +3,7 @@ This is the documentation for developers: source code structure, build instructi
 # File structure
 
 ## Main structure
-<pre>
+```
 .
 ├── bin
 │   └── ocladock_gpu_64wi
@@ -130,7 +130,7 @@ This is the documentation for developers: source code structure, build instructi
         ├── listAttributes.cpp
         ├── Platforms.cpp
         └── Programs.cpp
-</pre>
+```
 
 **[bin](bin)**: binary files.
 
@@ -206,8 +206,6 @@ For both complexes, the containing folder has a similar structure:
 | [1stp.gpf](input/1stp/derived/1stp.gpf) | AutoDock grid parameter file                                        |
 
 
-
-
 **[wrapcl](wrapcl)**: custom wrapper functions for OpenCL API calls (complaint to OpenCL 1.2).
 
 | File                 | Description                                                                   |
@@ -231,11 +229,6 @@ For both complexes, the containing folder has a similar structure:
 ```zsh
 make DEVICE=<TYPE> NUMWI=<NWI>
 ```
-
-<pre>
-make DEVICE=&ltTYPE&gt NUMWI=&ltNWI&gt
-</pre>
-
 
 `<TYPE>` : CPU, GPU.
 
