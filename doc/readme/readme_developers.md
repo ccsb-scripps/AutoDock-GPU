@@ -27,20 +27,20 @@ This is the documentation for developers: source code structure, build instructi
 
 | File                | Description                                                   |
 |---------------------|---------------------------------------------------------------|
-| calcenergy_basic.h  | Basic defines and macros for energy calculation               |
-| defines.h           | Basic defines for energy calculation and kernels optimization |
+| [calcenergy_basic.h](common/calcenergy_basic.h)  | Basic defines and macros for energy calculation               |
+| [defines.h](common/defines.h)           | Basic defines for energy calculation and kernels optimization |
 
 
 **device**: source files containing kernels.
 
-| File                 | Description                                                                  |
-|----------------------|------------------------------------------------------------------------------|
-| auxiliary_genetic.cl | Basic defines and macros for energy calculation                              |
-| calcenergy.cl        | Basic defines for energy calculation and kernels optimization                |
-| kernel1.cl           | `gpu_calc_initpop` kernel. It calculates the energy of initial population    |
-| kernel2.cl           | `gpu_sum_evals` kernel. It sums the evaluation counter states                |
-| kernel3.cl           | `perform_LS` kernel. It performs the local search                            |
-| kernel4.cl           | `gpu_gen_and_eval_newpops` kernel. It performs the genetic generation        |
+| File                 | Description                                                        |
+|----------------------|--------------------------------------------------------------------|
+| [auxiliary_genetic.cl](device/auxiliary_genetic.cl) | Auxiliary functions for energy calculation                         |
+| [calcenergy.cl](device/calcenergy.cl)   | Main function for energy calculation                               |
+| [kernel1.cl](device/kernel1.cl) | `gpu_calc_initpop`: calculates the energy of initial population    |
+| [kernel2.cl](device/kernel2.cl) | `gpu_sum_evals`: sums the evaluation counter states                |
+| [kernel3.cl](device/kernel3.cl) | `perform_LS`: performs the local search                            |
+| [kernel4.cl](device/kernel4.cl) | `gpu_gen_and_eval_newpops`: performs the genetic generation        |
 
 **doc**:
 
