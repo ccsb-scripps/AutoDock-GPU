@@ -33,6 +33,7 @@ HOST_INC_DIR=./host/inc
 HOST_SRC_DIR=./host/src
 KRNL_DIR=./device
 KCMN_DIR=$(COMMON_DIR)
+BIN_DIR=./bin
 
 # Host sources
 OCL_SRC=$(wildcard $(OCL_SRC_DIR)/*.cpp)
@@ -121,7 +122,7 @@ endif
 all: odock
 
 odock: $(SRC)
-	g++ $(SRC) $(CFLAGS) -lOpenCL -o$(TARGET) $(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
+	g++ $(SRC) $(CFLAGS) -lOpenCL -o$(BIN_DIR)/$(TARGET) $(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
 
 clean:
-	rm -f $(BIN) initpop.txt
+	rm -f $(BIN_DIR)/* initpop.txt
