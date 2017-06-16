@@ -5,21 +5,24 @@ OpenCL Accelerated Molecular Docking (OCLADock)
 
 # Features
 
-* OpenCL-accelerated version of the Lamarckian Genetic Algorithm of AutoDock 4.2.
+* OpenCL-accelerated version of AutoDock 4.2 (Lamarckian Genetic Algorithm).
 * It targets platforms based on multi-core CPU and GPU accelerators.
 
 # Setup
 ## Requirements
 OCLADock is known to work in the following environment:
 
-* Intel x86_64 architecture
-* CentOS 6.7 & 6.8 / Ubuntu 16.04
+* Architecture: Intel x86_64
+* Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04
 
 ## Prerequisites
-* CPU Driver: Intel OpenCL Runtime v16.1
-* GPU Driver: AMDGPU-PRO v16.50
-* CPU SDK: Intel SDK for OpenCL v1.2
-* GPU SDK: AMD APP SDK v3.0
+* CPU:
+	** Intel SDK for OpenCL v1.2
+	** Intel OpenCL Runtime v16.1
+
+* GPU
+	** AMD APP SDK v3.0
+	** AMDGPU-PRO v16.50
 
 Other environments/configurations likely work as well, but are untested.
 
@@ -33,17 +36,23 @@ make DEVICE=<TYPE> NUMWI=<NWI>
 
 `<NUMWI>` : 16, 32, 64
 
-After successful compilation, the host binary `ocladock_<N>wi` is placed in the project root-folder.
+After successful compilation, the host binary `ocladock_<type>_<N>wi` is placed under [bin](./bin).
 
-`N` denotes the OpenCL work-group size. This can be configured in the [Makefile](Makefile).
+`type` denotes the accelerator chosen: `cpu` or `gpu`.
+
+`N` denotes the OpenCL work-group size: `16`, `32`, or `64`. 
+
+This can be configured in the [Makefile](Makefile).
 
 ## Compilation on Windows
+
+Currently only binaries are distributed.
 
 # Usage
 
 ## Basic command
 ```zsh
-./ocladock -ffile <protein>.maps.fld -lfile <ligand>.pdbqt -nrun <nruns>
+./bin/ocladock_<type>_<N>wi -ffile <protein>.maps.fld -lfile <ligand>.pdbqt -nrun <nruns>
 ```
 Mandatory arguments:
 * Protein file: `-ffile <protein>.maps.fld`
@@ -51,7 +60,7 @@ Mandatory arguments:
 
 ## Example
 ```zsh
-./ocladock_64wi -ffile ./input_data/1stp/derived/1stp_protein.maps.fld -lfile ./input_data/1stp/derived/1stp_ligand.pdbqt -nrun 10
+./bin/ocladock_gpu_64wi -ffile ./input_data/1stp/derived/1stp_protein.maps.fld -lfile ./input_data/1stp/derived/1stp_ligand.pdbqt -nrun 10
 ```
 By default the output log file is written in the root folder: [docking.dlg](docking.dlg)
 
@@ -71,10 +80,14 @@ For a complete list of available arguments and their default values, check: [get
 | -trat    | Tournament rate              | 60 (%)        |
 | -resname | Name for docking output log  | "docking"     |
 
-# License
+# Documentation
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+For a complete documentation, check the wiki!
 
 # Credits
 
 Leonardo Solis-Vasquez and Andreas Koch. 2017. A Performance and Energy Evaluation of OpenCL-accelerated Molecular Docking. In Proceedings of the 5th International Workshop on OpenCL (IWOCL 2017). ACM, New York, NY, USA, Article 3, 11 pages. DOI: https://doi.org/10.1145/3078155.3078167
+
+# License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
