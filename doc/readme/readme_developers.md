@@ -72,22 +72,22 @@ For both complexes, the containing folder has a similar structure:
 |----------------------|-----------------------------------------------------------------------------------|
 | [1stp_ligand.pdb](input/1stp/derived/1stp_ligand.pdb)       | Ligand file in .pdb format                 |
 | [1stp_ligand.pdbqt](input/1stp/derived/1stp_ligand.pdbqt)   | Ligand file in .pdbqt format               |
-| [1stp_protein.A.map](input/1stp/derived/1stp_protein.A.map) |          |
-| [1stp_protein.C.map](input/1stp/derived/1stp_protein.C.map) |          |
-| [1stp_protein.d.map](input/1stp/derived/1stp_protein.d.map) |          |
-| [1stp_protein.e.map](input/1stp/derived/1stp_protein.e.map) |          |
-| [1stp_protein.HD.map](input/1stp/derived/1stp_protein.HD.map) |          |
-| [1stp_protein.maps.fld](input/1stp/derived/1stp_protein.maps.fld) |          |
-| [1stp_protein.maps.xyz](input/1stp/derived/1stp_protein.maps.xyz) |          |
-| [1stp_protein.N.map](input/1stp/derived/1stp_protein.N.map) |          |
-| [1stp_protein.OA.map](input/1stp/derived/1stp_protein.OA.map) |          |
-| [1stp_protein.pdb](input/1stp/derived/1stp_protein.pdb) |          |
-| [1stp_protein.pdbqt](input/1stp/derived/1stp_protein.pdbqt) |          |
-| [1stp_protein.SA.map](input/1stp/derived/1stp_protein.SA.map) |          |
-| [1stp.dlg](input/1stp/derived/1stp.dlg) |          |
-| [1stp.dpf](input/1stp/derived/1stp.dpf) |          |
-| [1stp.glg](input/1stp/derived/1stp.glg) |          |
-| [1stp.gpf](input/1stp/derived/1stp.gpf) |          |
+| [1stp_protein.A.map](input/1stp/derived/1stp_protein.A.map) | Affinity map for aromatic carbon           |
+| [1stp_protein.C.map](input/1stp/derived/1stp_protein.C.map) | Affinity map for aliphatic carbon          |
+| [1stp_protein.d.map](input/1stp/derived/1stp_protein.d.map) | Affinity map for desolvation               |
+| [1stp_protein.e.map](input/1stp/derived/1stp_protein.e.map) | Affinity map for electrostatics            |
+| [1stp_protein.HD.map](input/1stp/derived/1stp_protein.HD.map) | Affinity map for (donor) 1 H-bond hydrogen                            |
+| [1stp_protein.maps.fld](input/1stp/derived/1stp_protein.maps.fld) | Grid map field file (check [usage](doc/readme/readme_users.md))   |
+| [1stp_protein.maps.xyz](input/1stp/derived/1stp_protein.maps.xyz) |  Contains the minimum and maximum extends of the grid box in each dimensions x, y, and z |
+| [1stp_protein.N.map](input/1stp/derived/1stp_protein.N.map) | Affinity map for H-bonding nitrogen             |
+| [1stp_protein.OA.map](input/1stp/derived/1stp_protein.OA.map) | Affinity map for (acceptor) 2 H-bonds oxygen  |
+| [1stp_protein.pdb](input/1stp/derived/1stp_protein.pdb) | Protein filein .pdb format                          |
+| [1stp_protein.pdbqt](input/1stp/derived/1stp_protein.pdbqt) | Protein filein .pdbqt format                    |
+| [1stp_protein.SA.map](input/1stp/derived/1stp_protein.SA.map) | Affinity map for (acceptor) 2 H-bonds sulphur |
+| [1stp.dlg](input/1stp/derived/1stp.dlg) | Docking log file when using original AutoDock program               |
+| [1stp.dpf](input/1stp/derived/1stp.dpf) | AutoDock docking parameter file                                     |
+| [1stp.glg](input/1stp/derived/1stp.glg) | Grid log file when using original AutoGrid program                  |
+| [1stp.gpf](input/1stp/derived/1stp.gpf) | AutoDock grid parameter file                                        |
 
 
 
