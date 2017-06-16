@@ -233,7 +233,7 @@ make DEVICE=<TYPE> NUMWI=<NWI>
 ```
 
 <pre>
-make DEVICE=<TYPE> NUMWI=<NWI>
+make DEVICE=&ltTYPE&gt NUMWI=&ltNWI&gt
 </pre>
 
 
