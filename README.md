@@ -27,9 +27,11 @@ Other environments/configurations likely work as well, but are untested.
 
 ## Compilation on Linux
 ```zsh
-make DEVICE=<TYPE>
+make DEVICE=<TYPE> NUMWI=<NWI>
 ```
-The valid values for <TYPE> are: CPU or GPU.
+<TYPE> : CPU, GPU.
+
+<NUMWI> : 16, 32, 64
 
 After successful compilation, the host binary `ocladock_<N>wi` is placed in the project root-folder.
 
