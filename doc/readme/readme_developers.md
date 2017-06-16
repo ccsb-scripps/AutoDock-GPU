@@ -16,17 +16,14 @@ This is the documentation for developers: source code structure, build instructi
 
 ```
 
-### bin
+**bin**: binary files.
 
-```
-.
-+-- bin
-|   +-- ocladock_<type>_<N>wi
-```
+| File                   | Description                                                                   |
+|------------------------|-------------------------------------------------------------------------------|
+| ocladock_<type>_<N>wi  | Binary file for `<type>` (cpu, gpu) device with `<N>` (16, 32, 64) work items |
 
-### common
 
-Common header files for host and device.
+**common**: common header files for host and device.
 
 | File                | Description                                                   |
 |---------------------|---------------------------------------------------------------|
@@ -34,26 +31,20 @@ Common header files for host and device.
 | defines.h           | Basic defines for energy calculation and kernels optimization |
 
 
-### device
+**device**: source files containing kernels.
 
-```
-.
-+-- device
-|   +-- auxiliary_genetic.cl
-|   +-- calcenergy.cl
-|   +-- kernel1.cl
-|   +-- kernel2.cl
-|   +-- kernel3.cl
-|   +-- kernel4.cl
-```
+| File                 | Description                                                                  |
+|----------------------|------------------------------------------------------------------------------|
+| auxiliary_genetic.cl | Basic defines and macros for energy calculation                              |
+| calcenergy.cl        | Basic defines for energy calculation and kernels optimization                |
+| kernel1.cl           | `gpu_calc_initpop` kernel. It calculates the energy of initial population    |
+| kernel2.cl           | `gpu_sum_evals` kernel. It sums the evaluation counter states                |
+| kernel3.cl           | `perform_LS` kernel. It performs the local search                            |
+| kernel4.cl           | `gpu_gen_and_eval_newpops` kernel. It performs the genetic generation        |
 
-### doc
+**doc**:
 
-```
-
-```
-
-### host
+**host**:
 
 ```
 .
