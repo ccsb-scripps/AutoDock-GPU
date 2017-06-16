@@ -1,5 +1,14 @@
 This is the documentation for developers: source code structure, build instructions, tools required, etc.
 
+# Source-code structure
+.
++-- hola
++-- amigos
+|   +-- son todos
+|   +-- muy
+|   +-- buenos
+|-- amigos
+
 # Compilation
 
 ## Basic
@@ -16,7 +25,7 @@ After successful compilation, the host binary `ocladock_<type>_<N>wi` is placed 
 
 `N` denotes the OpenCL work-group size: `16`, `32`, or `64`.
 
-## More options
+## All available options
 ```zsh
 make DEVICE=<TYPE> NUMWI=<NWI> CONFIG=<CFG> DOCK_DEBUG=<Y/N> REPRO=<Y/N>
 ```
@@ -31,7 +40,4 @@ make DEVICE=<TYPE> NUMWI=<NWI> CONFIG=<CFG> DOCK_DEBUG=<Y/N> REPRO=<Y/N>
 ## Configuration file
 Check the configurations in the project's [Makefile](../Makefile).
 
-
 # Requirements
-
-# Source code
