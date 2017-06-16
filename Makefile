@@ -1,16 +1,10 @@
 # ocladock Makefile
 
 # CPU config
-#INTEL_INCLUDE_PATH=/opt/intel/opencl-1.2-sdk-6.0.0.1049/include
-#INTEL_LIBRARY_PATH=/opt/intel/opencl-1.2-sdk-6.0.0.1049/
-
 INTEL_INCLUDE_PATH=$(INTELOCLSDKROOT)/include
 INTEL_LIBRARY_PATH=$(INTELOCLSDKROOT)
 
 # GPU config
-#AMD_INCLUDE_PATH=/opt/AMDAPPSDK-3.0/include
-#AMD_LIBRARY_PATH=/opt/amdgpu-pro/lib/x86_64-linux-gnu
-
 AMD_INCLUDE_PATH=$(AMDAPPSDKROOT)/include
 AMD_LIBRARY_PATH=$(shell cat /etc/ld.so.conf.d/amdgpu-pro-x86_64.conf)
 
