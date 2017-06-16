@@ -40,7 +40,7 @@ After successful compilation, the host binary `ocladock_<type>_<N>wi` is placed 
 
 `type` denotes the accelerator chosen: `cpu` or `gpu`.
 
-`N` denotes the OpenCL work-group size: `16`, `32`, or `64`. 
+`N` denotes the OpenCL work-group size: `16`, `32`, or `64`.
 
 This can be configured in the [Makefile](Makefile).
 
@@ -82,7 +82,7 @@ For a complete list of available arguments and their default values, check: [get
 
 # Documentation
 
-For a complete documentation, check the [Wiki](documentation)
+For a complete documentation, check the [Wiki](./ocladock.wiki./home)
 
 # Credits
 

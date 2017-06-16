@@ -95,12 +95,12 @@ endif
 
 # ------------------------------------------------------
 # Configuration (Host)
-# Valid values: release, debug
-CONFIG=release
+# Valid values: RELEASE, DEBUG
+CONFIG=RELEASE
 
-ifeq ($(CONFIG),debug)
+ifeq ($(CONFIG),DEBUG)
 	OPT =-O0 -g3 -Wall
-else ifeq ($(CONFIG),release)
+else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
 else
 	OPT =
