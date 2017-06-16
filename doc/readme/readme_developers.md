@@ -61,10 +61,6 @@ This is the documentation for developers: source code structure, build instructi
 |   +-- Platforms.cpp
 |   +-- Programs.cpp
 +-- prebuilt
-|   +-- son todos
-|   +-- muy
-|   +-- buenos
-|-- amigos
 
 # Compilation
 
