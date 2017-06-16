@@ -14,11 +14,135 @@ This is the documentation for developers: source code structure, build instructi
 +-- wrapcl
 ```
 
-```
+<pre>
+.
+├── bin
+│   └── ocladock_gpu_64wi
+├── common
+│   ├── calcenergy_basic.h
+│   └── defines.h
+├── device
+│   ├── auxiliary_genetic.cl
+│   ├── calcenergy.cl
+│   ├── kernel1.cl
+│   ├── kernel2.cl
+│   ├── kernel3.cl
+│   └── kernel4.cl
+├── doc
+│   ├── presentation
+│   │   └── IWOCL2017_MolecularDocking_online_version.pdf
+│   └── readme
+│       ├── home.md
+│       ├── readme_developers.md
+│       └── readme_users.md
+├── docking.dlg
+├── docking.xml
+├── host
+│   ├── inc
+│   │   ├── calcenergy.h
+│   │   ├── getparameters.h
+│   │   ├── miscellaneous.h
+│   │   ├── performdocking.h
+│   │   ├── processgrid.h
+│   │   ├── processligand.h
+│   │   └── processresult.h
+│   └── src
+│       ├── calcenergy.cpp
+│       ├── getparameters.cpp
+│       ├── main.cpp
+│       ├── miscellaneous.cpp
+│       ├── performdocking.cpp
+│       ├── processgrid.cpp
+│       ├── processligand.cpp
+│       └── processresult.cpp
+├── initpop.txt
+├── input
+│   ├── 1stp
+│   │   ├── 1STP.pdb
+│   │   ├── BTN_600.gif.png
+│   │   ├── derived
+│   │   │   ├── 1stp.dlg
+│   │   │   ├── 1stp.dpf
+│   │   │   ├── 1stp.glg
+│   │   │   ├── 1stp.gpf
+│   │   │   ├── 1stp_ligand.pdb
+│   │   │   ├── 1stp_ligand.pdbqt
+│   │   │   ├── 1stp_nrun100.dpf
+│   │   │   ├── 1stp_nrun10.dpf
+│   │   │   ├── 1STP.pdb
+│   │   │   ├── 1stp_protein.A.map
+│   │   │   ├── 1stp_protein.C.map
+│   │   │   ├── 1stp_protein.d.map
+│   │   │   ├── 1stp_protein.e.map
+│   │   │   ├── 1stp_protein.HD.map
+│   │   │   ├── 1stp_protein.maps.fld
+│   │   │   ├── 1stp_protein.maps.xyz
+│   │   │   ├── 1stp_protein.N.map
+│   │   │   ├── 1stp_protein.OA.map
+│   │   │   ├── 1stp_protein.pdb
+│   │   │   ├── 1stp_protein.pdbqt
+│   │   │   └── 1stp_protein.SA.map
+│   │   └── Ligands_noHydrogens_withMissing_1_Instances.sdf
+│   └── 3ce3
+│       ├── 3CE3.pdb
+│       └── derived
+│           ├── 3ce3.dlg
+│           ├── 3ce3.dpf
+│           ├── 3ce3.glg
+│           ├── 3ce3.gpf
+│           ├── 3ce3_ligand.pdb
+│           ├── 3ce3_ligand.pdbqt
+│           ├── 3ce3_nrun100.dpf
+│           ├── 3ce3_nrun10.dpf
+│           ├── 3CE3.pdb
+│           ├── 3ce3_protein.A.map
+│           ├── 3ce3_protein.C.map
+│           ├── 3ce3_protein.d.map
+│           ├── 3ce3_protein.e.map
+│           ├── 3ce3_protein.F.map
+│           ├── 3ce3_protein.HD.map
+│           ├── 3ce3_protein.maps.fld
+│           ├── 3ce3_protein.maps.xyz
+│           ├── 3ce3_protein.N.map
+│           ├── 3ce3_protein.OA.map
+│           ├── 3ce3_protein.pdb
+│           └── 3ce3_protein.pdbqt
+├── LICENSE
+├── Makefile
+├── ocladock.wiki
+│   ├── doc_developers.md
+│   ├── doc_users.md
+│   └── home.md
+├── prebuilt
+│   ├── linux
+│   └── windows
+├── README.md
+└── wrapcl
+    ├── inc
+    │   ├── BufferObjects.h
+    │   ├── CommandQueues.h
+    │   ├── commonMacros.h
+    │   ├── Contexts.h
+    │   ├── Devices.h
+    │   ├── ImportBinary.h
+    │   ├── ImportSource.h
+    │   ├── Kernels.h
+    │   ├── listAttributes.h
+    │   ├── Platforms.h
+    │   └── Programs.h
+    └── src
+        ├── BufferObjects.cpp
+        ├── CommandQueues.cpp
+        ├── Contexts.cpp
+        ├── Devices.cpp
+        ├── ImportBinary.cpp
+        ├── ImportSource.cpp
+        ├── Kernels.cpp
+        ├── listAttributes.cpp
+        ├── Platforms.cpp
+        └── Programs.cpp
 
-```
-
-
+</pre>
 
 **[bin](bin)**: binary files.
 
