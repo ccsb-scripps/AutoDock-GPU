@@ -3,17 +3,6 @@ This is the documentation for developers: source code structure, build instructi
 # File structure
 
 ## Main structure
-```
-.
-+-- bin
-+-- common
-+-- device
-+-- doc
-+-- host
-+-- input
-+-- wrapcl
-```
-
 <pre>
 .
 ├── bin
@@ -141,7 +130,6 @@ This is the documentation for developers: source code structure, build instructi
         ├── listAttributes.cpp
         ├── Platforms.cpp
         └── Programs.cpp
-
 </pre>
 
 **[bin](bin)**: binary files.
