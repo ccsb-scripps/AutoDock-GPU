@@ -26,12 +26,13 @@ This is the documentation for developers: source code structure, build instructi
 
 ### common
 
-```
-.
-+-- common
-|   +-- calcenergy_basic.h
-|   +-- defines.h
-```
+Common header files for host and device.
+
+| File                | Description                                                   |
+|---------------------|---------------------------------------------------------------|
+| calcenergy_basic.h  | Basic defines and macros for energy calculation               |
+| defines.h           | Basic defines for energy calculation and kernels optimization |
+
 
 ### device
 
