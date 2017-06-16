@@ -141,3 +141,20 @@ make DEVICE=<TYPE> NUMWI=<NWI> CONFIG=<CFG> DOCK_DEBUG=<Y/N> REPRO=<Y/N>
 Check the configurations in the project's [Makefile](../Makefile).
 
 # Requirements
+
+OCLADock is known to work in the following environment:
+
+* Architecture: Intel x86_64
+* Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04
+
+## Prerequisites
+* CPU:
+	* Intel SDK for OpenCL v1.2
+	* Intel OpenCL Runtime v16.1
+
+* GPU
+	* AMD APP SDK v3.0
+	* AMDGPU-PRO v16.50
+
+Other environments/configurations likely work as well, but are untested.
+
