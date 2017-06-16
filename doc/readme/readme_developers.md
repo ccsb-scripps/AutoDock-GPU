@@ -48,7 +48,7 @@ This is the documentation for developers: source code structure, build instructi
 
 | File                 | Description                                                                   |
 |----------------------|-------------------------------------------------------------------------------|
-| calcenergy[.h](host/inc/calcenergy.h)[.cpp](host/src/calcenergy.cpp) | Auxiliary functions for energy calculation     |
+| calcenergy{[.h](host/inc/calcenergy.h)}{[.cpp](host/src/calcenergy.cpp)} | Auxiliary functions for energy calculation     |
 
 
 ```
