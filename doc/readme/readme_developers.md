@@ -1,6 +1,6 @@
 This is the documentation for developers: source code structure, build instructions, tools required, etc.
 
-# Source-code structure
+# File structure
 
 ## Main structure
 ```
@@ -68,9 +68,28 @@ This is the documentation for developers: source code structure, build instructi
 For both complexes, the containing folder has a similar structure:
 
 
-| [input/1stp/derived](input/1stp/derived)                | Description                                |
-|----------------------|-------------------------------------------------------------------------------|
-|                      |                                                                               |
+| [input/1stp/derived](input/1stp/derived)                    | Description                                |
+|----------------------|-----------------------------------------------------------------------------------|
+| [1stp_ligand.pdb](input/1stp/derived/1stp_ligand.pdb)       | Ligand file in .pdb format                 |
+| [1stp_ligand.pdbqt](input/1stp/derived/1stp_ligand.pdbqt)   | Ligand file in .pdbqt format               |
+| [1stp_protein.A.map](input/1stp/derived/1stp_protein.A.map) |          |
+| [1stp_protein.C.map](input/1stp/derived/1stp_protein.C.map) |          |
+| [1stp_protein.d.map](input/1stp/derived/1stp_protein.d.map) |          |
+| [1stp_protein.e.map](input/1stp/derived/1stp_protein.e.map) |          |
+| [1stp_protein.HD.map](input/1stp/derived/1stp_protein.HD.map) |          |
+| [1stp_protein.maps.fld](input/1stp/derived/1stp_protein.maps.fld) |          |
+| [1stp_protein.maps.xyz](input/1stp/derived/1stp_protein.maps.xyz) |          |
+| [1stp_protein.N.map](input/1stp/derived/1stp_protein.N.map) |          |
+| [1stp_protein.OA.map](input/1stp/derived/1stp_protein.OA.map) |          |
+| [1stp_protein.pdb](input/1stp/derived/1stp_protein.pdb) |          |
+| [1stp_protein.pdbqt](input/1stp/derived/1stp_protein.pdbqt) |          |
+| [1stp_protein.SA.map](input/1stp/derived/1stp_protein.SA.map) |          |
+| [1stp.dlg](input/1stp/derived/1stp.dlg) |          |
+| [1stp.dpf](input/1stp/derived/1stp.dpf) |          |
+| [1stp.glg](input/1stp/derived/1stp.glg) |          |
+| [1stp.gpf](input/1stp/derived/1stp.gpf) |          |
+
+
 
 
 **[wrapcl](wrapcl)**: custom wrapper functions for OpenCL API calls (complaint to OpenCL 1.2).
