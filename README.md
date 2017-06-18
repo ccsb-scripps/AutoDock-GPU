@@ -1,7 +1,12 @@
 OpenCL Accelerated Molecular Docking (OCLADock)
 ===============================================
 
-[logo]
+Inline-style:
+![alt text](logo.png)
+
+Reference-style:
+![alt text1][logo]
+
 
 # Features
 
