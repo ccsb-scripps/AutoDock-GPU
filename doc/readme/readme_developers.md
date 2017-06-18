@@ -247,7 +247,7 @@ make DEVICE=<TYPE> NUMWI=<NWI> CONFIG=<CFG> DOCK_DEBUG=<Y/N> REPRO=<Y/N>
 | DEVICE      | OpenCL device type                    | `<TYPE>`: CPU, GPU       |
 | NUMWI       | Number of work items per work group   | `<NWI>` : 16, 32, 64     |
 | CONFIG      | Host configuration                    | `<CFG>` : DEBUG, RELEASE |
-| DOCK_DEBUG  | Enable debug info from host & device  | `<Y/N>` : YES, NO        |
+| DOCK_DEBUG  | Enable debug info for host & device  | `<Y/N>` : YES, NO        |
 | REPRO       | Reproduce results (remove randomness) | `<Y/N>` : YES, NO        |
 
 ## Configuration file
