@@ -60,7 +60,7 @@ Mandatory arguments:
 
 ## Example
 ```zsh
-./bin/ocladock_gpu_64wi -ffile ./input_data/1stp/derived/1stp_protein.maps.fld -lfile ./input_data/1stp/derived/1stp_ligand.pdbqt -nrun 10
+./bin/ocladock_gpu_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10
 ```
 By default the output log file is written in the root folder: [docking.dlg](docking.dlg)
 

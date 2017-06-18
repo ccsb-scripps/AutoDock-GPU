@@ -27,8 +27,8 @@ endif
 # Project directories
 # opencl_lvs: wrapper for OpenCL APIs
 COMMON_DIR=./common
-OCL_INC_DIR=./opencl_lvs/inc
-OCL_SRC_DIR=./opencl_lvs/src
+OCL_INC_DIR=./wrapcl/inc
+OCL_SRC_DIR=./wrapcl/src
 HOST_INC_DIR=./host/inc
 HOST_SRC_DIR=./host/src
 KRNL_DIR=./device
