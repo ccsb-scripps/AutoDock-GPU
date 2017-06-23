@@ -2,6 +2,7 @@
 initpop.txt
 *.dlg
 *.xml
+./input/2bxd/*
 
 # ===================
 # C gitignore

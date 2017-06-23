@@ -28,7 +28,7 @@
 #define MAX_NUM_OF_ROTATIONS 		4096
 #define MAX_NUM_OF_ROTBONDS 		32
 #define MAX_POPSIZE 						2048
-#define MAX_NUM_OF_RUNS 				100
+#define MAX_NUM_OF_RUNS 				1000
 
 // Must be bigger than MAX_NUM_OF_ROTBONDS+6
 #define GENOTYPE_LENGTH_IN_GLOBMEM 64
