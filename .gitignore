@@ -1,8 +1,9 @@
 # OCLADock specific files
 initpop.txt
-*.dlg
+docking_*.dlg
 *.xml
-./input/2bxd/*
+input/2bxd/
+ocladock.wiki/
 
 # ===================
 # C gitignore
