@@ -25,9 +25,14 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 	//char* dir = dirname(ts1);
 	//char* filename = basename(ts1);
 
+	#ifndef _WIN32
 	// L30nardoSV
 	char* ts1 = strdup(fldfilename);
 	mygrid->grid_file_path = dirname(ts1);
+	#else
+
+
+	#endif
 	// ----------------------------------------------------
 
 	//Processing fld file

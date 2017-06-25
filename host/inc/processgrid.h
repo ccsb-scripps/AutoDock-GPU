@@ -16,12 +16,14 @@
 #include <stdlib.h>
 #include <math.h>
 
+#ifndef _WIN32
 // L30nardoSV
 #include <libgen.h>
 
 // libgen.h contains basename() and dir() from a fullpath name
 // Specific: to open correctly grid map field fiels and associated files
 // http://ask.systutorials.com/681/get-the-directory-path-and-file-name-from-absolute-path-linux
+#endif
 
 #include "miscellaneous.h"
 
