@@ -63,8 +63,9 @@ void get_trilininterpol_weights_f(float [][2][2], const float*, const float*, co
 
 void print_binary_string(unsigned long long);
 
+#ifndef _WIN32
 int stricmp(const char*, const char*);
-
+#endif
 
 unsigned int genseed(unsigned int init);
 
