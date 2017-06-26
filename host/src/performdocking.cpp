@@ -7,6 +7,7 @@
  * Author: pechan.imre
  */
 
+#ifndef _WIN32
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s)	STRINGIZE2(s)
 #define KRNL_FILE STRINGIZE(KRNL_SOURCE)
@@ -16,6 +17,16 @@
 #define KRNL2 STRINGIZE(K2)
 #define KRNL3 STRINGIZE(K3)
 #define KRNL4 STRINGIZE(K4)
+
+#else
+#define KRNL_FILE KRNL_SOURCE
+#define KRNL_FOLDER KRNL_DIRECTORY
+#define KRNL_COMMON KCMN_DIRECTORY
+#define KRNL1 K1
+#define KRNL2 K2
+#define KRNL3 K3
+#define KRNL4 K4
+#endif
 
 #define INC " -I " KRNL_FOLDER " -I " KRNL_COMMON
 
