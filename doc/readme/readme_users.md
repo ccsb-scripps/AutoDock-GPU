@@ -71,4 +71,5 @@ For a complete list of available arguments and their default values, check: [get
 | -resnam  | Name for docking output log  | "docking"     |
 
 
-Go to [Index](doc/readme.md/).
+
+Go to [Index](doc/readme/home.md/).
