@@ -395,7 +395,8 @@ filled with clock() */
 // End of Kernel1
 
 // Kernel2
-  setKernelArg(kernel2,0,sizeof(mypars->pop_size),        								&mypars->pop_size);
+//  setKernelArg(kernel2,0,sizeof(mypars->pop_size),       		&mypars->pop_size);
+  setKernelArg(kernel2,0,sizeof(dockpars.pop_size),       		&dockpars.pop_size);
   setKernelArg(kernel2,1,sizeof(mem_dockpars_evals_of_new_entities),      &mem_dockpars_evals_of_new_entities);
   setKernelArg(kernel2,2,sizeof(mem_gpu_evals_of_runs),                   &mem_gpu_evals_of_runs);
 	kernel2_gxsize = blocksPerGridForEachRun * threadsPerBlock;

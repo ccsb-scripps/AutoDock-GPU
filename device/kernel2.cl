@@ -1,5 +1,6 @@
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
-gpu_sum_evals(unsigned long pop_size,
+gpu_sum_evals(/*unsigned long pop_size,*/
+		unsigned int pop_size,
 		       /*unsigned long num_of_runs,*/
 #if defined (RESTRICT_ARGS)
 	      __global int* restrict dockpars_evals_of_new_entities,
