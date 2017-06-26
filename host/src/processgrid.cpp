@@ -30,8 +30,17 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 	char* ts1 = strdup(fldfilename);
 	mygrid->grid_file_path = dirname(ts1);
 	#else
-
-
+	char* ts1 = strdup(fldfilename);
+	char drive_tmp[_MAX_DRIVE];
+	char path_tmp[_MAX_DIR];
+	_splitpath(ts1, drive_tmp, path_tmp, NULL, NULL);
+	
+	char result[2*_MAX_DIR];
+	strcpy(result, drive_tmp);
+	strcpy(result, path_tmp);
+	for (unsigned int i=0; i<2*_MAX_DIR; i++) {
+		mygrid->grid_file_path[i] = result[i];
+	}
 	#endif
 	// ----------------------------------------------------
 
