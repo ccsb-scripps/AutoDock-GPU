@@ -80,7 +80,7 @@ For a complete list of available arguments and their default values, check: [get
 | -crat    | Crossover rate               | 80 (%)        |
 | -lsrat   | Local-search rate            | 6 (%)         |
 | -trat    | Tournament rate              | 60 (%)        |
-| -resname | Name for docking output log  | "docking"     |
+| -resnam  | Name for docking output log  | "docking"     |
 
 # Documentation
 
