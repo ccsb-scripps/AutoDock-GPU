@@ -70,6 +70,5 @@ For a complete list of available arguments and their default values, check: [get
 | -trat    | Tournament rate              | 60 (%)        |
 | -resnam  | Name for docking output log  | "docking"     |
 
-
-
+## Further reading
 Go to [Index](doc/readme/home.md).
