@@ -37,7 +37,9 @@ Mandatory arguments:
 ```zsh
 ./bin/ocladock_gpu_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10
 ```
-By default the output log file is written in the root folder: [docking.dlg](docking.dlg)
+By default the output log file is written in the current working folder. 
+
+Examples of output logs can be found under [examples/output](examples/output/).
 
 ## Supported arguments
 For a complete list of available arguments and their default values, check: [getparameters.cpp](host/src/getparameters.cpp)
