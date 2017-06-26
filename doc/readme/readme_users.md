@@ -69,3 +69,6 @@ For a complete list of available arguments and their default values, check: [get
 | -lsrat   | Local-search rate            | 6 (%)         |
 | -trat    | Tournament rate              | 60 (%)        |
 | -resnam  | Name for docking output log  | "docking"     |
+
+
+Go to [Index](doc/readme.md/).
