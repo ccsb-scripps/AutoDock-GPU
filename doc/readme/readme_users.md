@@ -36,7 +36,20 @@ Mandatory arguments:
 ## Example
 ```zsh
 ./bin/ocladock_gpu_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10
+
+Kernel source file:                      ./device/calcenergy.cl                  
+Kernel compilation flags:                 -I ./device -I ./common -DN64WI        
+
+Executing docking runs:
+        20%        40%       60%       80%       100%
+---------+---------+---------+---------+---------+
+**************************************************
+
+Program run time 26.931 sec 
 ```
+
+
+
 By default the output log file is written in the current working folder. 
 
 Examples of output logs can be found under [examples/output](examples/output/).
