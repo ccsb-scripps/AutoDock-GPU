@@ -72,4 +72,4 @@ For a complete list of available arguments and their default values, check: [get
 
 
 
-Go to [Index](doc/readme/home.md/).
+Go to [Index](doc/readme/home.md).
