@@ -7,10 +7,13 @@
 #include "processligand.h"
 #include "getparameters.h"
 #include "performdocking.h"
+
+#ifndef _WIN32
 // ------------------------
 // Time measurement
 #include <sys/time.h>
 // ------------------------
+#endif
 
 int main(int argc, char* argv[])
 {
@@ -22,13 +25,14 @@ int main(int argc, char* argv[])
 	clock_t clock_start_program, clock_stop_program;
 	clock_start_program = clock();
 
+#ifndef _WIN32
 	// ------------------------
 	// Time measurement
 	double num_sec, num_usec, elapsed_sec;
 	timeval time_start,time_end;
 	gettimeofday(&time_start,NULL);
 	// ------------------------
-
+#endif
 	//------------------------------------------------------------
 	// Capturing names of grid parameter file and ligand pdbqt file
 	//------------------------------------------------------------
@@ -76,6 +80,7 @@ int main(int argc, char* argv[])
 
 	free(floatgrids);
 
+#ifndef _WIN32
 	// ------------------------
 	// Time measurement
 	gettimeofday(&time_end,NULL);
@@ -84,6 +89,6 @@ int main(int argc, char* argv[])
 	elapsed_sec = num_sec + (num_usec/1000000);
 	printf("Program run time %.3f sec \n\n", elapsed_sec);
 	//// ------------------------
-
+#endif
 	return 0;
 }
