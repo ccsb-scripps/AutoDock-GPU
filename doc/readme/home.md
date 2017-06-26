@@ -1,6 +1,6 @@
 # Documentation
 
-It contains the documentation for:
+It is divided in the following categories:
 
 1. [Users](readme_users.md)
 2. [Developers](readme_developers.md)
