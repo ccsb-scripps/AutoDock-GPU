@@ -547,7 +547,7 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 
 	fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
 
-	fp_orig = fopen(mypars->ligandfile, "r");
+	fp_orig = fopen(mypars->ligandfile, "rb"); // fp_orig = fopen(mypars->ligandfile, "r");
 
 	while (fgets(tempstr, 255, fp_orig) != NULL)	//reading original ligand pdb line by line
 	{
@@ -605,7 +605,7 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 		fprintf(fp, "DOCKED: USER\n");
 
 
-		fp_orig = fopen(mypars->ligandfile, "r");
+		fp_orig = fopen(mypars->ligandfile, "rb"); // fp_orig = fopen(mypars->ligandfile, "r");
 
 		atom_cnt = 0;
 

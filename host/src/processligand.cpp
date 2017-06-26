@@ -25,7 +25,7 @@ int init_liganddata(const char* ligfilename,
 	char atom_types [14][3];
 	char tempstr [256];
 
-	fp = fopen(ligfilename, "r");
+	fp = fopen(ligfilename, "rb"); // fp = fopen(ligfilename, "r");
 	if (fp == NULL)
 	{
 		printf("Error: can't open ligand data file %s!\n", ligfilename);
@@ -664,7 +664,7 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 
 	atom_counter = 0;
 
-	fp = fopen(ligfilename, "r");
+	fp = fopen(ligfilename, "rb"); // fp = fopen(ligfilename, "r");
 	if (fp == NULL)
 	{
 		printf("Error: can't open ligand data file %s!\n", ligfilename);
@@ -711,7 +711,7 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			atom_rotbonds_temp [i][j] = 0;
 	}
 
-	fp = fopen(ligfilename, "r");	//re-open the file
+	fp = fopen(ligfilename, "rb"); // fp = fopen(ligfilename, "r");	//re-open the file
 	if (fp == NULL)
 	{
 		printf("Error: can't open ligand data file %s!\n", ligfilename);
@@ -825,7 +825,7 @@ int gen_new_pdbfile(const char* oldpdb, const char* newpdb, const Liganddata* my
 	acnt_oldlig = 0;
 	acnt_newlig = 0;
 
-	fp_old = fopen(oldpdb, "r");
+	fp_old = fopen(oldpdb, "rb"); // fp_old = fopen(oldpdb, "r");
 	if (fp_old == NULL)
 	{
 		printf("Error: can't open old pdb file %s!\n", oldpdb);

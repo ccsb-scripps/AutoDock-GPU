@@ -556,7 +556,7 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		}
 		else
 		{
-			fp = fopen("initpop.txt","r");
+			fp = fopen("initpop.txt","rb"); // fp = fopen("initpop.txt","r");
 			if (fp == NULL)
 			{
 				printf("Warning: can't find initpop.txt. A new population will be generated.\n");

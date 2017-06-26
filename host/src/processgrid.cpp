@@ -36,7 +36,7 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 	// ----------------------------------------------------
 
 	//Processing fld file
-	fp = fopen(fldfilename, "r");
+	fp = fopen(fldfilename, "rb"); // fp = fopen(fldfilename, "r");
 	if (fp == NULL)
 	{
 		printf("Error: can't open fld file %s!\n", fldfilename);
@@ -152,7 +152,7 @@ int get_gridvalues_f(const Gridinfo* mygrid, float** fgrids)
 		strcat(tempstr, ".");
 		strcat(tempstr, mygrid->grid_types[t]);
 		strcat(tempstr, ".map");
-		fp = fopen(tempstr, "r");
+		fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
 		if (fp == NULL)
 		{
 			printf("Error: can't open %s!\n", tempstr);
