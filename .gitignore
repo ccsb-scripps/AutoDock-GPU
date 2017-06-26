@@ -1,6 +1,6 @@
 # OCLADock specific files
 initpop.txt
-docking_*.dlg
+*.dlg
 *.xml
 input/2bxd/
 ocladock.wiki/
