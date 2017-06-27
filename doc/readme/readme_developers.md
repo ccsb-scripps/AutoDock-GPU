@@ -256,31 +256,38 @@ make DEVICE=<TYPE> NUMWI=<NWI> CONFIG=<CFG> DOCK_DEBUG=<Y/N> REPRO=<Y/N>
 ## Configuration file
 Check the configurations in the project's [Makefile](../Makefile).
 
-# Requirements
+# Installation
 
-OCLADock is known to work in the following environment:
+## Requirements
+OCLADock is known to work in the following environments:
 
 * Architecture: Intel x86_64
-* Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04
+* Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04 / Windows 7
 
-**Tools required**
-* CPU:
-	* Intel SDK for OpenCL v1.2
-	* Intel OpenCL Runtime v16.1
+Other environments likely work as well, but are untested.
+ 
+## Prerequisites
 
-* GPU
-	* AMD APP SDK v3.0
-	* AMDGPU-PRO v16.50
+| Operating system | CPU                          | GPU                |
+|:-----------------|:----------------------------:|:------------------:|
+| Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0   |
+| Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0   |
 
-Other environments/configurations likely work as well, but are untested.
 
-**Keep in mind that before compiling**
-* CPU: 
-    * `$(INTELOCLSDKROOT)` must be defined
-* GPU: 
-    * `$(AMDAPPSDKROOT)` must be defined
-    * `/etc/ld.so.conf.d/amdgpu-pro-x86_64.conf` must contain the path of the GPU driver
-* Check vendor specific guidelines to setup both OpenCL platform correctly
+Other configurations likely work as well, but are untested.
 
-## Further reading
+## To keep in mind before compiling
+
+**The corresponding environmental variables must be defined**
+* CPU accelerator : `$(INTELOCLSDKROOT)`
+* GPU accelerator : `$(AMDAPPSDKROOT)` 
+
+**The corresponding paths for CPU/GPU drivers must be also defined**
+* This is usually resolved automatically during SDK/driver installation
+* In case it is not set, resolve it manually
+    * E.g.: GPU accelerator on Linux: `/etc/ld.so.conf.d/amdgpu-pro-x86_64.conf` must contain the path of the driver
+
+**Check vendor specific guidelines to setup both OpenCL platform correctly!**
+
+# Further reading
 Go to [Index](doc/readme/home.md).
