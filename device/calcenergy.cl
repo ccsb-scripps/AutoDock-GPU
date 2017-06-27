@@ -3,27 +3,34 @@
 // All related pragmas are in defines.h (accesible by host and device code)
 
 void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
-			    								char   dockpars_num_of_atoms,
-			    								char   dockpars_gridsize_x,
-			    								char   dockpars_gridsize_y,
-                	    		char   dockpars_gridsize_z,
+			    char   dockpars_num_of_atoms,
+			    char   dockpars_gridsize_x,
+			    char   dockpars_gridsize_y,
+			    char   dockpars_gridsize_z,
 		#if defined (RESTRICT_ARGS)
-	     		__global const float* restrict dockpars_fgrids, // cannot be allocated in __constant (too large)
+			__global const float* restrict dockpars_fgrids, // cannot be allocated in __constant (too large)
 		#else
-	     		__global const float* dockpars_fgrids, // cannot be allocated in __constant (too large)
+			__global const float* dockpars_fgrids, // cannot be allocated in __constant (too large)
 		#endif
-		     	    						char   dockpars_num_of_atypes,
-		            					int    dockpars_num_of_intraE_contributors,
-		     	    						float  dockpars_grid_spacing,
-		     	    						float  dockpars_coeff_elec,
-                     	    float  dockpars_qasp,
-		     	    						float  dockpars_coeff_desolv,
+		            char   dockpars_num_of_atypes,
+		            int    dockpars_num_of_intraE_contributors,
+			    float  dockpars_grid_spacing,
+			    float  dockpars_coeff_elec,
+			    float  dockpars_qasp,
+			    float  dockpars_coeff_desolv,
 
-		    					__local float* genotype,
-		    					__local float* energy,
-		    					__local int*   run_id,
+		    __local float* genotype,
+		    __local float* energy,
+		    __local int*   run_id,
+	
+                    // Some OpenCL compilers don't allow local var outside kernels
+		    // so this local vars are passed from a kernel
+		    __local float* calc_coords_x,
+		    __local float* calc_coords_y,
+		    __local float* calc_coords_z,
+		    __local float* partial_energies,
 
-	           	 __constant float* atom_charges_const,
+	       __constant float* atom_charges_const,
                __constant char*  atom_types_const,
                __constant char*  intraE_contributors_const,
                __constant float* VWpars_AC_const,
@@ -65,10 +72,12 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 	float quatrot_left_x, quatrot_left_y, quatrot_left_z, quatrot_left_q;
 	float quatrot_temp_x, quatrot_temp_y, quatrot_temp_z, quatrot_temp_q;
 
-	__local float calc_coords_x[MAX_NUM_OF_ATOMS];
-	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
-	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
-	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
+        // Some OpenCL compilers don't allow local var outside kernels
+	// so this local vars are passed from a kernel
+	//__local float calc_coords_x[MAX_NUM_OF_ATOMS];
+	//__local float calc_coords_y[MAX_NUM_OF_ATOMS];
+	//__local float calc_coords_z[MAX_NUM_OF_ATOMS];
+	//__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
 
 	partial_energies[get_local_id(0)] = 0.0f;
 

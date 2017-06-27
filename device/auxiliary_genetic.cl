@@ -105,6 +105,15 @@ void gpu_perform_elitist_selection(int    dockpars_pop_size,
 				    __global float* dockpars_conformations_next,
 		        __global const float* dockpars_conformations_current
 					#endif
+				
+					,
+                    // Some OpenCL compilers don't allow local var outside kernels
+                    // so this local vars are passed from a kernel
+				    __local float* best_energies,
+				    __local int*   best_IDs,
+				    __local int*   best_ID	
+
+
 )
 //The GPU device function performs elitist selection,
 //that is, it looks for the best entity in conformations_current and
@@ -115,11 +124,13 @@ void gpu_perform_elitist_selection(int    dockpars_pop_size,
 
 	int entity_counter;
 	int gene_counter;
-
-	__local float best_energies[NUM_OF_THREADS_PER_BLOCK];
-	__local int best_IDs[NUM_OF_THREADS_PER_BLOCK];
 	float best_energy;
-	__local int best_ID;
+
+        // Some OpenCL compilers don't allow local var outside kernels
+        // so this local vars are passed from a kernel
+	//__local float best_energies[NUM_OF_THREADS_PER_BLOCK];
+	//__local int best_IDs[NUM_OF_THREADS_PER_BLOCK];
+	//__local int best_ID;
 
 	if (get_local_id(0) < dockpars_pop_size)
 	{
@@ -133,8 +144,8 @@ void gpu_perform_elitist_selection(int    dockpars_pop_size,
 
 	     if (dockpars_energies_current[get_group_id(0)+entity_counter] < best_energies[get_local_id(0)])
 	     {
-	     	best_energies[get_local_id(0)] = dockpars_energies_current[get_group_id(0)+entity_counter];
-	     	best_IDs[get_local_id(0)] = entity_counter;
+		best_energies[get_local_id(0)] = dockpars_energies_current[get_group_id(0)+entity_counter];
+		best_IDs[get_local_id(0)] = entity_counter;
 	     }
 
        barrier(CLK_LOCAL_MEM_FENCE);
@@ -144,7 +155,8 @@ void gpu_perform_elitist_selection(int    dockpars_pop_size,
 	if (get_local_id(0) == 0)
 	{
 		best_energy = best_energies[0];
-		best_ID = best_IDs[0];
+		//best_ID = best_IDs[0];
+		best_ID[0] = best_IDs[0];
 
 		for (entity_counter=1;
 		     entity_counter<NUM_OF_THREADS_PER_BLOCK;
@@ -153,7 +165,8 @@ void gpu_perform_elitist_selection(int    dockpars_pop_size,
 		     if ((best_energies[entity_counter] < best_energy) && (entity_counter < dockpars_pop_size))
 		     {
 			      best_energy = best_energies[entity_counter];
-			      best_ID = best_IDs[entity_counter];
+			      //best_ID = best_IDs[entity_counter];
+			      best_ID[0] = best_IDs[entity_counter];
 		     }
 
 		//setting energy value of new entity
@@ -170,5 +183,6 @@ void gpu_perform_elitist_selection(int    dockpars_pop_size,
 	for (gene_counter=get_local_id(0);
 	     gene_counter<dockpars_num_of_genes;
 	     gene_counter+=NUM_OF_THREADS_PER_BLOCK)
-	     dockpars_conformations_next[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+gene_counter] = dockpars_conformations_current[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+GENOTYPE_LENGTH_IN_GLOBMEM*best_ID+gene_counter];
+	     //dockpars_conformations_next[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+gene_counter] = dockpars_conformations_current[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+GENOTYPE_LENGTH_IN_GLOBMEM*best_ID+gene_counter];
+	     dockpars_conformations_next[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+gene_counter] = dockpars_conformations_current[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+GENOTYPE_LENGTH_IN_GLOBMEM*best_ID[0]+gene_counter];
 }

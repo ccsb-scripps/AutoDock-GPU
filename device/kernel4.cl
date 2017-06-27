@@ -1,50 +1,50 @@
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
-				                 char   dockpars_num_of_atypes,
-				                 int    dockpars_num_of_intraE_contributors,
-			                   char   dockpars_gridsize_x,
-       				           char   dockpars_gridsize_y,
-        			           char   dockpars_gridsize_z,
-        			           float  dockpars_grid_spacing,
+			 char   dockpars_num_of_atypes,
+			 int    dockpars_num_of_intraE_contributors,
+			 char   dockpars_gridsize_x,
+			 char   dockpars_gridsize_y,
+			 char   dockpars_gridsize_z,
+			 float  dockpars_grid_spacing,
 
 			#if defined (RESTRICT_ARGS)
  __global const float* restrict dockpars_fgrids, // cannot be allocated in __constant (too large)
 			#else
-	 	      __global const float* dockpars_fgrids, // cannot be allocated in __constant (too large)
+ __global const float* dockpars_fgrids, // cannot be allocated in __constant (too large)
 			#endif
 
-	                       int    dockpars_rotbondlist_length,
-  	            	       float  dockpars_coeff_elec,
-			                   float  dockpars_coeff_desolv,
+	                int    dockpars_rotbondlist_length,
+			float  dockpars_coeff_elec,
+			float  dockpars_coeff_desolv,
 
 			#if defined (RESTRICT_ARGS)
-__global const float* restrict  dockpars_conformations_current,
-      __global float* restrict  dockpars_energies_current,
-      __global float* restrict  dockpars_conformations_next,
-      __global float* restrict  dockpars_energies_next,
-      __global int*   restrict  dockpars_evals_of_new_entities,
-__global unsigned int* restrict dockpars_prng_states,
+ __global const float* restrict  dockpars_conformations_current,
+ __global float* restrict  dockpars_energies_current,
+ __global float* restrict  dockpars_conformations_next,
+ __global float* restrict  dockpars_energies_next,
+ __global int*   restrict  dockpars_evals_of_new_entities,
+ __global unsigned int* restrict dockpars_prng_states,
 			#else
-         __global const float*  dockpars_conformations_current,
-         __global float*        dockpars_energies_current,
-         __global float*        dockpars_conformations_next,
-         __global float*        dockpars_energies_next,
-         __global int*          dockpars_evals_of_new_entities,
-         __global unsigned int* dockpars_prng_states,
+ __global const float*  dockpars_conformations_current,
+ __global float*        dockpars_energies_current,
+ __global float*        dockpars_conformations_next,
+ __global float*        dockpars_energies_next,
+ __global int*          dockpars_evals_of_new_entities,
+ __global unsigned int* dockpars_prng_states,
 			#endif
 
-			                   int    dockpars_pop_size,
-			                   int    dockpars_num_of_genes,
-				                 float  dockpars_tournament_rate,
-	                       float  dockpars_crossover_rate,
-				                 float  dockpars_mutation_rate,
-				                 float  dockpars_abs_max_dmov,
-				                 float  dockpars_abs_max_dang,
-				                 float  dockpars_qasp,
+	                int    dockpars_pop_size,
+	                int    dockpars_num_of_genes,
+		        float  dockpars_tournament_rate,
+	                float  dockpars_crossover_rate,
+		        float  dockpars_mutation_rate,
+		        float  dockpars_abs_max_dmov,
+		        float  dockpars_abs_max_dang,
+		        float  dockpars_qasp,
 
-	           	__constant float* atom_charges_const,
+	      __constant float* atom_charges_const,
               __constant char*  atom_types_const,
-	            __constant char*  intraE_contributors_const,
+	      __constant char*  intraE_contributors_const,
               __constant float* VWpars_AC_const,
               __constant float* VWpars_BD_const,
               __constant float* dspars_S_const,
@@ -70,15 +70,33 @@ __global unsigned int* restrict dockpars_prng_states,
 	int gene_counter;
 	__local float energy;	//could be shared since only thread 0 will use it
 
+
+        // Some OpenCL compilers don't allow local var outside kernels
+        // so this local vars are passed from a kernel
+	__local float best_energies[NUM_OF_THREADS_PER_BLOCK];
+	__local int best_IDs[NUM_OF_THREADS_PER_BLOCK];
+        __local int best_ID[1]; //__local int best_ID;
+
+        // Some OpenCL compilers don't allow local var outside kernels
+        // so this local vars are passed from a kernel
+	__local float calc_coords_x[MAX_NUM_OF_ATOMS];
+	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
+	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
+	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
+
 	//in this case this block is responsible for elitist selection
 	if ((get_group_id(0) % dockpars_pop_size) == 0)
 		gpu_perform_elitist_selection(dockpars_pop_size,
-					                        dockpars_energies_current,
-					                        dockpars_energies_next,
-					                        dockpars_evals_of_new_entities,
-					                        dockpars_num_of_genes,
-					                        dockpars_conformations_next,
-				                          dockpars_conformations_current);
+					      dockpars_energies_current,
+					      dockpars_energies_next,
+					      dockpars_evals_of_new_entities,
+					      dockpars_num_of_genes,
+					      dockpars_conformations_next,
+				              dockpars_conformations_current
+					      ,
+					      best_energies,
+					      best_IDs,
+					      best_ID);
 	else
 	{
 		//generating the following random numbers: [0..3] for parent candidates,
@@ -160,8 +178,8 @@ __global unsigned int* restrict dockpars_prng_states,
 		{
 #if defined (ASYNC_COPY)
 			async_work_group_copy(offspring_genotype,
-        	        	        dockpars_conformations_current+(run_id*dockpars_pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM,
-                	        	dockpars_num_of_genes,0);
+					     dockpars_conformations_current+(run_id*dockpars_pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM,
+					     dockpars_num_of_genes,0);
 
 #else
 			for (gene_counter=get_local_id(0);
@@ -193,39 +211,45 @@ __global unsigned int* restrict dockpars_prng_states,
 		//calculating energy of new offspring
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-	  // =============================================================
+		// =============================================================
 		//WARNING: only energy of work-item=0 will be valid
 		gpu_calc_energy(dockpars_rotbondlist_length,
-				            dockpars_num_of_atoms,
-				            dockpars_gridsize_x,
-				            dockpars_gridsize_y,
-	                  dockpars_gridsize_z,
-				            dockpars_fgrids,
-				            dockpars_num_of_atypes,
-				            dockpars_num_of_intraE_contributors,
-				            dockpars_grid_spacing,
-				            dockpars_coeff_elec,
-                	  dockpars_qasp,
-				            dockpars_coeff_desolv,
-				            offspring_genotype,
-				            &energy,
-				            &run_id,
-
-                    atom_charges_const,
-	                  atom_types_const,
-        	          intraE_contributors_const,
-                	  VWpars_AC_const,
-                    VWpars_BD_const,
-	                  dspars_S_const,
-        	          dspars_V_const,
-                	  rotlist_const,
-                    ref_coords_x_const,
-	                  ref_coords_y_const,
-        	          ref_coords_z_const,
-                	  rotbonds_moving_vectors_const,
-                    rotbonds_unit_vectors_const,
-	                  ref_orientation_quats_const);
-    // =============================================================
+				dockpars_num_of_atoms,
+				dockpars_gridsize_x,
+				dockpars_gridsize_y,
+	                        dockpars_gridsize_z,
+				dockpars_fgrids,
+				dockpars_num_of_atypes,
+				dockpars_num_of_intraE_contributors,
+				dockpars_grid_spacing,
+				dockpars_coeff_elec,
+                                dockpars_qasp,
+				dockpars_coeff_desolv,
+				offspring_genotype,
+				&energy,
+				&run_id,
+				// Some OpenCL compilers don't allow local var outside kernels
+				// so this local vars are passed from a kernel
+				calc_coords_x,
+				calc_coords_y,
+				calc_coords_z,
+				partial_energies,
+		
+                                atom_charges_const,
+	                        atom_types_const,
+				intraE_contributors_const,
+				VWpars_AC_const,
+				VWpars_BD_const,
+				dspars_S_const,
+				dspars_V_const,
+				rotlist_const,
+				ref_coords_x_const,
+				ref_coords_y_const,
+				ref_coords_z_const,
+				rotbonds_moving_vectors_const,
+				rotbonds_unit_vectors_const,
+				ref_orientation_quats_const);
+		// =============================================================
 
 		if (get_local_id(0) == 0) {
 			dockpars_evals_of_new_entities[get_group_id(0)] = 1;
@@ -237,9 +261,9 @@ __global unsigned int* restrict dockpars_prng_states,
 
 		//copying new offspring to next generation
 #if defined (ASYNC_COPY)
-    async_work_group_copy(dockpars_conformations_next + GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0),
-        	                offspring_genotype,
-                	        dockpars_num_of_genes,0);
+		async_work_group_copy(dockpars_conformations_next + GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0),
+				      offspring_genotype,
+				      dockpars_num_of_genes,0);
 #else
 		for (gene_counter=get_local_id(0);
 		     gene_counter<dockpars_num_of_genes;
