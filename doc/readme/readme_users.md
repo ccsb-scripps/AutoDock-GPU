@@ -2,7 +2,7 @@
 OCLADock is known to work in the following environment:
 
 * Architecture: Intel x86_64
-* Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04
+* Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04 / Windows 7
  
 # Requirements
 * CPU:
