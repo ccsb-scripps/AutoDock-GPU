@@ -5,7 +5,8 @@ OpenCL Accelerated Molecular Docking (OCLADock)
 
 # Features
 
-* OpenCL-accelerated version of AutoDock 4.2 (Lamarckian Genetic Algorithm).
+* OpenCL-accelerated version of AutoDock 4.2 LGA (Lamarckian Genetic Algorithm).
+* It leverages the LGA paralelism, as entities of multiple docking runs are computed simultanesouly.
 * It targets platforms based on multi-core CPU and GPU accelerators.
 
 # Setup
