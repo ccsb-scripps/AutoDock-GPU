@@ -220,7 +220,7 @@ Input files were preprocessed before docking following the standard protocol usi
 
 **[prebuilt](prebuilt)**: prebuilt images for Linux and Windows.
 
-**[win](win)**: contains a Microsoft Visual Studio 2013 solution
+**[win](win)**: a Microsoft Visual Studio 2013 solution
 
 **[wrapcl](wrapcl)**: custom wrapper functions for OpenCL API calls (complaint to OpenCL 1.2).
 
