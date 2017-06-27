@@ -5,6 +5,8 @@ OCLADock is known to work in the following environments:
 
 * Architecture: Intel x86_64
 * Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04 / Windows 7
+
+Other environments likely work as well, but are untested.
  
 ## Prerequisites
 
@@ -14,13 +16,18 @@ OCLADock is known to work in the following environments:
 | Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0   |
 
 
-Other environments/configurations likely work as well, but are untested.
+Other configurations likely work as well, but are untested.
+
+## Important
 
 **Keep in mind that before compiling, the corresponding environmental variables must be defined**
-* CPU accelerator : `$(INTELOCLSDKROOT)` must be defined
-* GPU accelerator : `$(AMDAPPSDKROOT)` must be defined
-* Additionally for Linux:
-    * `/etc/ld.so.conf.d/amdgpu-pro-x86_64.conf` must contain the path of the GPU driver
+* CPU accelerator : `$(INTELOCLSDKROOT)`
+* GPU accelerator : `$(AMDAPPSDKROOT)` 
+
+**Keep in mind that before compiling, the corresponding paths for CPU/GPU drivers must be also defined**
+* This is usually resolved automatically during SDK/driver installation
+* In case it is not set, resolve it manually
+    * GPU accelerator on Linux: `/etc/ld.so.conf.d/amdgpu-pro-x86_64.conf` must contain the path of the driver
 
 **Check vendor specific guidelines to setup both OpenCL platform correctly**
 
