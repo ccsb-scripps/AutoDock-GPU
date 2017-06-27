@@ -18,18 +18,18 @@ Other environments likely work as well, but are untested.
 
 Other configurations likely work as well, but are untested.
 
-## Important
+## Keep in mind that before compiling
 
-**Keep in mind that before compiling, the corresponding environmental variables must be defined**
+**The corresponding environmental variables must be defined**
 * CPU accelerator : `$(INTELOCLSDKROOT)`
 * GPU accelerator : `$(AMDAPPSDKROOT)` 
 
-**Keep in mind that before compiling, the corresponding paths for CPU/GPU drivers must be also defined**
+**The corresponding paths for CPU/GPU drivers must be also defined**
 * This is usually resolved automatically during SDK/driver installation
 * In case it is not set, resolve it manually
-    * GPU accelerator on Linux: `/etc/ld.so.conf.d/amdgpu-pro-x86_64.conf` must contain the path of the driver
+    * E.g.: GPU accelerator on Linux: `/etc/ld.so.conf.d/amdgpu-pro-x86_64.conf` must contain the path of the driver
 
-**Check vendor specific guidelines to setup both OpenCL platform correctly**
+**Check vendor specific guidelines to setup both OpenCL platform correctly!**
 
 # Usage
 
