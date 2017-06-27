@@ -86,6 +86,9 @@ Examples of output logs can be found under [examples/output](examples/output/).
 
 For a complete list of available arguments and their default values, check: [getparameters.cpp](host/src/getparameters.cpp).
 
+## Images
+Prebuilt images are provided for [Linux](prebuilt/linux) and [Windows](prebuilt/windows).
+
 # Documentation
 
 For a complete documentation, check the [Documentation](doc/readme/home.md).
