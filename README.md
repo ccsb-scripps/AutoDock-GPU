@@ -13,7 +13,7 @@ OpenCL Accelerated Molecular Docking (OCLADock)
 OCLADock is known to work in the following environment:
 
 * Architecture: Intel x86_64
-* Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04
+* Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04 / Windows 7
 
 ## Prerequisites
 * CPU:
@@ -46,7 +46,9 @@ This can be configured in the [Makefile](Makefile).
 
 ## Compilation on Windows
 
-Currently only binaries are distributed.
+A MS Visual Studio 2013 solution for two configurations is provided: `ocladock-cpu-deb` and `ocladock-gpu-deb`.
+
+This solution can found in the [win](win/) folder.
 
 # Usage
 
