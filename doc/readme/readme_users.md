@@ -18,7 +18,7 @@ Other environments likely work as well, but are untested.
 
 Other configurations likely work as well, but are untested.
 
-## Keep in mind that before compiling
+## To keep in mind before compiling
 
 **The corresponding environmental variables must be defined**
 * CPU accelerator : `$(INTELOCLSDKROOT)`
