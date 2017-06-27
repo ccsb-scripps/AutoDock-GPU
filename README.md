@@ -18,7 +18,6 @@ OCLADock is known to work in the following environment:
 
 ## Prerequisites
 
-|                  | Accelerator type                                  |
 | Operating system | CPU                          | GPU                |
 |------------------|------------------------------|--------------------|
 | Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0   |
