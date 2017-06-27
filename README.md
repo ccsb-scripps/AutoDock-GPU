@@ -17,6 +17,14 @@ OCLADock is known to work in the following environment:
 * Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04 / Windows 7
 
 ## Prerequisites
+
+|                  | Accelerator type                                  |
+| Operating system | CPU                          | GPU                |
+|------------------|------------------------------|--------------------|
+| Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0   |
+|------------------|------------------------------|--------------------|
+| Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0   |
+
 * CPU:
 	* Intel SDK for OpenCL v1.2
 	* Intel OpenCL Runtime v16.1
