@@ -21,8 +21,6 @@
 │       ├── home.md
 │       ├── readme_developers.md
 │       └── readme_users.md
-├── docking.dlg
-├── docking.xml
 ├── examples
 │   └── output
 │       ├── ocladock_cpu_1stp_nrun100.dlg
@@ -169,6 +167,8 @@
 
 **[doc](doc)**: documentation files.
 
+**[examples/output](examples/output)**: examples of docking log files.
+
 **[host](host)**: host source files.
 
 | File                 | Description                                                                   |
@@ -217,6 +217,10 @@ Input files were preprocessed before docking following the standard protocol usi
 | [1stp.glg](input/1stp/derived/1stp.glg) | Grid log file when using original AutoGrid program                  |
 | [1stp.gpf](input/1stp/derived/1stp.gpf) | AutoDock grid parameter file                                        |
 
+
+**[prebuilt](prebuilt)**: prebuilt images for Linux and Windows.
+
+**[win](win)**: contains a Microsoft Visual Studio 2013 solution
 
 **[wrapcl](wrapcl)**: custom wrapper functions for OpenCL API calls (complaint to OpenCL 1.2).
 
