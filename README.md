@@ -16,6 +16,8 @@ OCLADock is known to work in the following environment:
 * Architecture: Intel x86_64
 * Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04 / Windows 7
 
+Other environments likely work as well, but are untested.
+
 ## Prerequisites
 
 | Operating system | CPU                          | GPU                |
@@ -23,15 +25,7 @@ OCLADock is known to work in the following environment:
 | Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0   |
 | Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0   |
 
-* CPU:
-	* Intel SDK for OpenCL v1.2
-	* Intel OpenCL Runtime v16.1
-
-* GPU
-	* AMD APP SDK v3.0
-	* AMDGPU-PRO v16.50
-
-Other environments/configurations likely work as well, but are untested.
+Other configurations likely work as well, but are untested.
 
 # Compilation
 
@@ -78,18 +72,18 @@ Examples of output logs can be found under [examples/output](examples/output/).
 ## Supported arguments
 For a complete list of available arguments and their default values, check: [getparameters.cpp](host/src/getparameters.cpp)
 
-| Argument | Description                  | Default value |
-|----------|------------------------------|---------------|
-| -nrun    | # Docking runs               | 1             |
-| -nev     | # Energy evaluations         | 2500000       |
-| -ngen    | # Generations                | 27000         |
-| -lsit    | # Local-search iterations (max.) | 300       |
-| -psize   | Population size              | 150           |
-| -mrat    | Mutation rate                | 2 (%)         |
-| -crat    | Crossover rate               | 80 (%)        |
-| -lsrat   | Local-search rate            | 6 (%)         |
-| -trat    | Tournament rate              | 60 (%)        |
-| -resnam  | Name for docking output log  | "docking"     |
+| Argument | Description                      | Default value |
+|:---------|:---------------------------------|--------------:|
+| -nrun    | # Docking runs                   | 1             |
+| -nev     | # Energy evaluations             | 2500000       |
+| -ngen    | # Generations                    | 27000         |
+| -lsit    | # Local-search iterations (max.) | 300           |
+| -psize   | Population size                  | 150           |
+| -mrat    | Mutation rate                    | 2 (%)         |
+| -crat    | Crossover rate                   | 80 (%)        |
+| -lsrat   | Local-search rate                | 6 (%)         |
+| -trat    | Tournament rate                  | 60 (%)        |
+| -resnam  | Name for docking output log      | "docking"     |
 
 # Documentation
 
