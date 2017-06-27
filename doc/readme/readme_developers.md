@@ -130,7 +130,7 @@
         └── Programs.cpp
 ```
 
-**[bin](bin)**: Linux binary files.
+**[bin](bin)**: Linux binary files are placed here once compiled.
 
 | File                     | Description                                                                   |
 |--------------------------|-------------------------------------------------------------------------------|
