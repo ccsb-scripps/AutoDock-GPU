@@ -84,7 +84,7 @@ Examples of output logs can be found under [examples/output](examples/output/).
 | -trat    | Tournament rate                  | 60 (%)        |
 | -resnam  | Name for docking output log      | "docking"     |
 
-For a complete list of available arguments and their default values, check: [getparameters.cpp](host/src/getparameters.cpp)
+For a complete list of available arguments and their default values, check: [getparameters.cpp](host/src/getparameters.cpp).
 
 # Documentation
 
