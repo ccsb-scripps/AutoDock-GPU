@@ -195,7 +195,7 @@ Input files were preprocessed before docking following the standard protocol usi
 | [1stp_protein.e.map](input/1stp/derived/1stp_protein.e.map) | Affinity map for electrostatics            |
 | [1stp_protein.HD.map](input/1stp/derived/1stp_protein.HD.map) | Affinity map for (donor) 1 H-bond hydrogen                            |
 | [1stp_protein.maps.fld](input/1stp/derived/1stp_protein.maps.fld) | Grid map field file (check [usage](doc/readme/readme_users.md))   |
-| [1stp_protein.maps.xyz](input/1stp/derived/1stp_protein.maps.xyz) |  Contains the minimum and maximum extends of the grid box in each dimensions x, y, and z |
+| [1stp_protein.maps.xyz](input/1stp/derived/1stp_protein.maps.xyz) |  Contains the minimum and maximum extends of the grid box in each dimension x, y, and z |
 | [1stp_protein.N.map](input/1stp/derived/1stp_protein.N.map) | Affinity map for H-bonding nitrogen             |
 | [1stp_protein.OA.map](input/1stp/derived/1stp_protein.OA.map) | Affinity map for (acceptor) 2 H-bonds oxygen  |
 | [1stp_protein.pdb](input/1stp/derived/1stp_protein.pdb) | Protein filein .pdb format                          |
