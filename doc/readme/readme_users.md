@@ -61,7 +61,6 @@ By default the output log file is written in the current working folder.
 Examples of output logs can be found under [examples/output](examples/output/).
 
 ## Supported arguments
-For a complete list of available arguments and their default values, check: [getparameters.cpp](host/src/getparameters.cpp)
 
 | Argument | Description                  | Default value |
 |:---------|:-----------------------------|--------------:|
@@ -75,6 +74,8 @@ For a complete list of available arguments and their default values, check: [get
 | -lsrat   | Local-search rate            | 6 (%)         |
 | -trat    | Tournament rate              | 60 (%)        |
 | -resnam  | Name for docking output log  | "docking"     |
+
+For a complete list of available arguments and their default values, check: [getparameters.cpp](host/src/getparameters.cpp)
 
 # Further reading
 Go to [Index](doc/readme/home.md).
