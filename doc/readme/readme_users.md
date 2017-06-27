@@ -55,7 +55,7 @@ Examples of output logs can be found under [examples/output](examples/output/).
 For a complete list of available arguments and their default values, check: [getparameters.cpp](host/src/getparameters.cpp)
 
 | Argument | Description                  | Default value |
-|----------|------------------------------|---------------|
+|:---------|:-----------------------------|--------------:|
 | -nrun    | # Docking runs               | 1             |
 | -nev     | # Energy evaluations         | 2500000       |
 | -ngen    | # Generations                | 27000         |
