@@ -49,7 +49,7 @@ This can be configured in the [Makefile](Makefile).
 
 A Microsoft Visual Studio 2013 solution for two configurations is provided: `ocladock-cpu-deb` and `ocladock-gpu-deb`.
 
-This solution can found in the [win](win/) folder.
+This solution can be found in the [win](win/) folder.
 
 # Usage
 
