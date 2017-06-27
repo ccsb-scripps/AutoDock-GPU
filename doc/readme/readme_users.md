@@ -47,8 +47,6 @@ Executing docking runs:
 Program run time 26.931 sec 
 ```
 
-
-
 By default the output log file is written in the current working folder. 
 
 Examples of output logs can be found under [examples/output](examples/output/).
@@ -69,5 +67,5 @@ For a complete list of available arguments and their default values, check: [get
 | -trat    | Tournament rate              | 60 (%)        |
 | -resnam  | Name for docking output log  | "docking"     |
 
-## Further reading
+# Further reading
 Go to [Index](doc/readme/home.md).
