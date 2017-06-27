@@ -4,7 +4,6 @@
 ```
 .
 ├── bin
-│   └── ocladock_gpu_64wi
 ├── common
 │   ├── calcenergy_basic.h
 │   └── defines.h
@@ -24,6 +23,12 @@
 │       └── readme_users.md
 ├── docking.dlg
 ├── docking.xml
+├── examples
+│   └── output
+│       ├── ocladock_cpu_1stp_nrun100.dlg
+│       ├── ocladock_cpu_3ce3_nrun100.dlg
+│       ├── ocladock_gpu_1stp_nrun100.dlg
+│       └── ocladock_gpu_3ce3_nrun100.dlg
 ├── host
 │   ├── inc
 │   │   ├── calcenergy.h
@@ -42,7 +47,6 @@
 │       ├── processgrid.cpp
 │       ├── processligand.cpp
 │       └── processresult.cpp
-├── initpop.txt
 ├── input
 │   ├── 1stp
 │   │   ├── 1STP.pdb
@@ -95,15 +99,21 @@
 │           ├── 3ce3_protein.pdb
 │           └── 3ce3_protein.pdbqt
 ├── LICENSE
+├── logo.png
 ├── Makefile
-├── ocladock.wiki
-│   ├── doc_developers.md
-│   ├── doc_users.md
-│   └── home.md
 ├── prebuilt
 │   ├── linux
+│   │   ├── ocladock_cpu_16wi
+│   │   ├── ocladock_cpu_32wi
+│   │   ├── ocladock_cpu_64wi
+│   │   ├── ocladock_gpu_16wi
+│   │   ├── ocladock_gpu_32wi
+│   │   └── ocladock_gpu_64wi
 │   └── windows
+│       ├── ocladock-win-cpu-16wi.exe
+│       └── ocladock-win-gpu-64wi.exe
 ├── README.md
+├── win
 └── wrapcl
     ├── inc
     │   ├── BufferObjects.h
@@ -128,6 +138,7 @@
         ├── listAttributes.cpp
         ├── Platforms.cpp
         └── Programs.cpp
+
 ```
 
 **[bin](bin)**: Linux binary files are placed here once compiled.
