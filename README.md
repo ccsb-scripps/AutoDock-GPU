@@ -8,6 +8,7 @@ OpenCL Accelerated Molecular Docking (OCLADock)
 * OpenCL-accelerated version of AutoDock 4.2 LGA (Lamarckian Genetic Algorithm)
 * It leverages the LGA paralelism, as entities of multiple docking runs are computed simultaneously
 * It targets platforms based on multi-core CPU and GPU accelerators
+* Observed speedups over the original serial AutoDock 4.2 on CPU were up to 4x (quad-core CPU) and 56x (GPU)
 
 # Setup
 ## Requirements
@@ -93,7 +94,7 @@ Prebuilt images are provided for [Linux](prebuilt/linux) and [Windows](prebuilt/
 
 For a complete documentation, check the [Documentation](doc/readme/home.md).
 
-# Credits
+# Bibliographic information for citing OCLADock
 
 Leonardo Solis-Vasquez and Andreas Koch. 2017. A Performance and Energy Evaluation of OpenCL-accelerated Molecular Docking. In Proceedings of the 5th International Workshop on OpenCL (IWOCL 2017). ACM, New York, NY, USA, Article 3, 11 pages. DOI: https://doi.org/10.1145/3078155.3078167
 
