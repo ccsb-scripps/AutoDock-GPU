@@ -13,7 +13,7 @@ OpenCL Accelerated Molecular Docking (OCLADock)
 # Easy Download
 
 If you are not familiar with Gitlab, the easiest way to download all of OCLADock (source code, prebuilt-binaries for Linux and Windows, sample input data) is to
-use the Download icon (to the top right of this text) and use a familiar archive format (e.g., .zip) to fetch everything at once.
+use the Download icon (close to the top right of this webpage, just above the list of files) and use a familiar archive format (e.g., .zip) to fetch everything at once.
 
 # Setup
 ## Requirements
