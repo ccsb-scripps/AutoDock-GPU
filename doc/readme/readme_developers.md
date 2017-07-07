@@ -222,7 +222,7 @@ Input files were preprocessed before docking following the standard protocol usi
 
 **[win](win)**: a Microsoft Visual Studio 2013 solution
 
-**[wrapcl](wrapcl)**: custom wrapper functions for OpenCL API calls (complaint to OpenCL 1.2).
+**[wrapcl](wrapcl)**: custom wrapper functions for OpenCL API calls (compliant to OpenCL 1.2).
 
 | File                 | Description                                                                   |
 |----------------------|-------------------------------------------------------------------------------|
