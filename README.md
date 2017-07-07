@@ -10,6 +10,11 @@ OpenCL Accelerated Molecular Docking (OCLADock)
 * It targets platforms based on multi-core CPU and GPU accelerators
 * Observed speedups of up to 4x (quad-core CPU) and 56x (GPU) over the original serial AutoDock 4.2 on CPU.
 
+# Easy Download
+
+If you are not familiar with Gitlab, the easiest way to download all of OCLADock (source code, prebuilt-binaries for Linux and Windows, sample input data) is to
+use the Download icon (to the top right of this text) and use a familiar archive format (e.g., .zip) to fetch everything at once.
+
 # Setup
 ## Requirements
 OCLADock is known to work in the following environments:
