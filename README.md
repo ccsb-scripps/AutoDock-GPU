@@ -28,7 +28,13 @@ Other environments likely work as well, but are untested.
 
 Other configurations likely work as well, but are untested.
 
+# Ready-to-run Executables
+
+We provide ready-to-run executables for [Linux](prebuilt/linux) and [Windows](prebuilt/windows).
+
 # Compilation
+
+You only need to do this if you want to target our sources to a different system or modify the code.
 
 ## Compilation on Linux
 ```zsh
