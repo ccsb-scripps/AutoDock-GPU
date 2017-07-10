@@ -285,6 +285,15 @@ echo $AMDAPPSDKROOT
 
 * Windows:
 
+```cmd
+echo %INTELOCLSDKROOT%
+C:\Program Files (x86)\Intel\OpenCL SDK\6.3\
+```
+
+```cmd
+echo %AMDAPPSDKROOT%
+C:\Program Files (x86)\AMD APP SDK\3.0
+```
 
 **The corresponding paths for CPU/GPU drivers must be also defined**
 * This is usually resolved automatically during SDK/driver installation
