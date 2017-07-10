@@ -285,12 +285,12 @@ echo $AMDAPPSDKROOT
 
 * Windows:
 
-```cmd
+```winbatch
 echo %INTELOCLSDKROOT%
 C:\Program Files (x86)\Intel\OpenCL SDK\6.3\
 ```
 
-```cmd
+```winbatch
 echo %AMDAPPSDKROOT%
 C:\Program Files (x86)\AMD APP SDK\3.0
 ```
