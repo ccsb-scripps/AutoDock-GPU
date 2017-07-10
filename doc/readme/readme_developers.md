@@ -298,7 +298,15 @@ C:\Program Files (x86)\AMD APP SDK\3.0
 **The corresponding paths for CPU/GPU drivers must be also defined**
 * This is usually resolved automatically during SDK/driver installation
 * In case it is not set, resolve it manually
-    * E.g.: GPU accelerator on Linux: `/etc/ld.so.conf.d/amdgpu-pro-x86_64.conf` must contain the path of the driver
+
+Example: 
+
+For the GPU accelerator on Linux, verify that `/etc/ld.so.conf.d/amdgpu-pro-x86_64.conf` contains the path of the driver
+
+```zsh
+cat /etc/ld.so.conf.d/amdgpu-pro-x86_64.conf
+/opt/amdgpu-pro/lib/x86_64-linux-gnu
+```
 
 **Check vendor specific guidelines to setup both OpenCL platform correctly!**
 
