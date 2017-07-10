@@ -226,17 +226,17 @@ Input files were preprocessed before docking following the standard protocol usi
 
 | File                 | Description                                                                   |
 |----------------------|-------------------------------------------------------------------------------|
-| BufferObjects{[.h](host/inc/BufferObjects.h)}{[.cpp](host/src/BufferObjects.cpp)} | Functions for allocating, mapping, copying, and querying info of buffers |
-| CommandQueues{[.h](host/inc/CommandQueues.h)}{[.cpp](host/src/CommandQueues.cpp)} | Functions for creating and querying info of command queues     |
-| [commonMacros.h](host/inc/commonMacros.h) | Header with defines to enable features and display of info of OpenCL elements (platform, devices, etc)     |
-| Contexts{[.h](host/inc/Contexts.h)}{[.cpp](host/src/Contexts.cpp)} | Functions for creating and querying info of contexts    |
-| Devices{[.h](host/inc/Devices.h)}{[.cpp](host/src/Devices.cpp)} | Functions for detecting available devices and querying their attributes     |
-| ImportBinary{[.h](host/inc/ImportBinary.h)}{[.cpp](host/src/ImportBinary.cpp)} | Functions for loading kernel code and transforming (offline) it into device programs     |
-| ImportSource{[.h](host/inc/ImportSource.h)}{[.cpp](host/src/ImportSource.cpp)} | Functions for loading kernel code and transforming (online) it into device programs    |
-| Kernels{[.h](host/inc/Kernels.h)}{[.cpp](host/src/Kernels.cpp)} | Functions for setting kernel arguments, dispatching kernels, and querying kernel attributes     |
-| listAttributes{[.h](host/inc/listAttributes.h)}{[.cpp](host/src/listAttributes.cpp)} | Definitions of OpenCL attributes    |
-| Platforms{[.h](host/inc/Platforms.h)}{[.cpp](host/src/Platforms.cpp)} | Functions for detecting installed platforms and querying their attributes      |
-| Programs{[.h](host/inc/Programs.h)}{[.cpp](host/src/Programs.cpp)} | Functions for querying program's info     |
+| BufferObjects{[.h](wrapcl/inc/BufferObjects.h)}{[.cpp](wrapcl/src/BufferObjects.cpp)} | Functions for allocating, mapping, copying, and querying info of buffers |
+| CommandQueues{[.h](wrapcl/inc/CommandQueues.h)}{[.cpp](wrapcl/src/CommandQueues.cpp)} | Functions for creating and querying info of command queues     |
+| [commonMacros.h](wrapcl/inc/commonMacros.h) | Header with defines to enable features and display of info of OpenCL elements (platform, devices, etc)     |
+| Contexts{[.h](wrapcl/inc/Contexts.h)}{[.cpp](wrapcl/src/Contexts.cpp)} | Functions for creating and querying info of contexts    |
+| Devices{[.h](wrapcl/inc/Devices.h)}{[.cpp](wrapcl/src/Devices.cpp)} | Functions for detecting available devices and querying their attributes     |
+| ImportBinary{[.h](wrapcl/inc/ImportBinary.h)}{[.cpp](wrapcl/src/ImportBinary.cpp)} | Functions for loading kernel code and transforming (offline) it into device programs     |
+| ImportSource{[.h](wrapcl/inc/ImportSource.h)}{[.cpp](wrapcl/src/ImportSource.cpp)} | Functions for loading kernel code and transforming (online) it into device programs    |
+| Kernels{[.h](wrapcl/inc/Kernels.h)}{[.cpp](wrapcl/src/Kernels.cpp)} | Functions for setting kernel arguments, dispatching kernels, and querying kernel attributes     |
+| listAttributes{[.h](wrapcl/inc/listAttributes.h)}{[.cpp](wrapcl/src/listAttributes.cpp)} | Definitions of OpenCL attributes    |
+| Platforms{[.h](wrapcl/inc/Platforms.h)}{[.cpp](wrapcl/src/Platforms.cpp)} | Functions for detecting installed platforms and querying their attributes      |
+| Programs{[.h](wrapcl/inc/Programs.h)}{[.cpp](wrapcl/src/Programs.cpp)} | Functions for querying program's info     |
 
 
 # Compilation
