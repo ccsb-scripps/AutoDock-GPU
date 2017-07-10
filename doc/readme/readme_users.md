@@ -15,6 +15,9 @@ Other environments likely work as well, but are untested.
 | Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0   |
 | Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0   |
 
+Download links:
+* [OpenCL Drivers and Runtimes for Intel Architecture](https://software.intel.com/en-us/articles/opencl-drivers)
+* [APP SDK – A Complete Development Platform](http://developer.amd.com/amd-accelerated-parallel-processing-app-sdk/)
 
 Other configurations likely work as well, but are untested.
 
