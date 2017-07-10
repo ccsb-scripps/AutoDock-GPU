@@ -240,39 +240,6 @@ Input files were preprocessed before docking following the standard protocol usi
 | Platforms{[.h](wrapcl/inc/Platforms.h)}{[.cpp](wrapcl/src/Platforms.cpp)} | Functions for detecting installed platforms and querying their attributes      |
 | Programs{[.h](wrapcl/inc/Programs.h)}{[.cpp](wrapcl/src/Programs.cpp)} | Functions for querying program's info     |
 
-
-# Compilation
-
-## Basic
-```zsh
-make DEVICE=<TYPE> NUMWI=<NWI>
-```
-
-`<TYPE>` : CPU, GPU.
-
-`<NUMWI>` : 16, 32, 64
-
-After successful compilation, the host binary `ocladock_<type>_<N>wi` is placed under [bin](./bin).
-
-`type` denotes the accelerator chosen: `cpu` or `gpu`.
-
-`N` denotes the OpenCL work-group size: `16`, `32`, or `64`.
-
-## All available options
-```zsh
-make DEVICE=<TYPE> NUMWI=<NWI> CONFIG=<CFG> DOCK_DEBUG=<Y/N> REPRO=<Y/N>
-```
-| Argument    | Description                           | Possible values          |
-|-------------|---------------------------------------|--------------------------|
-| DEVICE      | OpenCL device type                    | `<TYPE>`: CPU, GPU       |
-| NUMWI       | Number of work items per work group   | `<NWI>` : 16, 32, 64     |
-| CONFIG      | Host configuration                    | `<CFG>` : DEBUG, RELEASE |
-| DOCK_DEBUG  | Enable debug info for host & device  | `<Y/N>` : YES, NO        |
-| REPRO       | Reproduce results (remove randomness) | `<Y/N>` : YES, NO        |
-
-## Configuration file
-Check the configurations in the project's [Makefile](../Makefile).
-
 # Installation
 
 ## Requirements
@@ -305,6 +272,38 @@ Other configurations likely work as well, but are untested.
     * E.g.: GPU accelerator on Linux: `/etc/ld.so.conf.d/amdgpu-pro-x86_64.conf` must contain the path of the driver
 
 **Check vendor specific guidelines to setup both OpenCL platform correctly!**
+
+# Compilation
+
+## Basic
+```zsh
+make DEVICE=<TYPE> NUMWI=<NWI>
+```
+
+`<TYPE>` : CPU, GPU.
+
+`<NUMWI>` : 16, 32, 64
+
+After successful compilation, the host binary `ocladock_<type>_<N>wi` is placed under [bin](./bin).
+
+`type` denotes the accelerator chosen: `cpu` or `gpu`.
+
+`N` denotes the OpenCL work-group size: `16`, `32`, or `64`.
+
+## All available options
+```zsh
+make DEVICE=<TYPE> NUMWI=<NWI> CONFIG=<CFG> DOCK_DEBUG=<Y/N> REPRO=<Y/N>
+```
+| Argument    | Description                           | Possible values          |
+|-------------|---------------------------------------|--------------------------|
+| DEVICE      | OpenCL device type                    | `<TYPE>`: CPU, GPU       |
+| NUMWI       | Number of work items per work group   | `<NWI>` : 16, 32, 64     |
+| CONFIG      | Host configuration                    | `<CFG>` : DEBUG, RELEASE |
+| DOCK_DEBUG  | Enable debug info for host & device  | `<Y/N>` : YES, NO        |
+| REPRO       | Reproduce results (remove randomness) | `<Y/N>` : YES, NO        |
+
+## Configuration file
+Check the configurations in the project's [Makefile](../Makefile).
 
 # Further reading
 Go to [Index](doc/readme/home.md).
