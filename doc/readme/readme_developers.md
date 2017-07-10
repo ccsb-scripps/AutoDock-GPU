@@ -139,6 +139,8 @@
 
 ```
 
+## Description
+
 **[bin](bin)**: Linux binary files are placed here once compiled.
 
 | File                     | Description                                                                   |
