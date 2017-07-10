@@ -271,11 +271,12 @@ Other configurations likely work as well, but are untested.
 
 Examples:
 * Linux:
+
 ```zsh
 echo $INTELOCLSDKROOT
 /opt/intel/opencl-1.2-sdk-6.0.0.1049
-
 ```
+
 
 ```zsh
 echo $AMDAPPSDKROOT
