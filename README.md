@@ -77,7 +77,7 @@ A Microsoft Visual Studio 2013 solution for two configurations **_ocladock-cpu-d
 ./bin/ocladock_<type>_<N>wi -ffile <protein>.maps.fld -lfile <ligand>.pdbqt -nrun <nruns>
 ```
 
-| Mandatory arguments | Description   | Value            |
+| Mandatory options | Description   | Value            |
 |:-----------|:----------------------:|:-----------------:|
 | -ffile     |Protein file     |`<protein>.maps.fld`     |
 | -lfile     |Ligand file      |`<ligand>.pdbqt`   |
