@@ -58,7 +58,7 @@ make DEVICE=<TYPE> NUMWI=<NWI>
 | `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`   |
 
 
-After successful compilation, the host binary &lt;ocladock_<type>_<N>wi&gt; is placed under [bin](./bin).
+After successful compilation, the host binary ocladock_&lt;type&gt;_&lt;N&gt;wi&gt; is placed under [bin](./bin).
 
 | Binary-name portion | Description   | Values            |
 |:-----------|:----------------------:|:-----------------:|
