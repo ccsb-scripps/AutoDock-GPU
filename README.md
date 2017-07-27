@@ -86,9 +86,7 @@ A Microsoft Visual Studio 2013 solution for two configurations **_ocladock-cpu-d
 ```zsh
 ./bin/ocladock_gpu_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10
 ```
-By default the output log file is written in the current working folder. 
-
-Examples of output logs can be found under [examples/output](examples/output/).
+By default the output log file is written in the current working folder. Examples of output logs can be found under [examples/output](examples/output/).
 
 ## Supported arguments
 
@@ -103,7 +101,7 @@ Examples of output logs can be found under [examples/output](examples/output/).
 | -crat    | Crossover rate                   | 80 (%)        |
 | -lsrat   | Local-search rate                | 6 (%)         |
 | -trat    | Tournament rate                  | 60 (%)        |
-| -resnam  | Name for docking output log      | "docking"     |
+| -resnam  | Name for docking output log      | _"docking"_     |
 
 For a complete list of available arguments and their default values, check: [getparameters.cpp](host/src/getparameters.cpp).
 
