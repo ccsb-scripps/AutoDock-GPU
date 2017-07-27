@@ -18,7 +18,7 @@ use the Download icon (close to the top right of this webpage, just above the li
 # Setup
 ## Requirements
 
-| Architecture | Operating System |
+| Architecture | Operating system |
 |:------------:|:------------------:|
 | Intel x86_64 | CentOS 6.7 & 6.8 |
 | Intel x86_64 | Ubuntu 16.04 |
