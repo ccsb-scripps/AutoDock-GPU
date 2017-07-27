@@ -110,7 +110,7 @@ Prebuilt images are provided for [Linux](prebuilt/linux) and [Windows](prebuilt/
 
 # Documentation
 
-For a complete documentation, check the [Documentation](doc/readme/home.md).
+For more details, go to the [Documentation](doc/readme/home.md).
 
 # Bibliographic information for citing OCLADock
 
