@@ -79,7 +79,7 @@ A Microsoft Visual Studio 2013 solution for two configurations **_ocladock-cpu-d
 
 | Mandatory options | Description   | Value               |
 |:-----------------:|:-------------:|:-------------------:|
-| -ffile            |Protein file   |<protein>.maps.fld   |
+| -ffile            |Protein file   |&lt;protein>.maps.fld   |
 | -lfile            |Ligand file    |<ligand>.pdbqt       |
 
 ## Example
