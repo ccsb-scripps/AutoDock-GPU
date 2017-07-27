@@ -317,15 +317,17 @@ cat /etc/ld.so.conf.d/amdgpu-pro-x86_64.conf
 make DEVICE=<TYPE> NUMWI=<NWI>
 ```
 
-`<TYPE>` : CPU, GPU.
+| Parameters | Description            | Values           |
+|:----------:|:----------------------:|:----------------:|
+| `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`     |
+| `<NWI>`    | OpenCL work-group size | `16`, `32`, `64` |
 
-`<NUMWI>` : 16, 32, 64
+After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
 
-After successful compilation, the host binary `ocladock_<type>_<N>wi` is placed under [bin](./bin).
-
-`type` denotes the accelerator chosen: `cpu` or `gpu`.
-
-`N` denotes the OpenCL work-group size: `16`, `32`, or `64`.
+| Binary-name portion | Description            | Values            |
+|:-------------------:|:----------------------:|:-----------------:|
+| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`      |
+| **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`  |
 
 ## All available options
 ```zsh
@@ -336,7 +338,7 @@ make DEVICE=<TYPE> NUMWI=<NWI> CONFIG=<CFG> DOCK_DEBUG=<Y/N> REPRO=<Y/N>
 | DEVICE      | OpenCL device type                    | `<TYPE>`: CPU, GPU       |
 | NUMWI       | Number of work items per work group   | `<NWI>` : 16, 32, 64     |
 | CONFIG      | Host configuration                    | `<CFG>` : DEBUG, RELEASE |
-| DOCK_DEBUG  | Enable debug info for host & device  | `<Y/N>` : YES, NO        |
+| DOCK_DEBUG  | Enable debug info for host & device   | `<Y/N>` : YES, NO        |
 | REPRO       | Reproduce results (remove randomness) | `<Y/N>` : YES, NO        |
 
 ## Configuration file
