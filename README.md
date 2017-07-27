@@ -19,14 +19,11 @@ use the Download icon (close to the top right of this webpage, just above the li
 ## Requirements
 OCLADock is known to work in the following environments:
 
-* Architecture: Intel x86_64
-* Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04 / Windows 7
-
 | Architecture | Operating System |
 |:------------:|:------------------:|
 | Intel x86_64 | CentOS 6.7 & 6.8 |
-|              | Ubuntu 16.04 |
-|              | Windows 7 |
+| Intel x86_64 | Ubuntu 16.04 |
+| Intel x86_64 | Windows 7 |
 
 Other environments likely work as well, but are untested.
 
