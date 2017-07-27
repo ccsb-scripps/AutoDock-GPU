@@ -17,15 +17,12 @@ use the Download icon (close to the top right of this webpage, just above the li
 
 # Setup
 ## Requirements
-OCLADock is known to work in the following environments:
 
 | Architecture | Operating System |
 |:------------:|:------------------:|
 | Intel x86_64 | CentOS 6.7 & 6.8 |
 | Intel x86_64 | Ubuntu 16.04 |
 | Intel x86_64 | Windows 7 |
-
-Other environments likely work as well, but are untested.
 
 ## Prerequisites
 
@@ -34,7 +31,7 @@ Other environments likely work as well, but are untested.
 | Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0   |
 | Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0   |
 
-Other configurations likely work as well, but are untested.
+Other environments/configurations likely work as well, but are untested.
 
 # Ready-to-run Executables
 
