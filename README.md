@@ -27,7 +27,7 @@ use the Download icon (close to the top right of this webpage, just above the li
 ## Prerequisites
 
 | Operating system | CPU                          | GPU                |
-|:-----------------|:----------------------------:|:------------------:|
+|:----------------:|:----------------------------:|:------------------:|
 | Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0   |
 | Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0   |
 
@@ -49,18 +49,18 @@ You only need to do this if you want to target our sources to a different system
 make DEVICE=<TYPE> NUMWI=<NWI>
 ```
 
-| Parameters | Description            | Values       |
-|:-----------|:----------------------:|:------------:|
+| Parameters | Description            | Values           |
+|:----------:|:----------------------:|:----------------:|
 | `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`     |
-| `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`   |
+| `<NWI>`    | OpenCL work-group size | `16`, `32`, `64` |
 
 
 After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
 
-| Binary-name portion | Description       | Values            |
-|:---------------|:----------------------:|:-----------------:|
-| **&lt;type&gt;**   | Accelerator chosen     | `cpu`, `gpu`      |
-| **&lt;N&gt;**      | OpenCL work-group size | `16`, `32`, `64`  |
+| Binary-name portion | Description            | Values            |
+|:-------------------:|:----------------------:|:-----------------:|
+| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`      |
+| **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`  |
 
 
 ## Compilation on Windows
@@ -74,8 +74,8 @@ A Microsoft Visual Studio 2013 solution for two configurations **_ocladock-cpu-d
 ./bin/ocladock_<type>_<N>wi -ffile <protein>.maps.fld -lfile <ligand>.pdbqt -nrun <nruns>
 ```
 
-| Mandatory options | Description   | Value               |
-|:-----------------:|:-------------:|:-------------------:|
+| Mandatory options | Description   | Value                     |
+|:-----------------:|:-------------:|:-------------------------:|
 | -ffile            |Protein file   |&lt;protein&gt;.maps.fld   |
 | -lfile            |Ligand file    |&lt;ligand&gt;.pdbqt       |
 
