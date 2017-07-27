@@ -54,8 +54,8 @@ make DEVICE=<TYPE> NUMWI=<NWI>
 
 | Parameters | Description            | Values       |
 |:-----------|:----------------------:|:------------:|
-| `<TYPE>`   | Accelerator chosen     | CPU, GPU     |
-| `<NWI>`    | OpenCL work-group size | 16, 32, 64   |
+| `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`     |
+| `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`   |
 
 
 After successful compilation, the host binary `ocladock_<type>_<N>wi` is placed under [bin](./bin).
@@ -77,10 +77,10 @@ A Microsoft Visual Studio 2013 solution for two configurations **_ocladock-cpu-d
 ./bin/ocladock_<type>_<N>wi -ffile <protein>.maps.fld -lfile <ligand>.pdbqt -nrun <nruns>
 ```
 
-| Mandatory options | Description   | Value            |
-|:-----------------:|:----------------------:|:-----------------:|
-| -ffile            |Protein file   |`<protein>.maps.fld`     |
-| -lfile            |Ligand file    |`<ligand>.pdbqt`   |
+| Mandatory options | Description   | Value               |
+|:-----------------:|:-------------:|:-------------------:|
+| -ffile            |Protein file   |<protein>.maps.fld   |
+| -lfile            |Ligand file    |<ligand>.pdbqt       |
 
 ## Example
 ```zsh
