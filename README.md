@@ -5,7 +5,7 @@ OpenCL Accelerated Molecular Docking (OCLADock)
 
 # Features
 
-* OpenCL-accelerated version of AutoDock 4.2 LGA (Lamarckian Genetic Algorithm)
+* OpenCL-accelerated version of AutoDock 4.2 running a Lamarckian Genetic Algorithm (LGA)
 * It leverages the LGA paralelism, as entities of multiple docking runs are computed simultaneously
 * It targets platforms based on multi-core CPU and GPU accelerators
 * Observed speedups of up to 4x (quad-core CPU) and 56x (GPU) over the original serial AutoDock 4.2 on CPU.
@@ -21,6 +21,12 @@ OCLADock is known to work in the following environments:
 
 * Architecture: Intel x86_64
 * Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04 / Windows 7
+
+| Architecture | Operating System |
+|:------------:|:------------------:|
+| Intel x86_64 | CentOS 6.7 & 6.8 |
+|              | Ubuntu 16.04 |
+|              | Windows 7 |
 
 Other environments likely work as well, but are untested.
 
