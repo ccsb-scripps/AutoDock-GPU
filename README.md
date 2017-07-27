@@ -58,7 +58,7 @@ make DEVICE=<TYPE> NUMWI=<NWI>
 | `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`   |
 
 
-After successful compilation, the host binary `ocladock_<type>_<N>wi` is placed under [bin](./bin).
+After successful compilation, the host binary &lt;ocladock_<type>_<N>wi&gt; is placed under [bin](./bin).
 
 | Binary-name portion | Description   | Values            |
 |:-----------|:----------------------:|:-----------------:|
@@ -79,8 +79,8 @@ A Microsoft Visual Studio 2013 solution for two configurations **_ocladock-cpu-d
 
 | Mandatory options | Description   | Value               |
 |:-----------------:|:-------------:|:-------------------:|
-| -ffile            |Protein file   |&lt;protein>.maps.fld   |
-| -lfile            |Ligand file    |<ligand>.pdbqt       |
+| -ffile            |Protein file   |&lt;protein&gt;.maps.fld   |
+| -lfile            |Ligand file    |&lt;ligand&gt;.pdbqt       |
 
 ## Example
 ```zsh
