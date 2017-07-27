@@ -243,13 +243,13 @@ Input files were preprocessed before docking following the standard protocol usi
 # Installation
 
 ## Requirements
-OCLADock is known to work in the following environments:
 
-* Architecture: Intel x86_64
-* Operating System: CentOS 6.7 & 6.8 / Ubuntu 16.04 / Windows 7
+| Architecture | Operating system |
+|:------------:|:------------------:|
+| Intel x86_64 | CentOS 6.7 & 6.8 |
+| Intel x86_64 | Ubuntu 16.04 |
+| Intel x86_64 | Windows 7 |
 
-Other environments likely work as well, but are untested.
- 
 ## Prerequisites
 
 | Operating system | CPU                          | GPU                |
@@ -261,7 +261,7 @@ Download links:
 * [OpenCL Drivers and Runtimes for Intel Architecture](https://software.intel.com/en-us/articles/opencl-drivers)
 * [APP SDK – A Complete Development Platform](http://developer.amd.com/amd-accelerated-parallel-processing-app-sdk/)
 
-Other configurations likely work as well, but are untested.
+Other environments/configurations likely work as well, but are untested.
 
 ## To keep in mind before compiling
 
