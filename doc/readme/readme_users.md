@@ -47,9 +47,7 @@ Executing docking runs:
 Program run time 26.931 sec 
 ```
 
-By default the output log file is written in the current working folder. 
-
-Examples of output logs can be found under [examples/output](examples/output/).
+By default the output log file is written in the current working folder. Examples of output logs can be found under [examples/output](examples/output/).
 
 ## Supported arguments
 
