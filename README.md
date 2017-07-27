@@ -45,7 +45,7 @@ best performance on our target platforms. The best values for your CPU or GPU mi
 
 # Compilation
 
-You only need to do this if you want to target our sources to a different system or modify the code.
+You only need to do this if you want to target our sources to a different system or modify the code. This can be configured in the [Makefile](Makefile).
 
 ## Compilation on Linux
 ```zsh
@@ -65,11 +65,6 @@ After successful compilation, the host binary `ocladock_<type>_<N>wi` is placed 
 | `type`     | Accelerator chosen     | `cpu`, `gpu`      |
 | `N`        | OpenCL work-group size | `16`, `32`, `64`  |
 
-`type` denotes the accelerator chosen: `cpu` or `gpu`.
-
-`N` denotes the OpenCL work-group size: `16`, `32`, or `64`.
-
-This can be configured in the [Makefile](Makefile).
 
 ## Compilation on Windows
 
