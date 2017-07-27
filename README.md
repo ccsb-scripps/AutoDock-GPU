@@ -68,7 +68,7 @@ After successful compilation, the host binary `ocladock_<type>_<N>wi` is placed 
 
 ## Compilation on Windows
 
-A Microsoft Visual Studio 2013 solution for two configurations is provided: `ocladock-cpu-deb` and `ocladock-gpu-deb`.
+A Microsoft Visual Studio 2013 solution for two configurations is provided: **_ocladock-cpu-deb_** and `ocladock-gpu-deb`.
 
 This solution can be found in the [win](win/) folder.
 
