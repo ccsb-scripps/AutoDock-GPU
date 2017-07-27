@@ -27,9 +27,10 @@ Other environments/configurations likely work as well, but are untested.
 ```zsh
 ./bin/ocladock_<type>_<N>wi -ffile <protein>.maps.fld -lfile <ligand>.pdbqt -nrun <nruns>
 ```
-Mandatory arguments:
-* Protein file: `<protein>.maps.fld`
-* Ligand file:  `<ligand>.pdbqt`
+| Mandatory options | Description   | Value                     |
+|:-----------------:|:-------------:|:-------------------------:|
+| -ffile            |Protein file   |&lt;protein&gt;.maps.fld   |
+| -lfile            |Ligand file    |&lt;ligand&gt;.pdbqt       |
 
 ## Example
 ```zsh
