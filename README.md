@@ -59,8 +59,8 @@ After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;w
 
 | Binary-name portion | Description       | Values            |
 |:---------------|:----------------------:|:-----------------:|
-| &lt;type&gt;   | Accelerator chosen     | `cpu`, `gpu`      |
-| &lt;N&gt;      | OpenCL work-group size | `16`, `32`, `64`  |
+| **&lt;type&gt;**   | Accelerator chosen     | `cpu`, `gpu`      |
+| **&lt;N&gt;**      | OpenCL work-group size | `16`, `32`, `64`  |
 
 
 ## Compilation on Windows
