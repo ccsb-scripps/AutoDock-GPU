@@ -39,7 +39,7 @@ Other configurations likely work as well, but are untested.
 # Ready-to-run Executables
 
 We provide ready-to-run executables for [Linux](prebuilt/linux) and [Windows](prebuilt/windows). 
-These executables have been compiled with a fixed number of work-items (_wi_, basically the degree of parallel processing done). If you are not sure, 
+These executables have been compiled with a fixed number of work-items (__wi__, basically the degree of parallel processing done). If you are not sure, 
 you should start with the versions using 16 work-items on a quad-core CPU and 64 work-items for a GPU. These values gave the 
 best performance on our target platforms. The best values for your CPU or GPU might be different.
 
@@ -58,7 +58,7 @@ make DEVICE=<TYPE> NUMWI=<NWI>
 | `<NWI>`    | OpenCL work-group size | 16, 32, 64   |
 
 
-After successful compilation, the host binary `ocladock_<type>_<N>wi` is placed under [bin](./bin).
+After successful compilation, the host binary __`ocladock_<type>_<N>wi`__ is placed under [bin](./bin).
 
 | Binary-name portion | Description   | Values            |
 |:-----------|:----------------------:|:-----------------:|
