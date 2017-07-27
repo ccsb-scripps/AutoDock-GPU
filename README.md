@@ -51,6 +51,12 @@ You only need to do this if you want to target our sources to a different system
 ```zsh
 make DEVICE=<TYPE> NUMWI=<NWI>
 ```
+
+| Parameters | Description                          | Values                |
+|:-----------------|:----------------------------:|:------------------:|
+| `<TYPE>`          | Accelerator chosen   | CPU, GPU   |
+| `<NUMWI>`         | OpenCL work-group size | 16, 32, 64   |
+
 `<TYPE>` : CPU, GPU.
 
 `<NUMWI>` : 16, 32, 64
