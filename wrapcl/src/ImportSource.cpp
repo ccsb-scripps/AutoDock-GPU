@@ -41,10 +41,15 @@ int ImportSource(const char*    filename,
 {
 	cl_int err;
 
+#ifdef _WIN32
 	// Create the compute program ONLINE
 	string sourceStr;
 	err = convertToString2(filename, sourceStr);
 	const char *source = sourceStr.c_str();
+#else
+	// Added as kernel is stringified already
+	const char *source = filename;
+#endif
 
 	// L30nardoSV
 	size_t sourceSize[] = { strlen(source) };

@@ -1,4 +1,4 @@
-# ocladock Makefile
+# OCLADock Makefile
 
 # CPU config
 INTEL_INCLUDE_PATH=$(INTELOCLSDKROOT)/include
@@ -128,7 +128,10 @@ endif
 
 all: odock
 
-odock: $(SRC)
+stringify:
+	./stringify_ocl_krnls.sh
+
+odock: stringify $(SRC)
 	g++ $(SRC) $(CFLAGS) -lOpenCL -o$(BIN_DIR)/$(TARGET) $(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
 
 clean:

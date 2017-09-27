@@ -64,6 +64,7 @@
 #define OPT_PROG INC KNWI REP KGDB
 
 #include "performdocking.h"
+#include "stringify.h"
 
 int docking_with_gpu(const Gridinfo*   mygrid,
 	             	 /*const*/ float*      cpu_floatgrids,
@@ -98,8 +99,13 @@ filled with clock() */
 	cl_context context;
 	cl_command_queue command_queue;
 
+#ifdef _WIN32
 	const char *filename = KRNL_FILE;
 	printf("\n%-40s %-40s\n", "Kernel source file: ", filename);  fflush(stdout);
+#else
+	printf("\n%-40s %-40s\n", "Kernel source used for development: ", "./device/calcenergy.cl");  fflush(stdout);
+	printf(  "%-40s %-40s\n", "Kernel string used for building: ",    "./host/inc/stringify.h");  fflush(stdout);
+#endif
 
 	const char* options_program = OPT_PROG;
 	printf("%-40s %-40s\n", "Kernel compilation flags: ", options_program); fflush(stdout);
@@ -136,10 +142,17 @@ filled with clock() */
 	if (createCommandQueue(context,device_id[0],&command_queue) != 0) return 1;
 
 	// Create program and kernel from source
+#ifdef _WIN32
 	if (ImportSource(filename, name_k1, device_id, context, options_program, &kernel1) != 0) return 1;
 	if (ImportSource(filename, name_k2, device_id, context, options_program, &kernel2) != 0) return 1;
 	if (ImportSource(filename, name_k3, device_id, context, options_program, &kernel3) != 0) return 1;
 	if (ImportSource(filename, name_k4, device_id, context, options_program, &kernel4) != 0) return 1;
+#else
+	if (ImportSource(calcenergy_ocl, name_k1, device_id, context, options_program, &kernel1) != 0) return 1;
+	if (ImportSource(calcenergy_ocl, name_k2, device_id, context, options_program, &kernel2) != 0) return 1;
+	if (ImportSource(calcenergy_ocl, name_k3, device_id, context, options_program, &kernel3) != 0) return 1;
+	if (ImportSource(calcenergy_ocl, name_k4, device_id, context, options_program, &kernel4) != 0) return 1;
+#endif
 
 // End of OpenCL Host Setup
 // =======================================================================
