@@ -188,7 +188,7 @@
 
 | PDB complex                 | Description                                                                   |
 |----------------------|-------------------------------------------------------------------------------|
-| [1stp](http://www.rcsb.org/pdb/explore/explore.do?structureId=1stp) | Structual origins of high-affinity biotin binding to streptavidin     |
+| [1stp](http://www.rcsb.org/pdb/explore/explore.do?structureId=1stp) | Structural origins of high-affinity biotin binding to streptavidin     |
 | [3ce3](http://www.rcsb.org/pdb/explore/explore.do?structureId=3ce3) | Crystal structure of the tyrosine kinase domain of the hepatocyte growth factor receptor C-MET in complex with a Pyrrolopyridinepyridone based inhibitor     |
 
 
