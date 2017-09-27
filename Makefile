@@ -4,23 +4,31 @@
 INTEL_INCLUDE_PATH=$(INTELOCLSDKROOT)/include
 INTEL_LIBRARY_PATH=$(INTELOCLSDKROOT)
 
-# GPU config
+# AMD GPU config
 AMD_INCLUDE_PATH=$(AMDAPPSDKROOT)/include
 AMD_LIBRARY_PATH=$(shell cat /etc/ld.so.conf.d/amdgpu-pro-x86_64.conf)
 
+# NVIDIA GPU config
+NV_INCLUDE_PATH=$(CUDAROOT)/include
+NV_INCLUDE_PATH=$(CUDAROOT)/lib64
+
 # ------------------------------------------------------
 # Choose OpenCL device
-# Valid values: CPU, GPU
+# Valid values: CPU, AMDGPU, NVGPU
 DEVICE=GPU
 
 ifeq ($(DEVICE), CPU)
 	DEV =-DCPU_DEVICE
 	OCLA_INC_PATH=$(INTEL_INCLUDE_PATH)
 	OCLA_LIB_PATH=$(INTEL_LIBRARY_PATH)
-else ifeq ($(DEVICE), GPU)
+else ifeq ($(DEVICE), AMDGPU)
 	DEV =-DGPU_DEVICE
 	OCLA_INC_PATH=$(AMD_INCLUDE_PATH)
 	OCLA_LIB_PATH=$(AMD_LIBRARY_PATH)
+else ifeq ($(DEVICE), NVGPU)
+	DEV =-DGPU_DEVICE
+	OCLA_INC_PATH=$(NV_INCLUDE_PATH)
+	OCLA_LIB_PATH=$(NV_LIBRARY_PATH)
 endif
 
 # ------------------------------------------------------
@@ -59,9 +67,12 @@ KFLAGS=-DKRNL_SOURCE=$(KRNL_DIR)/$(KRNL_MAIN) -DKRNL_DIRECTORY=$(KRNL_DIR) -DKCM
 TARGET := ocladock
 ifeq ($(DEVICE), CPU)
 	TARGET:=$(TARGET)_cpu
-else ifeq ($(DEVICE), GPU)
+else ifeq ($(DEVICE), AMDGPU)
 	NWI=-DN64WI
-	TARGET:=$(TARGET)_gpu
+	TARGET:=$(TARGET)_amdgpu
+else ifeq ($(DEVICE), NVGPU)
+	NWI=-DN32WI
+	TARGET:=$(TARGET)_nvgpu
 endif
 
 BIN := $(wildcard $(TARGET)*)
@@ -87,9 +98,12 @@ else
 	ifeq ($(DEVICE), CPU)
 		NWI=-DN16WI
 		TARGET:=$(TARGET)_16wi
-	else ifeq ($(DEVICE), GPU)
+	else ifeq ($(DEVICE), AMDGPU)
 		NWI=-DN64WI
 		TARGET:=$(TARGET)_64wi
+	else ifeq ($(DEVICE), NVGPU)
+		NWI=-DN32WI
+		TARGET:=$(TARGET)_32wi
 	endif
 endif
 
