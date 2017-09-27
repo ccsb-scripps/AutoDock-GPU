@@ -34,7 +34,7 @@ Other environments/configurations likely work as well, but are untested.
 
 ## Example
 ```zsh
-./bin/ocladock_gpu_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10
+./bin/ocladock_amdgpu_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10
 
 Kernel source file:                      ./device/calcenergy.cl                  
 Kernel compilation flags:                 -I ./device -I ./common -DN64WI        

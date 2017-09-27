@@ -49,18 +49,18 @@ You only need to do this if you want to target our sources to a different system
 make DEVICE=<TYPE> NUMWI=<NWI>
 ```
 
-| Parameters | Description            | Values           |
-|:----------:|:----------------------:|:----------------:|
-| `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`     |
-| `<NWI>`    | OpenCL work-group size | `16`, `32`, `64` |
+| Parameters | Description            | Values                    |
+|:----------:|:----------------------:|:-------------------------:|
+| `<TYPE>`   | Accelerator chosen     | `CPU`, `AMDGPU`, `NVGPU`  |
+| `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`          |
 
 
 After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
 
-| Binary-name portion | Description            | Values            |
-|:-------------------:|:----------------------:|:-----------------:|
-| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`      |
-| **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`  |
+| Binary-name portion | Description            | Values                   |
+|:-------------------:|:----------------------:|:------------------------:|
+| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `amdgpu`, `nvgpu` |
+| **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`         |
 
 
 ## Compilation on Windows
@@ -81,7 +81,7 @@ A Microsoft Visual Studio 2013 solution for two configurations **_ocladock-cpu-d
 
 ## Example
 ```zsh
-./bin/ocladock_gpu_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10
+./bin/ocladock_amdgpu_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10
 ```
 By default the output log file is written in the current working folder. Examples of output logs can be found under [examples/output](examples/output/).
 

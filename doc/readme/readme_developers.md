@@ -143,9 +143,9 @@
 
 **[bin](bin)**: Linux binary files are placed here once compiled.
 
-| File                     | Description                                                                   |
-|--------------------------|-------------------------------------------------------------------------------|
-| `ocladock_<type>_<N>wi`  | Binary file for `<type>` (cpu, gpu) device with `<N>` (16, 32, 64) work items |
+| File                     | Description                                                                             |
+|--------------------------|-----------------------------------------------------------------------------------------|
+| `ocladock_<type>_<N>wi`  | Binary file for `<type>` (cpu, amdgpu, nvgpu) device with `<N>` (16, 32, 64) work items |
 
 
 **[common](common)**: common header files for host and device.
@@ -267,7 +267,8 @@ Other environments/configurations likely work as well, but are untested.
 
 **The corresponding environmental variables must be defined**
 * CPU accelerator : `$(INTELOCLSDKROOT)`
-* GPU accelerator : `$(AMDAPPSDKROOT)` 
+* AMD GPU accelerator : `$(AMDAPPSDKROOT)` 
+* NVIDIA GPU accelerator : `$(CUDAROOT)` 
 
 Examples:
 * Linux:
@@ -281,6 +282,12 @@ echo $INTELOCLSDKROOT
 ```zsh
 echo $AMDAPPSDKROOT
 /opt/AMDAPPSDK-3.0
+```
+
+
+```zsh
+echo $CUDAROOT
+/usr/local/cuda-8.0
 ```
 
 * Windows:
@@ -317,29 +324,29 @@ cat /etc/ld.so.conf.d/amdgpu-pro-x86_64.conf
 make DEVICE=<TYPE> NUMWI=<NWI>
 ```
 
-| Parameters | Description            | Values           |
-|:----------:|:----------------------:|:----------------:|
-| `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`     |
-| `<NWI>`    | OpenCL work-group size | `16`, `32`, `64` |
+| Parameters | Description            | Values                   |
+|:----------:|:----------------------:|:------------------------:|
+| `<TYPE>`   | Accelerator chosen     | `CPU`, `AMDGPU`, `NVGPU` |
+| `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`         |
 
 After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
 
-| Binary-name portion | Description            | Values            |
-|:-------------------:|:----------------------:|:-----------------:|
-| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`      |
-| **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`  |
+| Binary-name portion | Description            | Values                    |
+|:-------------------:|:----------------------:|:-------------------------:|
+| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `amdgpu`, `nvgpu`  |
+| **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`          |
 
 ## All available options
 ```zsh
 make DEVICE=<TYPE> NUMWI=<NWI> CONFIG=<CFG> DOCK_DEBUG=<Y/N> REPRO=<Y/N>
 ```
-| Argument    | Description                           | Possible values          |
-|-------------|---------------------------------------|--------------------------|
-| DEVICE      | OpenCL device type                    | `<TYPE>`: CPU, GPU       |
-| NUMWI       | Number of work items per work group   | `<NWI>` : 16, 32, 64     |
-| CONFIG      | Host configuration                    | `<CFG>` : DEBUG, RELEASE |
-| DOCK_DEBUG  | Enable debug info for host & device   | `<Y/N>` : YES, NO        |
-| REPRO       | Reproduce results (remove randomness) | `<Y/N>` : YES, NO        |
+| Argument    | Description                           | Possible values              |
+|-------------|---------------------------------------|------------------------------|
+| DEVICE      | OpenCL device type                    | `<TYPE>`: CPU, AMDGPU, NVGPU |
+| NUMWI       | Number of work items per work group   | `<NWI>` : 16, 32, 64         |
+| CONFIG      | Host configuration                    | `<CFG>` : DEBUG, RELEASE     |
+| DOCK_DEBUG  | Enable debug info for host & device   | `<Y/N>` : YES, NO            |
+| REPRO       | Reproduce results (remove randomness) | `<Y/N>` : YES, NO            |
 
 ## Configuration file
 Check the configurations in the project's [Makefile](../Makefile).
