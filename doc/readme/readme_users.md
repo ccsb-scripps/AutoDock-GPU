@@ -18,6 +18,7 @@
 Download links:
 * [OpenCL Drivers and Runtimes for Intel Architecture](https://software.intel.com/en-us/articles/opencl-drivers)
 * [APP SDK – A Complete Development Platform](http://developer.amd.com/amd-accelerated-parallel-processing-app-sdk/)
+* [NVIDIA Accelerated Computing Toolkit](https://developer.nvidia.com/accelerated-computing-toolkit)
 
 Other environments/configurations likely work as well, but are untested.
 
