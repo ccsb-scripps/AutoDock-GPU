@@ -104,9 +104,12 @@
 │   │   ├── ocladock_cpu_16wi
 │   │   ├── ocladock_cpu_32wi
 │   │   ├── ocladock_cpu_64wi
-│   │   ├── ocladock_gpu_16wi
-│   │   ├── ocladock_gpu_32wi
-│   │   └── ocladock_gpu_64wi
+│   │   ├── ocladock_amdgpu_16wi
+│   │   ├── ocladock_amdgpu_32wi
+│   │   └── ocladock_amdgpu_64wi
+│   │   ├── ocladock_nvgpu_16wi
+│   │   ├── ocladock_nvgpu_32wi
+│   │   └── ocladock_nvgpu_64wi
 │   └── windows
 │       ├── ocladock-win-cpu-16wi.exe
 │       └── ocladock-win-gpu-64wi.exe
@@ -252,14 +255,15 @@ Input files were preprocessed before docking following the standard protocol usi
 
 ## Prerequisites
 
-| Operating system | CPU                          | GPU                |
-|:-----------------|:----------------------------:|:------------------:|
-| Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0   |
-| Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0   |
+| Operating system | CPU                          | GPU                          |
+|:-----------------|:----------------------------:|:----------------------------:|
+| Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0 / CUDA v8.0 |
+| Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0             |
 
 Download links:
 * [OpenCL Drivers and Runtimes for Intel Architecture](https://software.intel.com/en-us/articles/opencl-drivers)
 * [APP SDK – A Complete Development Platform](http://developer.amd.com/amd-accelerated-parallel-processing-app-sdk/)
+* [NVIDIA Accelerated Computing Toolkit](https://developer.nvidia.com/accelerated-computing-toolkit)
 
 Other environments/configurations likely work as well, but are untested.
 

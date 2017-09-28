@@ -10,10 +10,10 @@
 
 ## Prerequisites
 
-| Operating system | CPU                          | GPU                |
-|:-----------------|:----------------------------:|:------------------:|
-| Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0   |
-| Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0   |
+| Operating system | CPU                          | GPU                            |
+|:-----------------|:----------------------------:|:------------------------------:|
+| Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0 / CUDA v8.0   |
+| Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0               |
 
 Download links:
 * [OpenCL Drivers and Runtimes for Intel Architecture](https://software.intel.com/en-us/articles/opencl-drivers)

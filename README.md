@@ -26,10 +26,10 @@ use the Download icon (close to the top right of this webpage, just above the li
 
 ## Prerequisites
 
-| Operating system | CPU                          | GPU                |
-|:----------------:|:----------------------------:|:------------------:|
-| Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0   |
-| Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0   |
+| Operating system | CPU                          | GPU                           |
+|:----------------:|:----------------------------:|:-----------------------------:|
+| Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0 / CUDA v8.0  |
+| Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0              |
 
 Other environments/configurations likely work as well, but are untested.
 
