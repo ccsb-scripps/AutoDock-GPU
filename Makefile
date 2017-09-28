@@ -10,7 +10,7 @@ AMD_LIBRARY_PATH=$(shell cat /etc/ld.so.conf.d/amdgpu-pro-x86_64.conf)
 
 # NVIDIA GPU config
 NV_INCLUDE_PATH=$(CUDAROOT)/include
-NV_INCLUDE_PATH=$(CUDAROOT)/lib64
+NV_LIBRARY_PATH=$(CUDAROOT)/lib64
 
 # ------------------------------------------------------
 # Choose OpenCL device
