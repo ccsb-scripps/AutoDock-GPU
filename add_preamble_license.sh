@@ -41,15 +41,12 @@ for f in $OCLADOCK_SOURCE; do
 
 		if (grep -q "Copyright (C)" $f); then
 			echo "License-preamble is already present in $f"
-			echo "No license-preamble is added."
-			cat $f > $f.oldlic
-			awk '/^\/\*/{c++} c!=1; /^ \*\//{c++}' "$f" > $f
-			echo "Done!"
+			echo "Mo license-preamble is added."
 		else
 			echo "Adding license-preamble to $f ..."
-			cat $LICENSE_PREAMBLE $f > $f.new
-			cat $f > $f.nolic
+			cat $LICENSE_PREAMBLE "$f" > "$f.new"
 			mv $f.new $f
+			rm $f.new
 			echo "Done!"
 		fi
 		echo " "
