@@ -1,12 +1,3 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * processligand.h
- *
- *  Created on: 2008.09.30.
- *      Author: pechan.imre
- */
-
 #ifndef PROCESSLIGAND_H_
 #define PROCESSLIGAND_H_
 

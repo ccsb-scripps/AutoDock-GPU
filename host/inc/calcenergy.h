@@ -1,12 +1,3 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * calcenergy.h
- *
- *  Created on: 2010.04.20.
- *      Author: pechan.imre
- */
-
 #ifndef CALCENERGY_H_
 #define CALCENERGY_H_
 

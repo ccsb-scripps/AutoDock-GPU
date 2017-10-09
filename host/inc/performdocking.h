@@ -1,12 +1,3 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * performdocking.h
- *
- *  Created on: 2010.05.26.
- *      Author: pechan.imre
- */
-
 #ifndef PERFORMDOCKING_H_
 #define PERFORMDOCKING_H_
 

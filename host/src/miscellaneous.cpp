@@ -1,12 +1,3 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * miscallenous.c
- *
- *  Created on: 2008.09.29.
- *      Author: pechan.imre
- */
-
 #include "miscellaneous.h"
 
 int float2fracint(double toconv, int frac)

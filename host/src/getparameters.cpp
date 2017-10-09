@@ -1,12 +1,3 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * getparameters.c
- *
- *  Created on: 2008.10.22.
- *      Author: pechan.imre
- */
-
 #include "getparameters.h"
 
 int get_filenames_and_ADcoeffs(const int* argc,

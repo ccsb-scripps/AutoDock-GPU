@@ -1,12 +1,3 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * defines.h
- *
- *  Created on: 2009.05.29.
- *      Author: pechan.imre
- */
-
 #ifndef DEFINES_H_
 #define DEFINES_H_
 

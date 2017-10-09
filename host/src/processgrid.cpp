@@ -1,15 +1,4 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * processgrid.c
- *
- *  Created on: 2008.09.30.
- *      Author: pechan.imre
- */
-
-
 #include "processgrid.h"
-
 
 int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 {

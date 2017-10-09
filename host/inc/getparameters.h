@@ -1,12 +1,3 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * getparameters.h
- *
- *  Created on: 2008.10.22.
- *      Author: pechan.imre
- */
-
 #ifndef GETPARAMETERS_H_
 #define GETPARAMETERS_H_
 

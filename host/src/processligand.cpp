@@ -1,13 +1,3 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * processligand.c
- *
- *  Created on: 2008.09.30.
- *      Author: pechan.imre
- */
-
-
 #include "processligand.h"
 
 int init_liganddata(const char* ligfilename,

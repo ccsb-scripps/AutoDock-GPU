@@ -1,12 +1,3 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * processgrid.h
- *
- *  Created on: 2008.09.30.
- *      Author: pechan.imre
- */
-
 #ifndef PROCESSGRID_H_
 #define PROCESSGRID_H_
 

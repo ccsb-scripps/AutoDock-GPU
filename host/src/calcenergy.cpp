@@ -1,12 +1,3 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * calcenergy.cu
- *
- *  Created on: 2010.04.20.
- *      Author: pechan.imre
- */
-
 #include "calcenergy.h"
 
 int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,

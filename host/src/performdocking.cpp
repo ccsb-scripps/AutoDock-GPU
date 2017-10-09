@@ -1,12 +1,3 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * performdocking.cu
- *
- * Created on: 2010.04.20.
- * Author: pechan.imre
- */
-
 #ifndef _WIN32
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s)	STRINGIZE2(s)

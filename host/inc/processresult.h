@@ -1,12 +1,3 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * processresult.h
- *
- *  Created on: 2008.09.22.
- *      Author: pechan.imre
- */
-
 #ifndef PROCESSRESULT_H_
 #define PROCESSRESULT_H_
 

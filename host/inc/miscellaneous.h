@@ -1,12 +1,3 @@
-/*
- * (C) 2013. Evopro Innovation Kft.
- *
- * miscallenous.h
- *
- *  Created on: 2008.09.29.
- *      Author: pechan.imre
- */
-
 #ifndef MISCELLANEOUS_H_
 #define MISCELLANEOUS_H_
 
