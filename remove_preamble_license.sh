@@ -41,10 +41,8 @@ for f in $OCLADOCK_SOURCE; do
 
 		if (grep -q "Copyright (C)" $f); then
 			echo "Removing existing license-preamble from $f"
-			awk '/^\/\*/{c++} c!=1; /^ \*\//{c++}' "$f" > "$f.old"
-			mv "$f.old" "$f"
-			echo "Done!"
-			
+			sed -i '/\/\*.*\*\// d; /\/\*/,/\*\// d' "$f"
+			echo "Done!"	
 		else
 			echo "License-preamble was not found in $f"
 			echo "No license-preamble is removed."
