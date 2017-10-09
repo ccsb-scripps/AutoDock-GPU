@@ -45,8 +45,7 @@ for f in $OCLADOCK_SOURCE; do
 		else
 			echo "Adding license-preamble to $f ..."
 			cat $LICENSE_PREAMBLE "$f" > "$f.new"
-			mv $f.new $f
-			rm $f.new
+			mv "$f.new" "$f"
 			echo "Done!"
 		fi
 		echo " "
