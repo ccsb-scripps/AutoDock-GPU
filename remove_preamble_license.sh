@@ -1,6 +1,6 @@
 #!/bin/bash
-# Copy license preamble to all OCLADock source and header files
-# if license preamble is not present
+# Remove license preamble from all OCLADock source and header files
+# if license preamble is present
 
 # license preamble
 LICENSE_PREAMBLE="./preamble_license"
@@ -40,13 +40,14 @@ for f in $OCLADOCK_SOURCE; do
 	if [ "$f" != "$HOST_HEADER_DIR/stringify.h" ]; then
 
 		if (grep -q "Copyright (C)" $f); then
-			echo "License-preamble was found in $f"
-			echo "No license-preamble is added."
-		else
-			echo "Adding license-preamble to $f ..."
-			cat $LICENSE_PREAMBLE "$f" > "$f.new"
-			mv "$f.new" "$f"
+			echo "Removing existing license-preamble from $f"
+			awk '/^\/\*/{c++} c!=1; /^ \*\//{c++}' "$f" > "$f.old"
+			mv "$f.old" "$f"
 			echo "Done!"
+			
+		else
+			echo "License-preamble was not found in $f"
+			echo "No license-preamble is removed."
 		fi
 		echo " "
 	fi
