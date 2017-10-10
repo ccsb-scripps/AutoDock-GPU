@@ -2,6 +2,9 @@
 # Remove license preamble from all OCLADock source and header files
 # if license preamble is present
 
+# Reference
+# sed '/PATTERNSTART/,/PATTERNEND/{0,/PATTERNEND/d}' file
+
 # license preamble
 LICENSE_PREAMBLE="./preamble_license"
 
@@ -21,10 +24,18 @@ HOST_HEADERS="$HOST_HEADER_DIR/*.h"
 HOST_SOURCE_DIR="./host/src"
 HOST_SOURCES="$HOST_SOURCE_DIR/*.cpp"
 
+# wrapcl-header files
+WRAPCL_HEADER_DIR="./wrapcl/inc"
+WRAPCL_HEADERS="$WRAPCL_HEADER_DIR/*.h"
+
+# wrapcl-source files
+WRAPCL_SOURCE_DIR="./wrapcl/src"
+WRAPCL_SOURCES="$WRAPCL_SOURCE_DIR/*.cpp"
+
 # full list of source files
 #OCLADOCK_SOURCE="$KRNL_HEADER_DIR/*.h $KRNL_SOURCE_DIR/*.cl $HOST_HEADER_DIR/*.h $HOST_SOURCE_DIR/*.cpp"
 
-OCLADOCK_SOURCE="$KRNL_HEADERS $KRNL_SOURCES $HOST_HEADERS $HOST_SOURCES"
+OCLADOCK_SOURCE="$KRNL_HEADERS $KRNL_SOURCES $HOST_HEADERS $HOST_SOURCES $WRAPCL_HEADERS $WRAPCL_SOURCES"
 
 # Print variables
 #echo $KRNL_HEADER_DIR/*.h
@@ -33,8 +44,8 @@ OCLADOCK_SOURCE="$KRNL_HEADERS $KRNL_SOURCES $HOST_HEADERS $HOST_SOURCES"
 #echo $HOST_SOURCE_DIR/*.cpp
 #echo $OCLADOCK_SOURCE
 
-# Add license-preamble
-# Excluding sources that already have it, and
+# Remove license-preamble
+# Excluding sources that do not have it, and
 # excluding the automatically-generated ./host/inc/stringify.h
 for f in $OCLADOCK_SOURCE; do
 	if [ "$f" != "$HOST_HEADER_DIR/stringify.h" ]; then
@@ -51,9 +62,6 @@ for f in $OCLADOCK_SOURCE; do
 		echo " "
 	fi
 done
-
-# Reference
-# sed '/PATTERNSTART/,/PATTERNEND/{0,/PATTERNEND/d}' file 
 
 
 
