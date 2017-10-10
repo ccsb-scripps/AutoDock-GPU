@@ -115,4 +115,4 @@ Leonardo Solis-Vasquez and Andreas Koch. 2017. A Performance and Energy Evaluati
 
 # License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU GPLv2 - see the [LICENSE](LICENSE) file for details.
