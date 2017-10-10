@@ -1,7 +1,6 @@
 #ifndef PROGRAMS_H
 #define PROGRAMS_H
 
-  // L30nardoSV
   //#include <stdio.h>
   //#include <CL/opencl.h>
   #include "commonMacros.h"

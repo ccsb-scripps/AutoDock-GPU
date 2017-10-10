@@ -51,7 +51,7 @@ int ImportSource(const char*    filename,
 	const char *source = filename;
 #endif
 
-	// L30nardoSV
+	// OCLADock
 	size_t sourceSize[] = { strlen(source) };
 
 	cl_program local_program;

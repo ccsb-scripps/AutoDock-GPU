@@ -1,7 +1,6 @@
 #ifndef PLATFORMS_H
 #define PLATFORMS_H
 
-  // L30nardoSV
   //#include <stdio.h>
   //#include <CL/opencl.h>
   #include "commonMacros.h"

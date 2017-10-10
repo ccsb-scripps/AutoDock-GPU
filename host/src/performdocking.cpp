@@ -685,7 +685,7 @@ filled with clock() */
 	printf("\n\n");
 
 	// ===============================================================================
-	// L30nardoSV modified
+	// OCLADock modification
 	// http://www.cc.gatech.edu/~vetter/keeneland/tutorial-2012-02-20/08-opencl.pdf
 	// ===============================================================================
 

@@ -1,7 +1,6 @@
 #ifndef DEVICES_H
 #define DEVICES_H
 
-  // L30nardoSV
   //#include <stdio.h>
   //#include <CL/opencl.h>
   #include "commonMacros.h"

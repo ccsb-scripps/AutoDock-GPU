@@ -8,7 +8,7 @@
 #include <math.h>
 
 #ifndef _WIN32
-// L30nardoSV
+// OCLADock
 #include <libgen.h>
 
 // libgen.h contains basename() and dir() from a fullpath name
@@ -29,7 +29,7 @@
 typedef struct
 //Struct which can contain all the important informations which derives from .gpf and .xyz files.
 {
-	// L30nardoSV
+// OCLADock
 #ifndef _WIN32
 	char*  grid_file_path;	  // Added to store the full path of the grid file
 #else

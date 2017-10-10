@@ -1,10 +1,9 @@
 #ifndef LIST_ATTRIBUTES_H
 #define LIST_ATTRIBUTES_H
 
-  // L30nardoSV
   //#include <CL/opencl.h>
   #include "commonMacros.h"
-  
+
   // Platforms
   extern const char*            attributePlatNames[5];
   extern const cl_platform_info attributePlatTypes[5];

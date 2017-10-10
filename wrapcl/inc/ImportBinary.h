@@ -1,7 +1,6 @@
 #ifndef IMPORT_BINARY_H
 #define IMPORT_BINARY_H
 
-  // L30nardoSV
   //#include <stdio.h>
   //#include <stdlib.h>
   #include "commonMacros.h"

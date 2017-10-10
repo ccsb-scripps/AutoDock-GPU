@@ -294,7 +294,7 @@ void print_binary_string(unsigned long long to_print)
 }
 
 #ifndef _WIN32
-//L30nardoSV
+// OCLADock
 // This was disabled for Windows
 int stricmp(const char* str1, const char* str2)
 //The function compares the two input strings and

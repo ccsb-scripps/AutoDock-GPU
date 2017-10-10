@@ -382,7 +382,7 @@ int get_bonds(Liganddata* myligand)
     			}
     			else
     			{
-					// L30nardoSV
+					// OCLADock
     					if (stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
 					//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
     					atom_nameid1 = i;
@@ -398,7 +398,7 @@ int get_bonds(Liganddata* myligand)
     			}
     			else
     			{
-					// L30nardoSV
+					// OCLADock
     					if (stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
 					//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
     					atom_nameid2 = i;
@@ -517,13 +517,13 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 
 			//identifying atom types
 			for (i=0; i<ATYPE_NUM; i++)
-				//L30nardoSV
+				// OCLADock
 				if (stricmp(atom_names [i], myligand->atom_types [atom_typeid1]) == 0)
 				//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
 					VWid_atype1 = i;
 
 			for (i=0; i<ATYPE_NUM; i++)
-				// L30nardoSV
+				// OCLADock
 				if (stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
 				//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
 					VWid_atype2 = i;
@@ -567,7 +567,7 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 
 		//identifying atom type
 		for (i=0; i<ATYPE_NUM; i++)
-			// L30nardoSV
+			// OCLADock
 			if (stricmp(atom_names [i], myligand->atom_types [atom_typeid1]) == 0)
 			//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
 				VWid_atype1 = i;
@@ -1116,7 +1116,7 @@ void change_conform_f(Liganddata* myligand,
 	refori_angle = cpu_ref_ori_angles[2];
 
 // +++++++++++++++++++++++++++++++++++++++
-// L30nardoSV
+// OCLADock
 //printf("cpu_ref_ori_angles [0]: %f, cpu_ref_ori_angles [1]: %f, %f\n",cpu_ref_ori_angles [0],cpu_ref_ori_angles [1],PI);
 //printf("refori_unitvec [0]:%f, refori_unitvec [1]:%f, refori_unitvec [2]:%f\n",refori_unitvec [0],refori_unitvec [1],refori_unitvec [2]);
 // +++++++++++++++++++++++++++++++++++++++

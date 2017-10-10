@@ -1,7 +1,6 @@
 #ifndef COMMAND_QUEUES_H
 #define COMMAND_QUEUES_H
 
-  // L30nardoSV
   //#include <stdio.h>
   //#include <CL/opencl.h>
   #include "commonMacros.h"

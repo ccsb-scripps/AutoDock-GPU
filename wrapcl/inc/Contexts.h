@@ -1,7 +1,6 @@
 #ifndef CONTEXTS_H
 #define CONTEXTS_H
 
-  // L30nardoSV
   //#include <stdio.h>
   //#include <CL/opencl.h>
   #include "commonMacros.h"

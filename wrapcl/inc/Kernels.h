@@ -1,7 +1,6 @@
 #ifndef KERNELS_H
 #define KERNELS_H
 
-  // L30nardoSV
   //#include <stdio.h>
   //#include <CL/opencl.h>
   #include "commonMacros.h"
