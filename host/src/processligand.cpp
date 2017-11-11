@@ -756,8 +756,14 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 
 			atom_counter++;
 
-
+			// include last atom
+			if (atom_counter == myligand->num_of_atoms) {
+				for (i=0; i<branch_counter; i++)	//for all branches found until now
+					if (branches [i][2] == 1)	//if it is open, the atom has to be rotated
+						atom_rotbonds_temp [atom_counter][i] = 1;	//modifying atom_rotbonds_temp
+			}
 		}
+
 		if (strcmp(tempstr, "BRANCH") == 0)	//if new branch, stroing atom indexes into branches [][]
 		{
 			if (branch_counter >= MAX_NUM_OF_ROTBONDS)
@@ -778,14 +784,35 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 
 			reserved_highest_rigid_struct_id++;		//next ID is reserved
 			current_rigid_struct_id = reserved_highest_rigid_struct_id;		//New branch means new rigid structure, and a new id as well
-
 		}
+
 		if (strcmp(tempstr, "ENDBRANCH") == 0)
 		{
 			fscanf(fp, "%d", &(myligand->rotbonds [endbranch_counter][0]));	//rotatable bonds have to be stored in the order
 			fscanf(fp, "%d", &(myligand->rotbonds [endbranch_counter][1])); //of endbranches
 			(myligand->rotbonds [endbranch_counter][0])--;
 			(myligand->rotbonds [endbranch_counter][1])--;
+
+			// include last atom before ENDBRANCH
+			//if (atom_counter == myligand->num_of_atoms) {
+				for (i=0; i<branch_counter; i++)	//for all branches found until now
+					if (branches [i][2] == 1)	//if it is open, the atom has to be rotated
+						atom_rotbonds_temp [atom_counter][i] = 1;	//modifying atom_rotbonds_temp
+
+			// ---------------------------
+			/*
+			// print torsions
+			printf("%s", "\n");
+			for (int a=0;a<atom_counter+2;a++) {
+				printf("%-3u: ", a);
+				for (i=0;i<branch_counter;i++) {
+					printf("%u", atom_rotbonds_temp[a][i]);
+				}
+				printf("%s", "\n");
+			}
+			*/
+			// ---------------------------
+
 			for (i=0; i<branch_counter; i++)	//the branch have to be closed
 				if ((branches [i][0] == myligand->rotbonds [endbranch_counter][0]) &&
 				    (branches [i][1] == myligand->rotbonds [endbranch_counter][1]))
@@ -793,6 +820,11 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			endbranch_counter++;
 
 			current_rigid_struct_id--;	//probably unnecessary since there is a new branch after every endbranch...
+
+
+
+
+
 		}
 	}
 
@@ -914,7 +946,7 @@ void get_movvec_to_origo(const Liganddata* myligand, double movvec [])
 }
 
 void move_ligand(Liganddata* myligand, const double movvec [])
-//The function moves the ligand given by the first parameter according to 
+//The function moves the ligand given by the first parameter according to
 //the vector given by the second one.
 {
 	int i;
@@ -1728,4 +1760,3 @@ float calc_intraE_f(const Liganddata* myligand,
 	else
 		return (vW + el);
 }
-
