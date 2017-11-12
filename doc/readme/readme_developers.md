@@ -325,7 +325,7 @@ In case the above vendor-specific variables are not defined at all or not set as
 For example, the shared library for an AMD GPU accelerator might be located out of the path defined by `$AMDAPPSDKROOT`. In that case, it could be found this way:
 
 ```zsh
-% echo echo $AMDAPPSDKROOT
+% echo $AMDAPPSDKROOT
 /opt/AMDAPPSDK-3.0
 
 % cat /etc/ld.so.conf.d/amdgpu-pro-x86_64.conf
