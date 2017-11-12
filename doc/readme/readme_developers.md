@@ -274,7 +274,7 @@ Other environments/configurations likely work as well, but are untested.
 
 **Explanation**
 * `$(CPU_INCLUDE_PATH)` / `$(GPU_INCLUDE_PATH)`: paths containing the OpenCL header files, i.e. `CL/cl.h`, `CL/cl.hpp`, and `opencl.h`.
-* `$(CPU_INCLUDE_PATH)` / `$(GPU_INCLUDE_PATH)`: paths containing the OpenCL shared library, i.e. `libOpenCL.so`.
+* `$(CPU_LIBRARY_PATH)` / `$(GPU_LIBRARY_PATH)`: paths containing the OpenCL shared library, i.e. `libOpenCL.so`.
 
 The following environment variables are _usually_ set by the driver installer: `$INTELOCLSDKROOT`, `$AMDAPPSDKROOT`, and `$CUDAROOT`. 
 
