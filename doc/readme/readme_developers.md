@@ -263,7 +263,7 @@ Download links:
 
 Other environments/configurations likely work as well, but are untested.
 
-## To keep in mind before executing and compiling
+## To keep in mind before compiling and executing
 
 **The corresponding environmental variables must be defined**
 * CPU accelerator : `$(CPU_INCLUDE_PATH)` and `$(CPU_LIBRARY_PATH)`
