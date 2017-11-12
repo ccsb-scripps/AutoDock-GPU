@@ -320,15 +320,19 @@ C:\Program Files (x86)\AMD APP SDK\3.0
 
 **Troubleshooting**
 
-In case the above vendor-specific variables are not defined or not set as in the previous examples, then resolve it manually.
+In case the above vendor-specific variables are not defined at all or not set as in the previous examples, then resolve them manually.
 
-Example: 
-
-For the GPU accelerator on Linux, verify that `/etc/ld.so.conf.d/amdgpu-pro-x86_64.conf` contains the path of the driver
+For example, the shared library for an AMD GPU accelerator might be located out of the path defined by `$AMDAPPSDKROOT`. In that case, it could be found this way:
 
 ```zsh
-cat /etc/ld.so.conf.d/amdgpu-pro-x86_64.conf
+% cat /etc/ld.so.conf.d/amdgpu-pro-x86_64.conf
 /opt/amdgpu-pro/lib/x86_64-linux-gnu
+
+% ls -asl /opt/amdgpu-pro/lib/x86_64-linux-gnu
+...
+ 0 lrwxrwxrwx 1 root root       14 Nov 30  2016 libOpenCL.so -> libOpenCL.so.1
+28 -rw-r--r-- 1 root root    27336 Nov 30  2016 libOpenCL.so.1
+...
 ```
 
 **Check vendor specific guidelines to setup both OpenCL platform correctly!**
