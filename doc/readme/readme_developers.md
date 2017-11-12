@@ -272,14 +272,14 @@ Other environments/configurations likely work as well, but are untested.
 * CPU accelerator : `$(CPU_INCLUDE_PATH)` and `$(CPU_LIBRARY_PATH)`
 * GPU accelerator : `$(GPU_INCLUDE_PATH)` and `$(GPU_LIBRARY_PATH)` 
 
-
-****
+**Explanation**
 * `$(CPU_INCLUDE_PATH)` / `$(GPU_INCLUDE_PATH)`: paths containing the OpenCL header files, i.e. `CL/cl.h`, `CL/cl.hpp`, and `opencl.h`.
 * `$(CPU_INCLUDE_PATH)` / `$(GPU_INCLUDE_PATH)`: paths containing the OpenCL shared library, i.e. `libOpenCL.so`.
 
-The following environment variables are usually set by the driver installer in the system: `$INTELOCLSDKROOT`, `$AMDAPPSDKROOT`, and `$CUDAROOT`.
+The following environment variables are _usually_ set by the driver installer: `$INTELOCLSDKROOT`, `$AMDAPPSDKROOT`, and `$CUDAROOT`. 
 
-Examples:
+If they are defined, they can be used to set the required include and library paths:
+
 * Linux:
 
 ```zsh
@@ -318,9 +318,9 @@ echo %AMDAPPSDKROOT%
 C:\Program Files (x86)\AMD APP SDK\3.0
 ```
 
-**The corresponding paths for CPU/GPU drivers must be also defined**
-* This is usually resolved automatically during SDK/driver installation
-* In case it is not set, resolve it manually
+**Troubleshooting**
+
+In case the above vendor-specific variables are not defined or not set as in the previous examples, then resolve it manually.
 
 Example: 
 
