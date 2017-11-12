@@ -104,12 +104,9 @@
 │   │   ├── ocladock_cpu_16wi
 │   │   ├── ocladock_cpu_32wi
 │   │   ├── ocladock_cpu_64wi
-│   │   ├── ocladock_amdgpu_16wi
-│   │   ├── ocladock_amdgpu_32wi
-│   │   └── ocladock_amdgpu_64wi
-│   │   ├── ocladock_nvgpu_16wi
-│   │   ├── ocladock_nvgpu_32wi
-│   │   └── ocladock_nvgpu_64wi
+│   │   ├── ocladock_gpu_16wi
+│   │   ├── ocladock_gpu_32wi
+│   │   └── ocladock_gpu_64wi
 │   └── windows
 │       ├── ocladock-win-cpu-16wi.exe
 │       └── ocladock-win-gpu-64wi.exe
