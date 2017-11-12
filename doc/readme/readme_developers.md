@@ -272,7 +272,12 @@ Other environments/configurations likely work as well, but are untested.
 * CPU accelerator : `$(CPU_INCLUDE_PATH)` and `$(CPU_LIBRARY_PATH)`
 * GPU accelerator : `$(GPU_INCLUDE_PATH)` and `$(GPU_LIBRARY_PATH)` 
 
-After driver installation,  the following environment variables are usually defined in the system: `$INTELOCLSDKROOT`, `$AMDAPPSDKROOT`, and `$CUDAROOT`.
+
+****
+* `$(CPU_INCLUDE_PATH)` / `$(GPU_INCLUDE_PATH)`: paths containing the OpenCL header files, i.e. `CL/cl.h`, `CL/cl.hpp`, and `opencl.h`.
+* `$(CPU_INCLUDE_PATH)` / `$(GPU_INCLUDE_PATH)`: paths containing the OpenCL shared library, i.e. `libOpenCL.so`.
+
+The following environment variables are usually set by the driver installer in the system: `$INTELOCLSDKROOT`, `$AMDAPPSDKROOT`, and `$CUDAROOT`.
 
 Examples:
 * Linux:
