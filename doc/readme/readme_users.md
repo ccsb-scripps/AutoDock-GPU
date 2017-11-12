@@ -21,6 +21,18 @@ Download links:
 
 Other environments/configurations likely work as well, but are untested.
 
+## To keep in mind before compiling and executing
+
+**The corresponding environmental variables must be defined**
+* CPU accelerator : `$(CPU_INCLUDE_PATH)` and `$(CPU_LIBRARY_PATH)`
+* GPU accelerator : `$(GPU_INCLUDE_PATH)` and `$(GPU_LIBRARY_PATH)` 
+
+**Explanation**
+* `$(CPU_INCLUDE_PATH)` / `$(GPU_INCLUDE_PATH)`: paths containing the OpenCL header files, i.e. `CL/cl.h`, `CL/cl.hpp`, and `opencl.h`.
+* `$(CPU_LIBRARY_PATH)` / `$(GPU_LIBRARY_PATH)`: paths containing the OpenCL shared library, i.e. `libOpenCL.so`.
+
+For more details, go to the [developers section](readme_developers.md).
+
 # Usage
 
 ## Basic
