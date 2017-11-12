@@ -12,17 +12,16 @@ OCLADock - OpenCL Accelerated Molecular Docking
 
 # Easy Download
 
-If you are not familiar with Gitlab, the easiest way to download all of OCLADock (source code, prebuilt-binaries for Linux and Windows, sample input data) is to
+If you are not familiar with GitLab, the easiest way to download all of OCLADock (source code, prebuilt-binaries for Linux and Windows, sample input data) is to
 use the Download icon (close to the top right of this webpage, just above the list of files) and use a familiar archive format (e.g., .zip) to fetch everything at once.
 
 # Setup
 ## Requirements
 
-| Architecture | Operating system |
-|:------------:|:------------------:|
-| Intel x86_64 | CentOS 6.7 & 6.8 |
-| Intel x86_64 | Ubuntu 16.04 |
-| Intel x86_64 | Windows 7 |
+| Architecture | Operating system                       |
+|:------------:|:--------------------------------------:|
+| Intel x86_64 | CentOS 6.7 & 6.8, Ubuntu 14.04 & 16.04 |
+| Intel x86_64 | Windows 7                              |
 
 ## Prerequisites
 
@@ -51,7 +50,7 @@ make DEVICE=<TYPE> NUMWI=<NWI>
 
 | Parameters | Description            | Values                    |
 |:----------:|:----------------------:|:-------------------------:|
-| `<TYPE>`   | Accelerator chosen     | `CPU`, `AMDGPU`, `NVGPU`  |
+| `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`              |
 | `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`          |
 
 
@@ -59,7 +58,7 @@ After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;w
 
 | Binary-name portion | Description            | Values                   |
 |:-------------------:|:----------------------:|:------------------------:|
-| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `amdgpu`, `nvgpu` |
+| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`             |
 | **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`         |
 
 
@@ -81,7 +80,7 @@ A Microsoft Visual Studio 2013 solution for two configurations **_ocladock-cpu-d
 
 ## Example
 ```zsh
-./bin/ocladock_amdgpu_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10
+./bin/ocladock_gpu_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10
 ```
 By default the output log file is written in the current working folder. Examples of output logs can be found under [examples/output](examples/output/).
 
