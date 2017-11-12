@@ -146,9 +146,9 @@
 
 **[bin](bin)**: Linux binary files are placed here once compiled.
 
-| File                     | Description                                                                             |
-|--------------------------|-----------------------------------------------------------------------------------------|
-| `ocladock_<type>_<N>wi`  | Binary file for `<type>` (cpu, amdgpu, nvgpu) device with `<N>` (16, 32, 64) work items |
+| File                     | Description                                                                   |
+|--------------------------|-------------------------------------------------------------------------------|
+| `ocladock_<type>_<N>wi`  | Binary file for `<type>` (cpu, gpu) device with `<N>` (16, 32, 64) work items |
 
 
 **[common](common)**: common header files for host and device.
@@ -247,11 +247,10 @@ Input files were preprocessed before docking following the standard protocol usi
 
 ## Requirements
 
-| Architecture | Operating system |
-|:------------:|:------------------:|
-| Intel x86_64 | CentOS 6.7 & 6.8 |
-| Intel x86_64 | Ubuntu 16.04 |
-| Intel x86_64 | Windows 7 |
+| Architecture | Operating system                        |
+|:------------:|:---------------------------------------:|
+| Intel x86_64 | CentOS 6.7 & 6.8 / Ubuntu 14.04 & 16.04 |
+| Intel x86_64 | Windows 7                               |
 
 ## Prerequisites
 
@@ -267,31 +266,39 @@ Download links:
 
 Other environments/configurations likely work as well, but are untested.
 
-## To keep in mind before compiling
+## To keep in mind before executing and compiling
 
 **The corresponding environmental variables must be defined**
-* CPU accelerator : `$(INTELOCLSDKROOT)`
-* AMD GPU accelerator : `$(AMDAPPSDKROOT)` 
-* NVIDIA GPU accelerator : `$(CUDAROOT)` 
+* CPU accelerator : `$(CPU_INCLUDE_PATH)` and `$(CPU_LIBRARY_PATH)`
+* GPU accelerator : `$(GPU_INCLUDE_PATH)` and `$(GPU_LIBRARY_PATH)` 
+
+After driver installation,  the following environment variables are usually defined in the system: `$INTELOCLSDKROOT`, `$AMDAPPSDKROOT`, and `$CUDAROOT`.
 
 Examples:
 * Linux:
 
 ```zsh
-echo $INTELOCLSDKROOT
+% echo $INTELOCLSDKROOT
 /opt/intel/opencl-1.2-sdk-6.0.0.1049
-```
 
+% export CPU_INCLUDE_PATH=$INTELOCLSDKROOT/include
+% export CPU_LIBRARY_PATH=$INTELOCLSDKROOT/lib/x64
+```
 
 ```zsh
 echo $AMDAPPSDKROOT
 /opt/AMDAPPSDK-3.0
-```
 
+% export GPU_INCLUDE_PATH=$AMDAPPSDKROOT/include
+% export GPU_LIBRARY_PATH=$AMDAPPSDKROOT/lib/x64_86
+```
 
 ```zsh
 echo $CUDAROOT
 /usr/local/cuda-8.0
+
+% export GPU_INCLUDE_PATH=$CUDAROOT/include
+% export GPU_LIBRARY_PATH=$CUDAROOT/lib64
 ```
 
 * Windows:
