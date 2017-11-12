@@ -1,34 +1,24 @@
 # OCLADock Makefile
 
-# CPU config
-INTEL_INCLUDE_PATH=$(INTELOCLSDKROOT)/include
-INTEL_LIBRARY_PATH=$(INTELOCLSDKROOT)
-
-# AMD GPU config
-AMD_INCLUDE_PATH=$(AMDAPPSDKROOT)/include
-AMD_LIBRARY_PATH=$(shell cat /etc/ld.so.conf.d/amdgpu-pro-x86_64.conf)
-
-# NVIDIA GPU config
-NV_INCLUDE_PATH=$(CUDAROOT)/include
-NV_LIBRARY_PATH=$(CUDAROOT)/lib64
+# ------------------------------------------------------
+# Note that environment variables must be defined
+# before compiling
+# DEVICE?
+# if DEVICE=CPU: CPU_INCLUDE_PATH?, CPU_LIBRARY_PATH?
+# if DEVICE=GPU: GPU_INCLUDE_PATH?, GPU_LIBRARY_PATH?
 
 # ------------------------------------------------------
 # Choose OpenCL device
-# Valid values: CPU, AMDGPU, NVGPU
-DEVICE=GPU
+# Valid values: CPU, GPU
 
 ifeq ($(DEVICE), CPU)
 	DEV =-DCPU_DEVICE
-	OCLA_INC_PATH=$(INTEL_INCLUDE_PATH)
-	OCLA_LIB_PATH=$(INTEL_LIBRARY_PATH)
-else ifeq ($(DEVICE), AMDGPU)
+	OCLA_INC_PATH=$(CPU_INCLUDE_PATH)
+	OCLA_LIB_PATH=$(CPU_LIBRARY_PATH)
+else ifeq ($(DEVICE), GPU)
 	DEV =-DGPU_DEVICE
-	OCLA_INC_PATH=$(AMD_INCLUDE_PATH)
-	OCLA_LIB_PATH=$(AMD_LIBRARY_PATH)
-else ifeq ($(DEVICE), NVGPU)
-	DEV =-DGPU_DEVICE
-	OCLA_INC_PATH=$(NV_INCLUDE_PATH)
-	OCLA_LIB_PATH=$(NV_LIBRARY_PATH)
+	OCLA_INC_PATH=$(GPU_INCLUDE_PATH)
+	OCLA_LIB_PATH=$(GPU_LIBRARY_PATH)
 endif
 
 # ------------------------------------------------------
@@ -67,12 +57,9 @@ KFLAGS=-DKRNL_SOURCE=$(KRNL_DIR)/$(KRNL_MAIN) -DKRNL_DIRECTORY=$(KRNL_DIR) -DKCM
 TARGET := ocladock
 ifeq ($(DEVICE), CPU)
 	TARGET:=$(TARGET)_cpu
-else ifeq ($(DEVICE), AMDGPU)
+else ifeq ($(DEVICE), GPU)
 	NWI=-DN64WI
-	TARGET:=$(TARGET)_amdgpu
-else ifeq ($(DEVICE), NVGPU)
-	NWI=-DN32WI
-	TARGET:=$(TARGET)_nvgpu
+	TARGET:=$(TARGET)_gpu
 endif
 
 BIN := $(wildcard $(TARGET)*)
@@ -98,12 +85,9 @@ else
 	ifeq ($(DEVICE), CPU)
 		NWI=-DN16WI
 		TARGET:=$(TARGET)_16wi
-	else ifeq ($(DEVICE), AMDGPU)
+	else ifeq ($(DEVICE), GPU)
 		NWI=-DN64WI
 		TARGET:=$(TARGET)_64wi
-	else ifeq ($(DEVICE), NVGPU)
-		NWI=-DN32WI
-		TARGET:=$(TARGET)_32wi
 	endif
 endif
 
@@ -156,10 +140,55 @@ endif
 
 all: odock
 
+check-env-dev:
+	@if test -z "$$DEVICE"; then \
+		echo "DEVICE is undefined"; \
+		exit 1; \
+	else \
+		if [ "$$DEVICE" = "CPU" ]; then \
+			echo "DEVICE is set to $$DEVICE"; \
+		else \
+			if [ "$$DEVICE" = "GPU" ]; then \
+				echo "DEVICE is set to $$DEVICE"; \
+			else \
+				echo "DEVICE value is invalid. Set DEVICE to either CPU or GPU"; \
+			fi; \
+		fi; \
+	fi; \
+	echo " "
+
+check-env-cpu:
+	@if test -z "$$CPU_INCLUDE_PATH"; then \
+		echo "CPU_INCLUDE_PATH is undefined"; \
+	else \
+		echo "CPU_INCLUDE_PATH is set to $$CPU_INCLUDE_PATH"; \
+	fi; \
+	if test -z "$$CPU_LIBRARY_PATH"; then \
+		echo "CPU_LIBRARY_PATH is undefined"; \
+	else \
+		echo "CPU_LIBRARY_PATH is set to $$CPU_LIBRARY_PATH"; \
+	fi; \
+	echo " "
+
+check-env-gpu:
+	@if test -z "$$GPU_INCLUDE_PATH"; then \
+		echo "GPU_INCLUDE_PATH is undefined"; \
+	else \
+		echo "GPU_INCLUDE_PATH is set to $$GPU_INCLUDE_PATH"; \
+	fi; \
+	if test -z "$$GPU_LIBRARY_PATH"; then \
+		echo "GPU_LIBRARY_PATH is undefined"; \
+	else \
+		echo "GPU_LIBRARY_PATH is set to $$GPU_LIBRARY_PATH"; \
+	fi; \
+	echo " "
+
+check-env-all: check-env-dev check-env-cpu check-env-gpu
+
 stringify:
 	./stringify_ocl_krnls.sh
 
-odock: stringify $(SRC)
+odock: check-env-all stringify $(SRC)
 	g++ $(SRC) $(CFLAGS) -lOpenCL -o$(BIN_DIR)/$(TARGET) $(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
 
 clean:
