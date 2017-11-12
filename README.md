@@ -18,10 +18,10 @@ use the Download icon (close to the top right of this webpage, just above the li
 # Setup
 ## Requirements
 
-| Architecture | Operating system                       |
-|:------------:|:--------------------------------------:|
-| Intel x86_64 | CentOS 6.7 & 6.8, Ubuntu 14.04 & 16.04 |
-| Intel x86_64 | Windows 7                              |
+| Architecture | Operating system                        |
+|:------------:|:---------------------------------------:|
+| Intel x86_64 | CentOS 6.7 & 6.8 / Ubuntu 14.04 & 16.04 |
+| Intel x86_64 | Windows 7                               |
 
 ## Prerequisites
 
