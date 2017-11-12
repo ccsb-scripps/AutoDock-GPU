@@ -325,6 +325,9 @@ In case the above vendor-specific variables are not defined at all or not set as
 For example, the shared library for an AMD GPU accelerator might be located out of the path defined by `$AMDAPPSDKROOT`. In that case, it could be found this way:
 
 ```zsh
+% echo echo $AMDAPPSDKROOT
+/opt/AMDAPPSDK-3.0
+
 % cat /etc/ld.so.conf.d/amdgpu-pro-x86_64.conf
 /opt/amdgpu-pro/lib/x86_64-linux-gnu
 
@@ -346,14 +349,14 @@ make DEVICE=<TYPE> NUMWI=<NWI>
 
 | Parameters | Description            | Values                   |
 |:----------:|:----------------------:|:------------------------:|
-| `<TYPE>`   | Accelerator chosen     | `CPU`, `AMDGPU`, `NVGPU` |
+| `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`             |
 | `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`         |
 
 After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
 
 | Binary-name portion | Description            | Values                    |
 |:-------------------:|:----------------------:|:-------------------------:|
-| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `amdgpu`, `nvgpu`  |
+| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`              |
 | **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`          |
 
 ## All available options
@@ -362,7 +365,7 @@ make DEVICE=<TYPE> NUMWI=<NWI> CONFIG=<CFG> DOCK_DEBUG=<Y/N> REPRO=<Y/N>
 ```
 | Argument    | Description                           | Possible values              |
 |-------------|---------------------------------------|------------------------------|
-| DEVICE      | OpenCL device type                    | `<TYPE>`: CPU, AMDGPU, NVGPU |
+| DEVICE      | OpenCL device type                    | `<TYPE>`: CPU, GPU           |
 | NUMWI       | Number of work items per work group   | `<NWI>` : 16, 32, 64         |
 | CONFIG      | Host configuration                    | `<CFG>` : DEBUG, RELEASE     |
 | DOCK_DEBUG  | Enable debug info for host & device   | `<Y/N>` : YES, NO            |
