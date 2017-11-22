@@ -334,7 +334,7 @@ For example, the shared library for an AMD GPU accelerator might be located out 
 28 -rw-r--r-- 1 root root    27336 Nov 30  2016 libOpenCL.so.1
 
 % export GPU_INCLUDE_PATH=$AMDAPPSDKROOT/include
-% export GPU_LIBRARY_PATH=/opt/amdgpu-pro/lib/x86_64-linux-gnu6
+% export GPU_LIBRARY_PATH=/opt/amdgpu-pro/lib/x86_64-linux-gnu
 ```
 
 **Check vendor specific guidelines to setup both OpenCL platform correctly!**
