@@ -53,6 +53,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	#define KNWI " -DN64WI "
 #elif defined (N128WI)
 	#define KNWI " -DN128WI "
+#elif defined (N256WI)
+		#define KNWI " -DN256WI "
 #else
 	#define KNWI	" -DN64WI "
 #endif

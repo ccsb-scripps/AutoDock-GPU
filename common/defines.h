@@ -33,6 +33,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	#define NUM_OF_THREADS_PER_BLOCK 64
 #elif defined (N128WI)
 	#define NUM_OF_THREADS_PER_BLOCK 128
+#elif defined (N256WI)
+	#define NUM_OF_THREADS_PER_BLOCK 256
 #else
 	#define NUM_OF_THREADS_PER_BLOCK 64
 #endif
