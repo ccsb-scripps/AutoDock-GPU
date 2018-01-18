@@ -85,24 +85,24 @@ typedef struct
 	int 	num_of_atoms;
 	int 	num_of_atypes;
 	int 	num_of_rotbonds;
-	char 	atom_types [14][3];	//in the case of arrays, the first index is called row index,
-	double 	atom_idxyzq [256][5];	//the second is called column index
-	int 	rotbonds [32][2];
-	char 	atom_rotbonds [256][32];
-	int 	atom_rigid_structures [256];
-	char 	bonds [256][256];
-	char 	intraE_contributors [256][256];
-	double 	VWpars_A [14][14];
-	double	VWpars_B [14][14];
-	double 	VWpars_C [14][14];
-	double 	VWpars_D [14][14];
-	double 	volume [14];
-	double 	solpar [14];
+	char 	atom_types [MAX_NUM_OF_ATYPES][3];	//in the case of arrays, the first index is called row index,
+	double 	atom_idxyzq [MAX_NUM_OF_ATOMS][5];	//the second is called column index
+	int 	rotbonds [MAX_NUM_OF_ROTBONDS][2];
+	char 	atom_rotbonds [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ROTBONDS];
+	int 	atom_rigid_structures [MAX_NUM_OF_ATOMS];
+	char 	bonds [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
+	char 	intraE_contributors [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
+	double 	VWpars_A [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];
+	double	VWpars_B [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];
+	double 	VWpars_C [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];
+	double 	VWpars_D [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];
+	double 	volume [MAX_NUM_OF_ATYPES];
+	double 	solpar [MAX_NUM_OF_ATYPES];
 	int 	num_of_rotations_required;
 	int 	num_of_intraE_contributors;
 	int 	num_of_rotcyc;
-	double 	rotbonds_moving_vectors [32][3];
-	double 	rotbonds_unit_vectors [32][3];
+	double 	rotbonds_moving_vectors [MAX_NUM_OF_ROTBONDS][3];
+	double 	rotbonds_unit_vectors [MAX_NUM_OF_ROTBONDS][3];
 } Liganddata;
 
 int init_liganddata(const char*, Liganddata*, Gridinfo*);

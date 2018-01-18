@@ -40,6 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // http://ask.systutorials.com/681/get-the-directory-path-and-file-name-from-absolute-path-linux
 #endif
 
+#include "defines.h"
 #include "miscellaneous.h"
 
 #define getvalue_4Darr(mempoi, grinf, t, z, y, x)                  *(mempoi + (grinf).size_xyz[0] * (y + (grinf).size_xyz[1] * (z + (grinf).size_xyz[2]*t)) + x)
@@ -63,7 +64,7 @@ typedef struct
 	int    size_xyz [3];
 	double spacing;
 	double size_xyz_angstr [3];
-	char   grid_types [16][3];
+	char   grid_types [MAX_NUM_OF_ATYPES+2][3]; // The additional two are the electrostatic and the desolvation types
 	int    num_of_atypes;
 	double origo_real_xyz [3];
 } Gridinfo;

@@ -46,7 +46,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 		    __local float* genotype,
 		    __local float* energy,
 		    __local int*   run_id,
-	
+
                     // Some OpenCL compilers don't allow local var outside kernels
 		    // so this local vars are passed from a kernel
 		    __local float* calc_coords_x,
@@ -76,7 +76,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 //determines which reference orientation should be used.
 {
 	int contributor_counter;
-	char atom1_id, atom2_id, atom1_typeid, atom2_typeid;
+	/*char*/uint atom1_id, atom2_id, atom1_typeid, atom2_typeid;
 
 	// Name changed to distance_leo to avoid
 	// errors as "distance" is the name of OpenCL function
