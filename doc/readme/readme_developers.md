@@ -143,9 +143,9 @@
 
 **[bin](bin)**: Linux binary files are placed here once compiled.
 
-| File                     | Description                                                                   |
-|--------------------------|-------------------------------------------------------------------------------|
-| `ocladock_<type>_<N>wi`  | Binary file for `<type>` (cpu, gpu) device with `<N>` (16, 32, 64) work items |
+| File                     | Description                                                                             |
+|--------------------------|-----------------------------------------------------------------------------------------|
+| `ocladock_<type>_<N>wi`  | Binary file for `<type>` (cpu, gpu) device with `<N>` (16, 32, 64, 128, 256) work items |
 
 
 **[common](common)**: common header files for host and device.
@@ -346,29 +346,29 @@ For example, the shared library for an AMD GPU accelerator might be located out 
 make DEVICE=<TYPE> NUMWI=<NWI>
 ```
 
-| Parameters | Description            | Values                   |
-|:----------:|:----------------------:|:------------------------:|
-| `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`             |
-| `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`         |
+| Parameters | Description            | Values                           |
+|:----------:|:----------------------:|:--------------------------------:|
+| `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`                     |
+| `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`, `128`, `256`   |
 
 After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
 
-| Binary-name portion | Description            | Values                    |
-|:-------------------:|:----------------------:|:-------------------------:|
-| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`              |
-| **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`          |
+| Binary-name portion | Description            | Values                         |
+|:-------------------:|:----------------------:|:------------------------------:|
+| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`                   |
+| **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`, `128`, `256` |
 
 ## All available options
 ```zsh
 make DEVICE=<TYPE> NUMWI=<NWI> CONFIG=<CFG> DOCK_DEBUG=<Y/N> REPRO=<Y/N>
 ```
-| Argument    | Description                           | Possible values              |
-|-------------|---------------------------------------|------------------------------|
-| DEVICE      | OpenCL device type                    | `<TYPE>`: CPU, GPU           |
-| NUMWI       | Number of work items per work group   | `<NWI>` : 16, 32, 64         |
-| CONFIG      | Host configuration                    | `<CFG>` : DEBUG, RELEASE     |
-| DOCK_DEBUG  | Enable debug info for host & device   | `<Y/N>` : YES, NO            |
-| REPRO       | Reproduce results (remove randomness) | `<Y/N>` : YES, NO            |
+| Argument    | Description                           | Possible values                 |
+|-------------|---------------------------------------|---------------------------------|
+| DEVICE      | OpenCL device type                    | `<TYPE>`: CPU, GPU              |
+| NUMWI       | Number of work items per work group   | `<NWI>` : 16, 32, 64, 128, 256  |
+| CONFIG      | Host configuration                    | `<CFG>` : DEBUG, RELEASE        |
+| DOCK_DEBUG  | Enable debug info for host & device   | `<Y/N>` : YES, NO               |
+| REPRO       | Reproduce results (remove randomness) | `<Y/N>` : YES, NO               |
 
 ## Configuration file
 Check the configurations in the project's [Makefile](../Makefile).
