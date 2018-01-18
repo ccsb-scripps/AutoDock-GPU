@@ -48,18 +48,18 @@ You only need to do this if you want to target our sources to a different system
 make DEVICE=<TYPE> NUMWI=<NWI>
 ```
 
-| Parameters | Description            | Values                    |
-|:----------:|:----------------------:|:-------------------------:|
-| `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`              |
-| `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`          |
+| Parameters | Description            | Values                         |
+|:----------:|:----------------------:|:------------------------------:|
+| `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`                   |
+| `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`, `128`, `256` |
 
 
 After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
 
-| Binary-name portion | Description            | Values                   |
-|:-------------------:|:----------------------:|:------------------------:|
-| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`             |
-| **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`         |
+| Binary-name portion | Description            | Values                         |
+|:-------------------:|:----------------------:|:------------------------------:|
+| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`                   |
+| **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`, `128`, `256` |
 
 
 ## Compilation on Windows
