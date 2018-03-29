@@ -755,13 +755,14 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			myligand->atom_rigid_structures [atom_counter] = current_rigid_struct_id;	//using the id of the current rigid structure
 
 			atom_counter++;
-
+#if 0
 			// include last atom
 			if (atom_counter == myligand->num_of_atoms) {
 				for (i=0; i<branch_counter; i++)	//for all branches found until now
 					if (branches [i][2] == 1)	//if it is open, the atom has to be rotated
 						atom_rotbonds_temp [atom_counter][i] = 1;	//modifying atom_rotbonds_temp
 			}
+#endif
 		}
 
 		if (strcmp(tempstr, "BRANCH") == 0)	//if new branch, stroing atom indexes into branches [][]
@@ -792,7 +793,7 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			fscanf(fp, "%d", &(myligand->rotbonds [endbranch_counter][1])); //of endbranches
 			(myligand->rotbonds [endbranch_counter][0])--;
 			(myligand->rotbonds [endbranch_counter][1])--;
-
+#if 0
 			// include last atom before ENDBRANCH
 			//if (atom_counter == myligand->num_of_atoms) {
 				for (i=0; i<branch_counter; i++)	//for all branches found until now
@@ -812,7 +813,7 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			}
 			*/
 			// ---------------------------
-
+#endif
 			for (i=0; i<branch_counter; i++)	//the branch have to be closed
 				if ((branches [i][0] == myligand->rotbonds [endbranch_counter][0]) &&
 				    (branches [i][1] == myligand->rotbonds [endbranch_counter][1]))
