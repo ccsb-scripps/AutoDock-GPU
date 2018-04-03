@@ -608,6 +608,22 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 
 		for (entity_id=0; entity_id<pop_size*mypars->num_of_runs; entity_id++)
 			for (gene_id=3; gene_id<MAX_NUM_OF_ROTBONDS+6; gene_id++)
+
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (all in radians)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+/*
 				if (gene_id == 4)
 #if defined (REPRO)
 					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 26.0555;
@@ -621,8 +637,54 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 #else
 					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = myrand()*360;
 #endif
+*/
+				if (gene_id == 3)	// u1 (Shoemake)
+#if defined (REPRO)
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 26.0555;
+#else
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX);
+#endif
+				else if (gene_id == 4) // u2 (Shoemake)
+#if defined (REPRO)
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 22.0452;
+#else
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX)*2*M_PI;
+#endif
+				else if (gene_id == 5) // u3 (Shoemake)
+#if defined (REPRO)
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 26.0555;
+#else
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX)*2*M_PI;
+#endif	
+				else	// torsions
+#if defined (REPRO)
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 22.0452;
+#else
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX)*360;
+#endif
+
+
+
+
+
+
 
 		//generating reference orientation angles
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (all in radians)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+/*
 #if defined (REPRO)
 		mypars->ref_ori_angles[0] = 190.279;
 		mypars->ref_ori_angles[1] = 190.279;
@@ -632,6 +694,17 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		mypars->ref_ori_angles[1] = (float) floor(myrand()*360*100)/100.0;
 		mypars->ref_ori_angles[2] = (float) floor(myrand()*360*100)/100.0;
 #endif
+*/
+#if defined (REPRO)
+		mypars->ref_ori_angles[0] = 190.279;
+		mypars->ref_ori_angles[1] = 190.279;
+		mypars->ref_ori_angles[2] = 190.279;
+#else
+		mypars->ref_ori_angles[0] = floor( (float) rand()/ (float) RAND_MAX);		// u1
+		mypars->ref_ori_angles[1] = floor(((float) rand()/ (float) RAND_MAX)*2*M_PI);	// u2
+		mypars->ref_ori_angles[2] = floor(((float) rand()/ (float) RAND_MAX)*2*M_PI);	// u3
+#endif
+
 
 		//Writing first initial population to initpop.txt
 		fp = fopen("initpop.txt", "w");
@@ -677,6 +750,22 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 	//initial orientation will be calculated during docking,
 	//only the required angles are generated here,
 	//but the angles possibly read from file are ignored
+
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (all in radians)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+/*
 	for (i=0; i<mypars->num_of_runs; i++)
 	{
 #if defined (REPRO)
@@ -687,6 +776,20 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		ref_ori_angles[3*i]   = (float) (myrand()*360.0); 	//phi
 		ref_ori_angles[3*i+1] = (float) (myrand()*180.0);	//theta
 		ref_ori_angles[3*i+2] = (float) (myrand()*360.0);	//angle
+#endif
+	}
+*/
+	for (i=0; i<mypars->num_of_runs; i++)
+	{
+#if defined (REPRO)
+		ref_ori_angles[3*i]   = 190.279;
+		ref_ori_angles[3*i+1] =  90.279;
+		ref_ori_angles[3*i+2] = 190.279;
+#else
+		ref_ori_angles[3*i]   = ((float) rand()/ (float) RAND_MAX); 		// u1
+		ref_ori_angles[3*i+1] = ((float) rand()/ (float) RAND_MAX)*2*M_PI;	// u2
+		ref_ori_angles[3*i+2] = ((float) rand()/ (float) RAND_MAX)*2*M_PI;	// u3
+		//printf("u1, u2, u3: %f %f %f \n", ref_ori_angles[3*i], ref_ori_angles[3*i+1], ref_ori_angles[3*i+2]);
 #endif
 	}
 
