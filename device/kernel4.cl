@@ -251,9 +251,13 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
 				if (gene_counter < 3)
 					offspring_genotype[gene_counter] += dockpars_abs_max_dmov*(2*gpu_randf(dockpars_prng_states)-1);
 				else if (gene_counter == 3) {// u1, FIXME: hardcoded
+
+					offspring_genotype[gene_counter] =  0.2f*gpu_randf(dockpars_prng_states);
+
+/*
 					offspring_genotype[gene_counter] +=  0.2f*(2*gpu_randf(dockpars_prng_states)-1);
 					
-///*
+
 					if (offspring_genotype[gene_counter] > 1.0f) { // clamp it
 						offspring_genotype[gene_counter] = 0.9f;
 					}
@@ -261,7 +265,7 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
 						offspring_genotype[gene_counter] = 0.1f;
 					}
 					//printf("mutation - offspring_genotype[gene_counter]: %f\n", offspring_genotype[gene_counter]);
-//*/
+*/
 
 				}
 				else if (gene_counter < 6) { // u2&3, FIXME: hardcoded

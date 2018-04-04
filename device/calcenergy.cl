@@ -296,6 +296,9 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				// FIXME: add precision choices with preprocessor directives: 
 				// NATIVE_PRECISION, HALF_PRECISION, Full precision
 
+
+				// Used to test if u1 is within the valid range [0,1]
+/*
 				if (u1 > 1) {
 					u1 = 0.9f;
 				}
@@ -303,13 +306,14 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				if (u1 < 0) {
 					u1 = 0.1f;
 				}
-
+*/
 
 				quatrot_left_q = native_sqrt(1 - u1) * native_sin(u2); 
 				quatrot_left_x = native_sqrt(1 - u1) * native_cos(u2);
 				quatrot_left_y = native_sqrt(u1)     * native_sin(u3);
 				quatrot_left_z = native_sqrt(u1)     * native_cos(u3);
 
+				// Used to test if u1 is within the valid range [0,1]
 /*
 				if ((1-u1) < 0) {
 					printf("u1:%f 1-u1:%f sqrt(1-u1):%f\n", u1, (1-u1), sqrt(1-u1));

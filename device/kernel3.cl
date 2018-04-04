@@ -200,9 +200,15 @@ perform_LS(	char   dockpars_num_of_atoms,
 		for (gene_counter=get_local_id(0);
 		     gene_counter<dockpars_num_of_genes;
 		     gene_counter += NUM_OF_THREADS_PER_BLOCK) {
+			if (gene_counter == 3) {
+			   genotype_candidate[gene_counter] =  0.2f*gpu_randf(dockpars_prng_states);
+			}
+			else {
+			   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] + genotype_deviate[gene_counter] + genotype_bias[gene_counter];
+			}
+/*
 			   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] + genotype_deviate[gene_counter] + genotype_bias[gene_counter];
 
-///*
 			if (gene_counter == 3) {// u1, FIXME: hardcoded
 				if (genotype_candidate[gene_counter] > 1.0f) { // clamp it
 					offspring_genotype[gene_counter] = 0.9f;
@@ -212,7 +218,7 @@ perform_LS(	char   dockpars_num_of_atoms,
 				}
 				//printf("LS positive - genotype_candidate[gene_counter]: %f\n", genotype_candidate[gene_counter]);
 			}
-//*/
+*/
 
 		}
 
@@ -295,9 +301,18 @@ perform_LS(	char   dockpars_num_of_atoms,
 			for (gene_counter=get_local_id(0);
 			     gene_counter<dockpars_num_of_genes;
 			     gene_counter += NUM_OF_THREADS_PER_BLOCK) {
+
+				if (gene_counter == 3) {
+				   genotype_candidate[gene_counter] =  0.2f*gpu_randf(dockpars_prng_states);
+				}
+				else {
+				   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] - genotype_deviate[gene_counter] - genotype_bias[gene_counter];
+				}
+
+/*
 				   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] - genotype_deviate[gene_counter] - genotype_bias[gene_counter];
 
-///*
+
 				if (gene_counter == 3) {// u1, FIXME: hardcoded
 					if (genotype_candidate[gene_counter] > 1.0f) { // clamp it
 						offspring_genotype[gene_counter] = 0.9f;
@@ -307,7 +322,7 @@ perform_LS(	char   dockpars_num_of_atoms,
 					}
 					//printf("LS negative - genotype_candidate[gene_counter]: %f\n", genotype_candidate[gene_counter]);
 				}
-//*/
+*/
 
 			}
 
