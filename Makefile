@@ -196,9 +196,9 @@ odock: check-env-all stringify $(SRC)
 
 
 # Example
-PDB     := 1stp
-NRUN    := 1
-POPSIZE := 50
+PDB     := 3ce3
+NRUN    := 100
+POPSIZE := 150
 TESTNAME:= test
 
 test: odock

@@ -199,8 +199,23 @@ perform_LS(	char   dockpars_num_of_atoms,
 		//generating new genotype candidate
 		for (gene_counter=get_local_id(0);
 		     gene_counter<dockpars_num_of_genes;
-		     gene_counter += NUM_OF_THREADS_PER_BLOCK)
+		     gene_counter += NUM_OF_THREADS_PER_BLOCK) {
 			   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] + genotype_deviate[gene_counter] + genotype_bias[gene_counter];
+
+///*
+			if (gene_counter == 3) {// u1, FIXME: hardcoded
+				if (genotype_candidate[gene_counter] > 1.0f) { // clamp it
+					offspring_genotype[gene_counter] = 0.9f;
+				}
+				if (genotype_candidate[gene_counter] < 0.0f) { // clamp it
+					offspring_genotype[gene_counter] = 0.1f;
+				}
+				//printf("LS positive - genotype_candidate[gene_counter]: %f\n", genotype_candidate[gene_counter]);
+			}
+//*/
+
+		}
+
 
 		//evaluating candidate
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -279,8 +294,22 @@ perform_LS(	char   dockpars_num_of_atoms,
 			//generating the other genotype candidate
 			for (gene_counter=get_local_id(0);
 			     gene_counter<dockpars_num_of_genes;
-			     gene_counter += NUM_OF_THREADS_PER_BLOCK)
+			     gene_counter += NUM_OF_THREADS_PER_BLOCK) {
 				   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] - genotype_deviate[gene_counter] - genotype_bias[gene_counter];
+
+///*
+				if (gene_counter == 3) {// u1, FIXME: hardcoded
+					if (genotype_candidate[gene_counter] > 1.0f) { // clamp it
+						offspring_genotype[gene_counter] = 0.9f;
+					}
+					if (genotype_candidate[gene_counter] < 0.0f) { // clamp it
+						offspring_genotype[gene_counter] = 0.1f;
+					}
+					//printf("LS negative - genotype_candidate[gene_counter]: %f\n", genotype_candidate[gene_counter]);
+				}
+//*/
+
+			}
 
 			//evaluating candidate
 			barrier(CLK_LOCAL_MEM_FENCE);

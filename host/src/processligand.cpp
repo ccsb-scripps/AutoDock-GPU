@@ -1240,6 +1240,7 @@ void change_conform_f(Liganddata* myligand,
 }
 #endif // End of original change_conform_f()
 
+#if 1
 void change_conform_f(Liganddata* myligand,
 		      const float genotype_f [],
 		      float* cpu_ref_ori_angles,
@@ -1322,12 +1323,12 @@ void change_conform_f(Liganddata* myligand,
 
 		rotate_shoemake(&(myligand->atom_idxyzq[atom_id][1]),
 	  		        genrot_movvec,
-		       		&refori_shoemake [0],
+		       		refori_shoemake,
 		       		debug);		//rotating to reference oritentation
 
 		rotate_shoemake(&(myligand->atom_idxyzq[atom_id][1]),
 			       genrot_movvec,
-			       &shoemake [0],
+			       shoemake,
 			       debug);		//general rotation
 	}
 
@@ -1338,6 +1339,7 @@ void change_conform_f(Liganddata* myligand,
 			printf("Moved point (final values) (x,y,z): %lf, %lf, %lf\n", myligand->atom_idxyzq [atom_id][1], myligand->atom_idxyzq [atom_id][2], myligand->atom_idxyzq [atom_id][3]);
 
 }
+#endif
 
 float calc_interE_f(const Gridinfo*   mygrid,
 		    const Liganddata* myligand,

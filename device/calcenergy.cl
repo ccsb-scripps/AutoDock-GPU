@@ -289,16 +289,33 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				rotation_unitvec[0] = genrot_unitvec[0];
 				rotation_unitvec[1] = genrot_unitvec[1];
 				rotation_unitvec[2] = genrot_unitvec[2];
-				rotation_angle = genrotangle;rotation_unitvec
+				rotation_angle = genrotangle;
 */
 				// Moved back in here
 				// Transforming Shoemake (u1, u2, u3) into quaternions
 				// FIXME: add precision choices with preprocessor directives: 
 				// NATIVE_PRECISION, HALF_PRECISION, Full precision
-				quatrot_left_q = sqrt(1 - u1) * sin(u2);
-				quatrot_left_x = sqrt(1 - u1) * cos(u2);
-				quatrot_left_y = sqrt(u1) * sin(u3);
-				quatrot_left_z = sqrt(u1) * cos(u3);
+
+				if (u1 > 1) {
+					u1 = 0.9f;
+				}
+
+				if (u1 < 0) {
+					u1 = 0.1f;
+				}
+
+
+				quatrot_left_q = native_sqrt(1 - u1) * native_sin(u2); 
+				quatrot_left_x = native_sqrt(1 - u1) * native_cos(u2);
+				quatrot_left_y = native_sqrt(u1)     * native_sin(u3);
+				quatrot_left_z = native_sqrt(u1)     * native_cos(u3);
+
+/*
+				if ((1-u1) < 0) {
+					printf("u1:%f 1-u1:%f sqrt(1-u1):%f\n", u1, (1-u1), sqrt(1-u1));
+				}
+*/
+
 
 				// Kept as the original
 				rotation_movingvec[0] = genotype[0];
@@ -342,8 +359,8 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				// FIXME: add precision choices with preprocessor directives: 
 				// NATIVE_PRECISION, HALF_PRECISION, Full precision
 				rotation_angle = rotation_angle/2;
-				quatrot_left_q = cos(rotation_angle);
-				sin_angle      = sin(rotation_angle);
+				quatrot_left_q = native_cos(rotation_angle);
+				sin_angle      = native_sin(rotation_angle);
 				quatrot_left_x = sin_angle*rotation_unitvec[0];
 				quatrot_left_y = sin_angle*rotation_unitvec[1];
 				quatrot_left_z = sin_angle*rotation_unitvec[2];
