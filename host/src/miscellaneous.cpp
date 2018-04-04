@@ -123,6 +123,21 @@ void vec_point2line(const double point [], const double line_pointA [], const do
 		vec [i] = proj_of_point [i] - point [i];
 }
 
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+
 void rotate(double point [], const double movvec [], const double normvec [], const double* angle, int debug)
 //The function rotates the point given by the first parameter around an axis
 //which is parallel to vector normvec and which
@@ -235,6 +250,162 @@ void rotate(double point [], const double movvec [], const double normvec [], co
 		printf("rotated point (x,y,z): %lf, %lf, %lf\n\n",
 			point [0], point [1], point [2]);
 }
+
+
+void rotate_shoemake(double point [], 
+		    const double movvec [], 
+		    const double shoemake [],
+	//	    const double normvec [], 
+	//	    const double* angle, 
+		    int debug)
+//The function rotates the point given by the first parameter around an axis
+//which is parallel to vector normvec and which
+//can be moved to the origo with vector movvec.
+//The direction of rotation with angle is considered relative to normvec
+//according to right hand rule. If debug is 1, debug messages will be printed to the screen.
+{
+	Quaternion quatrot_left, quatrot_right, quatrot_temp;
+
+/*
+	double anglediv2, cos_anglediv2, sin_anglediv2;
+*/
+
+	//the point must be moved according to moving vector
+	point [0] = point [0] - movvec [0];
+	point [1] = point [1] - movvec [1];
+	point [2] = point [2] - movvec [2];
+
+	if (debug == 1)
+	{
+		printf("Moving vector coordinates (x,y,z): %lf, %lf, %lf\n",
+						  movvec [0], movvec [1], movvec [2]);
+/*
+		/printf("Unit vector coordinates (x,y,z): %lf, %lf, %lf\n",
+						  normvec [0], normvec [1], normvec [2]);
+*/
+	}
+
+	//Related equations:
+	//q = quater_w+i*quater_x+j*quater_y+k*quater_z
+	//v = i*point_x+j*point_y+k*point_z
+	//The coordinates of the rotated point can be calculated as:
+	//q*v*(q^-1), where
+	//q^-1 = quater_w-i*quater_x-j*quater_y-k*quater_z
+	//and * is the quaternion multiplication defined as follows:
+	//(a1+i*b1+j*c1+k*d1)*(a2+i*b2+j*c2+k*d2) = (a1a2-b1b2-c1c2-d1d2)+
+	//										  	i*(a1b2+a2b1+c1d2-c2d1)+
+	//											j*(a1c2+a2c1+b2d1-b1d2)+
+	//											k*(a1d2+a2d1+b1c2-b2c1)
+	//
+
+/*
+	anglediv2 = (*angle)/2/180*PI;
+	cos_anglediv2 = cos(anglediv2);
+	sin_anglediv2 = sin(anglediv2);
+
+	//rotation quaternion
+	quatrot_left.q = cos_anglediv2;
+	quatrot_left.x = sin_anglediv2*normvec [0];
+	quatrot_left.y = sin_anglediv2*normvec [1];
+	quatrot_left.z = sin_anglediv2*normvec [2];
+*/
+	// Rotation quaternion from Shoemake input (which MUST be already in radians)
+	double u1, u2, u3;
+	u1 = shoemake[0];
+	u2 = shoemake[1];
+	u3 = shoemake[2];
+
+	quatrot_left.q = sqrt(1-u1) * sinf(u2);
+	quatrot_left.x = sqrt(1-u1) * cosf(u2);
+	quatrot_left.y = sqrt(u1)   * sinf(u3);
+	quatrot_left.z = sqrt(u1)   * cosf(u3);
+
+	//inverse of rotation quaternion
+	quatrot_right.q = quatrot_left.q;
+	quatrot_right.x = -1*quatrot_left.x;
+	quatrot_right.y = -1*quatrot_left.y;
+	quatrot_right.z = -1*quatrot_left.z;
+
+	if (debug == 1)
+	{
+		printf("q (w,x,y,z): %lf, %lf, %lf, %lf\n",
+			quatrot_left.q, quatrot_left.x, quatrot_left.y, quatrot_left.z);
+		printf("q^-1 (w,x,y,z): %lf, %lf, %lf, %lf\n",
+			quatrot_right.q, quatrot_right.x, quatrot_right.y, quatrot_right.z);
+		printf("v (w,x,y,z): %lf, %lf, %lf, %lf\n",
+			0.0, point [0], point [1], point [2]);
+	}
+
+	//Quaternion multiplications
+	//Since the q field of v is 0 as well as the result's q element,
+	//simplifications can be made...
+	quatrot_temp.q = 0 -
+			 quatrot_left.x*point [0] -
+			 quatrot_left.y*point [1] -
+			 quatrot_left.z*point [2];
+	quatrot_temp.x = quatrot_left.q*point [0] +
+			 0 +
+			 quatrot_left.y*point [2] -
+			 quatrot_left.z*point [1];
+	quatrot_temp.y = quatrot_left.q*point [1] -
+			 quatrot_left.x*point [2] +
+			 0 +
+			 quatrot_left.z*point [0];
+	quatrot_temp.z = quatrot_left.q*point [2] +
+			 quatrot_left.x*point [1] -
+			 quatrot_left.y*point [0] +
+			0;
+
+	if (debug == 1)
+		printf("q*v (w,x,y,z): %lf, %lf, %lf, %lf\n",
+		        quatrot_temp.q, quatrot_temp.x, quatrot_temp.y, quatrot_temp.z);
+
+	point [0] = quatrot_temp.q*quatrot_right.x +
+		    quatrot_temp.x*quatrot_right.q +
+		    quatrot_temp.y*quatrot_right.z -
+		    quatrot_temp.z*quatrot_right.y;
+	point [1] = quatrot_temp.q*quatrot_right.y -
+		    quatrot_temp.x*quatrot_right.z +
+		    quatrot_temp.y*quatrot_right.q +
+		    quatrot_temp.z*quatrot_right.x;
+	point [2] = quatrot_temp.q*quatrot_right.z +
+		    quatrot_temp.x*quatrot_right.y -
+		    quatrot_temp.y*quatrot_right.x +
+		    quatrot_temp.z*quatrot_right.q;
+
+	if (debug == 1)
+		printf("q*v*q^-1 (w,x,y,z): %lf, %lf, %lf, %lf\n",
+			0.0, point [0], point [1], point [2]);
+
+	//Moving the point back
+	point [0] = point [0] + movvec [0];
+	point [1] = point [1] + movvec [1];
+	point [2] = point [2] + movvec [2];
+
+	if (debug == 1)
+		printf("rotated point (x,y,z): %lf, %lf, %lf\n\n",
+			point [0], point [1], point [2]);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 double angle_of_vectors(const double vector1 [], const double vector2 [])
 //The function's inputs are two position vectors (whose starting point is the origo).

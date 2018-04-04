@@ -123,7 +123,8 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
 					      best_ID);
 	else
 	{
-		//generating the following random numbers: [0..3] for parent candidates,
+		//generating the following random numbers: 
+		//[0..3] for parent candidates,
 		//[4..5] for binary tournaments, [6] for deciding crossover,
 		//[7..8] for crossover points, [9] for local search
 
@@ -222,6 +223,23 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
 		{
 			if (100.0f*gpu_randf(dockpars_prng_states) < dockpars_mutation_rate)
 			{
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+
+// Original code commented out
+/*
 				if (gene_counter < 3)
 					offspring_genotype[gene_counter] += dockpars_abs_max_dmov*(2*gpu_randf(dockpars_prng_states)-1);
 				else
@@ -229,6 +247,21 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
 					offspring_genotype[gene_counter] += dockpars_abs_max_dang*(2*gpu_randf(dockpars_prng_states)-1);
 					map_angle(&(offspring_genotype[gene_counter]));
 				}
+*/
+				if (gene_counter < 3)
+					offspring_genotype[gene_counter] += dockpars_abs_max_dmov*(2*gpu_randf(dockpars_prng_states)-1);
+				else if (gene_counter == 3) // u1, FIXME: hardcoded
+					offspring_genotype[gene_counter] +=  0.2f*(2*gpu_randf(dockpars_prng_states)-1);
+				else if (gene_counter < 6) { // u2&3, FIXME: hardcoded
+					offspring_genotype[gene_counter] += 90.0f*(2*gpu_randf(dockpars_prng_states)-1);
+					map_angle(&(offspring_genotype[gene_counter]));
+				}
+				else
+				{
+					offspring_genotype[gene_counter] += dockpars_abs_max_dang*(2*gpu_randf(dockpars_prng_states)-1);
+					map_angle(&(offspring_genotype[gene_counter]));
+				}
+
 			}
 		}
 

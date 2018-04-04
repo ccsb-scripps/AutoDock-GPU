@@ -88,8 +88,32 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 	float weights[2][2][2];
 	int x_low, x_high, y_low, y_high, z_low, z_high;
 
+
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+
+// Original code commented out
+/*
 	float phi, theta, genrotangle, rotation_angle, sin_angle;
 	float genrot_unitvec[3], rotation_unitvec[3], rotation_movingvec[3];
+*/
+	float rotation_angle, sin_angle;
+	float rotation_unitvec[3], rotation_movingvec[3];
+
+
+
 	int rotation_counter, rotation_list_element;
 	float atom_to_rotate[3];
 	int atom_id, rotbond_id;
@@ -107,13 +131,53 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 
 	//CALCULATE CONFORMATION
 
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+/*
 	//calculate vectors for general rotation
 	phi         = genotype[3]*DEG_TO_RAD;
 	theta       = genotype[4]*DEG_TO_RAD;
 	genrotangle = genotype[5]*DEG_TO_RAD;
+*/
+
+	// Rotational genes in the Shoemake space expressed in radians
+	float u1, u2, u3; 
+	
+	u1 = genotype[3];
+	u2 = genotype[4]*DEG_TO_RAD;
+	u3 = genotype[5]*DEG_TO_RAD;
+
 
 #if defined (IMPROVE_GRID)
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
 
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+
+// Original code is commented out
+/*
 	#if defined (NATIVE_PRECISION)
 	sin_angle = native_sin(theta);
 	genrot_unitvec [0] = sin_angle*native_cos(phi);
@@ -130,6 +194,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 	genrot_unitvec [1] = sin_angle*sin(phi);
 	genrot_unitvec [2] = cos(theta);
 	#endif
+*/
 
 	// INTERMOLECULAR for-loop (intermediate results)
 	// It stores a product of two chars
@@ -137,25 +202,43 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 
 	unsigned char g1 = dockpars_gridsize_x;
 	unsigned int  g2 = dockpars_gridsize_x * dockpars_gridsize_y;
-  unsigned int  g3 = dockpars_gridsize_x * dockpars_gridsize_y * dockpars_gridsize_z;
+  	unsigned int  g3 = dockpars_gridsize_x * dockpars_gridsize_y * dockpars_gridsize_z;
 
 	unsigned int ylow_times_g1, yhigh_times_g1;
 	unsigned int zlow_times_g2, zhigh_times_g2;
 
 	unsigned int cube_000;
 	unsigned int cube_100;
-  unsigned int cube_010;
+  	unsigned int cube_010;
 	unsigned int cube_110;
 	unsigned int cube_001;
-  unsigned int cube_101;
-  unsigned int cube_011;
-  unsigned int cube_111;
+  	unsigned int cube_101;
+  	unsigned int cube_011;
+  	unsigned int cube_111;
 
 #else
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+
+// Original code commented out
+/*
 	sin_angle = sin(theta);
 	genrot_unitvec [0] = sin_angle*cos(phi);
 	genrot_unitvec [1] = sin_angle*sin(phi);
 	genrot_unitvec [2] = cos(theta);
+*/
 #endif
 
 	// ================================================
@@ -188,12 +271,36 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			//capturing rotation vectors and angle
 			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	//if general rotation
 			{
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+/*
 				rotation_unitvec[0] = genrot_unitvec[0];
 				rotation_unitvec[1] = genrot_unitvec[1];
 				rotation_unitvec[2] = genrot_unitvec[2];
+				rotation_angle = genrotangle;rotation_unitvec
+*/
+				// Moved back in here
+				// Transforming Shoemake (u1, u2, u3) into quaternions
+				// FIXME: add precision choices with preprocessor directives: 
+				// NATIVE_PRECISION, HALF_PRECISION, Full precision
+				quatrot_left_q = sqrt(1 - u1) * sin(u2);
+				quatrot_left_x = sqrt(1 - u1) * cos(u2);
+				quatrot_left_y = sqrt(u1) * sin(u3);
+				quatrot_left_z = sqrt(u1) * cos(u3);
 
-				rotation_angle = genrotangle;
-
+				// Kept as the original
 				rotation_movingvec[0] = genotype[0];
 				rotation_movingvec[1] = genotype[1];
 				rotation_movingvec[2] = genotype[2];
@@ -215,26 +322,82 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				atom_to_rotate[0] -= rotation_movingvec[0];
 				atom_to_rotate[1] -= rotation_movingvec[1];
 				atom_to_rotate[2] -= rotation_movingvec[2];
+
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+				// Moved back in here
+				// Transforming torsion angles into quaternions
+				// FIXME: add precision choices with preprocessor directives: 
+				// NATIVE_PRECISION, HALF_PRECISION, Full precision
+				rotation_angle = rotation_angle/2;
+				quatrot_left_q = cos(rotation_angle);
+				sin_angle      = sin(rotation_angle);
+				quatrot_left_x = sin_angle*rotation_unitvec[0];
+				quatrot_left_y = sin_angle*rotation_unitvec[1];
+				quatrot_left_z = sin_angle*rotation_unitvec[2];
+
 			}
 
 			//performing rotation
 
+
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+
+// Original code is commented out
+// The purpose of this block of code is to ultimately
+// calculate quatrot_left_q, quatrot_left_x, quatrot_left_y, quatrot_left_z.
+// The calculation of these is moved to each respective case:
+// a) if generarl rotation, b) if rotating around rotatable bond
+/*
 #if defined (NATIVE_PRECISION)
 			rotation_angle = native_divide(rotation_angle,2);
 			quatrot_left_q = native_cos(rotation_angle);
-			sin_angle = native_sin(rotation_angle);
+			sin_angle      = native_sin(rotation_angle);
 #elif defined (HALF_PRECISION)
 			rotation_angle = half_divide(rotation_angle,2);
 			quatrot_left_q = half_cos(rotation_angle);
-			sin_angle = half_sin(rotation_angle);
+			sin_angle      = half_sin(rotation_angle);
 #else	// Full precision
 			rotation_angle = rotation_angle/2;
 			quatrot_left_q = cos(rotation_angle);
-			sin_angle = sin(rotation_angle);
+			sin_angle      = sin(rotation_angle);
 #endif
 			quatrot_left_x = sin_angle*rotation_unitvec[0];
 			quatrot_left_y = sin_angle*rotation_unitvec[1];
 			quatrot_left_z = sin_angle*rotation_unitvec[2];
+*/
+
+
+
+
+
+
+
 
 			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// if general rotation,
 																														// two rotations should be performed
@@ -248,53 +411,53 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				quatrot_temp_z = quatrot_left_z;
 
 				quatrot_left_q = quatrot_temp_q*ref_orientation_quats_const[4*(*run_id)]-
-						 						 quatrot_temp_x*ref_orientation_quats_const[4*(*run_id)+1]-
-						 					 	 quatrot_temp_y*ref_orientation_quats_const[4*(*run_id)+2]-
-						   			 	   quatrot_temp_z*ref_orientation_quats_const[4*(*run_id)+3];
+						 quatrot_temp_x*ref_orientation_quats_const[4*(*run_id)+1]-
+						 quatrot_temp_y*ref_orientation_quats_const[4*(*run_id)+2]-
+						 quatrot_temp_z*ref_orientation_quats_const[4*(*run_id)+3];
 				quatrot_left_x = quatrot_temp_q*ref_orientation_quats_const[4*(*run_id)+1]+
-						 						 ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_x+
-						 					 	 quatrot_temp_y*ref_orientation_quats_const[4*(*run_id)+3]-
-						 					 	 ref_orientation_quats_const[4*(*run_id)+2]*quatrot_temp_z;
+						 ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_x+
+						 quatrot_temp_y*ref_orientation_quats_const[4*(*run_id)+3]-
+						 ref_orientation_quats_const[4*(*run_id)+2]*quatrot_temp_z;
 				quatrot_left_y = quatrot_temp_q*ref_orientation_quats_const[4*(*run_id)+2]+
-						 						 ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_y+
-						      			 ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_z-
-						 					 	 quatrot_temp_x*ref_orientation_quats_const[4*(*run_id)+3];
+						 ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_y+
+						 ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_z-
+						 quatrot_temp_x*ref_orientation_quats_const[4*(*run_id)+3];
 				quatrot_left_z = quatrot_temp_q*ref_orientation_quats_const[4*(*run_id)+3]+
-						 						 ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_z+
-						 					 	 quatrot_temp_x*ref_orientation_quats_const[4*(*run_id)+2]-
-						 					 	 ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_y;
+						 ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_z+
+						 quatrot_temp_x*ref_orientation_quats_const[4*(*run_id)+2]-
+						 ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_y;
 
 			}
 
 			quatrot_temp_q = 0 -
-					 						 quatrot_left_x*atom_to_rotate [0] -
-					 					 	 quatrot_left_y*atom_to_rotate [1] -
-					 					 	 quatrot_left_z*atom_to_rotate [2];
+					 quatrot_left_x*atom_to_rotate [0] -
+					 quatrot_left_y*atom_to_rotate [1] -
+					 quatrot_left_z*atom_to_rotate [2];
 			quatrot_temp_x = quatrot_left_q*atom_to_rotate [0] +
-					 					   quatrot_left_y*atom_to_rotate [2] -
-					 					 	 quatrot_left_z*atom_to_rotate [1];
+					 quatrot_left_y*atom_to_rotate [2] -
+					 quatrot_left_z*atom_to_rotate [1];
 			quatrot_temp_y = quatrot_left_q*atom_to_rotate [1] -
-					 					   quatrot_left_x*atom_to_rotate [2] +
-					 					 	 quatrot_left_z*atom_to_rotate [0];
+					 quatrot_left_x*atom_to_rotate [2] +
+					 quatrot_left_z*atom_to_rotate [0];
 			quatrot_temp_z = quatrot_left_q*atom_to_rotate [2] +
-					 						 quatrot_left_x*atom_to_rotate [1] -
-					 					 	 quatrot_left_y*atom_to_rotate [0];
+					 quatrot_left_x*atom_to_rotate [1] -
+					 quatrot_left_y*atom_to_rotate [0];
 
 			atom_to_rotate [0] = 0 -
-					     						 quatrot_temp_q*quatrot_left_x +
-					     			 			 quatrot_temp_x*quatrot_left_q -
-					            		 quatrot_temp_y*quatrot_left_z +
-					     			 	     quatrot_temp_z*quatrot_left_y;
+					  quatrot_temp_q*quatrot_left_x +
+					  quatrot_temp_x*quatrot_left_q -
+					  quatrot_temp_y*quatrot_left_z +
+					  quatrot_temp_z*quatrot_left_y;
 			atom_to_rotate [1] = 0 -
-					     					   quatrot_temp_q*quatrot_left_y +
-					     			 			 quatrot_temp_x*quatrot_left_z +
-					     			 			 quatrot_temp_y*quatrot_left_q -
-					     			 			 quatrot_temp_z*quatrot_left_x;
+					  quatrot_temp_q*quatrot_left_y +
+					  quatrot_temp_x*quatrot_left_z +
+					  quatrot_temp_y*quatrot_left_q -
+					  quatrot_temp_z*quatrot_left_x;
 			atom_to_rotate [2] = 0 -
-					     					   quatrot_temp_q*quatrot_left_z -
-					     			 			 quatrot_temp_x*quatrot_left_y +
-					     			 			 quatrot_temp_y*quatrot_left_x +
-					     			 			 quatrot_temp_z*quatrot_left_q;
+					  quatrot_temp_q*quatrot_left_z -
+					  quatrot_temp_x*quatrot_left_y +
+					  quatrot_temp_y*quatrot_left_x +
+					  quatrot_temp_z*quatrot_left_q;
 
 			//performing final movement and storing values
 			calc_coords_x[atom_id] = atom_to_rotate [0] + rotation_movingvec[0];
@@ -321,8 +484,8 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 		q = atom_charges_const[atom1_id];
 
 		if ((x < 0) || (y < 0) || (z < 0) || (x >= dockpars_gridsize_x-1)
-				                  						|| (y >= dockpars_gridsize_y-1)
-						  												|| (z >= dockpars_gridsize_z-1)){
+				                  || (y >= dockpars_gridsize_y-1)
+						  || (z >= dockpars_gridsize_z-1)){
 			partial_energies[get_local_id(0)] += 16777216.0f; //100000.0f;
 		}
 		else

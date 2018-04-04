@@ -414,7 +414,7 @@ filled with clock() */
   setKernelArg(kernel1,13,sizeof(mem_dockpars_evals_of_new_entities),     &mem_dockpars_evals_of_new_entities);
   setKernelArg(kernel1,14,sizeof(dockpars.pop_size),                      &dockpars.pop_size);
   setKernelArg(kernel1,15,sizeof(dockpars.qasp),                          &dockpars.qasp);
-	setKernelArg(kernel1,16,sizeof(mem_atom_charges_const),                 &mem_atom_charges_const);
+  setKernelArg(kernel1,16,sizeof(mem_atom_charges_const),                 &mem_atom_charges_const);
   setKernelArg(kernel1,17,sizeof(mem_atom_types_const),                   &mem_atom_types_const);
   setKernelArg(kernel1,18,sizeof(mem_intraE_contributors_const),          &mem_intraE_contributors_const);
   setKernelArg(kernel1,19,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
@@ -428,7 +428,7 @@ filled with clock() */
   setKernelArg(kernel1,27,sizeof(mem_rotbonds_moving_vectors_const),      &mem_rotbonds_moving_vectors_const);
   setKernelArg(kernel1,28,sizeof(mem_rotbonds_unit_vectors_const),        &mem_rotbonds_unit_vectors_const);
   setKernelArg(kernel1,29,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
-	kernel1_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
+  kernel1_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
   kernel1_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
 	printf("%-25s %10s %8u %10s %4u\n", "Kernel1: ", "gSize: ", kernel1_gxsize, "lSize: ", kernel1_lxsize); fflush(stdout);
@@ -448,7 +448,7 @@ filled with clock() */
 // End of Kernel2
 
 // Kernel4
-	setKernelArg(kernel4,0, sizeof(dockpars.num_of_atoms),                 	&dockpars.num_of_atoms);
+  setKernelArg(kernel4,0, sizeof(dockpars.num_of_atoms),                 	&dockpars.num_of_atoms);
   setKernelArg(kernel4,1, sizeof(dockpars.num_of_atypes),                 &dockpars.num_of_atypes);
   setKernelArg(kernel4,2, sizeof(dockpars.num_of_intraE_contributors),    &dockpars.num_of_intraE_contributors);
   setKernelArg(kernel4,3, sizeof(dockpars.gridsize_x),                   	&dockpars.gridsize_x);
@@ -496,7 +496,7 @@ filled with clock() */
 // End of Kernel4
 
 // Kernel3
-	setKernelArg(kernel3,0,sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
+  setKernelArg(kernel3,0,sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
   setKernelArg(kernel3,1,sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
   setKernelArg(kernel3,2,sizeof(dockpars.num_of_intraE_contributors),     &dockpars.num_of_intraE_contributors);
   setKernelArg(kernel3,3,sizeof(dockpars.gridsize_x),                     &dockpars.gridsize_x);
@@ -722,10 +722,10 @@ filled with clock() */
 #if defined (DOCK_DEBUG)
 	for (int cnt_pop=0;cnt_pop<size_populations/sizeof(float);cnt_pop++)
 		printf("total_num_pop: %u, cpu_final_populations[%u]: %f\n",(unsigned int)(size_populations/sizeof(float)),cnt_pop,cpu_final_populations[cnt_pop]);
-
+#endif
 	for (int cnt_pop=0;cnt_pop<size_energies/sizeof(float);cnt_pop++)
 		printf("total_num_energies: %u, cpu_energies[%u]: %f\n",    (unsigned int)(size_energies/sizeof(float)),cnt_pop,cpu_energies[cnt_pop]);
-#endif
+
 
 	// ===============================================================================
 
@@ -749,13 +749,13 @@ filled with clock() */
 	clock_stop_docking = clock();
 
 	clReleaseMemObject(mem_atom_charges_const);
-  clReleaseMemObject(mem_atom_types_const);
-  clReleaseMemObject(mem_intraE_contributors_const);
-  clReleaseMemObject(mem_VWpars_AC_const);
+        clReleaseMemObject(mem_atom_types_const);
+        clReleaseMemObject(mem_intraE_contributors_const);
+        clReleaseMemObject(mem_VWpars_AC_const);
 	clReleaseMemObject(mem_VWpars_BD_const);
 	clReleaseMemObject(mem_dspars_S_const);
 	clReleaseMemObject(mem_dspars_V_const);
-  clReleaseMemObject(mem_rotlist_const);
+        clReleaseMemObject(mem_rotlist_const);
 	clReleaseMemObject(mem_ref_coords_x_const);
 	clReleaseMemObject(mem_ref_coords_y_const);
 	clReleaseMemObject(mem_ref_coords_z_const);

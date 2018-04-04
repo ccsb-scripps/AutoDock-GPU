@@ -1138,6 +1138,21 @@ void calc_q_tables_f(const Liganddata* myligand,
 
 }
 
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+#if 0
 void change_conform_f(Liganddata* myligand,
 		      const float genotype_f [],
 		      float* cpu_ref_ori_angles,
@@ -1214,6 +1229,106 @@ void change_conform_f(Liganddata* myligand,
 		       genrot_movvec,
 		       genrot_unitvec,
 		       &(genotype [5]), debug);		//general rotation
+	}
+
+	move_ligand(myligand, genotype);
+
+	if (debug == 1)
+		for (atom_id=0; atom_id < myligand->num_of_atoms; atom_id++)
+			printf("Moved point (final values) (x,y,z): %lf, %lf, %lf\n", myligand->atom_idxyzq [atom_id][1], myligand->atom_idxyzq [atom_id][2], myligand->atom_idxyzq [atom_id][3]);
+
+}
+#endif // End of original change_conform_f()
+
+void change_conform_f(Liganddata* myligand,
+		      const float genotype_f [],
+		      float* cpu_ref_ori_angles,
+		      int debug)
+//The function changes the conformation of myligand according to
+//the genotype given by the second parameter.
+{
+	double genrot_movvec [3] = {0, 0, 0};
+
+	double shoemake [3] = {0, 0 , 0};
+
+// Replaced by shoemake [3]
+/*
+	double genrot_unitvec [3];
+*/
+
+	double movvec_to_origo [3];
+/*
+	double phi, theta;
+*/
+	int atom_id, rotbond_id, i;
+	double genotype [40];
+
+	double refori_shoemake [3];
+
+// Replaced by refori_shoemake [3]
+/*
+	double refori_unitvec [3];
+*/
+
+
+/*
+	double refori_angle;
+*/
+
+
+	for (i=0; i<40; i++)
+		genotype [i] = genotype_f [i];
+
+	shoemake [0] = (genotype [3]);
+	shoemake [1] = (genotype [4])/180*PI;
+	shoemake [2] = (genotype [5])/180*PI;
+
+	refori_shoemake [0] = (cpu_ref_ori_angles [0]);
+	refori_shoemake [1] = (cpu_ref_ori_angles [1])/180*PI;
+	refori_shoemake [2] = (cpu_ref_ori_angles [2])/180*PI;
+
+// +++++++++++++++++++++++++++++++++++++++
+// OCLADock
+//printf("cpu_ref_ori_angles [0]: %f, cpu_ref_ori_angles [1]: %f, %f\n",cpu_ref_ori_angles [0],cpu_ref_ori_angles [1],PI);
+//printf("refori_unitvec [0]:%f, refori_unitvec [1]:%f, refori_unitvec [2]:%f\n",refori_unitvec [0],refori_unitvec [1],refori_unitvec [2]);
+// +++++++++++++++++++++++++++++++++++++++
+
+	get_movvec_to_origo(myligand, movvec_to_origo);	//moving ligand to origo
+	move_ligand(myligand, movvec_to_origo);
+
+
+	for (atom_id=0; atom_id < myligand->num_of_atoms; atom_id++)						//for each atom of the ligand
+	{
+		if (debug == 1)
+			printf("\n\n\nROTATING atom %d ", atom_id);
+
+		if (myligand->num_of_rotbonds != 0)											//if the ligand has rotatable bonds
+		{
+			for (rotbond_id=0; rotbond_id < myligand->num_of_rotbonds; rotbond_id++)	//for each rotatable bond
+				if (myligand->atom_rotbonds[atom_id][rotbond_id] != 0)				//if the atom has to be rotated around this bond
+				{
+					if (debug == 1)
+						printf("around rotatable bond %d\n", rotbond_id);
+
+					rotate(&(myligand->atom_idxyzq[atom_id][1]),
+					       myligand->rotbonds_moving_vectors[rotbond_id],
+					       myligand->rotbonds_unit_vectors[rotbond_id],
+					       &(genotype [6+rotbond_id]), /*debug*/0);	//rotating
+				}
+		}
+
+		if (debug == 1)
+			printf("according to general rotation\n");
+
+		rotate_shoemake(&(myligand->atom_idxyzq[atom_id][1]),
+	  		        genrot_movvec,
+		       		&refori_shoemake [0],
+		       		debug);		//rotating to reference oritentation
+
+		rotate_shoemake(&(myligand->atom_idxyzq[atom_id][1]),
+			       genrot_movvec,
+			       &shoemake [0],
+			       debug);		//general rotation
 	}
 
 	move_ligand(myligand, genotype);

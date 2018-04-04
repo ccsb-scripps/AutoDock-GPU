@@ -162,10 +162,38 @@ perform_LS(	char   dockpars_num_of_atoms,
 		{
 			genotype_deviate[gene_counter] = rho*(2*gpu_randf(dockpars_prng_states)-1);
 
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+
+// Original code is commented out
+/*
 			if (gene_counter < 3)
 				genotype_deviate[gene_counter] *= dockpars_base_dmov_mul_sqrt3;
 			else
 				genotype_deviate[gene_counter] *= dockpars_base_dang_mul_sqrt3;
+*/
+
+			if (gene_counter < 3)
+				genotype_deviate[gene_counter] *= dockpars_base_dmov_mul_sqrt3;
+			else if (gene_counter == 3) // u1, FIXME: hardcoded
+				genotype_deviate[gene_counter] *=  0.2f;
+			else if (gene_counter < 6) // u2&u3, FIXME: harcoded
+				genotype_deviate[gene_counter] *= 90.0f;
+			else
+				genotype_deviate[gene_counter] *= dockpars_base_dang_mul_sqrt3;
+
 		}
 
 		//generating new genotype candidate
@@ -370,11 +398,33 @@ perform_LS(	char   dockpars_num_of_atoms,
 	}
 
 	//mapping angles
+// -------------------------------------------------------------------
+// L30nardoSV
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+/*
 	for (gene_counter=get_local_id(0);
 	     gene_counter<dockpars_num_of_genes;
 	     gene_counter+=NUM_OF_THREADS_PER_BLOCK)
 		   if (gene_counter >=  3)
 			    map_angle(&(offspring_genotype[gene_counter]));
+*/
+	for (gene_counter=get_local_id(0);
+	     gene_counter<dockpars_num_of_genes;
+	     gene_counter+=NUM_OF_THREADS_PER_BLOCK)
+		   if (gene_counter >=  4)
+			    map_angle(&(offspring_genotype[gene_counter]));
+
 
 	//updating old offspring in population
 	barrier(CLK_LOCAL_MEM_FENCE);

@@ -197,11 +197,12 @@ odock: check-env-all stringify $(SRC)
 
 # Example
 PDB     := 3ce3
-NRUN    := 100
+NRUN    := 5
+POPSIZE := 10
 TESTNAME:= test
 
 test: odock
-	$(BIN_DIR)/$(TARGET) -ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld -lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt -nrun $(NRUN) -resnam $(TESTNAME) -gfpop 1
+	$(BIN_DIR)/$(TARGET) -ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld -lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt -nrun $(NRUN) -psize $(POPSIZE) -resnam $(TESTNAME) -gfpop 1 
 
 clean:
 	rm -f $(BIN_DIR)/* initpop.txt

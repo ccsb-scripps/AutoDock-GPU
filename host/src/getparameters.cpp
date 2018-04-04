@@ -613,12 +613,12 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 // L30nardoSV
 // Replacing rotation genes: from spherical space to Shoemake space
 // gene [0:2]: translation -> kept as original x, y, z
-// gene [3:5]: rotation    -> transformed into Shoemake (all in radians)
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
 // gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
 
 // Shoemake ranges:
 // u1: [0, 1]
-// u2: [0: 2PI]
+// u2: [0: 2PI] or [0: 360]
 
 // Random generator in the host is changed:
 // LCG (original, myrand()) -> CPP std (rand())
@@ -648,13 +648,13 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 #if defined (REPRO)
 					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 22.0452;
 #else
-					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX)*2*M_PI;
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX)*360;
 #endif
 				else if (gene_id == 5) // u3 (Shoemake)
 #if defined (REPRO)
 					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 26.0555;
 #else
-					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX)*2*M_PI;
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX)*360;
 #endif	
 				else	// torsions
 #if defined (REPRO)
@@ -674,12 +674,12 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 // L30nardoSV
 // Replacing rotation genes: from spherical space to Shoemake space
 // gene [0:2]: translation -> kept as original x, y, z
-// gene [3:5]: rotation    -> transformed into Shoemake (all in radians)
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
 // gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
 
 // Shoemake ranges:
 // u1: [0, 1]
-// u2: [0: 2PI]
+// u2: [0: 2PI] or [0: 360]
 
 // Random generator in the host is changed:
 // LCG (original, myrand()) -> CPP std (rand())
@@ -701,8 +701,8 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		mypars->ref_ori_angles[2] = 190.279;
 #else
 		mypars->ref_ori_angles[0] = floor( (float) rand()/ (float) RAND_MAX);		// u1
-		mypars->ref_ori_angles[1] = floor(((float) rand()/ (float) RAND_MAX)*2*M_PI);	// u2
-		mypars->ref_ori_angles[2] = floor(((float) rand()/ (float) RAND_MAX)*2*M_PI);	// u3
+		mypars->ref_ori_angles[1] = floor(((float) rand()/ (float) RAND_MAX)*360);	// u2
+		mypars->ref_ori_angles[2] = floor(((float) rand()/ (float) RAND_MAX)*360);	// u3
 #endif
 
 
@@ -755,12 +755,12 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 // L30nardoSV
 // Replacing rotation genes: from spherical space to Shoemake space
 // gene [0:2]: translation -> kept as original x, y, z
-// gene [3:5]: rotation    -> transformed into Shoemake (all in radians)
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
 // gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
 
 // Shoemake ranges:
 // u1: [0, 1]
-// u2: [0: 2PI]
+// u2: [0: 2PI] or [0: 360]
 
 // Random generator in the host is changed:
 // LCG (original, myrand()) -> CPP std (rand())
@@ -786,10 +786,10 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		ref_ori_angles[3*i+1] =  90.279;
 		ref_ori_angles[3*i+2] = 190.279;
 #else
-		ref_ori_angles[3*i]   = ((float) rand()/ (float) RAND_MAX); 		// u1
-		ref_ori_angles[3*i+1] = ((float) rand()/ (float) RAND_MAX)*2*M_PI;	// u2
-		ref_ori_angles[3*i+2] = ((float) rand()/ (float) RAND_MAX)*2*M_PI;	// u3
-		//printf("u1, u2, u3: %f %f %f \n", ref_ori_angles[3*i], ref_ori_angles[3*i+1], ref_ori_angles[3*i+2]);
+		ref_ori_angles[3*i]   = ((float) rand()/ (float) RAND_MAX); 	// u1
+		ref_ori_angles[3*i+1] = ((float) rand()/ (float) RAND_MAX)*360;	// u2
+		ref_ori_angles[3*i+2] = ((float) rand()/ (float) RAND_MAX)*360;	// u3
+		printf("u1, u2, u3: %f %f %f \n", ref_ori_angles[3*i], ref_ori_angles[3*i+1], ref_ori_angles[3*i+2]);
 #endif
 	}
 
