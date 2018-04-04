@@ -722,10 +722,10 @@ filled with clock() */
 #if defined (DOCK_DEBUG)
 	for (int cnt_pop=0;cnt_pop<size_populations/sizeof(float);cnt_pop++)
 		printf("total_num_pop: %u, cpu_final_populations[%u]: %f\n",(unsigned int)(size_populations/sizeof(float)),cnt_pop,cpu_final_populations[cnt_pop]);
-#endif
+
 	for (int cnt_pop=0;cnt_pop<size_energies/sizeof(float);cnt_pop++)
 		printf("total_num_energies: %u, cpu_energies[%u]: %f\n",    (unsigned int)(size_energies/sizeof(float)),cnt_pop,cpu_energies[cnt_pop]);
-
+#endif
 
 	// ===============================================================================
 
@@ -734,9 +734,20 @@ filled with clock() */
 	{
 		arrange_result(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_energies+run_cnt*mypars->pop_size, mypars->pop_size);
 
-		make_resfiles(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_energies+run_cnt*mypars->pop_size, &myligand_reference,
-					  myligand_init, mypars, cpu_evals_of_runs[run_cnt], generation_cnt, mygrid, cpu_floatgrids, cpu_ref_ori_angles+3*run_cnt, argc, argv, /*1*/0,
-					  run_cnt, &(cpu_result_ligands [run_cnt]));
+		make_resfiles(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, 
+			      cpu_energies+run_cnt*mypars->pop_size, &myligand_reference,
+			      myligand_init, 
+			      mypars, 
+			      cpu_evals_of_runs[run_cnt], 
+			      generation_cnt, 
+			      mygrid, 
+			      cpu_floatgrids, 
+			      cpu_ref_ori_angles+3*run_cnt, 
+			      argc, 
+			      argv, 
+                              /*1*/0,
+			      run_cnt, 
+			      &(cpu_result_ligands [run_cnt]));
 
 	}
 

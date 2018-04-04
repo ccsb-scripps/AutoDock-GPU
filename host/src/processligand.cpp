@@ -1249,7 +1249,7 @@ void change_conform_f(Liganddata* myligand,
 {
 	double genrot_movvec [3] = {0, 0, 0};
 
-	double shoemake [3] = {0, 0 , 0};
+	double shoemake [3] = {0, 0, 0};
 
 // Replaced by shoemake [3]
 /*
@@ -1280,12 +1280,12 @@ void change_conform_f(Liganddata* myligand,
 		genotype [i] = genotype_f [i];
 
 	shoemake [0] = (genotype [3]);
-	shoemake [1] = (genotype [4])/180*PI;
-	shoemake [2] = (genotype [5])/180*PI;
+	shoemake [1] = (genotype [4])*(PI/180);
+	shoemake [2] = (genotype [5])*(PI/180);
 
 	refori_shoemake [0] = (cpu_ref_ori_angles [0]);
-	refori_shoemake [1] = (cpu_ref_ori_angles [1])/180*PI;
-	refori_shoemake [2] = (cpu_ref_ori_angles [2])/180*PI;
+	refori_shoemake [1] = (cpu_ref_ori_angles [1])*(PI/180);
+	refori_shoemake [2] = (cpu_ref_ori_angles [2])*(PI/180);
 
 // +++++++++++++++++++++++++++++++++++++++
 // OCLADock

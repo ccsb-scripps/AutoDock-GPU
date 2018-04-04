@@ -789,7 +789,7 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		ref_ori_angles[3*i]   = ((float) rand()/ (float) RAND_MAX); 	// u1
 		ref_ori_angles[3*i+1] = ((float) rand()/ (float) RAND_MAX)*360;	// u2
 		ref_ori_angles[3*i+2] = ((float) rand()/ (float) RAND_MAX)*360;	// u3
-		printf("u1, u2, u3: %f %f %f \n", ref_ori_angles[3*i], ref_ori_angles[3*i+1], ref_ori_angles[3*i+2]);
+		//printf("u1, u2, u3: %10f %10f %10f \n", ref_ori_angles[3*i], ref_ori_angles[3*i+1], ref_ori_angles[3*i+2]);
 #endif
 	}
 

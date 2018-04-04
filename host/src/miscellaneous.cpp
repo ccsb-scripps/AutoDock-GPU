@@ -315,10 +315,10 @@ void rotate_shoemake(double point [],
 	u2 = shoemake[1];
 	u3 = shoemake[2];
 
-	quatrot_left.q = sqrt(1-u1) * sinf(u2);
-	quatrot_left.x = sqrt(1-u1) * cosf(u2);
-	quatrot_left.y = sqrt(u1)   * sinf(u3);
-	quatrot_left.z = sqrt(u1)   * cosf(u3);
+	quatrot_left.q = sqrt(1-u1) * sin(u2);
+	quatrot_left.x = sqrt(1-u1) * cos(u2);
+	quatrot_left.y = sqrt(u1)   * sin(u3);
+	quatrot_left.z = sqrt(u1)   * cos(u3);
 
 	//inverse of rotation quaternion
 	quatrot_right.q = quatrot_left.q;
