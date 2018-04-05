@@ -152,6 +152,24 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 
 	partial_energies[get_local_id(0)] = 0.0f;
 
+	// -------------------------------------------------------------------
+	// L30nardoSV
+	// Calculate gradients (forces) for intermolecular energy
+	// Derived from autodockdev/maps.py
+	// -------------------------------------------------------------------
+	if (*is_enabled_gradient_calc) {
+		for (atom1_id = get_local_id(0);
+		     atom1_id < dockpars_num_of_atoms;
+		     atom1_id+= NUM_OF_THREADS_PER_BLOCK) {
+			gradient_inter_x[atom1_id] = 0.0f;
+			gradient_inter_y[atom1_id] = 0.0f;
+			gradient_inter_z[atom1_id] = 0.0f;
+		}
+	}
+
+
+
+
 	//CALCULATE CONFORMATION
 
 // -------------------------------------------------------------------
@@ -608,6 +626,19 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				                  || (y >= dockpars_gridsize_y-1)
 						  || (z >= dockpars_gridsize_z-1)){
 			partial_energies[get_local_id(0)] += 16777216.0f; //100000.0f;
+			
+			// -------------------------------------------------------------------
+			// L30nardoSV
+			// Calculate gradients (forces) for intermolecular energy
+			// Derived from autodockdev/maps.py
+			// -------------------------------------------------------------------
+
+			if (*is_enabled_gradient_calc) {
+				// Penalty values are valid as long as they are high
+				gradient_inter_x[atom1_id] += 16777216.0f;
+				gradient_inter_y[atom1_id] += 16777216.0f;
+				gradient_inter_z[atom1_id] += 16777216.0f;
+			}
 		}
 		else
 		{
@@ -677,7 +708,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				x76 = cube [1][1][1] - cube [0][1][1]; // z = 1
 				vx_z0 = (1 - dy) * x10 + dy * x52;     // z = 0
 				vx_z1 = (1 - dy) * x43 + dy * x76;     // z = 1
-				gradient_inter_x[atom1_id] = (1 - dz) * vx_z0 + dz * vx_z1;
+				gradient_inter_x[atom1_id] += (1 - dz) * vx_z0 + dz * vx_z1;
 
 				// vector in y-direction
 				/*
@@ -696,7 +727,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				y74 = cube[1][1][1] - cube [1][0][1];	// z = 1
 				vy_z0 = (1 - dx) * y20 + dx * y51;	// z = 0
 				vy_z1 = (1 - dx) * y63 + dx * y74;	// z = 1
-				gradient_inter_y[atom1_id] = (1 - dz) * vy_z0 + dz * vy_z1;
+				gradient_inter_y[atom1_id] += (1 - dz) * vy_z0 + dz * vy_z1;
 
 				// vectors in z-direction
 				/*	
@@ -715,7 +746,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				z75 = cube [1][1][1] - cube [1][1][0];	// y = 1
 				vz_y0 = (1 - dx) * z30 + dx * z41;	// y = 0
 				vz_y1 = (1 - dx) * z62 + dx * z75;	// y = 1
-				gradient_inter_z[atom1_id] = (1 - dy) * vz_y0 + dy * vz_y1;
+				gradient_inter_z[atom1_id] += (1 - dy) * vz_y0 + dy * vz_y1;
 			}
 			// -------------------------------------------------------------------
 			// -------------------------------------------------------------------
