@@ -71,8 +71,10 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 	__local float  energy;
 	__local int    run_id;
 
-        // Some OpenCL compilers don't allow local var outside kernels
-        // so this local vars are passed from a kernel
+        // Some OpenCL compilers don't allow declaring 
+	// local variables within non-kernel functions.
+	// These local variables must be declared in a kernel, 
+	// and then passed to non-kernel functions.
 	__local float calc_coords_x[MAX_NUM_OF_ATOMS];
 	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
 	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
@@ -87,6 +89,29 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 	//determining run ID
 	if (get_local_id(0) == 0)
 		run_id = get_group_id(0) / dockpars_pop_size;
+
+	// -------------------------------------------------------------------
+	// L30nardoSV
+	// Calculate gradients (forces) for intermolecular energy
+	// Derived from autodockdev/maps.py
+	// -------------------------------------------------------------------
+	// Variables to store gradient of 
+	// the intermolecular energy per each ligand atom
+
+	// Some OpenCL compilers don't allow declaring 
+	// local variables within non-kernel functions.
+	// These local variables must be declared in a kernel, 
+	// and then passed to non-kernel functions.
+	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
+	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
+	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
+	
+	// Disable gradient calculation for this kernel
+	__local bool  is_enabled_gradient_calc;
+	if (get_local_id(0) == 0) {
+		is_enabled_gradient_calc = false;
+	}
+	// -------------------------------------------------------------------
 
 	// =============================================================
 	// WARNING: only energy of work-item=0 will be valid
@@ -105,8 +130,10 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 			genotype,
 			&energy,
 			&run_id,
-			// Some OpenCL compilers don't allow local var outside kernels
-			// so this local vars are passed from a kernel
+			// Some OpenCL compilers don't allow declaring 
+			// local variables within non-kernel functions.
+			// These local variables must be declared in a kernel, 
+			// and then passed to non-kernel functions.
 			calc_coords_x,
 			calc_coords_y,
 			calc_coords_z,
@@ -125,7 +152,21 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 			ref_coords_z_const,
 			rotbonds_moving_vectors_const,
 			rotbonds_unit_vectors_const,
-			ref_orientation_quats_const);
+			ref_orientation_quats_const
+
+		 	// -------------------------------------------------------------------
+		 	// L30nardoSV
+		 	// Gradient-related arguments
+		 	// Calculate gradients (forces) for intermolecular energy
+		 	// Derived from autodockdev/maps.py
+		 	// -------------------------------------------------------------------
+			,
+			&is_enabled_gradient_calc,
+			gradient_inter_x,
+			gradient_inter_y,
+			gradient_inter_z
+			);
+			// -------------------------------------------------------------------
 	// =============================================================
 
 	if (get_local_id(0) == 0) {

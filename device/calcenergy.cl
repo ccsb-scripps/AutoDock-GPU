@@ -47,27 +47,46 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 		    __local float* energy,
 		    __local int*   run_id,
 
-                    // Some OpenCL compilers don't allow local var outside kernels
-		    // so this local vars are passed from a kernel
+                    // Some OpenCL compilers don't allow declaring 
+		    // local variables within non-kernel functions.
+		    // These local variables must be declared in a kernel, 
+		    // and then passed to non-kernel functions.
 		    __local float* calc_coords_x,
 		    __local float* calc_coords_y,
 		    __local float* calc_coords_z,
 		    __local float* partial_energies,
 
-	       __constant float* atom_charges_const,
-               __constant char*  atom_types_const,
-               __constant char*  intraE_contributors_const,
-               __constant float* VWpars_AC_const,
-               __constant float* VWpars_BD_const,
-               __constant float* dspars_S_const,
-               __constant float* dspars_V_const,
-               __constant int*   rotlist_const,
-               __constant float* ref_coords_x_const,
-               __constant float* ref_coords_y_const,
-               __constant float* ref_coords_z_const,
-               __constant float* rotbonds_moving_vectors_const,
-               __constant float* rotbonds_unit_vectors_const,
-               __constant float* ref_orientation_quats_const
+	         __constant float* atom_charges_const,
+                 __constant char*  atom_types_const,
+                 __constant char*  intraE_contributors_const,
+                 __constant float* VWpars_AC_const,
+                 __constant float* VWpars_BD_const,
+                 __constant float* dspars_S_const,
+                 __constant float* dspars_V_const,
+                 __constant int*   rotlist_const,
+                 __constant float* ref_coords_x_const,
+                 __constant float* ref_coords_y_const,
+                 __constant float* ref_coords_z_const,
+                 __constant float* rotbonds_moving_vectors_const,
+                 __constant float* rotbonds_unit_vectors_const,
+                 __constant float* ref_orientation_quats_const
+
+		 // -------------------------------------------------------------------
+		 // L30nardoSV
+		 // Gradient-related arguments
+		 // Calculate gradients (forces) for intermolecular energy
+		 // Derived from autodockdev/maps.py
+		 // -------------------------------------------------------------------
+		
+		 // "is_enabled_gradient_calc": enables gradient calculation.
+		 // In Genetic-Generation: no need for gradients
+		 // In Gradient-Minimizer: must calculate gradients
+			    ,
+		    __local bool*  is_enabled_gradient_calc,
+	    	    __local float* gradient_inter_x,
+	            __local float* gradient_inter_y,
+	            __local float* gradient_inter_z
+  		 // -------------------------------------------------------------------				
 )
 
 //The GPU device function calculates the energy of the entity described by genotype, dockpars and the liganddata
@@ -120,12 +139,16 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 	float quatrot_left_x, quatrot_left_y, quatrot_left_z, quatrot_left_q;
 	float quatrot_temp_x, quatrot_temp_y, quatrot_temp_z, quatrot_temp_q;
 
-        // Some OpenCL compilers don't allow local var outside kernels
-	// so this local vars are passed from a kernel
-	//__local float calc_coords_x[MAX_NUM_OF_ATOMS];
-	//__local float calc_coords_y[MAX_NUM_OF_ATOMS];
-	//__local float calc_coords_z[MAX_NUM_OF_ATOMS];
-	//__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
+        // Some OpenCL compilers don't allow declaring 
+	// local variables within non-kernel functions.
+	// These local variables must be declared in a kernel, 
+	// and then passed to non-kernel functions.
+	/*	
+	__local float calc_coords_x[MAX_NUM_OF_ATOMS];
+	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
+	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
+	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
+	*/
 
 	partial_energies[get_local_id(0)] = 0.0f;
 
@@ -240,6 +263,27 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 	genrot_unitvec [2] = cos(theta);
 */
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	// ================================================
 	// Iterating over elements of rotation list
@@ -491,6 +535,62 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 
 	} // End rotation_counter for-loop
 
+
+
+
+
+	// -------------------------------------------------------------------
+	// L30nardoSV
+	// Calculate gradients (forces) for intermolecular energy
+	// Derived from autodockdev/maps.py
+	// -------------------------------------------------------------------
+	// Variables to store gradient of 
+	// the intermolecular energy per each ligand atom
+
+	// Some OpenCL compilers don't allow declaring 
+	// local variables within non-kernel functions.
+	// These local variables must be declared in a kernel, 
+	// and then passed to non-kernel functions.
+	/*
+	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
+	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
+	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
+	*/
+
+	// Deltas dx, dy, dz are already normalized 
+	// (by host/src/getparameters.cpp) in OCLaDock.
+	// The correspondance between vertices in xyz axes is:
+	// 0, 1, 2, 3, 4, 5, 6, 7  and  000, 100, 010, 001, 101, 110, 011, 111
+	/*
+            deltas: (x-x0)/(x1-x0), (y-y0...
+            vertices: (000, 100, 010, 001, 101, 110, 011, 111)        
+
+                  Z
+                  '
+                  3 - - - - 6
+                 /.        /|
+                4 - - - - 7 |
+                | '       | |
+                | 0 - - - + 2 -- Y
+                '/        |/
+                1 - - - - 5
+               /
+              X
+	*/
+
+	// Intermediate values for vectors in x-direction
+	float x10, x52, x43, x76;
+	float vx_z0, vx_z1;
+
+	// Intermediate values for vectors in y-direction
+	float y20, y51, y63, y74;
+	float vy_z0, vy_z1;
+
+	// Intermediate values for vectors in z-direction
+	float z30, z41, z62, z75;
+	float vz_y0, vz_y1;
+	// -------------------------------------------------------------------
+
 	// ================================================
 	// CALCULATE INTERMOLECULAR ENERGY
 	// ================================================
@@ -530,7 +630,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 #if defined (IMPROVE_GRID)
 			ylow_times_g1  = y_low*g1;
 			yhigh_times_g1 = y_high*g1;
-		  zlow_times_g2  = z_low*g2;
+		  	zlow_times_g2  = z_low*g2;
 			zhigh_times_g2 = z_high*g2;
 
 			cube_000 = x_low  + ylow_times_g1  + zlow_times_g2;
@@ -545,38 +645,127 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 
 			cube [0][0][0] = *(dockpars_fgrids + cube_000 + mul_tmp);
 			cube [1][0][0] = *(dockpars_fgrids + cube_100 + mul_tmp);
-      cube [0][1][0] = *(dockpars_fgrids + cube_010 + mul_tmp);
-      cube [1][1][0] = *(dockpars_fgrids + cube_110 + mul_tmp);
-      cube [0][0][1] = *(dockpars_fgrids + cube_001 + mul_tmp);
-      cube [1][0][1] = *(dockpars_fgrids + cube_101 + mul_tmp);
-      cube [0][1][1] = *(dockpars_fgrids + cube_011 + mul_tmp);
-      cube [1][1][1] = *(dockpars_fgrids + cube_111 + mul_tmp);
+			cube [0][1][0] = *(dockpars_fgrids + cube_010 + mul_tmp);
+		        cube [1][1][0] = *(dockpars_fgrids + cube_110 + mul_tmp);
+		        cube [0][0][1] = *(dockpars_fgrids + cube_001 + mul_tmp);
+			cube [1][0][1] = *(dockpars_fgrids + cube_101 + mul_tmp);
+                        cube [0][1][1] = *(dockpars_fgrids + cube_011 + mul_tmp);
+                        cube [1][1][1] = *(dockpars_fgrids + cube_111 + mul_tmp);
 
+			// -------------------------------------------------------------------
+			// L30nardoSV
+			// Calculate gradients (forces) corresponding to 
+			// "atype" intermolecular energy
+			// Derived from autodockdev/maps.py
+			// -------------------------------------------------------------------
+
+			if (*is_enabled_gradient_calc) {
+				// vector in x-direction
+				/*
+				x10 = grid[int(vertices[1])] - grid[int(vertices[0])] # z = 0
+				x52 = grid[int(vertices[5])] - grid[int(vertices[2])] # z = 0
+				x43 = grid[int(vertices[4])] - grid[int(vertices[3])] # z = 1
+				x76 = grid[int(vertices[7])] - grid[int(vertices[6])] # z = 1
+				vx_z0 = (1-yd) * x10 + yd * x52     #  z = 0
+				vx_z1 = (1-yd) * x43 + yd * x76     #  z = 1
+				gradient[0] = (1-zd) * vx_z0 + zd * vx_z1 
+				*/
+
+				x10 = cube [1][0][0] - cube [0][0][0]; // z = 0
+				x52 = cube [1][1][0] - cube [0][1][0]; // z = 0
+				x43 = cube [1][0][1] - cube [0][0][1]; // z = 1
+				x76 = cube [1][1][1] - cube [0][1][1]; // z = 1
+				vx_z0 = (1 - dy) * x10 + dy * x52;     // z = 0
+				vx_z1 = (1 - dy) * x43 + dy * x76;     // z = 1
+				gradient_inter_x[atom1_id] = (1 - dz) * vx_z0 + dz * vx_z1;
+
+				// vector in y-direction
+				/*
+				y20 = grid[int(vertices[2])] - grid[int(vertices[0])] # z = 0
+				y51 = grid[int(vertices[5])] - grid[int(vertices[1])] # z = 0
+				y63 = grid[int(vertices[6])] - grid[int(vertices[3])] # z = 1
+				y74 = grid[int(vertices[7])] - grid[int(vertices[4])] # z = 1
+				vy_z0 = (1-xd) * y20 + xd * y51     #  z = 0
+				vy_z1 = (1-xd) * y63 + xd * y74     #  z = 1
+				gradient[1] = (1-zd) * vy_z0 + zd * vy_z1
+				*/
+
+				y20 = cube[0][1][0] - cube [0][0][0];	// z = 0
+				y51 = cube[1][1][0] - cube [1][0][0];	// z = 0
+				y63 = cube[0][1][1] - cube [0][0][1];	// z = 1
+				y74 = cube[1][1][1] - cube [1][0][1];	// z = 1
+				vy_z0 = (1 - dx) * y20 + dx * y51;	// z = 0
+				vy_z1 = (1 - dx) * y63 + dx * y74;	// z = 1
+				gradient_inter_y[atom1_id] = (1 - dz) * vy_z0 + dz * vy_z1;
+
+				// vectors in z-direction
+				/*	
+				z30 = grid[int(vertices[3])] - grid[int(vertices[0])] # y = 0
+				z41 = grid[int(vertices[4])] - grid[int(vertices[1])] # y = 0
+				z62 = grid[int(vertices[6])] - grid[int(vertices[2])] # y = 1
+				z75 = grid[int(vertices[7])] - grid[int(vertices[5])] # y = 1
+				vz_y0 = (1-xd) * z30 + xd * z41     # y = 0
+				vz_y1 = (1-xd) * z62 + xd * z75     # y = 1
+				gradient[2] = (1-yd) * vz_y0 + yd * vz_y1
+				*/
+
+				z30 = cube [0][0][1] - cube [0][0][0];	// y = 0
+				z41 = cube [1][0][1] - cube [1][0][0];	// y = 0
+				z62 = cube [0][1][1] - cube [0][1][0];	// y = 1 
+				z75 = cube [1][1][1] - cube [1][1][0];	// y = 1
+				vz_y0 = (1 - dx) * z30 + dx * z41;	// y = 0
+				vz_y1 = (1 - dx) * z62 + dx * z75;	// y = 1
+				gradient_inter_z[atom1_id] = (1 - dy) * vz_y0 + dy * vz_y1;
+			}
+			// -------------------------------------------------------------------
+			// -------------------------------------------------------------------
+			
 #else
-			cube [0][0][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_low, y_low, x_low);
-			cube [1][0][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_low, y_low, x_high);
-			cube [0][1][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      								  dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_low, y_high, x_low);
-			cube [1][1][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_low, y_high, x_high);
-			cube [0][0][1] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_high, y_low, x_low);
-			cube [1][0][1] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      								  atom1_typeid, z_high, y_low, x_high);
-			cube [0][1][1] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_high, y_high, x_low);
-			cube [1][1][1] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_high, y_high, x_high);
+			// -------------------------------------------------------------------
+			// L30nardoSV
+			// FIXME: this block within the "#else" preprocessor directive 
+			// provides NO gradient corresponding to "atype" intermolecular energy
+			// -------------------------------------------------------------------	
+
+			cube [0][0][0] = GETGRIDVALUE(dockpars_fgrids, 
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y, 
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_low, y_low, x_low);
+			cube [1][0][0] = GETGRIDVALUE(dockpars_fgrids, 
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y, 
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_low, y_low, x_high);
+			cube [0][1][0] = GETGRIDVALUE(dockpars_fgrids, 
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y, 
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_low, y_high, x_low);
+			cube [1][1][0] = GETGRIDVALUE(dockpars_fgrids, 
+						      dockpars_gridsize_x,					      							      dockpars_gridsize_y, 
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_low, y_high, x_high);
+			cube [0][0][1] = GETGRIDVALUE(dockpars_fgrids, 
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y, 
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_high, y_low, x_low);
+			cube [1][0][1] = GETGRIDVALUE(dockpars_fgrids, 
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y, 
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_high, y_low, x_high);
+			cube [0][1][1] = GETGRIDVALUE(dockpars_fgrids, 
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y, 
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_high, y_high, x_low);
+			cube [1][1][1] = GETGRIDVALUE(dockpars_fgrids, 
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y, 
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_high, y_high, x_high);
 #endif
 
 			//calculating affinity energy
@@ -589,38 +778,98 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			mul_tmp = atom1_typeid*g3;
 			cube [0][0][0] = *(dockpars_fgrids + cube_000 + mul_tmp);
 			cube [1][0][0] = *(dockpars_fgrids + cube_100 + mul_tmp);
-      cube [0][1][0] = *(dockpars_fgrids + cube_010 + mul_tmp);
-      cube [1][1][0] = *(dockpars_fgrids + cube_110 + mul_tmp);
-      cube [0][0][1] = *(dockpars_fgrids + cube_001 + mul_tmp);
-      cube [1][0][1] = *(dockpars_fgrids + cube_101 + mul_tmp);
-      cube [0][1][1] = *(dockpars_fgrids + cube_011 + mul_tmp);
-      cube [1][1][1] = *(dockpars_fgrids + cube_111 + mul_tmp);
+      			cube [0][1][0] = *(dockpars_fgrids + cube_010 + mul_tmp);
+      			cube [1][1][0] = *(dockpars_fgrids + cube_110 + mul_tmp);
+		       	cube [0][0][1] = *(dockpars_fgrids + cube_001 + mul_tmp);
+		        cube [1][0][1] = *(dockpars_fgrids + cube_101 + mul_tmp);
+		        cube [0][1][1] = *(dockpars_fgrids + cube_011 + mul_tmp);
+		        cube [1][1][1] = *(dockpars_fgrids + cube_111 + mul_tmp);
+
+			// -------------------------------------------------------------------
+			// L30nardoSV
+			// Calculate gradients (forces) corresponding to 
+			// "elec" intermolecular energy
+			// Derived from autodockdev/maps.py
+			// -------------------------------------------------------------------
+
+			if (*is_enabled_gradient_calc) {
+				// vector in x-direction
+				x10 = cube [1][0][0] - cube [0][0][0]; // z = 0
+				x52 = cube [1][1][0] - cube [0][1][0]; // z = 0
+				x43 = cube [1][0][1] - cube [0][0][1]; // z = 1
+				x76 = cube [1][1][1] - cube [0][1][1]; // z = 1
+				vx_z0 = (1 - dy) * x10 + dy * x52;     // z = 0
+				vx_z1 = (1 - dy) * x43 + dy * x76;     // z = 1
+				gradient_inter_x[atom1_id] += (1 - dz) * vx_z0 + dz * vx_z1;
+
+				// vector in y-direction
+				y20 = cube[0][1][0] - cube [0][0][0];	// z = 0
+				y51 = cube[1][1][0] - cube [1][0][0];	// z = 0
+				y63 = cube[0][1][1] - cube [0][0][1];	// z = 1
+				y74 = cube[1][1][1] - cube [1][0][1];	// z = 1
+				vy_z0 = (1 - dx) * y20 + dx * y51;	// z = 0
+				vy_z1 = (1 - dx) * y63 + dx * y74;	// z = 1
+				gradient_inter_y[atom1_id] += (1 - dz) * vy_z0 + dz * vy_z1;
+
+				// vectors in z-direction
+				z30 = cube [0][0][1] - cube [0][0][0];	// y = 0
+				z41 = cube [1][0][1] - cube [1][0][0];	// y = 0
+				z62 = cube [0][1][1] - cube [0][1][0];	// y = 1 
+				z75 = cube [1][1][1] - cube [1][1][0];	// y = 1
+				vz_y0 = (1 - dx) * z30 + dx * z41;	// y = 0
+				vz_y1 = (1 - dx) * z62 + dx * z75;	// y = 1
+				gradient_inter_z[atom1_id] += (1 - dy) * vz_y0 + dy * vz_y1;
+			}
+			// -------------------------------------------------------------------
+			// -------------------------------------------------------------------
 
 #else
-			cube [0][0][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      		 						  dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_low, y_low, x_low);
-			cube [1][0][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_low, y_low, x_high);
-			cube [0][1][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_low, y_high, x_low);
-			cube [1][1][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_low, y_high, x_high);
-			cube [0][0][1] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_high, y_low, x_low);
-			cube [1][0][1] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_high, y_low, x_high);
-			cube [0][1][1] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_high, y_high, x_low);
-			cube [1][1][1] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_high, y_high, x_high);
+			// -------------------------------------------------------------------
+			// L30nardoSV
+			// FIXME: this block within the "#else" preprocessor directive 
+			// provides NO gradient corresponding to "elec" intermolecular energy
+			// -------------------------------------------------------------------
+
+			cube [0][0][0] = GETGRIDVALUE(dockpars_fgrids, 
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y, 
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_low, y_low, x_low);
+			cube [1][0][0] = GETGRIDVALUE(dockpars_fgrids, 
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_low, y_low, x_high);
+			cube [0][1][0] = GETGRIDVALUE(dockpars_fgrids,
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+                                                      dockpars_gridsize_z,
+						      atom1_typeid, z_low, y_high, x_low);
+			cube [1][1][0] = GETGRIDVALUE(dockpars_fgrids,
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_low, y_high, x_high);
+			cube [0][0][1] = GETGRIDVALUE(dockpars_fgrids,
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_high, y_low, x_low);
+			cube [1][0][1] = GETGRIDVALUE(dockpars_fgrids,
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_high, y_low, x_high);
+			cube [0][1][1] = GETGRIDVALUE(dockpars_fgrids,
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_high, y_high, x_low);
+			cube [1][1][1] = GETGRIDVALUE(dockpars_fgrids,
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_high, y_high, x_high);
 #endif
 
 			//calculating electrosatic energy
@@ -633,38 +882,98 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			mul_tmp = atom1_typeid*g3;
 			cube [0][0][0] = *(dockpars_fgrids + cube_000 + mul_tmp);
 			cube [1][0][0] = *(dockpars_fgrids + cube_100 + mul_tmp);
-      cube [0][1][0] = *(dockpars_fgrids + cube_010 + mul_tmp);
-      cube [1][1][0] = *(dockpars_fgrids + cube_110 + mul_tmp);
-      cube [0][0][1] = *(dockpars_fgrids + cube_001 + mul_tmp);
-      cube [1][0][1] = *(dockpars_fgrids + cube_101 + mul_tmp);
-      cube [0][1][1] = *(dockpars_fgrids + cube_011 + mul_tmp);
-      cube [1][1][1] = *(dockpars_fgrids + cube_111 + mul_tmp);
+      			cube [0][1][0] = *(dockpars_fgrids + cube_010 + mul_tmp);
+      			cube [1][1][0] = *(dockpars_fgrids + cube_110 + mul_tmp);
+      			cube [0][0][1] = *(dockpars_fgrids + cube_001 + mul_tmp);
+      			cube [1][0][1] = *(dockpars_fgrids + cube_101 + mul_tmp);
+      			cube [0][1][1] = *(dockpars_fgrids + cube_011 + mul_tmp);
+      			cube [1][1][1] = *(dockpars_fgrids + cube_111 + mul_tmp);
+
+			// -------------------------------------------------------------------
+			// L30nardoSV
+			// Calculate gradients (forces) corresponding to 
+			// "dsol" intermolecular energy
+			// Derived from autodockdev/maps.py
+			// -------------------------------------------------------------------
+
+			if (*is_enabled_gradient_calc) {
+				// vector in x-direction
+				x10 = cube [1][0][0] - cube [0][0][0]; // z = 0
+				x52 = cube [1][1][0] - cube [0][1][0]; // z = 0
+				x43 = cube [1][0][1] - cube [0][0][1]; // z = 1
+				x76 = cube [1][1][1] - cube [0][1][1]; // z = 1
+				vx_z0 = (1 - dy) * x10 + dy * x52;     // z = 0
+				vx_z1 = (1 - dy) * x43 + dy * x76;     // z = 1
+				gradient_inter_x[atom1_id] += (1 - dz) * vx_z0 + dz * vx_z1;
+
+				// vector in y-direction
+				y20 = cube[0][1][0] - cube [0][0][0];	// z = 0
+				y51 = cube[1][1][0] - cube [1][0][0];	// z = 0
+				y63 = cube[0][1][1] - cube [0][0][1];	// z = 1
+				y74 = cube[1][1][1] - cube [1][0][1];	// z = 1
+				vy_z0 = (1 - dx) * y20 + dx * y51;	// z = 0
+				vy_z1 = (1 - dx) * y63 + dx * y74;	// z = 1
+				gradient_inter_y[atom1_id] += (1 - dz) * vy_z0 + dz * vy_z1;
+
+				// vectors in z-direction
+				z30 = cube [0][0][1] - cube [0][0][0];	// y = 0
+				z41 = cube [1][0][1] - cube [1][0][0];	// y = 0
+				z62 = cube [0][1][1] - cube [0][1][0];	// y = 1 
+				z75 = cube [1][1][1] - cube [1][1][0];	// y = 1
+				vz_y0 = (1 - dx) * z30 + dx * z41;	// y = 0
+				vz_y1 = (1 - dx) * z62 + dx * z75;	// y = 1
+				gradient_inter_z[atom1_id] += (1 - dy) * vz_y0 + dy * vz_y1;
+			}
+			// -------------------------------------------------------------------
+			// -------------------------------------------------------------------
 
 #else
-			cube [0][0][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_low, y_low, x_low);
-			cube [1][0][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_low, y_low, x_high);
-			cube [0][1][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_low, y_high, x_low);
-			cube [1][1][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_low, y_high, x_high);
-			cube [0][0][1] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_high, y_low, x_low);
-			cube [1][0][1] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_high, y_low, x_high);
-			cube [0][1][1] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_high, y_high, x_low);
-			cube [1][1][1] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
-						      									dockpars_gridsize_y, dockpars_gridsize_z,
-						      									atom1_typeid, z_high, y_high, x_high);
+			// -------------------------------------------------------------------
+			// L30nardoSV
+			// FIXME: this block within the "#else" preprocessor directive 
+			// provides NO gradient corresponding to "dsol" intermolecular energy
+			// -------------------------------------------------------------------
+
+			cube [0][0][0] = GETGRIDVALUE(dockpars_fgrids,
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_low, y_low, x_low);
+			cube [1][0][0] = GETGRIDVALUE(dockpars_fgrids,
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_low, y_low, x_high);
+			cube [0][1][0] = GETGRIDVALUE(dockpars_fgrids,
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_low, y_high, x_low);
+			cube [1][1][0] = GETGRIDVALUE(dockpars_fgrids,
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_low, y_high, x_high);
+			cube [0][0][1] = GETGRIDVALUE(dockpars_fgrids, 
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_high, y_low, x_low);
+			cube [1][0][1] = GETGRIDVALUE(dockpars_fgrids,
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_high, y_low, x_high);
+			cube [0][1][1] = GETGRIDVALUE(dockpars_fgrids,
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_high, y_high, x_low);
+			cube [1][1][1] = GETGRIDVALUE(dockpars_fgrids,
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y,
+						      dockpars_gridsize_z,
+						      atom1_typeid, z_high, y_high, x_high);
 #endif
 
 			//calculating desolvation energy
