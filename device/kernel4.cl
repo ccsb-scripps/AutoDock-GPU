@@ -274,6 +274,7 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
 					map_angle(&(offspring_genotype[gene_counter]));
 				}
 */
+
 				if (gene_counter < 3)
 					offspring_genotype[gene_counter] += dockpars_abs_max_dmov*(2*gpu_randf(dockpars_prng_states)-1);
 
