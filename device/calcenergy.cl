@@ -85,7 +85,9 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 		    __local bool*  is_enabled_gradient_calc,
 	    	    __local float* gradient_inter_x,
 	            __local float* gradient_inter_y,
-	            __local float* gradient_inter_z
+	            __local float* gradient_inter_z,
+
+		    __local float* gradient_genotype	
   		 // -------------------------------------------------------------------				
 )
 
@@ -693,7 +695,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			if (*is_enabled_gradient_calc) {
 				// vector in x-direction
 				/*
-				x10 = grid[int(vertices[1])] - grid[int(vertices[0])] # z = 0
+				x10 = grid[int(vertices[1])] - grid[int(vertices[0])] # z = 0genotype
 				x52 = grid[int(vertices[5])] - grid[int(vertices[2])] # z = 0
 				x43 = grid[int(vertices[4])] - grid[int(vertices[3])] # z = 1
 				x76 = grid[int(vertices[7])] - grid[int(vertices[6])] # z = 1
@@ -760,7 +762,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 
 			cube [0][0][0] = GETGRIDVALUE(dockpars_fgrids, 
 						      dockpars_gridsize_x,
-						      dockpars_gridsize_y, 
+						      dockparsdockpars_num_of_atoms;_gridsize_y, 
 						      dockpars_gridsize_z,
 						      atom1_typeid, z_low, y_low, x_low);
 			cube [1][0][0] = GETGRIDVALUE(dockpars_fgrids, 
@@ -774,7 +776,8 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 						      dockpars_gridsize_z,
 						      atom1_typeid, z_low, y_high, x_low);
 			cube [1][1][0] = GETGRIDVALUE(dockpars_fgrids, 
-						      dockpars_gridsize_x,					      							      dockpars_gridsize_y, 
+						      dockpars_gridsize_x,
+						      dockpars_gridsize_y, 
 						      dockpars_gridsize_z,
 						      atom1_typeid, z_low, y_high, x_high);
 			cube [0][0][1] = GETGRIDVALUE(dockpars_fgrids, 
@@ -1015,7 +1018,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 
 	// In paper: intermolecular and internal energy calculation
 	// are independent from each other, -> NO BARRIER NEEDED
-  // but require different operations,
+  	// but require different operations,
 	// thus, they can be executed only sequentially on the GPU.
 
 	// ================================================
@@ -1112,7 +1115,14 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
 							       											 dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
 					                      					 (dspars_S_const[atom2_typeid] +
-							       								 			 dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
+							       								 			 dockpars_qasp*fabs(atom_charges_co			// -------------------------------------------------------------------
+			// L30nardoSV
+			// Calculate gradients (forces) corresponding to 
+			// "dsol" intermolecular energy
+			// Derived from autodockdev/maps.py
+			// -------------------------------------------------------------------
+
+			if (*is_enabled_gradient_calc) {nst[atom2_id]))*dspars_V_const[atom1_typeid]) *
 					                       					 dockpars_coeff_desolv*half_exp(-distance_leo*half_divide(distance_leo,25.92f));
 #else	// Full precision
 			partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
@@ -1138,6 +1148,148 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			*energy += partial_energies[contributor_counter];
 		}
 	}
+
+	// -------------------------------------------------------------------
+	// L30nardoSV
+	// Calculate gradients (forces) corresponding to (interE + intraE)
+	// Derived from autodockdev/motions.py/forces_to_delta()
+	// -------------------------------------------------------------------
+	
+	// Could be barrier removed if another work-item is used? 
+	// (e.g. get_locla_id(0) == 1)
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	// FIXME: done so far only for interE
+	if (get_local_id(0) == 0) {
+		if (*is_enabled_gradient_calc) {
+			gradient_genotype [0] = 0.0f;
+			gradient_genotype [1] = 0.0f;
+			gradient_genotype [2] = 0.0f;
+		
+			// ------------------------------------------
+			// translation-related gradients
+			// ------------------------------------------
+			for (unsigned int lig_atom_id = 0;
+					  lig_atom_id<dockpars_num_of_atoms;
+					  lig_atom_id++) {
+				gradient_genotype [0] += gradient_inter_x[lig_atom_id]; // gradient for gene 0: gene x
+				gradient_genotype [1] += gradient_inter_y[lig_atom_id]; // gradient for gene 1: gene y
+				gradient_genotype [2] += gradient_inter_z[lig_atom_id]; // gradient for gene 2: gene z
+			}
+
+			// ------------------------------------------
+			// rotation-related gradients 
+			// ------------------------------------------
+			float3 torque = (float3)(0.0f, 0.0f, 0.0f);
+
+			// center of rotation 
+			// In getparameters.cpp, it indicates 
+			// translation genes are in grid spacing (instead of Angstroms)
+			float about[3];
+			about[0] = genotype[0]; 
+			about[1] = genotype[1];
+			about[2] = genotype[2];
+		
+			// Temporal variable to calculate translation differences.
+			// They are converted back to Angstroms here
+			float3 r;
+			
+			for (unsigned int lig_atom_id = 0;
+					  lig_atom_id<dockpars_num_of_atoms;
+					  lig_atom_id++) {
+				r.x = (calc_coords_x[lig_atom_id] - about[0]) * dockpars_grid_spacing; 
+				r.y = (calc_coords_y[lig_atom_id] - about[1]) * dockpars_grid_spacing;  
+				r.z = (calc_coords_z[lig_atom_id] - about[2]) * dockpars_grid_spacing; 
+				torque += cross(r, torque);
+			}
+
+			const float rad = 1E-8;
+			const float rad_div_2 = native_divide(rad, 2);
+
+			
+			float quat_w, quat_x, quat_y, quat_z;
+
+			// Derived from rotation.py/axisangle_to_q()
+			// genes[3:7] = rotation.axisangle_to_q(torque, rad)
+			torque = fast_normalize(torque);
+			quat_x = torque.x;
+			quat_y = torque.y;
+			quat_z = torque.z;
+
+			// rotation-related gradients are expressed here in quaternions
+			quat_w = native_cos(rad_div_2);
+			quat_x = quat_x * native_sin(rad_div_2);
+			quat_y = quat_y * native_sin(rad_div_2);
+			quat_z = quat_z * native_sin(rad_div_2);
+
+			// convert quaternion gradients into Shoemake gradients 
+			// Derived from autodockdev/motion.py/_get_cube3_gradient
+
+			// where we are in cube3
+			float current_u1, current_u2, current_u3;
+			current_u1 = genotype[3]; // check very initial input Shoemake genes
+			current_u2 = genotype[4];
+			current_u3 = genotype[5];
+
+			// where we are in quaternion space
+			// current_q = cube3_to_quaternion(current_u)
+			float current_qw, current_qx, current_qy, current_qz;
+			current_qw = native_sqrt(1-current_u1) * native_sin(u2);
+			current_qx = native_sqrt(1-current_u1) * native_cos(u2);
+			current_qy = native_sqrt(current_u1)   * native_sin(u3);
+			current_qz = native_sqrt(current_u1)   * native_cos(u3);
+
+			// where we want to be in quaternion space
+			float target_qw, target_qx, target_qy, target_qz;
+
+			// target_q = rotation.q_mult(q, current_q)
+			// Derived from autodockdev/rotation.py/q_mult()
+			// In our terms means q_mult(quat_{w|x|y|z}, current_q{w|x|y|z})
+			target_qw = quat_w*current_qw - quat_x*current_qx - quat_y*current_qy - quat_z*current_qz;// w
+			target_qx = quat_w*current_qx + quat_x*current_qw + quat_y*current_qz - quat_z*current_qy;// x
+			target_qy = quat_w*current_qy + quat_y*current_qw + quat_z*current_qx - quat_x*current_qz;// y
+			target_qz = quat_w*current_qz + quat_z*current_qw + quat_x*current_qy - quat_y*current_qx;// z
+
+			// where we want ot be in cube3
+			float target_u1, target_u2, target_u3;
+
+			// target_u = quaternion_to_cube3(target_q)
+			// Derived from autodockdev/motions.py/quaternion_to_cube3()
+			// In our terms means quaternion_to_cube3(target_q{w|x|y|z})
+			target_u1 = target_qy*target_qy + target_qz*target_qz;
+			target_u2 = atan2pi(target_qw, target_qx)*180.0f; // in sexagesimal
+			target_u3 = atan2pi(target_qy, target_qz)*180.0f; // in sexagesimal
+
+			// derivates in cube3
+			float grad_u1, grad_u2, grad_u3;
+			grad_u1 = target_u1 - current_u1;
+			grad_u2 = target_u2 - current_u2;
+			grad_u3 = target_u3 - current_u3;
+			
+			// empirical scaling
+			float temp_u1 = genotype[3];
+			
+			if ((temp_u1 > 1.0f) || (temp_u1 < 0.0f)){
+				grad_u1 *= ((1/temp_u1) + (1/(1-temp_u1)));
+			}
+			grad_u2 *= 4 * (1-temp_u1);
+			grad_u3 *= 4 * temp_u1;
+			
+			// set gradient rotation-ralated genotypes in cube3
+			gradient_genotype[3] = grad_u1;
+			gradient_genotype[4] = grad_u2;
+			gradient_genotype[5] = grad_u3;
+			
+			
+			
+
+			
+
+			
+
+		}
+	}
+
 }
 
 #include "kernel1.cl"

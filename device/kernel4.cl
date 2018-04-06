@@ -113,22 +113,25 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
 	// Calculate gradients (forces) for intermolecular energy
 	// Derived from autodockdev/maps.py
 	// -------------------------------------------------------------------
-	// Variables to store gradient of 
-	// the intermolecular energy per each ligand atom
-
 	// Some OpenCL compilers don't allow declaring 
 	// local variables within non-kernel functions.
 	// These local variables must be declared in a kernel, 
 	// and then passed to non-kernel functions.
-	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
-	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
-	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
 
 	// Disable gradient calculation for this kernel
 	__local bool  is_enabled_gradient_calc;
 	if (get_local_id(0) == 0) {
 		is_enabled_gradient_calc = false;
 	}
+
+	// Variables to store gradient of 
+	// the intermolecular energy per each ligand atom
+	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
+	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
+	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
+
+	// Final gradient resulting out of gradient calculation
+	__local float gradient_genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
 	// -------------------------------------------------------------------
 
 	//in this case this block is responsible for elitist selection
@@ -275,7 +278,7 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
 					offspring_genotype[gene_counter] += dockpars_abs_max_dmov*(2*gpu_randf(dockpars_prng_states)-1);
 				else if (gene_counter == 3) {// u1, FIXME: hardcoded
 
-					offspring_genotype[gene_counter] =  0.2f*gpu_randf(dockpars_prng_states);
+					offspring_genotype[gene_counter] =  /*0.2f**/gpu_randf(dockpars_prng_states);
 
 /*
 					offspring_genotype[gene_counter] +=  0.2f*(2*gpu_randf(dockpars_prng_states)-1);
@@ -358,7 +361,9 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
 				&is_enabled_gradient_calc,
 				gradient_inter_x,
 				gradient_inter_y,
-				gradient_inter_z
+				gradient_inter_z,
+
+				gradient_genotype
 				);
 				// -------------------------------------------------------------------
 		// =============================================================

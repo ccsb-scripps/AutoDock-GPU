@@ -95,22 +95,25 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 	// Calculate gradients (forces) for intermolecular energy
 	// Derived from autodockdev/maps.py
 	// -------------------------------------------------------------------
-	// Variables to store gradient of 
-	// the intermolecular energy per each ligand atom
-
 	// Some OpenCL compilers don't allow declaring 
 	// local variables within non-kernel functions.
 	// These local variables must be declared in a kernel, 
 	// and then passed to non-kernel functions.
-	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
-	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
-	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
-	
+
 	// Disable gradient calculation for this kernel
 	__local bool  is_enabled_gradient_calc;
 	if (get_local_id(0) == 0) {
 		is_enabled_gradient_calc = false;
 	}
+
+	// Variables to store gradient of 
+	// the intermolecular energy per each ligand atom
+	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
+	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
+	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
+	
+	// Final gradient resulting out of gradient calculation
+	__local float gradient_genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
 	// -------------------------------------------------------------------
 
 	// =============================================================
@@ -164,7 +167,9 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 			&is_enabled_gradient_calc,
 			gradient_inter_x,
 			gradient_inter_y,
-			gradient_inter_z
+			gradient_inter_z,
+
+			gradient_genotype
 			);
 			// -------------------------------------------------------------------
 	// =============================================================
