@@ -648,19 +648,19 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 #if defined (REPRO)
 					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 22.0452;
 #else
-					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX)*360;
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX);
 #endif
 				else if (gene_id == 5) // u3 (Shoemake)
 #if defined (REPRO)
 					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 26.0555;
 #else
-					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX)*360;
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX);
 #endif	
 				else	// torsions
 #if defined (REPRO)
 					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 22.0452;
 #else
-					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX)*360;
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX);
 #endif
 
 
@@ -700,9 +700,9 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		mypars->ref_ori_angles[1] = 190.279;
 		mypars->ref_ori_angles[2] = 190.279;
 #else
-		mypars->ref_ori_angles[0] = floor( (float) rand()/ (float) RAND_MAX);		// u1
-		mypars->ref_ori_angles[1] = floor(((float) rand()/ (float) RAND_MAX)*360);	// u2
-		mypars->ref_ori_angles[2] = floor(((float) rand()/ (float) RAND_MAX)*360);	// u3
+		mypars->ref_ori_angles[0] = floor((float) rand()/ (float) RAND_MAX);	// u1
+		mypars->ref_ori_angles[1] = floor((float) rand()/ (float) RAND_MAX);	// u2
+		mypars->ref_ori_angles[2] = floor((float) rand()/ (float) RAND_MAX);	// u3
 #endif
 
 
@@ -787,8 +787,8 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		ref_ori_angles[3*i+2] = 190.279;
 #else
 		ref_ori_angles[3*i]   = ((float) rand()/ (float) RAND_MAX); 	// u1
-		ref_ori_angles[3*i+1] = ((float) rand()/ (float) RAND_MAX)*360;	// u2
-		ref_ori_angles[3*i+2] = ((float) rand()/ (float) RAND_MAX)*360;	// u3
+		ref_ori_angles[3*i+1] = ((float) rand()/ (float) RAND_MAX);	// u2
+		ref_ori_angles[3*i+2] = ((float) rand()/ (float) RAND_MAX);	// u3
 		//printf("u1, u2, u3: %10f %10f %10f \n", ref_ori_angles[3*i], ref_ori_angles[3*i+1], ref_ori_angles[3*i+2]);
 #endif
 	}

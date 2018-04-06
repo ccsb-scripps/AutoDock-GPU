@@ -256,13 +256,13 @@ int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
 
 		float u1, u2, u3;
 		u1 = cpu_ref_ori_angles[3*i];
-		u2 = cpu_ref_ori_angles[3*i+1]*DEG_TO_RAD;
-		u3 = cpu_ref_ori_angles[3*i+2]*DEG_TO_RAD;
+		u2 = cpu_ref_ori_angles[3*i+1];
+		u3 = cpu_ref_ori_angles[3*i+2];
 
-		ref_orientation_quats[4*i]   = sqrt(1-u1) * sinf(u2);	//q
-		ref_orientation_quats[4*i+1] = sqrt(1-u1) * cosf(u2);	//x
-		ref_orientation_quats[4*i+2] = sqrt(u1)   * sinf(u3);	//y
-		ref_orientation_quats[4*i+3] = sqrt(u1)   * cosf(u3);	//z
+		ref_orientation_quats[4*i]   = sqrt(1-u1) * sinf(2*PI*u2);	//q
+		ref_orientation_quats[4*i+1] = sqrt(1-u1) * cosf(2*PI*u2);	//x
+		ref_orientation_quats[4*i+2] = sqrt(u1)   * sinf(2*PI*u3);	//y
+		ref_orientation_quats[4*i+3] = sqrt(u1)   * cosf(2*PI*u3);	//z
 
 		//printf("Precalculated quaternion for run %d: %f %f %f %f\n", i, ref_orientation_quats[4*i], ref_orientation_quats[4*i+1], ref_orientation_quats[4*i+2], ref_orientation_quats[4*i+3]);
 	}

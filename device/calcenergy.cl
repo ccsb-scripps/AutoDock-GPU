@@ -107,13 +107,14 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 		}
 	}
 
+#if 0
 	// Rotational genes in the Shoemake space expressed in radians
 	float u1, u2, u3; 
 	
 	u1 = genotype[3];
-	u2 = genotype[4]*DEG_TO_RAD;
-	u3 = genotype[5]*DEG_TO_RAD;
-
+	u2 = genotype[4]/**DEG_TO_RAD*/;
+	u3 = genotype[5]/**DEG_TO_RAD*/;
+#endif
 
 #if defined (IMPROVE_GRID)
 	// INTERMOLECULAR for-loop (intermediate results)
@@ -182,11 +183,18 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				// FIXME: add precision choices with preprocessor directives: 
 				// NATIVE_PRECISION, HALF_PRECISION, Full precision
 
-				// u1 should be within the valid range [0,1]
-				quatrot_left_q = native_sqrt(1 - u1) * native_sin(u2); 
-				quatrot_left_x = native_sqrt(1 - u1) * native_cos(u2);
-				quatrot_left_y = native_sqrt(u1)     * native_sin(u3);
-				quatrot_left_z = native_sqrt(u1)     * native_cos(u3);
+				// Rotational genes in the Shoemake space expressed in radians
+				float u1, u2, u3; 
+	
+				u1 = genotype[3];
+				u2 = genotype[4]/**DEG_TO_RAD*/;
+				u3 = genotype[5]/**DEG_TO_RAD*/;
+
+				// u1, u2, u3 should be within their valid range of [0,1]
+				quatrot_left_q = native_sqrt(1 - u1) * native_sin(PI_TIMES_2*u2); 
+				quatrot_left_x = native_sqrt(1 - u1) * native_cos(PI_TIMES_2*u2);
+				quatrot_left_y = native_sqrt(u1)     * native_sin(PI_TIMES_2*u3);
+				quatrot_left_z = native_sqrt(u1)     * native_cos(PI_TIMES_2*u3);
 
 				rotation_movingvec[0] = genotype[0];
 				rotation_movingvec[1] = genotype[1];
@@ -705,7 +713,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 						      dockpars_gridsize_y,
 						      dockpars_gridsize_z,
 						      atom_typeid, z_low, y_low, x_low);
-			cube [1][0][0] = GETGRIDVALUE(dockpars_fgrids,
+			cube [1][0][0] = GETGRIDVALUE(dockpars_fgridsu2,
 						      dockpars_gridsize_x,
 						      dockpars_gridsize_y,
 						      dockpars_gridsize_z,
@@ -966,10 +974,10 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			// where we are in quaternion space
 			// current_q = cube3_to_quaternion(current_u)
 			float current_qw, current_qx, current_qy, current_qz;
-			current_qw = native_sqrt(1-current_u1) * native_sin(u2);
-			current_qx = native_sqrt(1-current_u1) * native_cos(u2);
-			current_qy = native_sqrt(current_u1)   * native_sin(u3);
-			current_qz = native_sqrt(current_u1)   * native_cos(u3);
+			current_qw = native_sqrt(1-current_u1) * native_sin(PI_TIMES_2*current_u2);
+			current_qx = native_sqrt(1-current_u1) * native_cos(PI_TIMES_2*current_u2);
+			current_qy = native_sqrt(current_u1)   * native_sin(PI_TIMES_2*current_u3);
+			current_qz = native_sqrt(current_u1)   * native_cos(PI_TIMES_2*current_u3);
 
 			// where we want to be in quaternion space
 			float target_qw, target_qx, target_qy, target_qz;
@@ -989,8 +997,8 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			// Derived from autodockdev/motions.py/quaternion_to_cube3()
 			// In our terms means quaternion_to_cube3(target_q{w|x|y|z})
 			target_u1 = target_qy*target_qy + target_qz*target_qz;
-			target_u2 = atan2pi(target_qw, target_qx)*180.0f; // in sexagesimal
-			target_u3 = atan2pi(target_qy, target_qz)*180.0f; // in sexagesimal
+			target_u2 = atan2pi(target_qw, target_qx)/PI_TIMES_2;
+			target_u3 = atan2pi(target_qy, target_qz)/PI_TIMES_2;
 
 			// derivates in cube3
 			float grad_u1, grad_u2, grad_u3;

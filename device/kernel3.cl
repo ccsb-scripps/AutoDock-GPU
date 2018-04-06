@@ -228,8 +228,8 @@ perform_LS(	char   dockpars_num_of_atoms,
 		for (gene_counter=get_local_id(0);
 		     gene_counter<dockpars_num_of_genes;
 		     gene_counter += NUM_OF_THREADS_PER_BLOCK) {
-			if (gene_counter == 3) {
-			   genotype_candidate[gene_counter] =  /*0.2f**/gpu_randf(dockpars_prng_states);
+			if ((gene_counter > 2) || (gene_counter < 6)) { // Shoemake genes: u1, u2, u3
+			   genotype_candidate[gene_counter] = gpu_randf(dockpars_prng_states);
 			}
 			else {
 			   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] + genotype_deviate[gene_counter] + genotype_bias[gene_counter];
@@ -348,8 +348,8 @@ perform_LS(	char   dockpars_num_of_atoms,
 			     gene_counter<dockpars_num_of_genes;
 			     gene_counter += NUM_OF_THREADS_PER_BLOCK) {
 
-				if (gene_counter == 3) {
-				   genotype_candidate[gene_counter] =  /*0.2f**/gpu_randf(dockpars_prng_states);
+				if ((gene_counter > 2) || (gene_counter < 6)) { // Shoemake genes: u1, u2, u3
+				   genotype_candidate[gene_counter] =  gpu_randf(dockpars_prng_states);
 				}
 				else {
 				   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] - genotype_deviate[gene_counter] - genotype_bias[gene_counter];

@@ -57,4 +57,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 				       cube[0][0][1]*weights[0][0][1] +cube[1][0][1]*weights[1][0][1] + \
 				       cube[0][1][1]*weights[0][1][1] +cube[1][1][1]*weights[1][1][1])
 
+// Used for Shoemake to quternion transformation
+#define PI_TIMES_2 (float)(2.0f*M_PI)
+
+
+
 #endif /* CALCENERGY_BASIC_H_ */
