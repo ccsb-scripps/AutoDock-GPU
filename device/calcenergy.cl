@@ -446,7 +446,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			if (*is_enabled_gradient_calc) {
 				// vector in x-direction
 				/*
-				x10 = grid[int(vertices[1])] - grid[int(vertices[0])] # z = 0
+			 	x10 = grid[int(vertices[1])] - grid[int(vertices[0])] # z = 0
 				x52 = grid[int(vertices[5])] - grid[int(vertices[2])] # z = 0
 				x43 = grid[int(vertices[4])] - grid[int(vertices[3])] # z = 1
 				x76 = grid[int(vertices[7])] - grid[int(vertices[6])] # z = 1
@@ -468,7 +468,10 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				y20 = grid[int(vertices[2])] - grid[int(vertices[0])] # z = 0
 				y51 = grid[int(vertices[5])] - grid[int(vertices[1])] # z = 0
 				y63 = grid[int(vertices[6])] - grid[int(vertices[3])] # z = 1
-				y74 = grid[int(vertices[7])] - grid[int(vertices[4])] # z = 1
+			for (uint rotation_counter = get_local_id(0);
+	          rotation_counter < dockpars_rotbondlist_length;
+	          rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
+	{	y74 = grid[int(vertices[7])] - grid[int(vertices[4])] # z = 1
 				vy_z0 = (1-xd) * y20 + xd * y51     #  z = 0
 				vy_z1 = (1-xd) * y63 + xd * y74     #  z = 1
 				gradient[1] = (1-zd) * vy_z0 + zd * vy_z1
@@ -605,14 +608,14 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 #else
 			// -------------------------------------------------------------------
 			// FIXME: this block within the "#else" preprocessor directive 
-			// provides NO gradient corresponding to "elec" intermolecular energy
+			// provides NO gradient corresponding to "elec" intermolecular energybas
 			// -------------------------------------------------------------------
 
 			cube [0][0][0] = GETGRIDVALUE(dockpars_fgrids, 
 						      dockpars_gridsize_x,
 						      dockpars_gridsize_y, 
 						      dockpars_gridsize_z,
-						      atom_typeid, z_low, y_low, x_low);
+					 	      atom_typeid, z_low, y_low, x_low);
 			cube [1][0][0] = GETGRIDVALUE(dockpars_fgrids, 
 						      dockpars_gridsize_x,
 						      dockpars_gridsize_y,
@@ -626,7 +629,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			cube [1][1][0] = GETGRIDVALUE(dockpars_fgrids,
 						      dockpars_gridsize_x,
 						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
+						      dockpars_gridsize_z,bas
 						      atom_typeid, z_low, y_high, x_high);
 			cube [0][0][1] = GETGRIDVALUE(dockpars_fgrids,
 						      dockpars_gridsize_x,
@@ -719,7 +722,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 						      dockpars_gridsize_z,
 						      atom_typeid, z_low, y_low, x_high);
 			cube [0][1][0] = GETGRIDVALUE(dockpars_fgrids,
-						      dockpars_gridsize_x,
+						      dockpars_gridsize_x,rotbonds_unit_vectors_const
 						      dockpars_gridsize_y,
 						      dockpars_gridsize_z,
 						      atom_typeid, z_low, y_high, x_low);
@@ -805,7 +808,10 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 #if defined (NATIVE_PRECISION)
 			partial_energies[get_local_id(0)] += native_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance,12));
 #elif defined (HALF_PRECISION)
-			partial_energies[get_local_id(0)] += half_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],half_powr(atomic_distance,12));
+			pfor (uint rotation_counter = get_local_id(0);
+	          rotation_counter < dockpars_rotbondlist_length;
+	          rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
+	{artial_energies[get_local_id(0)] += half_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],half_powr(atomic_distance,12));
 #else	// Full precision
 			partial_energies[get_local_id(0)] += VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid]/powr(atomic_distance,12);
 #endif
@@ -909,9 +915,9 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			// ------------------------------------------
 			// translation-related gradients
 			// ------------------------------------------
-			for (unsigned int lig_atom_id = 0;
-					  lig_atom_id<dockpars_num_of_atoms;
-					  lig_atom_id++) {
+			for (uint lig_atom_id = 0;
+				  lig_atom_id<dockpars_num_of_atoms;
+				  lig_atom_id++) {
 				gradient_genotype [0] += gradient_inter_x[lig_atom_id]; // gradient for gene 0: gene x
 				gradient_genotype [1] += gradient_inter_y[lig_atom_id]; // gradient for gene 1: gene y
 				gradient_genotype [2] += gradient_inter_z[lig_atom_id]; // gradient for gene 2: gene z
@@ -920,7 +926,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			// ------------------------------------------
 			// rotation-related gradients 
 			// ------------------------------------------
-			float3 torque = (float3)(0.0f, 0.0f, 0.0f);
+			float3 torque_rot = (float3)(0.0f, 0.0f, 0.0f);
 
 			// center of rotation 
 			// In getparameters.cpp, it indicates 
@@ -934,13 +940,13 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			// They are converted back to Angstroms here
 			float3 r;
 			
-			for (unsigned int lig_atom_id = 0;
-					  lig_atom_id<dockpars_num_of_atoms;
-					  lig_atom_id++) {
+			for (uint lig_atom_id = 0;
+				  lig_atom_id<dockpars_num_of_atoms;
+				  lig_atom_id++) {
 				r.x = (calc_coords_x[lig_atom_id] - about[0]) * dockpars_grid_spacing; 
 				r.y = (calc_coords_y[lig_atom_id] - about[1]) * dockpars_grid_spacing;  
 				r.z = (calc_coords_z[lig_atom_id] - about[2]) * dockpars_grid_spacing; 
-				torque += cross(r, torque);
+				torque_rot += cross(r, torque_rot);
 			}
 
 			const float rad = 1E-8;
@@ -951,10 +957,10 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 
 			// Derived from rotation.py/axisangle_to_q()
 			// genes[3:7] = rotation.axisangle_to_q(torque, rad)
-			torque = fast_normalize(torque);
-			quat_x = torque.x;
-			quat_y = torque.y;
-			quat_z = torque.z;
+			torque_rot = fast_normalize(torque_rot);
+			quat_x = torque_rot.x;
+			quat_y = torque_rot.y;
+			quat_z = torque_rot.z;
 
 			// rotation-related gradients are expressed here in quaternions
 			quat_w = native_cos(rad_div_2);
@@ -1020,15 +1026,76 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			gradient_genotype[4] = grad_u2;
 			gradient_genotype[5] = grad_u3;
 			
+			// ------------------------------------------
+			// torsion-related gradients 
+			// ------------------------------------------
 			
-			
+			// Iterate over rotations,
+			// but identify those associated with rotatable bonds
+			// Then iterate over rotatable bonds
+			for (uint rotation_counter = 0;
+			          rotation_counter < dockpars_rotbondlist_length;
+			          rotation_counter ++)
+			{
+				int rotation_list_element = rotlist_const[rotation_counter];
 
-			
+				if ((rotation_list_element & RLIST_DUMMY_MASK) == 0)	// If not dummy rotation
+				{
+					uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
 
-			
+					if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation
+					{
 
-		}
-	}
+					}
+					else	// If rotating around rotatable bond
+					{
+						uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
+
+						float3 rotation_unitvec;
+						rotation_unitvec.x = rotbonds_unit_vectors_const[3*rotbond_id];
+						rotation_unitvec.y = rotbonds_unit_vectors_const[3*rotbond_id+1];
+						rotation_unitvec.z = rotbonds_unit_vectors_const[3*rotbond_id+2];
+
+						// Torque of torsions
+						float3 torque_tor = (float3)(0.0f, 0.0f, 0.0f);
+
+						// Iterate over each ligand atom
+						for (unsigned int lig_atom_id = 0;
+								  lig_atom_id<dockpars_num_of_atoms;
+								  lig_atom_id++) {
+							// Calculate torque on point "A" 
+							// (could be any other point "B" along the rotation axis)
+							float3 atom_coords = {calc_coords_x[lig_atom_id], 
+								              calc_coords_y[lig_atom_id], 
+								              calc_coords_z[lig_atom_id]};
+
+							float3 atom_force  = {gradient_inter_x[lig_atom_id],
+								              gradient_inter_y[lig_atom_id],
+							                      gradient_inter_z[lig_atom_id]};
+
+							float3 rotation_movingvec;
+							rotation_movingvec.x = rotbonds_moving_vectors_const[3*rotbond_id];
+							rotation_movingvec.y = rotbonds_moving_vectors_const[3*rotbond_id+1];
+							rotation_movingvec.z = rotbonds_moving_vectors_const[3*rotbond_id+2];
+
+							torque_tor += cross((atom_coords-rotation_movingvec), atom_force);
+						}
+
+						// Project torque on rotation axis
+						float torque_on_axis = dot(rotation_unitvec, torque_tor);
+
+						// Assignment of gene-based gradient
+						gradient_genotype[rotbond_id] = torque_on_axis;
+
+					} // End of general / rotatable-bond rotation
+
+				} // End of not dummy rotation
+
+			} // End of iterations over rotations
+
+		} // End if (*is_enabled_gradient_calc)
+
+	} // End gradient-calculation performed by single work-item
 
 }
 
