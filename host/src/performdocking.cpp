@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define KRNL2 STRINGIZE(K2)
 #define KRNL3 STRINGIZE(K3)
 #define KRNL4 STRINGIZE(K4)
+#define KRNL5 STRINGIZE(K5)
 
 #else
 #define KRNL_FILE KRNL_SOURCE
@@ -41,6 +42,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define KRNL2 K2
 #define KRNL3 K3
 #define KRNL4 K4
+#define KRNL5 K5
 #endif
 
 #define INC " -I " KRNL_FOLDER " -I " KRNL_COMMON

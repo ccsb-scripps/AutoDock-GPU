@@ -6,19 +6,20 @@ bool is_gradDescent_enabled(__local    float*        a_gNorm,
                                        unsigned int  gradMin_maxiter,
                             __local    float*        a_perturbation,
                             __constant float*        gradMin_conformation_min_perturbation,
-                            __local    bool*         is_gradDescentEn)
+                            __local    bool*         is_gradDescentEn,
+				       uint          gradMin_numElements)
 {
-	bool is_gNorm_gt_gMin       = (a_gNorm >= gradMin_tol);
-	bool is_nIter_lt_maxIter    = (a_niter <= gradMin_maxiter);
+	bool is_gNorm_gt_gMin       = (a_gNorm[0] >= gradMin_tol);
+	bool is_nIter_lt_maxIter    = (a_nIter[0] <= gradMin_maxiter);
 
 	bool is_perturb_gt_gene_min [ACTUAL_GENOTYPE_LENGTH];
-	bool is perturb_gt_genotype = true;
+	bool is_perturb_gt_genotype = true;
 
 	// For every gene, let's determine 
 	// if perturbation is greater than min conformation
-  	for(unsigned int i=get_local_id(0); 
-			 i<dockpars_num_of_genes; 
-			 i+=NUM_OF_THREADS_PER_BLOCK) {
+  	for(uint i=get_local_id(0); 
+		 i<gradMin_numElements; 
+		 i+=NUM_OF_THREADS_PER_BLOCK) {
    		is_perturb_gt_gene_min[i] = (a_perturbation[i] >= gradMin_conformation_min_perturbation[i]);
   	}
 
@@ -26,9 +27,9 @@ bool is_gradDescent_enabled(__local    float*        a_gNorm,
 
   	// Reduce all is_perturb_gt_gene_min's 
 	// into their corresponding genotype
-  	for(unsigned int i=get_local_id(0); 
-			 i<dockpars_num_of_genes;
-			 i+=NUM_OF_THREADS_PER_BLOCK) {
+  	for(uint i=get_local_id(0); 
+		 i<gradMin_numElements;
+		 i+=NUM_OF_THREADS_PER_BLOCK) {
     		is_perturb_gt_genotype = is_perturb_gt_genotype && is_perturb_gt_gene_min[i];
   	}
 
@@ -114,7 +115,9 @@ void stepGPU (// Args for minimization
 		 __local bool*  is_enabled_gradient_calc,
 	    	 __local float* gradient_inter_x,
 	         __local float* gradient_inter_y,
-	         __local float* gradient_inter_z
+	         __local float* gradient_inter_z,
+
+		 __local float* gradient_genotype
 )
 {
 	// Calculate gradient
@@ -133,8 +136,8 @@ void stepGPU (// Args for minimization
 			dockpars_qasp,
 			dockpars_coeff_desolv,
 			genotype,
-			&energy,
-			&run_id,
+			energy,
+			run_id,
 			// Some OpenCL compilers don't allow declaring 
 			// local variables within non-kernel functions.
 			// These local variables must be declared in a kernel, 
@@ -166,10 +169,12 @@ void stepGPU (// Args for minimization
 		 	// Derived from autodockdev/maps.py
 		 	// -------------------------------------------------------------------
 			,
-			&is_enabled_gradient_calc,
+			is_enabled_gradient_calc,
 			gradient_inter_x,
 			gradient_inter_y,
-			gradient_inter_z
+			gradient_inter_z,
+
+			gradient_genotype
 			);
 			// -------------------------------------------------------------------
 	// =============================================================

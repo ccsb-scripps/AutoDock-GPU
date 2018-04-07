@@ -33,12 +33,12 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 	  __global float* restrict dockpars_conformations_next,
 	  __global float* restrict dockpars_energies_next,
 	  //__global int*   restrict dockpars_evals_of_new_entities,
-	  //__global unsigned int* restrict dockpars_prng_states,
+	  __global unsigned int* restrict dockpars_prng_states,
 			#else
 	  __global float* dockpars_conformations_next,
 	  __global float* dockpars_energies_next,
 	  //__global int*   dockpars_evals_of_new_entities,
-	  //__global unsigned int* dockpars_prng_states,
+	  __global unsigned int* dockpars_prng_states,
 			#endif
 
 			int    dockpars_pop_size,
@@ -50,7 +50,7 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 			//float  dockpars_base_dang_mul_sqrt3,
 			//unsigned int dockpars_cons_limit,
 			//unsigned int dockpars_max_num_of_iters,
-			//float  dockpars_qasp,
+			float  dockpars_qasp,
 
 	     __constant float* atom_charges_const,
     	     __constant char*  atom_types_const,
@@ -74,7 +74,7 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 		    	unsigned int      gradMin_maxiter,
 	    		float             gradMin_alpha,
 	    		float             gradMin_h,
-    	     __constant float* gradMin_conformation_min_perturbation,    // minimal values for gene perturbation, originally as the scalar "dxmin"
+    	     __constant float* gradMin_conformation_min_perturbation     // minimal values for gene perturbation, originally as the scalar "dxmin"
     	     //unsigned int      gradMin_M,                              // dimensionality of the input data (=num_of_genes)
              //  __global float* restrict dockpars_conformations_next,   // optimized genotype are to be store back here, originally as "d_xopt"
              //  __global float* restrict dockpars_energies_next,        // minimized energy, originally as "fopt"
@@ -106,7 +106,7 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 		
 		// Since entity-ID=0 is the best one due to elitism, it should be subjected to random selection
 		if (entity_id == 0)
-			if (100.0f*gpu_randf(dockpar_prng_states) > dockpars_lsearch_rate)
+			if (100.0f*gpu_randf(dockpars_prng_states) > dockpars_lsearch_rate)
 				entity_id = dockpars_num_of_lsentities;	 // If entity-ID=0 is not selected according to LS-rate,
 									 // then choose another entity
 
@@ -188,11 +188,12 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 	// Perform gradient-descent iterations
 	while (is_gradDescent_enabled(&local_gNorm,
     				      gradMin_tol,
-    				      &local_iter,
+    				      &local_nIter,
     				      gradMin_maxiter,
     				      local_perturbation,
     				      gradMin_conformation_min_perturbation,
-    				      &is_gradDescentEn) == true) {
+    				      &is_gradDescentEn,
+				      dockpars_num_of_genes) == true) {
 
     		stepGPU(// Args for minimization
 			local_genotype,

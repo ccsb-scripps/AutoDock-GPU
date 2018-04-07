@@ -896,6 +896,19 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 		}
 	}
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 	// -------------------------------------------------------------------
 	// Calculate gradients (forces) corresponding to (interE + intraE)
 	// Derived from autodockdev/motions.py/forces_to_delta()
@@ -1104,3 +1117,5 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 #include "auxiliary_genetic.cl"
 #include "kernel4.cl"
 #include "kernel3.cl"
+#include "auxiliary_gradient.cl"
+#include "kernel_gradient.cl"
