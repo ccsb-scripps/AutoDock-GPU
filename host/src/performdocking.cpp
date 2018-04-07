@@ -86,12 +86,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "stringify.h"
 
 int docking_with_gpu(const Gridinfo*   mygrid,
-	             	 /*const*/ float*      cpu_floatgrids,
+	         /*const*/ float*      cpu_floatgrids,
                            Dockpars*   mypars,
-		     						 const Liganddata* myligand_init,
-		     			 	     const int*        argc,
-		           						 char**      argv,
-		           						 clock_t     clock_start_program)
+		     const Liganddata* myligand_init,
+		     const int*        argc,
+		           char**      argv,
+		           clock_t     clock_start_program)
 /* The function performs the docking algorithm and generates the corresponding result files.
 parameter mygrid:
 		describes the grid
@@ -141,6 +141,9 @@ filled with clock() */
 	cl_kernel kernel4; const char *name_k4 = KRNL4;
 	size_t kernel4_gxsize, kernel4_lxsize;
 
+	cl_kernel kernel5; const char *name_k5 = KRNL5;
+	size_t kernel5_gxsize, kernel5_lxsize;
+
 	cl_uint platformCount;
 	cl_uint deviceCount;
 
@@ -166,11 +169,13 @@ filled with clock() */
 	if (ImportSource(filename, name_k2, device_id, context, options_program, &kernel2) != 0) return 1;
 	if (ImportSource(filename, name_k3, device_id, context, options_program, &kernel3) != 0) return 1;
 	if (ImportSource(filename, name_k4, device_id, context, options_program, &kernel4) != 0) return 1;
+	if (ImportSource(filename, name_k5, device_id, context, options_program, &kernel5) != 0) return 1;
 #else
 	if (ImportSource(calcenergy_ocl, name_k1, device_id, context, options_program, &kernel1) != 0) return 1;
 	if (ImportSource(calcenergy_ocl, name_k2, device_id, context, options_program, &kernel2) != 0) return 1;
 	if (ImportSource(calcenergy_ocl, name_k3, device_id, context, options_program, &kernel3) != 0) return 1;
 	if (ImportSource(calcenergy_ocl, name_k4, device_id, context, options_program, &kernel4) != 0) return 1;
+	if (ImportSource(calcenergy_ocl, name_k5, device_id, context, options_program, &kernel5) != 0) return 1;
 #endif
 
 // End of OpenCL Host Setup
@@ -197,6 +202,7 @@ filled with clock() */
 	int blocksPerGridForEachEntity;
 	int blocksPerGridForEachRun;
 	int blocksPerGridForEachLSEntity;
+	int blocksPerGridForEachGradMinimizerEntity;
 
 	unsigned long run_cnt;	/* int run_cnt; */
 	int generation_cnt;
@@ -382,6 +388,43 @@ filled with clock() */
 
 	blocksPerGridForEachLSEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
 
+
+
+	// Experimental TSRI gradient-based minimizer kernel argument
+	// Setup here (temporarily?) the gradient and associated parameters.
+	// This should be ultimately configurable by the user as program exec. flags.
+	Gradientparameters gradientpars;
+	gradientpars.tolerance = 1.e-6;
+	gradientpars.max_num_of_iters = 10000;
+	gradientpars.alpha = 0.001f;
+	gradientpars.h = 0.0001f;
+
+	// Set minimum values for input conformation (translation genes as x, y, z)
+	for (unsigned int gene_cnt=0; gene_cnt<3; gene_cnt++) {
+			gradientpars.conformation_min_perturbation[0] = 1e-5; // FIXME: set right min values
+	}
+
+	// Set minimum values for input conformation (rotation genes as Shoemake genes)
+	for (unsigned int gene_cnt=3; gene_cnt<6; gene_cnt++) {
+			gradientpars.conformation_min_perturbation[0] = 0.0f; // FIXME: set right min values
+	}
+
+	// Set minimum values for input conformations (torsion genes as angles)
+	for (unsigned int gene_cnt=6; gene_cnt<(dockpars.num_of_genes - 6); gene_cnt++) {
+			gradientpars.conformation_min_perturbation[0] = 45.0f; // FIXME: set right min values
+	}
+
+	cl_mem mem_gradpars_conformation_min_perturbation;
+	size_t size_conformation_min_perturbation = ACTUAL_GENOTYPE_LENGTH*sizeof(float);
+
+	mallocBufferObject(context, CL_MEM_READ_ONLY, size_conformation_min_perturbation, &mem_gradpars_conformation_min_perturbation);
+	memcopyBufferObjectToDevice(command_queue, mem_gradpars_conformation_min_perturbation, gradientpars.conformation_min_perturbation, size_conformation_min_perturbation);
+
+	// Initially, the number of entities that undergo gradient-minimization,
+	// is the same as the number of entities that undergo gradient-based minimizer
+	blocksPerGridForEachGradMinimizerEntity = blocksPerGridForEachLSEntity;
+
+
 	clock_start_docking = clock();
 
 	//print progress bar
@@ -545,6 +588,78 @@ filled with clock() */
 // End of Kernel3
 
 
+// Kernel5
+  setKernelArg(kernel5,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
+  setKernelArg(kernel5,1, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
+  setKernelArg(kernel5,2, sizeof(dockpars.num_of_intraE_contributors),     &dockpars.num_of_intraE_contributors);
+  setKernelArg(kernel5,3, sizeof(dockpars.gridsize_x),                     &dockpars.gridsize_x);
+  setKernelArg(kernel5,4, sizeof(dockpars.gridsize_y),                     &dockpars.gridsize_y);
+  setKernelArg(kernel5,5, sizeof(dockpars.gridsize_z),                     &dockpars.gridsize_z);
+  setKernelArg(kernel5,6, sizeof(dockpars.grid_spacing),                   &dockpars.grid_spacing);
+  setKernelArg(kernel5,7, sizeof(mem_dockpars_fgrids),                     &mem_dockpars_fgrids);
+  setKernelArg(kernel5,8, sizeof(dockpars.rotbondlist_length),             &dockpars.rotbondlist_length);
+  setKernelArg(kernel5,9, sizeof(dockpars.coeff_elec),                     &dockpars.coeff_elec);
+  setKernelArg(kernel5,10,sizeof(dockpars.coeff_desolv),                   &dockpars.coeff_desolv);
+  setKernelArg(kernel5,11,sizeof(mem_dockpars_conformations_next),         &mem_dockpars_conformations_next);
+  setKernelArg(kernel5,12,sizeof(mem_dockpars_energies_next),              &mem_dockpars_energies_next);
+//  setKernelArg(kernel5,13,sizeof(mem_dockpars_evals_of_new_entities),      &mem_dockpars_evals_of_new_entities);
+  setKernelArg(kernel5,13,sizeof(mem_dockpars_prng_states),                &mem_dockpars_prng_states);
+  setKernelArg(kernel5,14,sizeof(dockpars.pop_size),                       &dockpars.pop_size);
+  setKernelArg(kernel5,15,sizeof(dockpars.num_of_genes),                   &dockpars.num_of_genes);
+  setKernelArg(kernel5,16,sizeof(dockpars.lsearch_rate),                   &dockpars.lsearch_rate);
+  setKernelArg(kernel5,17,sizeof(dockpars.num_of_lsentities),              &dockpars.num_of_lsentities);
+//  setKernelArg(kernel5,19,sizeof(dockpars.rho_lower_bound),                &dockpars.rho_lower_bound);
+//  setKernelArg(kernel5,20,sizeof(dockpars.base_dmov_mul_sqrt3),            &dockpars.base_dmov_mul_sqrt3);
+//  setKernelArg(kernel5,21,sizeof(dockpars.base_dang_mul_sqrt3),            &dockpars.base_dang_mul_sqrt3);
+//  setKernelArg(kernel5,22,sizeof(dockpars.cons_limit),                     &dockpars.cons_limit);
+//  setKernelArg(kernel5,23,sizeof(dockpars.max_num_of_iters),               &dockpars.max_num_of_iters);
+  setKernelArg(kernel5,18,sizeof(dockpars.qasp),                           &dockpars.qasp);
+  setKernelArg(kernel5,19,sizeof(mem_atom_charges_const),                  &mem_atom_charges_const);
+  setKernelArg(kernel5,20,sizeof(mem_atom_types_const),                    &mem_atom_types_const);
+  setKernelArg(kernel5,21,sizeof(mem_intraE_contributors_const),           &mem_intraE_contributors_const);
+  setKernelArg(kernel5,22,sizeof(mem_VWpars_AC_const),                     &mem_VWpars_AC_const);
+  setKernelArg(kernel5,23,sizeof(mem_VWpars_BD_const),                     &mem_VWpars_BD_const);
+  setKernelArg(kernel5,24,sizeof(mem_dspars_S_const),                      &mem_dspars_S_const);
+  setKernelArg(kernel5,25,sizeof(mem_dspars_V_const),                      &mem_dspars_V_const);
+  setKernelArg(kernel5,26,sizeof(mem_rotlist_const),                       &mem_rotlist_const);
+  setKernelArg(kernel5,27,sizeof(mem_ref_coords_x_const),                  &mem_ref_coords_x_const);
+  setKernelArg(kernel5,28,sizeof(mem_ref_coords_y_const),                  &mem_ref_coords_y_const);
+  setKernelArg(kernel5,29,sizeof(mem_ref_coords_z_const),                  &mem_ref_coords_z_const);
+  setKernelArg(kernel5,30,sizeof(mem_rotbonds_moving_vectors_const),       &mem_rotbonds_moving_vectors_const);
+  setKernelArg(kernel5,31,sizeof(mem_rotbonds_unit_vectors_const),         &mem_rotbonds_unit_vectors_const);
+  setKernelArg(kernel5,32,sizeof(mem_ref_orientation_quats_const),         &mem_ref_orientation_quats_const);
+
+  // Specific gradient-minimizer args
+  setKernelArg(kernel5,33,sizeof(gradientpars.tolerance),         	   &gradientpars.tolerance);
+  setKernelArg(kernel5,34,sizeof(gradientpars.max_num_of_iters),           &gradientpars.max_num_of_iters);
+  setKernelArg(kernel5,35,sizeof(gradientpars.alpha),            	   &gradientpars.alpha);
+  setKernelArg(kernel5,36,sizeof(gradientpars.h),            	   	   &gradientpars.h);
+  setKernelArg(kernel5,37,sizeof(mem_gradpars_conformation_min_perturbation),              &mem_gradpars_conformation_min_perturbation);
+
+  kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
+  kernel5_lxsize = threadsPerBlock;
+#ifdef DOCK_DEBUG
+	printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MINIMIZER: ", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
+#endif
+// End of Kernel3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Kernel1
 	//#ifdef DOCK_DEBUG
 	//	printf("Start Kernel1 ... ");fflush(stdout);
@@ -618,6 +733,7 @@ filled with clock() */
 	#endif
 // End of Kernel4
 
+/*
 // Kernel3
 	#ifdef DOCK_DEBUG
 		printf("%-25s", "K_LOCAL_SEARCH: ");fflush(stdout);
@@ -627,6 +743,18 @@ filled with clock() */
 		printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 // End of Kernel3
+*/
+
+// Kernel5
+	#ifdef DOCK_DEBUG
+		printf("%-25s", "K_GRAD_MINIMIZER: ");fflush(stdout);
+	#endif
+		runKernel1D(command_queue,kernel5,kernel5_gxsize,kernel5_lxsize,&time_start_kernel,&time_end_kernel);
+	#ifdef DOCK_DEBUG
+		printf("%15s" ," ... Finished\n");fflush(stdout);
+	#endif
+// End of Kernel5
+
 
 // Kernel2
 	//#ifdef DOCK_DEBUG
@@ -667,23 +795,23 @@ filled with clock() */
 			// Kernel 4
 			setKernelArg(kernel4,11,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
 			setKernelArg(kernel4,12,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
-      setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
+      			setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
 			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
 
 			// Kernel 3
-     	setKernelArg(kernel3,11,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
-      setKernelArg(kernel3,12,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
+     			setKernelArg(kernel3,11,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
+      			setKernelArg(kernel3,12,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
 		}
 		else { // In this configuration, the program starts
 			// Kernel 4
 			setKernelArg(kernel4,11,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
 			setKernelArg(kernel4,12,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
-      setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
+      			setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
 			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
 
 			// Kernel 3
 			setKernelArg(kernel3,11,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
-      setKernelArg(kernel3,12,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
+      			setKernelArg(kernel3,12,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
 		}
 		// ----------------------------------------------------------------------
 
@@ -786,10 +914,14 @@ filled with clock() */
 	clReleaseMemObject(mem_dockpars_prng_states);
 	clReleaseMemObject(mem_gpu_evals_of_runs);
 
+	clReleaseMemObject(mem_gradpars_conformation_min_perturbation);
+
+
 	clReleaseKernel(kernel1);
 	clReleaseKernel(kernel2);
 	clReleaseKernel(kernel3);
 	clReleaseKernel(kernel4);
+	clReleaseKernel(kernel5);
 	clReleaseCommandQueue(command_queue);
 	clReleaseContext(context);
 	free(device_id);
