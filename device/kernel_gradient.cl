@@ -173,6 +173,9 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 	if (get_local_id(0) == 0) {
 		is_enabled_gradient_calc = true;
 	}
+
+	// Final gradient resulting out of gradient calculation
+	__local float gradient_genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
 	// -------------------------------------------------------------------
 
 	// Variables to store partial energies
@@ -250,7 +253,9 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 			&is_enabled_gradient_calc,
 			gradient_inter_x,
 			gradient_inter_y,
-			gradient_inter_z
+			gradient_inter_z,
+
+			gradient_genotype
       			);
 			// -------------------------------------------------------------------
 
