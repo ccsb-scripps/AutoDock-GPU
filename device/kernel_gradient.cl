@@ -11,47 +11,26 @@
 // foo<<<N,1>>> means N blocks and 1thread in each block
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
-gradient_minimizer(	char   dockpars_num_of_atoms,
+gradient_minimizer(	
+			char   dockpars_num_of_atoms,
 			char   dockpars_num_of_atypes,
 			int    dockpars_num_of_intraE_contributors,
 			char   dockpars_gridsize_x,
 			char   dockpars_gridsize_y,
 			char   dockpars_gridsize_z,
 			float  dockpars_grid_spacing,
-
-			#if defined (RESTRICT_ARGS)
-	  __global const float* restrict dockpars_fgrids, // cannot be allocated in __constant (too large)
-			#else
-	  __global const float* dockpars_fgrids,          // cannot be allocated in __constant (too large)
-			#endif
-			
+	 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
 			int    dockpars_rotbondlist_length,
 			float  dockpars_coeff_elec,
 			float  dockpars_coeff_desolv,
-
-			#if defined (RESTRICT_ARGS)
-	  __global float* restrict dockpars_conformations_next,
-	  __global float* restrict dockpars_energies_next,
-	  //__global int*   restrict dockpars_evals_of_new_entities,
-	  __global unsigned int* restrict dockpars_prng_states,
-			#else
-	  __global float* dockpars_conformations_next,
-	  __global float* dockpars_energies_next,
-	  //__global int*   dockpars_evals_of_new_entities,
-	  __global unsigned int* dockpars_prng_states,
-			#endif
-
+	  __global      float* restrict dockpars_conformations_next,
+	  __global      float* restrict dockpars_energies_next,
+	  __global      uint*  restrict dockpars_prng_states,
 			int    dockpars_pop_size,
 			int    dockpars_num_of_genes,
 			float  dockpars_lsearch_rate,
-			unsigned int dockpars_num_of_lsentities,
-			//float  dockpars_rho_lower_bound,
-			//float  dockpars_base_dmov_mul_sqrt3,
-			//float  dockpars_base_dang_mul_sqrt3,
-			//unsigned int dockpars_cons_limit,
-			//unsigned int dockpars_max_num_of_iters,
+			uint   dockpars_num_of_lsentities,
 			float  dockpars_qasp,
-
 	     __constant float* atom_charges_const,
     	     __constant char*  atom_types_const,
 	     __constant char*  intraE_contributors_const,
@@ -67,11 +46,11 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
              __constant float* rotbonds_unit_vectors_const,
              __constant float* ref_orientation_quats_const,
 
-    // Specific gradient-minimizer args
+    			// Specific gradient-minimizer args
     //  __global float* restrict dockpars_conformations_next,   // initial population
                                                                 // whose (some) entities (genotypes) are to be minimized
     			float             gradMin_tol,
-		    	unsigned int      gradMin_maxiter,
+		    	uint      	  gradMin_maxiter,
 	    		float             gradMin_alpha,
 	    		float             gradMin_h,
     	     __constant float* gradMin_conformation_min_perturbation     // minimal values for gene perturbation, originally as the scalar "dxmin"
@@ -94,7 +73,7 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 //subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
 	// -----------------------------------------------------------------------------
-	// Determine entity, and its run and energy
+	// Determining entity, and its run and energy
 	__local int   entity_id;
 	__local int   run_id;
   	__local float local_energy;
@@ -104,11 +83,18 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 		entity_id = get_group_id(0) % dockpars_num_of_lsentities;
 		run_id = get_group_id(0) / dockpars_num_of_lsentities;
 		
-		// Since entity-ID=0 is the best one due to elitism, it should be subjected to random selection
-		if (entity_id == 0)
-			if (100.0f*gpu_randf(dockpars_prng_states) > dockpars_lsearch_rate)
+		// Since entity-ID=0 is the best one due to elitism, 
+		// it should be subjected to random selection
+		if (entity_id == 0) {
+/*
+			if (100.0f*gpu_randf(dockpars_prng_states) > dockpars_lsearch_rate) {
 				entity_id = dockpars_num_of_lsentities;	 // If entity-ID=0 is not selected according to LS-rate,
 									 // then choose another entity
+
+			}
+*/
+			entity_id = 1;
+		}
 
 		local_energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
 	}
@@ -116,20 +102,20 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 	barrier(CLK_LOCAL_MEM_FENCE);
 
   	// -----------------------------------------------------------------------------
-	// Initialize variables for gradient minimizer
-  	__local float        local_gNorm;                                  // gradient norm (shared in the CU), originally as "gnorm"
-  	__local unsigned int local_nIter;                                  // iteration counter, originally as "niter"
-  	__local float        local_perturbation [ACTUAL_GENOTYPE_LENGTH];  // perturbation, originally as "dx"
-  	__local float        local_genotype[ACTUAL_GENOTYPE_LENGTH];       // optimization vector, originally as "d_x"
+	// Initializing variables for gradient minimizer
+  	__local float   local_gNorm;                                  // gradient norm (shared in the CU), originally as "gnorm"
+  	__local uint 	local_nIter;                                  // iteration counter, originally as "niter"
+  	__local float   local_perturbation [ACTUAL_GENOTYPE_LENGTH];  // perturbation, originally as "dx"
+  	__local float   local_genotype[ACTUAL_GENOTYPE_LENGTH];       // optimization vector, originally as "d_x"
 
 	if (get_local_id(0) == 0) {
 		local_gNorm = FLT_MAX;
     		local_nIter = 0;
   	}
 
-  	for(unsigned int i=get_local_id(0); 
-			 i<dockpars_num_of_genes; 
-			 i+=NUM_OF_THREADS_PER_BLOCK) {
+  	for(uint i = get_local_id(0); 
+		 i < dockpars_num_of_genes; 
+		 i+= NUM_OF_THREADS_PER_BLOCK) {
     		local_perturbation[i] = FLT_MAX;
   	}
 
@@ -137,33 +123,35 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 
   	async_work_group_copy(local_genotype,
   			      dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
-                              dockpars_num_of_genes,0);
+                              dockpars_num_of_genes, 0);
 
   	// -----------------------------------------------------------------------------
-  	// Allocate space
+  	// Some OpenCL compilers don't allow declaring 
+	// local variables within non-kernel functions.
+	// These local variables must be declared in a kernel, 
+	// and then passed to non-kernel functions.
+	
+	// Partial results in "is_gradDescent_enabled()"
+	__local bool is_gNorm_gt_gMin;
+	__local bool is_nIter_lt_maxIter;
+	__local bool is_perturb_gt_gene_min [ACTUAL_GENOTYPE_LENGTH];
+	__local bool is_perturb_gt_genotype;
+  	__local bool is_gradDescentEn;                
+
+	// Partial results in "stepGPU()"
 	__local float local_gradient      [ACTUAL_GENOTYPE_LENGTH]; // gradient, originally as "d_g"
 	__local float local_genotype_new  [ACTUAL_GENOTYPE_LENGTH]; // new actual solution, originally as "d_xnew"
 	__local float local_genotype_diff [ACTUAL_GENOTYPE_LENGTH]; // difference between actual and old solution, originally as "d_xdiff"
 
-	// Some OpenCL compilers don't allow declaring 
-	// local variables within non-kernel functions.
-	// These local variables must be declared in a kernel, 
-	// and then passed to non-kernel functions.
-  	__local bool  is_gradDescentEn;                             // used in is_gradDescent_enabled()
-	__local float innerProduct;                                 // used in inner_product()
+	// Partial results in "dot" product
+	__local float dotProduct          [ACTUAL_GENOTYPE_LENGTH];                                 
 
 	// -------------------------------------------------------------------
-	// L30nardoSV
 	// Calculate gradients (forces) for intermolecular energy
 	// Derived from autodockdev/maps.py
 	// -------------------------------------------------------------------
 	// Variables to store gradient of 
 	// the intermolecular energy per each ligand atom
-
-	// Some OpenCL compilers don't allow declaring 
-	// local variables within non-kernel functions.
-	// These local variables must be declared in a kernel, 
-	// and then passed to non-kernel functions.
 	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
 	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
 	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
@@ -186,7 +174,12 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 
 	// -----------------------------------------------------------------------------
 	// Perform gradient-descent iterations
-	while (is_gradDescent_enabled(&local_gNorm,
+	while (is_gradDescent_enabled(
+				      &is_gNorm_gt_gMin,
+				      &is_nIter_lt_maxIter,
+				      is_perturb_gt_gene_min,
+				      &is_perturb_gt_genotype,
+				      &local_gNorm,
     				      gradMin_tol,
     				      &local_nIter,
     				      gradMin_maxiter,
@@ -243,35 +236,57 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 			rotbonds_moving_vectors_const,
 			rotbonds_unit_vectors_const,
 			ref_orientation_quats_const
-
-		 	// -------------------------------------------------------------------
-		 	// L30nardoSV
 		 	// Gradient-related arguments
 		 	// Calculate gradients (forces) for intermolecular energy
 		 	// Derived from autodockdev/maps.py
-		 	// -------------------------------------------------------------------
 			,
 			&is_enabled_gradient_calc,
 			gradient_inter_x,
 			gradient_inter_y,
 			gradient_inter_z,
-
 			gradient_genotype
       			);
 			// -------------------------------------------------------------------
 
-    		// Store the norm of all gradients
-    		local_gNorm = native_sqrt(inner_product(local_gradient, 
-						        local_gradient,
-                                                        dockpars_num_of_genes,
-                                                        &innerProduct));
 
-    		// Here it is stored a reduced norm of all perturbations
-	    	local_perturbation[0] = native_sqrt(inner_product(local_genotype_diff,
-                                                                  local_genotype_diff,
-                                                                  dockpars_num_of_genes,
-                                                                  &innerProduct));
-    		local_nIter = local_nIter + 1;
+		// Updating number of stepest-descent iterations
+		if (get_local_id(0) == 0) {
+	    		local_nIter = local_nIter + 1;
+		}
+
+	    	// Storing the norm of all gradients
+/*
+	    	local_gNorm = native_sqrt(inner_product(local_gradient, 
+							local_gradient,
+		                                        dockpars_num_of_genes,
+		                                        dotProduct));
+*/
+		
+		local_gNorm = inner_product(local_gradient, local_gradient, dockpars_num_of_genes, dotProduct);
+
+		if (get_local_id(0) == 0) {
+			local_gNorm = native_sqrt(local_gNorm);
+		}
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		// Storing all gene-based perturbations
+		for(uint i = get_local_id(0); 
+			 i < dockpars_num_of_genes; 
+			 i+= NUM_OF_THREADS_PER_BLOCK) {
+	     		local_perturbation[i]  = local_genotype_diff [i];
+   		}
+
+/*
+		if (get_local_id(0) == 0) {
+			printf("Entity: %u, Run: %u, minimized E: %f\n", entity_id, run_id, local_energy);
+		}		
+*/
+/*
+		if ((get_group_id(0) == 0) && (get_local_id(0) == 0)) {
+			printf("Number of gradient iterations: %u\n", local_nIter);
+		}
+*/
   	}
 	// -----------------------------------------------------------------------------
 
@@ -279,7 +294,7 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 	// stepGPU () calls gpu_calc_energy ()
 	// the former calculates energy + gradients
 	
-  	// Copy final genotype and energy into global memory
+  	// Copying final genotype and energy into global memory
 	if (get_local_id(0) == 0) {
 		  dockpars_energies_next[run_id*dockpars_pop_size+entity_id] = local_energy;
 	}
@@ -291,6 +306,7 @@ gradient_minimizer(	char   dockpars_num_of_atoms,
 			      dockpars_num_of_genes,0);
 
 
-  	// copy final "local" results into "global" memory
+	// FIXME: maybe not used outside?
+  	// Copying final "local" results into "global" memory
   	local_nIter = local_nIter - 1;
 }

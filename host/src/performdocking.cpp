@@ -406,7 +406,7 @@ filled with clock() */
 
 	// Set minimum values for input conformation (rotation genes as Shoemake genes)
 	for (unsigned int gene_cnt=3; gene_cnt<6; gene_cnt++) {
-			gradientpars.conformation_min_perturbation[0] = 0.0f; // FIXME: set right min values
+			gradientpars.conformation_min_perturbation[0] = 0.0f;
 	}
 
 	// Set minimum values for input conformations (torsion genes as angles)
@@ -421,8 +421,8 @@ filled with clock() */
 	memcopyBufferObjectToDevice(command_queue, mem_gradpars_conformation_min_perturbation, gradientpars.conformation_min_perturbation, size_conformation_min_perturbation);
 
 	// Initially, the number of entities that undergo gradient-minimization,
-	// is the same as the number of entities that undergo gradient-based minimizer
-	blocksPerGridForEachGradMinimizerEntity = blocksPerGridForEachLSEntity;
+	// by default, it is the same as the number of entities that undergo gradient-based minimizer
+	blocksPerGridForEachGradMinimizerEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
 
 
 	clock_start_docking = clock();

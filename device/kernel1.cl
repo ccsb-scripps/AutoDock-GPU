@@ -23,84 +23,69 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
-gpu_calc_initpop(	char   dockpars_num_of_atoms,
+gpu_calc_initpop(	
+			char   dockpars_num_of_atoms,
 			char   dockpars_num_of_atypes,
 			int    dockpars_num_of_intraE_contributors,
 			char   dockpars_gridsize_x,
 			char   dockpars_gridsize_y,
 			char   dockpars_gridsize_z,
 			float  dockpars_grid_spacing,
-		#if defined (RESTRICT_ARGS)
-		  __global const float* restrict dockpars_fgrids, // cannot be allocated in __constant (too large)
-		#else
-		  __global const float* dockpars_fgrids,          // cannot be allocated in __constant (too large)
-		#endif
+	 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
 			int    dockpars_rotbondlist_length,
 			float  dockpars_coeff_elec,
 			float  dockpars_coeff_desolv,
-
-		#if defined (RESTRICT_ARGS)
-			__global const float* restrict dockpars_conformations_current,
-			__global float* restrict dockpars_energies_current,
-		        __global int*   restrict dockpars_evals_of_new_entities,
-		#else
-			__global const float* dockpars_conformations_current,
-			__global float* dockpars_energies_current,
-		        __global int*   dockpars_evals_of_new_entities,
-		#endif
-
+	 __global const float* restrict dockpars_conformations_current,
+	 __global       float* restrict dockpars_energies_current,
+	 __global       int*   restrict dockpars_evals_of_new_entities,
 			int    dockpars_pop_size,
 			float  dockpars_qasp,
-
-	   __constant float* atom_charges_const,
-           __constant char*  atom_types_const,
-	   __constant char*  intraE_contributors_const,
-           __constant float* VWpars_AC_const,
-           __constant float* VWpars_BD_const,
-           __constant float* dspars_S_const,
-           __constant float* dspars_V_const,
-           __constant int*   rotlist_const,
-           __constant float* ref_coords_x_const,
-           __constant float* ref_coords_y_const,
-           __constant float* ref_coords_z_const,
-           __constant float* rotbonds_moving_vectors_const,
-           __constant float* rotbonds_unit_vectors_const,
-           __constant float* ref_orientation_quats_const
+	     __constant float* atom_charges_const,
+             __constant char*  atom_types_const,
+	     __constant char*  intraE_contributors_const,
+             __constant float* VWpars_AC_const,
+             __constant float* VWpars_BD_const,
+             __constant float* dspars_S_const,
+             __constant float* dspars_V_const,
+             __constant int*   rotlist_const,
+             __constant float* ref_coords_x_const,
+             __constant float* ref_coords_y_const,
+             __constant float* ref_coords_z_const,
+             __constant float* rotbonds_moving_vectors_const,
+             __constant float* rotbonds_unit_vectors_const,
+             __constant float* ref_orientation_quats_const
 ){
-	__local float  genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
-	__local float  energy;
-	__local int    run_id;
-
         // Some OpenCL compilers don't allow declaring 
 	// local variables within non-kernel functions.
 	// These local variables must be declared in a kernel, 
 	// and then passed to non-kernel functions.
+	__local float  genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
+	__local float  energy;
+	__local int    run_id;
+
 	__local float calc_coords_x[MAX_NUM_OF_ATOMS];
 	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
 	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
 
+	// Copying genotype from global memory
 	event_t ev = async_work_group_copy(genotype,
 			                   dockpars_conformations_current + GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0),
 			                   GENOTYPE_LENGTH_IN_GLOBMEM, 0);
 
 	wait_group_events(1,&ev);
 
-	//determining run ID
-	if (get_local_id(0) == 0)
+	// Determining run-ID
+	if (get_local_id(0) == 0) {
 		run_id = get_group_id(0) / dockpars_pop_size;
+	}
 
 	// -------------------------------------------------------------------
-	// L30nardoSV
 	// Calculate gradients (forces) for intermolecular energy
 	// Derived from autodockdev/maps.py
 	// -------------------------------------------------------------------
-	// Some OpenCL compilers don't allow declaring 
-	// local variables within non-kernel functions.
-	// These local variables must be declared in a kernel, 
-	// and then passed to non-kernel functions.
 
-	// Disable gradient calculation for this kernel
+	// Disabling gradient calculation for this kernel
 	__local bool  is_enabled_gradient_calc;
 	if (get_local_id(0) == 0) {
 		is_enabled_gradient_calc = false;
@@ -156,22 +141,16 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 			rotbonds_moving_vectors_const,
 			rotbonds_unit_vectors_const,
 			ref_orientation_quats_const
-
-		 	// -------------------------------------------------------------------
-		 	// L30nardoSV
 		 	// Gradient-related arguments
 		 	// Calculate gradients (forces) for intermolecular energy
 		 	// Derived from autodockdev/maps.py
-		 	// -------------------------------------------------------------------
 			,
 			&is_enabled_gradient_calc,
 			gradient_inter_x,
 			gradient_inter_y,
 			gradient_inter_z,
-
 			gradient_genotype
 			);
-			// -------------------------------------------------------------------
 	// =============================================================
 
 	if (get_local_id(0) == 0) {

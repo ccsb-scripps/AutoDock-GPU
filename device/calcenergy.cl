@@ -26,50 +26,47 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 // All related pragmas are in defines.h (accesible by host and device code)
 
-void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
-			    char   dockpars_num_of_atoms,
-			    char   dockpars_gridsize_x,
-			    char   dockpars_gridsize_y,
-			    char   dockpars_gridsize_z,
-		#if defined (RESTRICT_ARGS)
-			__global const float* restrict dockpars_fgrids, // cannot be allocated in __constant (too large)
-		#else
-			__global const float* dockpars_fgrids, 		// cannot be allocated in __constant (too large)
-		#endif
-		            char   dockpars_num_of_atypes,
-		            int    dockpars_num_of_intraE_contributors,
-			    float  dockpars_grid_spacing,
-			    float  dockpars_coeff_elec,
-			    float  dockpars_qasp,
-			    float  dockpars_coeff_desolv,
+void gpu_calc_energy(	    
+				int    dockpars_rotbondlist_length,
+				char   dockpars_num_of_atoms,
+			    	char   dockpars_gridsize_x,
+			    	char   dockpars_gridsize_y,
+			    	char   dockpars_gridsize_z,
+		 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
+		            	char   dockpars_num_of_atypes,
+		            	int    dockpars_num_of_intraE_contributors,
+			    	float  dockpars_grid_spacing,
+			    	float  dockpars_coeff_elec,
+			    	float  dockpars_qasp,
+			    	float  dockpars_coeff_desolv,
 
                     // Some OpenCL compilers don't allow declaring 
 		    // local variables within non-kernel functions.
 		    // These local variables must be declared in a kernel, 
 		    // and then passed to non-kernel functions.
-		    __local float* genotype,
-		    __local float* energy,
-		    __local int*   run_id,
+		    	__local float* genotype,
+		   	__local float* energy,
+		    	__local int*   run_id,
 
-		    __local float* calc_coords_x,
-		    __local float* calc_coords_y,
-		    __local float* calc_coords_z,
-		    __local float* partial_energies,
+		    	__local float* calc_coords_x,
+		    	__local float* calc_coords_y,
+		    	__local float* calc_coords_z,
+		    	__local float* partial_energies,
 
-	         __constant float* atom_charges_const,
-                 __constant char*  atom_types_const,
-                 __constant char*  intraE_contributors_const,
-                 __constant float* VWpars_AC_const,
-                 __constant float* VWpars_BD_const,
-                 __constant float* dspars_S_const,
-                 __constant float* dspars_V_const,
-                 __constant int*   rotlist_const,
-                 __constant float* ref_coords_x_const,
-                 __constant float* ref_coords_y_const,
-                 __constant float* ref_coords_z_const,
-                 __constant float* rotbonds_moving_vectors_const,
-                 __constant float* rotbonds_unit_vectors_const,
-                 __constant float* ref_orientation_quats_const,
+	             __constant float* atom_charges_const,
+                     __constant char*  atom_types_const,
+                     __constant char*  intraE_contributors_const,
+                     __constant float* VWpars_AC_const,
+                     __constant float* VWpars_BD_const,
+                     __constant float* dspars_S_const,
+                     __constant float* dspars_V_const,
+                     __constant int*   rotlist_const,
+                     __constant float* ref_coords_x_const,
+                     __constant float* ref_coords_y_const,
+                     __constant float* ref_coords_z_const,
+                     __constant float* rotbonds_moving_vectors_const,
+                     __constant float* rotbonds_unit_vectors_const,
+                     __constant float* ref_orientation_quats_const,
 
 		    // Gradient-related arguments
 		    // Calculate gradients (forces) for intermolecular energy
@@ -82,8 +79,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 	    	    __local float* gradient_inter_x,
 	            __local float* gradient_inter_y,
 	            __local float* gradient_inter_z,
-		    __local float* gradient_genotype	
-			
+		    __local float* gradient_genotype			
 )
 
 //The GPU device function calculates the energy of the entity described by genotype, dockpars and the liganddata
@@ -938,6 +934,14 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 
 			// ------------------------------------------
 			// rotation-related gradients 
+			 			
+			// Transform gradients_inter_{x|y|z} 
+			// into local_gradients[i] (with four quaternion genes)
+			// Derived from autodockdev/motions.py/forces_to_delta_genes()
+
+			// Transform local_gradients[i] (with four quaternion genes)
+			// into local_gradients[i] (with three Shoemake genes)
+			// Derived from autodockdev/motions.py/_get_cube3_gradient()
 			// ------------------------------------------
 			float3 torque_rot = (float3)(0.0f, 0.0f, 0.0f);
 
@@ -1016,8 +1020,12 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			// Derived from autodockdev/motions.py/quaternion_to_cube3()
 			// In our terms means quaternion_to_cube3(target_q{w|x|y|z})
 			target_u1 = target_qy*target_qy + target_qz*target_qz;
+/*
 			target_u2 = atan2pi(target_qw, target_qx)/PI_TIMES_2;
 			target_u3 = atan2pi(target_qy, target_qz)/PI_TIMES_2;
+*/
+			target_u2 = atan2(target_qw, target_qx);
+			target_u3 = atan2(target_qy, target_qz);
 
 			// derivates in cube3
 			float grad_u1, grad_u2, grad_u3;

@@ -23,61 +23,46 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
-perform_LS(	char   dockpars_num_of_atoms,
-		char   dockpars_num_of_atypes,
-		int    dockpars_num_of_intraE_contributors,
-		char   dockpars_gridsize_x,
-		char   dockpars_gridsize_y,
-		char   dockpars_gridsize_z,
-		float  dockpars_grid_spacing,
-
-		#if defined (RESTRICT_ARGS)
-  __global const float* restrict dockpars_fgrids, // cannot be allocated in __constant (too large)
-		#else
-  __global const float* dockpars_fgrids,          // cannot be allocated in __constant (too large)
-		#endif
-
-	        int    dockpars_rotbondlist_length,
-		float  dockpars_coeff_elec,
-		float  dockpars_coeff_desolv,
-
-		#if defined (RESTRICT_ARGS)
-  __global float* restrict dockpars_conformations_next,
-  __global float* restrict dockpars_energies_next,
-  __global int*   restrict dockpars_evals_of_new_entities,
-  __global unsigned int* restrict dockpars_prng_states,
-		#else
-  __global float* dockpars_conformations_next,
-  __global float* dockpars_energies_next,
-  __global int*   dockpars_evals_of_new_entities,
-  __global unsigned int* dockpars_prng_states,
-		#endif
-
-		int    dockpars_pop_size,
-		int    dockpars_num_of_genes,
-		float  dockpars_lsearch_rate,
-		unsigned int dockpars_num_of_lsentities,
-		float  dockpars_rho_lower_bound,
-		float  dockpars_base_dmov_mul_sqrt3,
-		float  dockpars_base_dang_mul_sqrt3,
-		unsigned int dockpars_cons_limit,
-		unsigned int dockpars_max_num_of_iters,
-		float  dockpars_qasp,
-
-	  __constant float* atom_charges_const,
-          __constant char*  atom_types_const,
-	  __constant char*  intraE_contributors_const,
-          __constant float* VWpars_AC_const,
-          __constant float* VWpars_BD_const,
-          __constant float* dspars_S_const,
-          __constant float* dspars_V_const,
-          __constant int*   rotlist_const,
-          __constant float* ref_coords_x_const,
-          __constant float* ref_coords_y_const,
-          __constant float* ref_coords_z_const,
-          __constant float* rotbonds_moving_vectors_const,
-          __constant float* rotbonds_unit_vectors_const,
-          __constant float* ref_orientation_quats_const
+perform_LS(		
+			char   dockpars_num_of_atoms,
+			char   dockpars_num_of_atypes,
+			int    dockpars_num_of_intraE_contributors,
+			char   dockpars_gridsize_x,
+			char   dockpars_gridsize_y,
+			char   dockpars_gridsize_z,
+			float  dockpars_grid_spacing,
+         __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
+	        	int    dockpars_rotbondlist_length,
+			float  dockpars_coeff_elec,
+			float  dockpars_coeff_desolv,
+  	 __global       float* restrict dockpars_conformations_next,
+  	 __global 	float* restrict dockpars_energies_next,
+  	 __global 	int*   restrict dockpars_evals_of_new_entities,
+  	 __global 	uint*  restrict dockpars_prng_states,
+			int    dockpars_pop_size,
+			int    dockpars_num_of_genes,
+			float  dockpars_lsearch_rate,
+			uint   dockpars_num_of_lsentities,
+			float  dockpars_rho_lower_bound,
+			float  dockpars_base_dmov_mul_sqrt3,
+			float  dockpars_base_dang_mul_sqrt3,
+			uint   dockpars_cons_limit,
+			uint   dockpars_max_num_of_iters,
+			float  dockpars_qasp,
+	     __constant float* atom_charges_const,
+             __constant char*  atom_types_const,
+	     __constant char*  intraE_contributors_const,
+             __constant float* VWpars_AC_const,
+             __constant float* VWpars_BD_const,
+             __constant float* dspars_S_const,
+             __constant float* dspars_V_const,
+             __constant int*   rotlist_const,
+             __constant float* ref_coords_x_const,
+             __constant float* ref_coords_y_const,
+             __constant float* ref_coords_z_const,
+             __constant float* rotbonds_moving_vectors_const,
+             __constant float* rotbonds_unit_vectors_const,
+             __constant float* ref_orientation_quats_const
 )
 //The GPU global function performs local search on the pre-defined entities of conformations_next.
 //The number of blocks which should be started equals to num_of_lsentities*num_of_runs.
@@ -87,6 +72,10 @@ perform_LS(	char   dockpars_num_of_atoms,
 //it is always tested according to the ls probability, and if it not to be
 //subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
+	// Some OpenCL compilers don't allow declaring 
+	// local variables within non-kernel functions.
+	// These local variables must be declared in a kernel, 
+	// and then passed to non-kernel functions.
 	__local float genotype_candidate[ACTUAL_GENOTYPE_LENGTH];
 	__local float genotype_deviate  [ACTUAL_GENOTYPE_LENGTH];
 	__local float genotype_bias     [ACTUAL_GENOTYPE_LENGTH];
@@ -103,26 +92,17 @@ perform_LS(	char   dockpars_num_of_atoms,
 	__local int entity_id;
 	__local float offspring_energy;
 
-	// Some OpenCL compilers don't allow declaring 
-	// local variables within non-kernel functions.
-	// These local variables must be declared in a kernel, 
-	// and then passed to non-kernel functions.
 	__local float calc_coords_x[MAX_NUM_OF_ATOMS];
 	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
 	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
 
 	// -------------------------------------------------------------------
-	// L30nardoSV
 	// Calculate gradients (forces) for intermolecular energy
 	// Derived from autodockdev/maps.py
 	// -------------------------------------------------------------------
-	// Some OpenCL compilers don't allow declaring 
-	// local variables within non-kernel functions.
-	// These local variables must be declared in a kernel, 
-	// and then passed to non-kernel functions.
 
-	// Disable gradient calculation for this kernel
+	// Disabling gradient calculation for this kernel
 	__local bool  is_enabled_gradient_calc;
 	if (get_local_id(0) == 0) {
 		is_enabled_gradient_calc = false;
@@ -138,38 +118,37 @@ perform_LS(	char   dockpars_num_of_atoms,
 	__local float gradient_genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
 	// -------------------------------------------------------------------
 
-	//determining run ID and entity ID, initializing
+	// Determining run ID and entity ID
+	// Initializing offspring genotype
 	if (get_local_id(0) == 0)
 	{
 		run_id = get_group_id(0) / dockpars_num_of_lsentities;
 		entity_id = get_group_id(0) % dockpars_num_of_lsentities;
 
-		//since entity 0 is the best one due to elitism, should be subjected to random selection
-		if (entity_id == 0)
-			if (100.0f*gpu_randf(dockpars_prng_states) > dockpars_lsearch_rate)
-				entity_id = dockpars_num_of_lsentities;	//if entity 0 is not selected according to LS rate,
-									//choosing an other entity
+		// Since entity 0 is the best one due to elitism,
+		// it should be subjected to random selection
+		if (entity_id == 0) {
+			// If entity 0 is not selected according to LS-rate,
+			// choosing an other entity
+			if (100.0f*gpu_randf(dockpars_prng_states) > dockpars_lsearch_rate) {
+				entity_id = dockpars_num_of_lsentities;					
+			}
+		}
 
 		offspring_energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
 	}
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-#if defined (ASYNC_COPY)
-  async_work_group_copy(offspring_genotype,
-			dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
-                        dockpars_num_of_genes,0);
-#else
-	for (gene_counter=get_local_id(0);
-	     gene_counter<dockpars_num_of_genes;
-	     gene_counter+=NUM_OF_THREADS_PER_BLOCK)
-		   offspring_genotype[gene_counter] = dockpars_conformations_next[(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter];
-#endif
+  	async_work_group_copy(offspring_genotype,
+			      dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
+                              dockpars_num_of_genes, 0);
 
-	for (gene_counter=get_local_id(0);
-	     gene_counter<dockpars_num_of_genes;
-	     gene_counter += NUM_OF_THREADS_PER_BLOCK)
+	for (gene_counter = get_local_id(0);
+	     gene_counter < dockpars_num_of_genes;
+	     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 		   genotype_bias[gene_counter] = 0.0f;
+	}
 
 	if (get_local_id(0) == 0) {
 		rho = 1.0f;
@@ -183,78 +162,43 @@ perform_LS(	char   dockpars_num_of_atoms,
 
 	while ((iteration_cnt < dockpars_max_num_of_iters) && (rho > dockpars_rho_lower_bound))
 	{
-		//new random deviate
-		for (gene_counter=get_local_id(0);
-		     gene_counter<dockpars_num_of_genes;
-		     gene_counter += NUM_OF_THREADS_PER_BLOCK)
+		// New random deviate
+		for (gene_counter = get_local_id(0);
+		     gene_counter < dockpars_num_of_genes;
+		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
 			genotype_deviate[gene_counter] = rho*(2*gpu_randf(dockpars_prng_states)-1);
 
-// -------------------------------------------------------------------
-// L30nardoSV
-// Replacing rotation genes: from spherical space to Shoemake space
-// gene [0:2]: translation -> kept as original x, y, z
-// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
-// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
-
-// Shoemake ranges:
-// u1: [0, 1]
-// u2: [0: 2PI] or [0: 360]
-
-// Random generator in the host is changed:
-// LCG (original, myrand()) -> CPP std (rand())
-// -------------------------------------------------------------------
-
-// Original code is commented out
-/*
-			if (gene_counter < 3)
+			// Translation genes
+			if (gene_counter <= 2)
 				genotype_deviate[gene_counter] *= dockpars_base_dmov_mul_sqrt3;
-			else
-				genotype_deviate[gene_counter] *= dockpars_base_dang_mul_sqrt3;
-*/
+			
+			// Shoemake orientation-genes do not use initial deviation
 
-			if (gene_counter < 3)
-				genotype_deviate[gene_counter] *= dockpars_base_dmov_mul_sqrt3;
-
-/*
-			else if (gene_counter == 3) // u1, FIXME: hardcoded
-				genotype_deviate[gene_counter] *=  0.2f;
-			else if (gene_counter < 6) // u2&u3, FIXME: harcoded
-				genotype_deviate[gene_counter] *= 90.0f;
-*/
-			else if (gene_counter > 5) 
+			// Torsion genes
+			else if (gene_counter >= 6) 
 				genotype_deviate[gene_counter] *= dockpars_base_dang_mul_sqrt3;
 
 		}
 
-		//generating new genotype candidate
-		for (gene_counter=get_local_id(0);
-		     gene_counter<dockpars_num_of_genes;
-		     gene_counter += NUM_OF_THREADS_PER_BLOCK) {
-			if ((gene_counter > 2) && (gene_counter < 6)) { // Shoemake genes: u1, u2, u3
+		// Generating new genotype candidate
+		for (gene_counter = get_local_id(0);
+		     gene_counter < dockpars_num_of_genes;
+		     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
+
+			// Shoemake genes (u1, u2, u3) ranges between [0,1]
+			if ((gene_counter >= 3) && (gene_counter <= 5)) { 
 			   genotype_candidate[gene_counter] = gpu_randf(dockpars_prng_states);
 			}
+			// Other genes: translation and torsions
 			else {
-			   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] + genotype_deviate[gene_counter] + genotype_bias[gene_counter];
+			   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] + 
+							      genotype_deviate[gene_counter]   + 
+							      genotype_bias[gene_counter];
 			}
-/*
-			   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] + genotype_deviate[gene_counter] + genotype_bias[gene_counter];
-
-			if (gene_counter == 3) {// u1, FIXME: hardcoded
-				if (genotype_candidate[gene_counter] > 1.0f) { // clamp it
-					offspring_genotype[gene_counter] = 0.9f;
-				}
-				if (genotype_candidate[gene_counter] < 0.0f) { // clamp it
-					offspring_genotype[gene_counter] = 0.1f;
-				}
-				//printf("LS positive - genotype_candidate[gene_counter]: %f\n", genotype_candidate[gene_counter]);
-			}
-*/
-
 		}
 
-
-		//evaluating candidate
+		// Evaluating candidate
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// ==================================================================
@@ -296,45 +240,39 @@ perform_LS(	char   dockpars_num_of_atoms,
 				rotbonds_moving_vectors_const,
 				rotbonds_unit_vectors_const,
 				ref_orientation_quats_const
-
-			 	// -------------------------------------------------------------------
-			 	// L30nardoSV
 			 	// Gradient-related arguments
 			 	// Calculate gradients (forces) for intermolecular energy
 			 	// Derived from autodockdev/maps.py
-			 	// -------------------------------------------------------------------
 				,
 				&is_enabled_gradient_calc,
 				gradient_inter_x,
 				gradient_inter_y,
 				gradient_inter_z,
-
 				gradient_genotype
 				);
-				// -------------------------------------------------------------------
 		// =================================================================
 
-		if (get_local_id(0) == 0)
+		if (get_local_id(0) == 0) {
 			evaluation_cnt++;
+		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (candidate_energy < offspring_energy)	//if candidate is better, success
+		if (candidate_energy < offspring_energy)	// If candidate is better, success
 		{
-			for (gene_counter=get_local_id(0);
-			     gene_counter<dockpars_num_of_genes;
-			     gene_counter += NUM_OF_THREADS_PER_BLOCK)
+			for (gene_counter = get_local_id(0);
+			     gene_counter < dockpars_num_of_genes;
+			     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 			{
-				//updating offspring_genotype
+				// Updating offspring_genotype
 				offspring_genotype[gene_counter] = genotype_candidate[gene_counter];
 
-				//updating genotype_bias
+				// Updating genotype_bias
 				genotype_bias[gene_counter] = 0.6f*genotype_bias[gene_counter] + 0.4f*genotype_deviate[gene_counter];
 			}
 
-			//thread 0 will overwrite the shared variables
-			//used in the previous if condition,
-			//all threads have to be after if
+			// Work-item 0 will overwrite the shared variables
+			// used in the previous if condition
 			barrier(CLK_LOCAL_MEM_FENCE);
 
 			if (get_local_id(0) == 0)
@@ -344,35 +282,23 @@ perform_LS(	char   dockpars_num_of_atoms,
 				cons_fail = 0;
 			}
 		}
-		else	//if candidate is worser, check the opposite direction
+		else	// If candidate is worser, check the opposite direction
 		{
-			//generating the other genotype candidate
-			for (gene_counter=get_local_id(0);
-			     gene_counter<dockpars_num_of_genes;
-			     gene_counter += NUM_OF_THREADS_PER_BLOCK) {
+			// Generating the other genotype candidate
+			for (gene_counter = get_local_id(0);
+			     gene_counter < dockpars_num_of_genes;
+			     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 
-				if ((gene_counter > 2) && (gene_counter < 6)) { // Shoemake genes: u1, u2, u3
+				// Shoemake genes (u1, u2, u3) ranges between [0,1]
+				if ((gene_counter >= 3) && (gene_counter <= 5)) {
 				   genotype_candidate[gene_counter] =  gpu_randf(dockpars_prng_states);
 				}
+				// Other genes: translation and torsions
 				else {
-				   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] - genotype_deviate[gene_counter] - genotype_bias[gene_counter];
+				   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] - 
+								      genotype_deviate[gene_counter] - 
+								      genotype_bias[gene_counter];
 				}
-
-/*
-				   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] - genotype_deviate[gene_counter] - genotype_bias[gene_counter];
-
-
-				if (gene_counter == 3) {// u1, FIXME: hardcoded
-					if (genotype_candidate[gene_counter] > 1.0f) { // clamp it
-						offspring_genotype[gene_counter] = 0.9f;
-					}
-					if (genotype_candidate[gene_counter] < 0.0f) { // clamp it
-						offspring_genotype[gene_counter] = 0.1f;
-					}
-					//printf("LS negative - genotype_candidate[gene_counter]: %f\n", genotype_candidate[gene_counter]);
-				}
-*/
-
 			}
 
 			//evaluating candidate
@@ -417,45 +343,39 @@ perform_LS(	char   dockpars_num_of_atoms,
 					rotbonds_moving_vectors_const,
 					rotbonds_unit_vectors_const,
 					ref_orientation_quats_const
-
-				 	// -------------------------------------------------------------------
-				 	// L30nardoSV
 				 	// Gradient-related arguments
 				 	// Calculate gradients (forces) for intermolecular energy
 				 	// Derived from autodockdev/maps.py
-				 	// -------------------------------------------------------------------
 					,
 					&is_enabled_gradient_calc,
 					gradient_inter_x,
 					gradient_inter_y,
 					gradient_inter_z,
-
 					gradient_genotype
 					);
-					// -------------------------------------------------------------------
 			// =================================================================
 
-			if (get_local_id(0) == 0)
+			if (get_local_id(0) == 0) {
 				evaluation_cnt++;
+			}
 
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-			if (candidate_energy < offspring_energy)//if candidate is better, success
+			if (candidate_energy < offspring_energy) // If candidate is better, success
 			{
-				for (gene_counter=get_local_id(0);
-				     gene_counter<dockpars_num_of_genes;
-			       gene_counter += NUM_OF_THREADS_PER_BLOCK)
+				for (gene_counter = get_local_id(0);
+				     gene_counter < dockpars_num_of_genes;
+			       	     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 				{
-					//updating offspring_genotype
+					// Updating offspring_genotype
 					offspring_genotype[gene_counter] = genotype_candidate[gene_counter];
 
-					//updating genotype_bias
+					// Updating genotype_bias
 					genotype_bias[gene_counter] = 0.6f*genotype_bias[gene_counter] - 0.4f*genotype_deviate[gene_counter];
 				}
 
-				//thread 0 will overwrite the shared variables
-				//used in the previous if condition,
-				//all threads have to be after if
+				// Work-item 0 will overwrite the shared variables
+				// used in the previous if condition
 				barrier(CLK_LOCAL_MEM_FENCE);
 
 				if (get_local_id(0) == 0)
@@ -465,12 +385,12 @@ perform_LS(	char   dockpars_num_of_atoms,
 					cons_fail = 0;
 				}
 			}
-			else	//failure in both directions
+			else	// Failure in both directions
 			{
-				for (gene_counter=get_local_id(0);
-				     gene_counter<dockpars_num_of_genes;
-				     gene_counter += NUM_OF_THREADS_PER_BLOCK)
-					   //updating genotype_bias
+				for (gene_counter = get_local_id(0);
+				     gene_counter < dockpars_num_of_genes;
+				     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+					   // Updating genotype_bias
 					   genotype_bias[gene_counter] = 0.5f*genotype_bias[gene_counter];
 
 				if (get_local_id(0) == 0)
@@ -481,7 +401,7 @@ perform_LS(	char   dockpars_num_of_atoms,
 			}
 		}
 
-		//changing rho if needed
+		// Changing rho if needed
 		if (get_local_id(0) == 0)
 		{
 			iteration_cnt++;
@@ -501,53 +421,25 @@ perform_LS(	char   dockpars_num_of_atoms,
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
 
-	//updating eval counter and energy
-	if (get_local_id(0) == 0)
-	{
+	// Updating eval counter and energy
+	if (get_local_id(0) == 0) {
 		dockpars_evals_of_new_entities[run_id*dockpars_pop_size+entity_id] += evaluation_cnt;
 		dockpars_energies_next[run_id*dockpars_pop_size+entity_id] = offspring_energy;
 	}
 
-	//mapping angles
-// -------------------------------------------------------------------
-// L30nardoSV
-// Replacing rotation genes: from spherical space to Shoemake space
-// gene [0:2]: translation -> kept as original x, y, z
-// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
-// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
-
-// Shoemake ranges:
-// u1: [0, 1]
-// u2: [0: 2PI] or [0: 360]
-
-// Random generator in the host is changed:
-// LCG (original, myrand()) -> CPP std (rand())
-// -------------------------------------------------------------------
-/*
-	for (gene_counter=get_local_id(0);
-	     gene_counter<dockpars_num_of_genes;
-	     gene_counter+=NUM_OF_THREADS_PER_BLOCK)
-		   if (gene_counter >=  3)
+	// Mapping torsion angles
+	for (gene_counter = get_local_id(0);
+	     gene_counter < dockpars_num_of_genes;
+	     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
+		   if (gene_counter >= 6) {
 			    map_angle(&(offspring_genotype[gene_counter]));
-*/
-	for (gene_counter=get_local_id(0);
-	     gene_counter<dockpars_num_of_genes;
-	     gene_counter+=NUM_OF_THREADS_PER_BLOCK)
-		   if (gene_counter >=  4)
-			    map_angle(&(offspring_genotype[gene_counter]));
+		   }
+	}
 
-
-	//updating old offspring in population
+	// Updating old offspring in population
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-#if defined (ASYNC_COPY)
-  async_work_group_copy(dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
-                        offspring_genotype,
-                        dockpars_num_of_genes,0);
-#else
-	for (gene_counter=get_local_id(0);
-	     gene_counter<dockpars_num_of_genes;
-       gene_counter+=NUM_OF_THREADS_PER_BLOCK)
-		   dockpars_conformations_next[(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter] = offspring_genotype[gene_counter];
-#endif
+  	async_work_group_copy(dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
+        	              offspring_genotype,
+        	              dockpars_num_of_genes,0);
 }
