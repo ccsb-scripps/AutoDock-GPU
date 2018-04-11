@@ -39,7 +39,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	#define NUM_OF_THREADS_PER_BLOCK 64
 #endif
 
-#define MAX_NUM_OF_ATOMS 	256
+#define MAX_NUM_OF_ATOMS 	100 // TODO: optimize local arrays in gradient calc to increase this constant up to 256
 #define MAX_NUM_OF_ATYPES 	14
 #define MAX_NUM_OF_ROTBONDS 	32
 #define MAX_INTRAE_CONTRIBUTORS (MAX_NUM_OF_ATOMS * MAX_NUM_OF_ATOMS)

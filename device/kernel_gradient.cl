@@ -160,6 +160,15 @@ gradient_minimizer(
 	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
 	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
 	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
+
+	// Variables to store gradient of 
+	// the intramolecular energy per each ligand atom
+	__local float gradient_intra_x[MAX_NUM_OF_ATOMS];
+	__local float gradient_intra_y[MAX_NUM_OF_ATOMS];
+	__local float gradient_intra_z[MAX_NUM_OF_ATOMS];
+	__local float gradient_per_intracontributor[MAX_INTRAE_CONTRIBUTORS];
+	
+
 	// -------------------------------------------------------------------
 
 	// Variables to store partial energies
@@ -231,6 +240,10 @@ gradient_minimizer(
 				gradient_inter_x,
 				gradient_inter_y,
 				gradient_inter_z,
+				gradient_intra_x,
+				gradient_intra_y,
+				gradient_intra_z,
+				gradient_per_intracontributor,
 				local_gradient
 				);
 		// =============================================================
