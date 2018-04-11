@@ -67,8 +67,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	#define REP " "
 #endif
 
+
 #define KGDB_AMD 		" -g -O0 "
 #define KGDB_INTEL	" -g -s " KRNL_FILE
+
 
 #if defined (DOCK_DEBUG)
 	#if defined (CPU_DEVICE)
@@ -79,6 +81,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #else
 	#define KGDB " "
 #endif
+
 
 #define OPT_PROG INC KNWI REP KGDB
 
@@ -396,7 +399,7 @@ filled with clock() */
 	Gradientparameters gradientpars;
 	gradientpars.tolerance = 1.e-6;
 	gradientpars.max_num_of_iters = 10000;
-	gradientpars.alpha = 0.001f;
+	gradientpars.alpha = 0.00001f; //0.001f; // TODO: find out why 0.001f, 0.0001f (100 runs, 500 popsize) throws segmentation fault
 	gradientpars.h = 0.0001f;
 
 	// Set minimum values for input conformation (translation genes as x, y, z)
@@ -406,12 +409,12 @@ filled with clock() */
 
 	// Set minimum values for input conformation (rotation genes as Shoemake genes)
 	for (unsigned int gene_cnt=3; gene_cnt<6; gene_cnt++) {
-			gradientpars.conformation_min_perturbation[0] = 0.0f;
+			gradientpars.conformation_min_perturbation[0] = 0.01f;
 	}
 
 	// Set minimum values for input conformations (torsion genes as angles)
 	for (unsigned int gene_cnt=6; gene_cnt<(dockpars.num_of_genes - 6); gene_cnt++) {
-			gradientpars.conformation_min_perturbation[0] = 45.0f; // FIXME: set right min values
+			gradientpars.conformation_min_perturbation[0] = 5.0f; // FIXME: set right min values
 	}
 
 	cl_mem mem_gradpars_conformation_min_perturbation;
@@ -422,7 +425,7 @@ filled with clock() */
 
 	// Initially, the number of entities that undergo gradient-minimization,
 	// by default, it is the same as the number of entities that undergo gradient-based minimizer
-	blocksPerGridForEachGradMinimizerEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
+	blocksPerGridForEachGradMinimizerEntity = /*dockpars.num_of_lsentities**/mypars->num_of_runs;
 
 
 	clock_start_docking = clock();
@@ -482,7 +485,7 @@ filled with clock() */
 
 // Kernel2
 //  setKernelArg(kernel2,0,sizeof(mypars->pop_size),       		&mypars->pop_size);
-  setKernelArg(kernel2,0,sizeof(dockpars.pop_size),       		&dockpars.pop_size);
+  setKernelArg(kernel2,0,sizeof(dockpars.pop_size),       		  &dockpars.pop_size);
   setKernelArg(kernel2,1,sizeof(mem_dockpars_evals_of_new_entities),      &mem_dockpars_evals_of_new_entities);
   setKernelArg(kernel2,2,sizeof(mem_gpu_evals_of_runs),                   &mem_gpu_evals_of_runs);
 	kernel2_gxsize = blocksPerGridForEachRun * threadsPerBlock;
@@ -602,17 +605,11 @@ filled with clock() */
   setKernelArg(kernel5,10,sizeof(dockpars.coeff_desolv),                   &dockpars.coeff_desolv);
   setKernelArg(kernel5,11,sizeof(mem_dockpars_conformations_next),         &mem_dockpars_conformations_next);
   setKernelArg(kernel5,12,sizeof(mem_dockpars_energies_next),              &mem_dockpars_energies_next);
-//  setKernelArg(kernel5,13,sizeof(mem_dockpars_evals_of_new_entities),      &mem_dockpars_evals_of_new_entities);
   setKernelArg(kernel5,13,sizeof(mem_dockpars_prng_states),                &mem_dockpars_prng_states);
   setKernelArg(kernel5,14,sizeof(dockpars.pop_size),                       &dockpars.pop_size);
   setKernelArg(kernel5,15,sizeof(dockpars.num_of_genes),                   &dockpars.num_of_genes);
   setKernelArg(kernel5,16,sizeof(dockpars.lsearch_rate),                   &dockpars.lsearch_rate);
   setKernelArg(kernel5,17,sizeof(dockpars.num_of_lsentities),              &dockpars.num_of_lsentities);
-//  setKernelArg(kernel5,19,sizeof(dockpars.rho_lower_bound),                &dockpars.rho_lower_bound);
-//  setKernelArg(kernel5,20,sizeof(dockpars.base_dmov_mul_sqrt3),            &dockpars.base_dmov_mul_sqrt3);
-//  setKernelArg(kernel5,21,sizeof(dockpars.base_dang_mul_sqrt3),            &dockpars.base_dang_mul_sqrt3);
-//  setKernelArg(kernel5,22,sizeof(dockpars.cons_limit),                     &dockpars.cons_limit);
-//  setKernelArg(kernel5,23,sizeof(dockpars.max_num_of_iters),               &dockpars.max_num_of_iters);
   setKernelArg(kernel5,18,sizeof(dockpars.qasp),                           &dockpars.qasp);
   setKernelArg(kernel5,19,sizeof(mem_atom_charges_const),                  &mem_atom_charges_const);
   setKernelArg(kernel5,20,sizeof(mem_atom_types_const),                    &mem_atom_types_const);
@@ -628,7 +625,6 @@ filled with clock() */
   setKernelArg(kernel5,30,sizeof(mem_rotbonds_moving_vectors_const),       &mem_rotbonds_moving_vectors_const);
   setKernelArg(kernel5,31,sizeof(mem_rotbonds_unit_vectors_const),         &mem_rotbonds_unit_vectors_const);
   setKernelArg(kernel5,32,sizeof(mem_ref_orientation_quats_const),         &mem_ref_orientation_quats_const);
-
   // Specific gradient-minimizer args
   setKernelArg(kernel5,33,sizeof(gradientpars.tolerance),         	   &gradientpars.tolerance);
   setKernelArg(kernel5,34,sizeof(gradientpars.max_num_of_iters),           &gradientpars.max_num_of_iters);
@@ -661,23 +657,23 @@ filled with clock() */
 
 
 // Kernel1
-	//#ifdef DOCK_DEBUG
-	//	printf("Start Kernel1 ... ");fflush(stdout);
-	//#endif
+	#ifdef DOCK_DEBUG
+		printf("Start Kernel1 ... ");fflush(stdout);
+	#endif
 	runKernel1D(command_queue,kernel1,kernel1_gxsize,kernel1_lxsize,&time_start_kernel,&time_end_kernel);
-	//#ifdef DOCK_DEBUG
-	//	printf(" ... Finish Kernel1\n");fflush(stdout);
-	//#endif
+	#ifdef DOCK_DEBUG
+		printf(" ... Finish Kernel1\n");fflush(stdout);
+	#endif
 // End of Kernel1
 
 // Kernel2
-	//#ifdef DOCK_DEBUG
-	//	printf("Start Kernel2 ... ");fflush(stdout);
-	//#endif
+	#ifdef DOCK_DEBUG
+		printf("Start Kernel2 ... ");fflush(stdout);
+	#endif
 	runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
-	//#ifdef DOCK_DEBUG
-	//	printf(" ... Finish Kernel2\n");fflush(stdout);
-	//#endif
+	#ifdef DOCK_DEBUG
+		printf(" ... Finish Kernel2\n");fflush(stdout);
+	#endif
 // End of Kernel2
 	// ===============================================================================
 
@@ -745,6 +741,7 @@ filled with clock() */
 // End of Kernel3
 */
 
+
 // Kernel5
 	#ifdef DOCK_DEBUG
 		printf("%-25s", "K_GRAD_MINIMIZER: ");fflush(stdout);
@@ -757,13 +754,13 @@ filled with clock() */
 
 
 // Kernel2
-	//#ifdef DOCK_DEBUG
-	//	printf("Start Kernel2 ... ");fflush(stdout);
-	//#endif
+	#ifdef DOCK_DEBUG
+		printf("Start Kernel2 ... ");fflush(stdout);
+	#endif
 		runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
-	//#ifdef DOCK_DEBUG
-	//	printf(" ... Finish Kernel2\n");fflush(stdout);
-	//#endif
+	#ifdef DOCK_DEBUG
+		printf(" ... Finish Kernel2\n");fflush(stdout);
+	#endif
 // End of Kernel2
 		// ===============================================================================
 
@@ -797,10 +794,16 @@ filled with clock() */
 			setKernelArg(kernel4,12,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
       			setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
 			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
-
+/*
 			// Kernel 3
      			setKernelArg(kernel3,11,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
       			setKernelArg(kernel3,12,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
+*/
+
+			// Kernel 5
+     			setKernelArg(kernel5,11,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
+      			setKernelArg(kernel5,12,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
+
 		}
 		else { // In this configuration, the program starts
 			// Kernel 4
@@ -808,10 +811,16 @@ filled with clock() */
 			setKernelArg(kernel4,12,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
       			setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
 			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
-
+/*
 			// Kernel 3
 			setKernelArg(kernel3,11,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
       			setKernelArg(kernel3,12,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
+*/
+
+			// Kernel 5
+			setKernelArg(kernel5,11,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
+      			setKernelArg(kernel5,12,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
+
 		}
 		// ----------------------------------------------------------------------
 

@@ -97,27 +97,6 @@ perform_LS(
 	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
 
-	// -------------------------------------------------------------------
-	// Calculate gradients (forces) for intermolecular energy
-	// Derived from autodockdev/maps.py
-	// -------------------------------------------------------------------
-
-	// Disabling gradient calculation for this kernel
-	__local bool  is_enabled_gradient_calc;
-	if (get_local_id(0) == 0) {
-		is_enabled_gradient_calc = false;
-	}
-
-	// Variables to store gradient of 
-	// the intermolecular energy per each ligand atom
-	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
-	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
-	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
-
-	// Final gradient resulting out of gradient calculation
-	__local float gradient_genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
-	// -------------------------------------------------------------------
-
 	// Determining run ID and entity ID
 	// Initializing offspring genotype
 	if (get_local_id(0) == 0)
@@ -240,15 +219,6 @@ perform_LS(
 				rotbonds_moving_vectors_const,
 				rotbonds_unit_vectors_const,
 				ref_orientation_quats_const
-			 	// Gradient-related arguments
-			 	// Calculate gradients (forces) for intermolecular energy
-			 	// Derived from autodockdev/maps.py
-				,
-				&is_enabled_gradient_calc,
-				gradient_inter_x,
-				gradient_inter_y,
-				gradient_inter_z,
-				gradient_genotype
 				);
 		// =================================================================
 
@@ -291,7 +261,7 @@ perform_LS(
 
 				// Shoemake genes (u1, u2, u3) ranges between [0,1]
 				if ((gene_counter >= 3) && (gene_counter <= 5)) {
-				   genotype_candidate[gene_counter] =  gpu_randf(dockpars_prng_states);
+				   genotype_candidate[gene_counter] = gpu_randf(dockpars_prng_states);
 				}
 				// Other genes: translation and torsions
 				else {
@@ -343,15 +313,6 @@ perform_LS(
 					rotbonds_moving_vectors_const,
 					rotbonds_unit_vectors_const,
 					ref_orientation_quats_const
-				 	// Gradient-related arguments
-				 	// Calculate gradients (forces) for intermolecular energy
-				 	// Derived from autodockdev/maps.py
-					,
-					&is_enabled_gradient_calc,
-					gradient_inter_x,
-					gradient_inter_y,
-					gradient_inter_z,
-					gradient_genotype
 					);
 			// =================================================================
 

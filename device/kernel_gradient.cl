@@ -45,7 +45,6 @@ gradient_minimizer(
     	     __constant float* rotbonds_moving_vectors_const,
              __constant float* rotbonds_unit_vectors_const,
              __constant float* ref_orientation_quats_const,
-
     			// Specific gradient-minimizer args
     //  __global float* restrict dockpars_conformations_next,   // initial population
                                                                 // whose (some) entities (genotypes) are to be minimized
@@ -97,6 +96,15 @@ gradient_minimizer(
 		}
 
 		local_energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
+
+/*
+		printf("run_id: %u, entity_id: %u, local_energy: %f\n", run_id, entity_id, local_energy);
+*/
+
+/*
+		printf("BEFORE GRADIENT - local_energy: %f\n", local_energy);
+*/
+
 	}
 
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -106,7 +114,7 @@ gradient_minimizer(
   	__local float   local_gNorm;                                  // gradient norm (shared in the CU), originally as "gnorm"
   	__local uint 	local_nIter;                                  // iteration counter, originally as "niter"
   	__local float   local_perturbation [ACTUAL_GENOTYPE_LENGTH];  // perturbation, originally as "dx"
-  	__local float   local_genotype[ACTUAL_GENOTYPE_LENGTH];       // optimization vector, originally as "d_x"
+  	__local float   local_genotype     [ACTUAL_GENOTYPE_LENGTH];  // optimization vector, originally as "d_x"
 
 	if (get_local_id(0) == 0) {
 		local_gNorm = FLT_MAX;
@@ -132,13 +140,10 @@ gradient_minimizer(
 	// and then passed to non-kernel functions.
 	
 	// Partial results in "is_gradDescent_enabled()"
-	__local bool is_gNorm_gt_gMin;
-	__local bool is_nIter_lt_maxIter;
 	__local bool is_perturb_gt_gene_min [ACTUAL_GENOTYPE_LENGTH];
-	__local bool is_perturb_gt_genotype;
   	__local bool is_gradDescentEn;                
 
-	// Partial results in "stepGPU()"
+	// Partial results of the gradient step
 	__local float local_gradient      [ACTUAL_GENOTYPE_LENGTH]; // gradient, originally as "d_g"
 	__local float local_genotype_new  [ACTUAL_GENOTYPE_LENGTH]; // new actual solution, originally as "d_xnew"
 	__local float local_genotype_diff [ACTUAL_GENOTYPE_LENGTH]; // difference between actual and old solution, originally as "d_xdiff"
@@ -155,15 +160,6 @@ gradient_minimizer(
 	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
 	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
 	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
-
-	// Enable gradient calculation for this kernel
-	__local bool  is_enabled_gradient_calc;
-	if (get_local_id(0) == 0) {
-		is_enabled_gradient_calc = true;
-	}
-
-	// Final gradient resulting out of gradient calculation
-	__local float gradient_genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
 	// -------------------------------------------------------------------
 
 	// Variables to store partial energies
@@ -175,10 +171,7 @@ gradient_minimizer(
 	// -----------------------------------------------------------------------------
 	// Perform gradient-descent iterations
 	while (is_gradDescent_enabled(
-				      &is_gNorm_gt_gMin,
-				      &is_nIter_lt_maxIter,
 				      is_perturb_gt_gene_min,
-				      &is_perturb_gt_genotype,
 				      &local_gNorm,
     				      gradMin_tol,
     				      &local_nIter,
@@ -187,18 +180,113 @@ gradient_minimizer(
     				      gradMin_conformation_min_perturbation,
     				      &is_gradDescentEn,
 				      dockpars_num_of_genes) == true) {
+		
+		// Calculating gradient
+		// =============================================================
+		gpu_calc_gradient(
+				dockpars_rotbondlist_length,
+				dockpars_num_of_atoms,
+				dockpars_gridsize_x,
+				dockpars_gridsize_y,
+				dockpars_gridsize_z,
+				dockpars_fgrids,
+				dockpars_num_of_atypes,
+				dockpars_num_of_intraE_contributors,
+				dockpars_grid_spacing,
+				dockpars_coeff_elec,
+				dockpars_qasp,
+				dockpars_coeff_desolv,
+				local_genotype,
+/*
+				&local_energy,
+*/
+				&run_id,
+				// Some OpenCL compilers don't allow declaring 
+				// local variables within non-kernel functions.
+				// These local variables must be declared in a kernel, 
+				// and then passed to non-kernel functions.
+				calc_coords_x,
+				calc_coords_y,
+				calc_coords_z,
 
-    		stepGPU(// Args for minimization
-			local_genotype,
-		        local_genotype_new,
-      			local_genotype_diff,
-      			local_gradient,
-      			gradMin_alpha,
-      			gradMin_h,
-      			dockpars_num_of_genes, //gradMin_M
+			        atom_charges_const,
+				atom_types_const,
+				intraE_contributors_const,
+				VWpars_AC_const,
+				VWpars_BD_const,
+				dspars_S_const,
+				dspars_V_const,
+				rotlist_const,
+				ref_coords_x_const,
+				ref_coords_y_const,
+				ref_coords_z_const,
+				rotbonds_moving_vectors_const,
+				rotbonds_unit_vectors_const,
+				ref_orientation_quats_const
+			 	// Gradient-related arguments
+			 	// Calculate gradients (forces) for intermolecular energy
+			 	// Derived from autodockdev/maps.py
+				,
+				dockpars_num_of_genes,
+				gradient_inter_x,
+				gradient_inter_y,
+				gradient_inter_z,
+				local_gradient
+				);
+		// =============================================================
 
-			// Args for energy and gradient calculation
-			dockpars_rotbondlist_length,
+		for(uint i = get_local_id(0); 
+			 i < dockpars_num_of_genes; 
+			 i+= NUM_OF_THREADS_PER_BLOCK) {
+
+	     		// Taking step
+	     		local_genotype_new[i]  = local_genotype[i] - gradMin_alpha * local_gradient[i];
+
+	     		// Updating terminatiodockpars_num_of_genesn metrics
+	     		local_genotype_diff[i] = local_genotype_new[i] - local_genotype[i];
+
+	     		// Updating current solution
+	     		local_genotype[i] = local_genotype_new[i];
+	   	}
+
+		// Updating number of stepest-descent iterations
+		if (get_local_id(0) == 0) {
+	    		local_nIter = local_nIter + 1;
+		}
+
+	    	// Storing the norm of all gradients
+		local_gNorm = inner_product(local_gradient, local_gradient, dockpars_num_of_genes, dotProduct);
+
+		if (get_local_id(0) == 0) {
+			local_gNorm = native_sqrt(local_gNorm);
+		}
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		// Storing all gene-based perturbations
+		for(uint i = get_local_id(0); 
+			 i < dockpars_num_of_genes; 
+			 i+= NUM_OF_THREADS_PER_BLOCK) {
+	     		local_perturbation[i] = local_genotype_diff [i];
+   		}
+
+/*
+		if (get_local_id(0) == 0) {
+			printf("Entity: %u, Run: %u, minimized E: %f\n", entity_id, run_id, local_energy);
+		}		
+*/
+
+/*
+		if (get_local_id(0) == 0) {
+			printf("Number of gradient iterations: %u\n", local_nIter);
+		}
+*/
+  	}
+	// -----------------------------------------------------------------------------
+
+  	// Calculating energy
+	// =============================================================
+	gpu_calc_energy(dockpars_rotbondlist_length,
 			dockpars_num_of_atoms,
 			dockpars_gridsize_x,
 			dockpars_gridsize_y,
@@ -236,64 +324,15 @@ gradient_minimizer(
 			rotbonds_moving_vectors_const,
 			rotbonds_unit_vectors_const,
 			ref_orientation_quats_const
-		 	// Gradient-related arguments
-		 	// Calculate gradients (forces) for intermolecular energy
-		 	// Derived from autodockdev/maps.py
-			,
-			&is_enabled_gradient_calc,
-			gradient_inter_x,
-			gradient_inter_y,
-			gradient_inter_z,
-			gradient_genotype
-      			);
-			// -------------------------------------------------------------------
-
-
-		// Updating number of stepest-descent iterations
-		if (get_local_id(0) == 0) {
-	    		local_nIter = local_nIter + 1;
-		}
-
-	    	// Storing the norm of all gradients
-/*
-	    	local_gNorm = native_sqrt(inner_product(local_gradient, 
-							local_gradient,
-		                                        dockpars_num_of_genes,
-		                                        dotProduct));
-*/
-		
-		local_gNorm = inner_product(local_gradient, local_gradient, dockpars_num_of_genes, dotProduct);
-
-		if (get_local_id(0) == 0) {
-			local_gNorm = native_sqrt(local_gNorm);
-		}
-
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-		// Storing all gene-based perturbations
-		for(uint i = get_local_id(0); 
-			 i < dockpars_num_of_genes; 
-			 i+= NUM_OF_THREADS_PER_BLOCK) {
-	     		local_perturbation[i]  = local_genotype_diff [i];
-   		}
+			);
+	// =============================================================
 
 /*
-		if (get_local_id(0) == 0) {
-			printf("Entity: %u, Run: %u, minimized E: %f\n", entity_id, run_id, local_energy);
-		}		
+	if (get_local_id(0) == 0) {
+		printf("AFTER- GRADIENT - local_energy: %f\n\n", local_energy);
+	}
 */
-/*
-		if ((get_group_id(0) == 0) && (get_local_id(0) == 0)) {
-			printf("Number of gradient iterations: %u\n", local_nIter);
-		}
-*/
-  	}
-	// -----------------------------------------------------------------------------
 
-  	// Functional calculation
-	// stepGPU () calls gpu_calc_energy ()
-	// the former calculates energy + gradients
-	
   	// Copying final genotype and energy into global memory
 	if (get_local_id(0) == 0) {
 		  dockpars_energies_next[run_id*dockpars_pop_size+entity_id] = local_energy;

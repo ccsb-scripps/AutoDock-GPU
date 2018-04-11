@@ -90,27 +90,6 @@ gpu_gen_and_eval_newpops(
 	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
 
-	// -------------------------------------------------------------------
-	// Calculate gradients (forces) for intermolecular energy
-	// Derived from autodockdev/maps.py
-	// -------------------------------------------------------------------
-
-	// Disabling gradient calculation for this kernel
-	__local bool  is_enabled_gradient_calc;
-	if (get_local_id(0) == 0) {
-		is_enabled_gradient_calc = false;
-	}
-
-	// Variables to store gradient of 
-	// the intermolecular energy per each ligand atom
-	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
-	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
-	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
-
-	// Final gradient resulting out of gradient calculation
-	__local float gradient_genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
-	// -------------------------------------------------------------------
-
 	// In this case this compute-unit is responsible for elitist selection
 	if ((get_group_id(0) % dockpars_pop_size) == 0) {
 		gpu_perform_elitist_selection(dockpars_pop_size,
@@ -291,16 +270,6 @@ gpu_gen_and_eval_newpops(
 				rotbonds_moving_vectors_const,
 				rotbonds_unit_vectors_const,
 				ref_orientation_quats_const
-
-		 		// Gradient-related arguments
-		 		// Calculate gradients (forces) for intermolecular energy
-		 		// Derived from autodockdev/maps.py
-				,
-				&is_enabled_gradient_calc,
-				gradient_inter_x,
-				gradient_inter_y,
-				gradient_inter_z,
-				gradient_genotype
 				);
 		// =============================================================
 

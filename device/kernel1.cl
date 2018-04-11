@@ -59,7 +59,7 @@ gpu_calc_initpop(
 	// local variables within non-kernel functions.
 	// These local variables must be declared in a kernel, 
 	// and then passed to non-kernel functions.
-	__local float  genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
+	__local float  genotype[ACTUAL_GENOTYPE_LENGTH];
 	__local float  energy;
 	__local int    run_id;
 
@@ -79,27 +79,6 @@ gpu_calc_initpop(
 	if (get_local_id(0) == 0) {
 		run_id = get_group_id(0) / dockpars_pop_size;
 	}
-
-	// -------------------------------------------------------------------
-	// Calculate gradients (forces) for intermolecular energy
-	// Derived from autodockdev/maps.py
-	// -------------------------------------------------------------------
-
-	// Disabling gradient calculation for this kernel
-	__local bool  is_enabled_gradient_calc;
-	if (get_local_id(0) == 0) {
-		is_enabled_gradient_calc = false;
-	}
-
-	// Variables to store gradient of 
-	// the intermolecular energy per each ligand atom
-	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
-	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
-	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
-	
-	// Final gradient resulting out of gradient calculation
-	__local float gradient_genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
-	// -------------------------------------------------------------------
 
 	// =============================================================
 	// WARNING: only energy of work-item=0 will be valid
@@ -141,15 +120,6 @@ gpu_calc_initpop(
 			rotbonds_moving_vectors_const,
 			rotbonds_unit_vectors_const,
 			ref_orientation_quats_const
-		 	// Gradient-related arguments
-		 	// Calculate gradients (forces) for intermolecular energy
-		 	// Derived from autodockdev/maps.py
-			,
-			&is_enabled_gradient_calc,
-			gradient_inter_x,
-			gradient_inter_y,
-			gradient_inter_z,
-			gradient_genotype
 			);
 	// =============================================================
 

@@ -172,7 +172,6 @@ void gpu_perform_elitist_selection(
 	for (gene_counter = get_local_id(0);
 	     gene_counter < dockpars_num_of_genes;
 	     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-	     dockpars_conformations_next[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+gene_counter] = dockpars_conformations_current[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0) + 
-																   GENOTYPE_LENGTH_IN_GLOBMEM*best_ID[0]+gene_counter];
+	     dockpars_conformations_next[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+gene_counter] = dockpars_conformations_current[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0) + GENOTYPE_LENGTH_IN_GLOBMEM*best_ID[0]+gene_counter];
 	}
 }
