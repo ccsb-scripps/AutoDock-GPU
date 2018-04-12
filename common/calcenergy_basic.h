@@ -57,13 +57,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 				       cube[0][0][1]*weights[0][0][1] +cube[1][0][1]*weights[1][0][1] + \
 				       cube[0][1][1]*weights[0][1][1] +cube[1][1][1]*weights[1][1][1])
 
-// Constants for dielelectric term of the intramolecular energy/gradient
-#define DIEL_A 		-8.5525f
-#define DIEL_WAT 	78.4f
-#define DIEL_B 		(DIEL_WAT - DIEL_A)
-#define DIEL_LAMBDA	0.003627f
-#define DIEL_H		DIEL_LAMBDA
-#define DIEL_K		7.7839f
+// Constants for dielelectric term of the 
+// electrostatic component of the intramolecular energy/gradient
+#define DIEL_A 			-8.5525f
+#define DIEL_WAT 		78.4f
+#define DIEL_B 			(DIEL_WAT - DIEL_A)
+#define DIEL_LAMBDA		0.003627f
+#define DIEL_H			DIEL_LAMBDA
+#define DIEL_K			7.7839f
+#define DIEL_B_TIMES_H		(DIEL_B*DIEL_H)
+#define DIEL_B_TIMES_H_TIMES_K	(DIEL_B_TIMES_H*DIEL_K)
 
 // Used for Shoemake to quternion transformation
 #define PI_TIMES_2 (float)(2.0f*M_PI)

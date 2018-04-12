@@ -597,6 +597,8 @@ void gpu_calc_energy(
 #endif
 
 			//calculating electrostatic term
+
+/*
 #if defined (NATIVE_PRECISION)
         partial_energies[get_local_id(0)] += native_divide (
                                                              dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
@@ -611,6 +613,30 @@ void gpu_calc_energy(
 				partial_energies[get_local_id(0)] += dockpars_coeff_elec*atom_charges_const[atom1_id]*atom_charges_const[atom2_id]/
 			                                       (atomic_distance*(-8.5525f + 86.9525f/(1.0f + 7.7839f*exp(-0.3154f*atomic_distance))));
 #endif
+*/
+
+
+#if defined (NATIVE_PRECISION)
+        partial_energies[get_local_id(0)] += native_divide (
+                                                             dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
+                                                             atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
+                                                             );
+#elif defined (HALF_PRECISION)
+        partial_energies[get_local_id(0)] += half_divide (
+                                                             dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
+                                                             atomic_distance * (DIEL_A + half_divide(DIEL_B,(1.0f + DIEL_K*half_exp(-DIEL_B_TIMES_H*atomic_distance))))
+                                                             );
+#else	// Full precision
+	partial_energies[get_local_id(0)] += dockpars_coeff_elec*atom_charges_const[atom1_id]*atom_charges_const[atom2_id]/
+			                                       (atomic_distance*(DIEL_A + DIEL_B/(1.0f + DIEL_K*exp(-DIEL_B_TIMES_H*atomic_distance))));
+#endif
+
+
+
+
+
+
+
 
 			//calculating desolvation term
 #if defined (NATIVE_PRECISION)

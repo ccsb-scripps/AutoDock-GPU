@@ -39,15 +39,11 @@ void gpu_calc_gradient(
 			    	float  dockpars_coeff_elec,
 			    	float  dockpars_qasp,
 			    	float  dockpars_coeff_desolv,
-
-                    // Some OpenCL compilers don't allow declaring 
-		    // local variables within non-kernel functions.
-		    // These local variables must be declared in a kernel, 
-		    // and then passed to non-kernel functions.
+				// Some OpenCL compilers don't allow declaring 
+				// local variables within non-kernel functions.
+				// These local variables must be declared in a kernel, 
+				// and then passed to non-kernel functions.
 		    	__local float* genotype,
-/*
-		   	__local float* energy,
-*/
 		    	__local int*   run_id,
 
 		    	__local float* calc_coords_x,
@@ -590,17 +586,11 @@ void gpu_calc_gradient(
 
 			// Calculating electrostatic term
 			// http://www.wolframalpha.com/input/?i=1%2F(x*(A%2B(B%2F(1%2BK*exp(-h*B*x)))))
-			float upper = DIEL_A*native_powr(native_exp(DIEL_B*DIEL_H*atomic_distance) + DIEL_K, 2) + (DIEL_B)*native_exp(DIEL_B*DIEL_H*atomic_distance)*(DIEL_B*DIEL_H*DIEL_K*atomic_distance + native_exp(DIEL_B*DIEL_H*atomic_distance) + DIEL_K);
+			float upper = DIEL_A*native_powr(native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K, 2) + (DIEL_B)*native_exp(DIEL_B_TIMES_H*atomic_distance)*(DIEL_B_TIMES_H_TIMES_K*atomic_distance + native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K);
 		
-			float lower = native_powr(atomic_distance, 2) * native_powr(DIEL_A * (native_exp(DIEL_B*DIEL_H*atomic_distance) + DIEL_K) + DIEL_B * native_exp(DIEL_B*DIEL_H*atomic_distance), 2);
+			float lower = native_powr(atomic_distance, 2) * native_powr(DIEL_A * (native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K) + DIEL_B * native_exp(DIEL_B_TIMES_H*atomic_distance), 2);
 
-
-        		gradient_per_intracontributor[contributor_counter] +=  -dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id] * 
-										native_divide (upper, lower);
-
-// (-8.5525f + native_divide(86.9525f,(1.0f + 7.7839f*native_exp(-0.3154f*atomic_distance))))
-
-
+        		gradient_per_intracontributor[contributor_counter] +=  -dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id] * native_divide (upper, lower);
 
 			// Calculating desolvation term
 			gradient_per_intracontributor[contributor_counter] += (
