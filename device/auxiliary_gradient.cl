@@ -66,10 +66,12 @@ bool is_gradDescent_enabled(
   	return *is_gradDescentEn;
 }
 
-float inner_product(__local float*	vector1,
-                    __local float*      vector2,
-                            uint 	inputSize,
-                    __local float*      init) {
+void gradient_norm(
+		   __local float*	vector1,
+                           uint 	inputSize,
+                   __local float*       init,
+		   __local float*       inner_product
+) {
 
 	float temp = 0.0f;
 
@@ -77,10 +79,11 @@ float inner_product(__local float*	vector1,
 	for(uint i = get_local_id(0); 
 		 i < inputSize; 
 		 i+= NUM_OF_THREADS_PER_BLOCK) {
-		init[i] = vector1[i] * vector2[i];
+		init[i] = vector1[i] * vector1[i];
 	}
 
-	// Accumulating dot product
+	// Accumulating dot product,
+	// and then getting the norm
 	if(get_local_id(0) == 0) {
 		for(uint i = 0; 
 			 i < inputSize; 
@@ -88,11 +91,7 @@ float inner_product(__local float*	vector1,
 			temp += init[i];
 		}
 
-		init [0] = temp;
+		*inner_product = native_sqrt(temp);
 	}
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	return init[0];
 }
 

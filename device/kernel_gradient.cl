@@ -168,7 +168,6 @@ gradient_minimizer(
 	__local float gradient_intra_z[MAX_NUM_OF_ATOMS];
 	__local float gradient_per_intracontributor[MAX_INTRAE_CONTRIBUTORS];
 	
-
 	// -------------------------------------------------------------------
 
 	// Variables to store partial energies
@@ -266,11 +265,7 @@ gradient_minimizer(
 		}
 
 	    	// Storing the norm of all gradients
-		local_gNorm = inner_product(local_gradient, local_gradient, dockpars_num_of_genes, dotProduct);
-
-		if (get_local_id(0) == 0) {
-			local_gNorm = native_sqrt(local_gNorm);
-		}
+		gradient_norm(local_gradient, dockpars_num_of_genes, dotProduct, &local_gNorm);
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -353,10 +348,12 @@ gradient_minimizer(
 
 	async_work_group_copy(dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
 			      local_genotype,
-			      dockpars_num_of_genes,0);
+			      dockpars_num_of_genes, 0);
 
 
 	// FIXME: maybe not used outside?
   	// Copying final "local" results into "global" memory
+/*
   	local_nIter = local_nIter - 1;
+*/
 }
