@@ -76,15 +76,6 @@ void gpu_calc_energy(
 {
 	partial_energies[get_local_id(0)] = 0.0f;
 
-#if 0
-	// Rotational genes in the Shoemake space expressed in radians
-	float u1, u2, u3; 
-	
-	u1 = genotype[3];
-	u2 = genotype[4]/**DEG_TO_RAD*/;
-	u3 = genotype[5]/**DEG_TO_RAD*/;
-#endif
-
 #if defined (IMPROVE_GRID)
 	// INTERMOLECULAR for-loop (intermediate results)
 	// It stores a product of two chars
@@ -98,7 +89,7 @@ void gpu_calc_energy(
 #endif
 
 	// ================================================
-	// CALCULATE ATOMIC POSITIONS AFTER ROTATIONS
+	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 	// ================================================
 	for (uint rotation_counter = get_local_id(0);
 	          rotation_counter < dockpars_rotbondlist_length;
@@ -137,12 +128,11 @@ void gpu_calc_energy(
 				// -------------------------------------------------------------------
 				// Replacing rotation genes: from spherical space to Shoemake space
 				// gene [0:2]: translation -> kept as original x, y, z
-				// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+				// gene [3:5]: rotation    -> transformed into Shoemake (u1, u2, u3)
 				// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
 
 				// Shoemake ranges:
-				// u1: [0, 1]
-				// u2: [0: 2PI] or [0: 360]
+				// u1, u2, u3: [0, 1]
 
 				// Random generator in the host is changed:
 				// LCG (original, myrand()) -> CPP std (rand())
@@ -154,8 +144,8 @@ void gpu_calc_energy(
 
 				// Rotational genes in the Shoemake space expressed in radians
 				float u1 = genotype[3];
-				float u2 = genotype[4]/**DEG_TO_RAD*/;
-				float u3 = genotype[5]/**DEG_TO_RAD*/;
+				float u2 = genotype[4];
+				float u3 = genotype[5];
 
 				// u1, u2, u3 should be within their valid range of [0,1]
 				quatrot_left_q = native_sqrt(1 - u1) * native_sin(PI_TIMES_2*u2); 
@@ -270,7 +260,7 @@ void gpu_calc_energy(
 	} // End rotation_counter for-loop
 
 	// ================================================
-	// CALCULATE INTERMOLECULAR ENERGY
+	// CALCULATING INTERMOLECULAR ENERGY
 	// ================================================
 	for (uint atom_id = get_local_id(0);
 	          atom_id < dockpars_num_of_atoms;
@@ -289,7 +279,7 @@ void gpu_calc_energy(
 		}
 		else
 		{
-			// Get coordinates
+			// Getting coordinates
 			int x_low  = (int)floor(x); 
 			int y_low  = (int)floor(y); 
 			int z_low  = (int)floor(z);
@@ -300,7 +290,7 @@ void gpu_calc_energy(
 			float dy = y - y_low; 
 			float dz = z - z_low;
 
-			// Calculate interpolation weights
+			// Calculating interpolation weights
 			float weights[2][2][2];
 			weights [0][0][0] = (1-dx)*(1-dy)*(1-dz);
 			weights [1][0][0] = dx*(1-dy)*(1-dz);
@@ -311,7 +301,7 @@ void gpu_calc_energy(
 			weights [0][1][1] = (1-dx)*dy*dz;
 			weights [1][1][1] = dx*dy*dz;
 
-			// Capture affinity values
+			// Capturing affinity values
 #if defined (IMPROVE_GRID)
 			uint ylow_times_g1  = y_low*g1;
 			uint yhigh_times_g1 = y_high*g1;
@@ -387,10 +377,10 @@ void gpu_calc_energy(
 						      atom_typeid, z_high, y_high, x_high);
 #endif
 
-			//calculating affinity energy
+			// Calculating affinity energy
 			partial_energies[get_local_id(0)] += TRILININTERPOL(cube, weights);
 
-			//capturing electrostatic values
+			// Capturing electrostatic values
 			atom_typeid = dockpars_num_of_atypes;
 
 #if defined (IMPROVE_GRID)
@@ -451,10 +441,10 @@ void gpu_calc_energy(
 						      atom_typeid, z_high, y_high, x_high);
 #endif
 
-			//calculating electrosatic energy
+			// Calculating electrosatic energy
 			partial_energies[get_local_id(0)] += q * TRILININTERPOL(cube, weights);
 
-			//capturing desolvation values
+			// Capturing desolvation values
 			atom_typeid = dockpars_num_of_atypes+1;
 
 #if defined (IMPROVE_GRID)
@@ -515,7 +505,7 @@ void gpu_calc_energy(
 						      atom_typeid, z_high, y_high, x_high);
 #endif
 
-			//calculating desolvation energy
+			// Calculating desolvation energy
 			partial_energies[get_local_id(0)] += fabs(q) * TRILININTERPOL(cube, weights);
 		}
 
@@ -527,27 +517,27 @@ void gpu_calc_energy(
 	// thus, they can be executed only sequentially on the GPU.
 
 	// ================================================
-	// CALCULATE INTRAMOLECULAR ENERGY
+	// CALCULATING INTRAMOLECULAR ENERGY
 	// ================================================
 	for (uint contributor_counter = get_local_id(0);
 	          contributor_counter < dockpars_num_of_intraE_contributors;
 	          contributor_counter +=NUM_OF_THREADS_PER_BLOCK)
 	{
-		//getting atom IDs
+		// Getting atom IDs
 		uint atom1_id = intraE_contributors_const[3*contributor_counter];
 		uint atom2_id = intraE_contributors_const[3*contributor_counter+1];
 
-		//calculating address of first atom's coordinates
+		// Calculating address of first atom's coordinates
 		float subx = calc_coords_x[atom1_id];
 		float suby = calc_coords_y[atom1_id];
 		float subz = calc_coords_z[atom1_id];
 
-		//calculating address of second atom's coordinates
+		// Calculating address of second atom's coordinates
 		subx -= calc_coords_x[atom2_id];
 		suby -= calc_coords_y[atom2_id];
 		subz -= calc_coords_z[atom2_id];
 
-		//calculating distance (atomic_distance)
+		// Calculating atomic_distance
 #if defined (NATIVE_PRECISION)
 		float atomic_distance = native_sqrt(subx*subx + suby*suby + subz*subz)*dockpars_grid_spacing;
 #elif defined (HALF_PRECISION)
@@ -559,14 +549,14 @@ void gpu_calc_energy(
 		if (atomic_distance < 1.0f)
 			atomic_distance = 1.0f;
 
-		//calculating energy contributions
+		// Calculating energy contributions
 		if ((atomic_distance < 8.0f) && (atomic_distance < 20.48f))
 		{
 			// Getting type IDs
 			uint atom1_typeid = atom_types_const[atom1_id];
 			uint atom2_typeid = atom_types_const[atom2_id];
 
-			//calculating van der Waals / hydrogen bond term
+			// Calculating van der Waals / hydrogen bond term
 #if defined (NATIVE_PRECISION)
 			partial_energies[get_local_id(0)] += native_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance,12));
 #elif defined (HALF_PRECISION)
@@ -596,7 +586,7 @@ void gpu_calc_energy(
 				partial_energies[get_local_id(0)] -= VWpars_BD_const[atom1_typeid*dockpars_num_of_atypes+atom2_typeid]/powr(atomic_distance,6);
 #endif
 
-			//calculating electrostatic term
+			// Calculating electrostatic term
 
 /*
 #if defined (NATIVE_PRECISION)
@@ -638,7 +628,7 @@ void gpu_calc_energy(
 
 
 
-			//calculating desolvation term
+			// Calculating desolvation term
 #if defined (NATIVE_PRECISION)
 			partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
 							       dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
