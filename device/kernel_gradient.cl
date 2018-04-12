@@ -178,16 +178,7 @@ gradient_minimizer(
 
 	// -----------------------------------------------------------------------------
 	// Perform gradient-descent iterations
-	while (is_gradDescent_enabled(
-				      is_perturb_gt_gene_min,
-				      &local_gNorm,
-    				      gradMin_tol,
-    				      &local_nIter,
-    				      gradMin_maxiter,
-    				      local_perturbation,
-    				      gradMin_conformation_min_perturbation,
-    				      &is_gradDescentEn,
-				      dockpars_num_of_genes) == true) {
+	do {
 		
 		// Calculating gradient
 		// =============================================================
@@ -257,6 +248,9 @@ gradient_minimizer(
 
 	     		// Updating current solution
 	     		local_genotype[i] = local_genotype_new[i];
+
+			// Storing all gene-based perturbations
+			local_perturbation[i] = local_genotype_diff [i];
 	   	}
 
 		// Updating number of stepest-descent iterations
@@ -267,14 +261,14 @@ gradient_minimizer(
 	    	// Storing the norm of all gradients
 		gradient_norm(local_gradient, dockpars_num_of_genes, dotProduct, &local_gNorm);
 
-		barrier(CLK_LOCAL_MEM_FENCE);
-
+		/*
 		// Storing all gene-based perturbations
 		for(uint i = get_local_id(0); 
 			 i < dockpars_num_of_genes; 
 			 i+= NUM_OF_THREADS_PER_BLOCK) {
 	     		local_perturbation[i] = local_genotype_diff [i];
    		}
+		*/
 
 /*
 		if (get_local_id(0) == 0) {
@@ -287,7 +281,20 @@ gradient_minimizer(
 			printf("Number of gradient iterations: %u\n", local_nIter);
 		}
 */
-  	}
+
+		is_gradDescent_enabled(
+				      	is_perturb_gt_gene_min,
+				      	&local_gNorm,
+    				      	gradMin_tol,
+    				      	&local_nIter,
+    				      	gradMin_maxiter,
+    				      	local_perturbation,
+    				      	gradMin_conformation_min_perturbation,
+				      	dockpars_num_of_genes,
+    				      	&is_gradDescentEn
+				      );
+  	} while (is_gradDescentEn == true);
+
 	// -----------------------------------------------------------------------------
 
   	// Calculating energy

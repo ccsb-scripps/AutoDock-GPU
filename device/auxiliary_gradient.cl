@@ -1,7 +1,7 @@
 
 // Implementation of auxiliary functions 
 // for the gradient-based minimizer
-bool is_gradDescent_enabled(
+void is_gradDescent_enabled(
 			    __local    bool* 	is_perturb_gt_gene_min,
 			    __local    float*   local_gNorm,
                                        float    gradMin_tol,
@@ -9,8 +9,9 @@ bool is_gradDescent_enabled(
                                        uint     gradMin_maxiter,
                             __local    float*   local_perturbation,
                             __constant float*   gradMin_conformation_min_perturbation,
-                            __local    bool*    is_gradDescentEn,
-				       uint     gradMin_numElements)
+				       uint     gradMin_numElements,
+                            __local    bool*    is_gradDescentEn
+)
 {
 	bool is_gNorm_gt_gMin;
 	bool is_nIter_lt_maxIter;
@@ -60,10 +61,10 @@ bool is_gradDescent_enabled(
 */
 	}
 
+/*
   	barrier(CLK_LOCAL_MEM_FENCE);
-
-
   	return *is_gradDescentEn;
+*/
 }
 
 void gradient_norm(
@@ -81,6 +82,8 @@ void gradient_norm(
 		 i+= NUM_OF_THREADS_PER_BLOCK) {
 		init[i] = vector1[i] * vector1[i];
 	}
+	
+	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// Accumulating dot product,
 	// and then getting the norm
