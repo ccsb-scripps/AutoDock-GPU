@@ -205,15 +205,13 @@ gradient_minimizer(
 				dockpars_coeff_elec,
 				dockpars_qasp,
 				dockpars_coeff_desolv,
-				local_genotype,
-/*
-				&local_energy,
-*/
-				&run_id,
 				// Some OpenCL compilers don't allow declaring 
 				// local variables within non-kernel functions.
 				// These local variables must be declared in a kernel, 
 				// and then passed to non-kernel functions.
+				local_genotype,
+				&run_id,
+
 				calc_coords_x,
 				calc_coords_y,
 				calc_coords_z,
