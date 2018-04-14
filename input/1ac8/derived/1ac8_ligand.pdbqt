@@ -1,0 +1,14 @@
+REMARK  0 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK RMS_REF  0.4500
+ROOT
+ATOM      1  S1  AC8     1      31.383  94.416  49.468  1.00 15.00     0.120 S
+ATOM      2  A1  AC8     1      32.858  93.565  49.052  1.00 15.00     0.737 A 
+ATOM      3  N1  AC8     1      32.857  93.236  47.747  1.00 15.00    -0.159 N 
+ATOM      4  A2  AC8     1      31.686  93.676  47.081  1.00 15.00     0.059 A 
+ATOM      5  A3  AC8     1      30.751  94.289  47.890  1.00 15.00     0.037 A 
+ATOM      6  C4  AC8     1      33.847  92.539  47.156  1.00 15.00     0.115 C 
+ATOM      7  C5  AC8     1      31.549  93.287  45.656  1.00 15.00     0.051 C 
+ATOM      8  C6  AC8     1      29.435  94.943  47.549  1.00 15.00     0.040 C 
+ENDROOT
+TORSDOF 0

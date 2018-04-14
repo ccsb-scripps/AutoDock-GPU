@@ -781,21 +781,28 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 */
 	for (i=0; i<mypars->num_of_runs; i++)
 	{
-#if defined (REPRO)
-		ref_ori_angles[3*i]   = 190.279;
-		ref_ori_angles[3*i+1] =  90.279;
-		ref_ori_angles[3*i+2] = 190.279;
-#else
-		ref_ori_angles[3*i]   = ((float) rand()/ (float) RAND_MAX); 	// u1
-		ref_ori_angles[3*i+1] = ((float) rand()/ (float) RAND_MAX);	// u2
-		ref_ori_angles[3*i+2] = ((float) rand()/ (float) RAND_MAX);	// u3
+//#if defined (REPRO)
+
+		// These specific values for the rotation genes (in Shoemake space)
+		// correspond to a quaternion for NO rotation.
+		ref_ori_angles[3*i]   = 0.0f;
+		ref_ori_angles[3*i+1] = 0.25f;
+		ref_ori_angles[3*i+2] = 0.0f;
+//#else
+//		ref_ori_angles[3*i]   = ((float) rand()/ (float) RAND_MAX); 	// u1
+//		ref_ori_angles[3*i+1] = ((float) rand()/ (float) RAND_MAX);	// u2
+//		ref_ori_angles[3*i+2] = ((float) rand()/ (float) RAND_MAX);	// u3
 		//printf("u1, u2, u3: %10f %10f %10f \n", ref_ori_angles[3*i], ref_ori_angles[3*i+1], ref_ori_angles[3*i+2]);
-#endif
+//#endif
 	}
 
 	get_movvec_to_origo(myligand, movvec_to_origo);
 	move_ligand(myligand, movvec_to_origo);
 	scale_ligand(myligand, 1.0/mygrid->spacing);
 	get_moving_and_unit_vectors(myligand);
+
+
+	printf("ligand: movvec_to_origo: %f %f %f\n", movvec_to_origo[0], movvec_to_origo[1], movvec_to_origo[2]);
+	
 
 }

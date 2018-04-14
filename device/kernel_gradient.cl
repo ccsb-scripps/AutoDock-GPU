@@ -3,7 +3,7 @@
 
 // Original source in https://stackoverflow.com/a/27910756
 
-
+#define DEBUG_MINIMIZER
 
 
 // FIXME: original call of stepGPU
@@ -77,6 +77,7 @@ gradient_minimizer(
 	__local int   run_id;
   	__local float local_energy;
 
+#if 0
 	if (get_local_id(0) == 0)
 	{
 		entity_id = get_group_id(0) % dockpars_num_of_lsentities;
@@ -106,6 +107,24 @@ gradient_minimizer(
 */
 
 	}
+#endif
+
+
+	if (get_local_id(0) == 0)
+	{
+		// Choosing a random entity out of the entire population
+		entity_id = (uint)(dockpars_pop_size * gpu_randf(dockpars_prng_states));
+		run_id = get_group_id(0);
+		
+		local_energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
+
+		#if defined (DEBUG_MINIMIZER)
+		//printf("run_id:  %5u entity_id: %5u  local_energy: %.5f\n", run_id, entity_id, local_energy);
+		//printf("%-40s %f\n", "BEFORE GRADIENT - local_energy: ", local_energy);
+		#endif
+
+	}
+
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -167,7 +186,11 @@ gradient_minimizer(
 	__local float gradient_intra_y[MAX_NUM_OF_ATOMS];
 	__local float gradient_intra_z[MAX_NUM_OF_ATOMS];
 	__local float gradient_per_intracontributor[MAX_INTRAE_CONTRIBUTORS];
-	
+
+	// Accummulated gradient
+	__local float gradient_x[MAX_NUM_OF_ATOMS];
+	__local float gradient_y[MAX_NUM_OF_ATOMS];
+	__local float gradient_z[MAX_NUM_OF_ATOMS];	
 	// -------------------------------------------------------------------
 
 	// Variables to store partial energies
@@ -179,7 +202,20 @@ gradient_minimizer(
 	// -----------------------------------------------------------------------------
 	// Perform gradient-descent iterations
 	do {
-		
+///*
+		// Specific input genotypes for a ligand with no rotatable bonds (1ac8).
+		// Translation genes must be expressed in grids in OCLADock (local_genotype [0|1|2]).
+		// However, for testing purposes, 
+		// we start using translation values in real space (Angstrom): {31.79575, 93.743875, 47.699875}
+		// Rotation genes are expresed in the Shoemake space: local_genotype [3|4|5]
+		// xyz_gene_gridspace = gridcenter_gridspace + (input_gene_realspace - gridcenter_realspace)/gridsize
+		local_genotype[0] = 30 + (31.79575  - 31.924) / 0.375;
+		local_genotype[1] = 30 + (93.743875 - 93.444) / 0.375;
+		local_genotype[2] = 30 + (47.699875 - 47.924) / 0.375;
+		local_genotype[3] = 0.1f;
+		local_genotype[4] = 0.5f;
+		local_genotype[5] = 0.9f;
+//*/		
 		// Calculating gradient
 		// =============================================================
 		gpu_calc_gradient(
@@ -231,10 +267,23 @@ gradient_minimizer(
 				gradient_intra_x,
 				gradient_intra_y,
 				gradient_intra_z,
+				gradient_x,
+				gradient_y,
+				gradient_z,
 				gradient_per_intracontributor,
 				local_gradient
 				);
 		// =============================================================
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		#if defined (DEBUG_MINIMIZER)
+		if (get_local_id(0) == 0) {
+			for (uint i=0; i<dockpars_num_of_genes; i++) {
+				printf("AFTER- GRADIENT - local_gradient[%u]: %f\n", i, local_gradient[i]);
+			}
+		}
+		#endif
 
 		for(uint i = get_local_id(0); 
 			 i < dockpars_num_of_genes; 
@@ -297,6 +346,16 @@ gradient_minimizer(
 
 	// -----------------------------------------------------------------------------
 
+///*
+	local_genotype[0] = 30 + (31.79575  - 31.924) / 0.375;
+	local_genotype[1] = 30 + (93.743875 - 93.444) / 0.375;
+	local_genotype[2] = 30 + (47.699875 - 47.924) / 0.375;
+	local_genotype[3] = 0.1f;
+	local_genotype[4] = 0.5f;
+	local_genotype[5] = 0.9f;
+//*/
+
+
   	// Calculating energy
 	// =============================================================
 	gpu_calc_energy(dockpars_rotbondlist_length,
@@ -340,11 +399,14 @@ gradient_minimizer(
 			);
 	// =============================================================
 
-/*
+	//barrier(CLK_LOCAL_MEM_FENCE);
+
+	#if defined (DEBUG_MINIMIZER)
 	if (get_local_id(0) == 0) {
-		printf("AFTER- GRADIENT - local_energy: %f\n\n", local_energy);
+		printf("%-40s %f\n", "AFTER- GRADIENT - local_energy: ", local_energy);
+		//printf("\n");
 	}
-*/
+	#endif
 
   	// Copying final genotype and energy into global memory
 	if (get_local_id(0) == 0) {

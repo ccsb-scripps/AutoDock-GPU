@@ -392,6 +392,8 @@ filled with clock() */
 	blocksPerGridForEachLSEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
 
 
+	printf("dockpars.rotbondlist_length:%u\n", dockpars.rotbondlist_length);
+
 
 	// Experimental TSRI gradient-based minimizer kernel argument
 	// Setup here (temporarily?) the gradient and associated parameters.
@@ -423,10 +425,14 @@ filled with clock() */
 	mallocBufferObject(context, CL_MEM_READ_ONLY, size_conformation_min_perturbation, &mem_gradpars_conformation_min_perturbation);
 	memcopyBufferObjectToDevice(command_queue, mem_gradpars_conformation_min_perturbation, gradientpars.conformation_min_perturbation, size_conformation_min_perturbation);
 
+/*
 	// Initially, the number of entities that undergo gradient-minimization,
 	// by default, it is the same as the number of entities that undergo gradient-based minimizer
-	blocksPerGridForEachGradMinimizerEntity = /*dockpars.num_of_lsentities**/mypars->num_of_runs;
+	blocksPerGridForEachGradMinimizerEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
+*/
 
+	// test, only one entity per reach run, undergoes gradient minimization
+	blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
 
 	clock_start_docking = clock();
 

@@ -1,0 +1,17 @@
+npts 60 60 60                        # num.grid points in xyz
+parameter_file AD4.1_bound.dat       # force field default parameter file
+
+gridfld 1ac8_rec.maps.fld            # grid_data_file
+spacing 0.375                        # spacing(A)
+receptor_types A C FE HD N NA OA SA  # receptor atom types
+ligand_types A C N S                 # ligand atom types
+receptor 1ac8_rec.pdbqt              # macromolecule
+gridcenter 31.9237 93.4438 47.9238   # xyz-coordinates or auto
+smooth 0.5                           # store minimum energy w/in rad(A)
+map 1ac8_rec.A.map                   # atom-specific affinity map
+map 1ac8_rec.C.map                   # atom-specific affinity map
+map 1ac8_rec.N.map                   # atom-specific affinity map
+map 1ac8_rec.S.map                   # atom-specific affinity map
+elecmap 1ac8_rec.e.map               # electrostatic potential map
+dsolvmap 1ac8_rec.d.map              # desolvation potential map
+dielectric -0.1465                   # <0, AD4 distance-dep.diel;>0, constant

@@ -88,6 +88,9 @@ void gpu_calc_gradient(
 		    __local float* gradient_intra_x,
 		    __local float* gradient_intra_y,
 		    __local float* gradient_intra_z,
+		    __local float* gradient_x,
+		    __local float* gradient_y,
+		    __local float* gradient_z,
 	            __local float* gradient_per_intracontributor,
 		    __local float* gradient_genotype			
 )
@@ -645,13 +648,12 @@ void gpu_calc_gradient(
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// Accumulating inter- and intramolecular gradients
-	// simply into "gradient_inter_{x|y|z}"
 	for (uint atom_cnt = get_local_id(0);
 		  atom_cnt < dockpars_num_of_atoms;
 		  atom_cnt+= NUM_OF_THREADS_PER_BLOCK) {
-		gradient_inter_x[atom_cnt] = gradient_inter_x[atom_cnt] + gradient_intra_x[atom_cnt];
-		gradient_inter_y[atom_cnt] = gradient_inter_y[atom_cnt] + gradient_intra_y[atom_cnt];
-		gradient_inter_z[atom_cnt] = gradient_inter_z[atom_cnt] + gradient_intra_z[atom_cnt];
+		gradient_x[atom_cnt] = gradient_inter_x[atom_cnt] + gradient_intra_x[atom_cnt];
+		gradient_y[atom_cnt] = gradient_inter_y[atom_cnt] + gradient_intra_y[atom_cnt];
+		gradient_z[atom_cnt] = gradient_inter_z[atom_cnt] + gradient_intra_z[atom_cnt];
 	}
 
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -663,9 +665,9 @@ void gpu_calc_gradient(
 		for (uint lig_atom_id = 0;
 			  lig_atom_id<dockpars_num_of_atoms;
 			  lig_atom_id++) {
-			gradient_genotype[0] += gradient_inter_x[lig_atom_id]; // gradient for gene 0: gene x
-			gradient_genotype[1] += gradient_inter_y[lig_atom_id]; // gradient for gene 1: gene y
-			gradient_genotype[2] += gradient_inter_z[lig_atom_id]; // gradient for gene 2: gene z
+			gradient_genotype[0] += gradient_x[lig_atom_id]; // gradient for gene 0: gene x
+			gradient_genotype[1] += gradient_y[lig_atom_id]; // gradient for gene 1: gene y
+			gradient_genotype[2] += gradient_z[lig_atom_id]; // gradient for gene 2: gene z
 		}
 
 		/*
@@ -691,14 +693,18 @@ void gpu_calc_gradient(
 
 		float3 torque_rot = (float3)(0.0f, 0.0f, 0.0f);
 
+		printf("%-20s %-10.5f %-10.5f %-10.5f\n", "initial torque: ", torque_rot.x, torque_rot.y, torque_rot.z);
+
 		// Center of rotation 
 		// In getparameters.cpp, it indicates 
 		// translation genes are in grid spacing (instead of Angstroms)
 		float3 about;
-		about.x = genotype[0]; 
-		about.y = genotype[1];
-		about.z = genotype[2];
-		
+
+//#if 0
+		about.x = 30/*genotype[0]*/;
+		about.y = 30/*genotype[1]*/;
+		about.z = 30/*genotype[2]*/;
+//#endif	
 		// Temporal variable to calculate translation differences.
 		// They are converted back to Angstroms here
 		float3 r;
@@ -709,31 +715,37 @@ void gpu_calc_gradient(
 			r.x = (calc_coords_x[lig_atom_id] - about.x) * dockpars_grid_spacing; 
 			r.y = (calc_coords_y[lig_atom_id] - about.y) * dockpars_grid_spacing;  
 			r.z = (calc_coords_z[lig_atom_id] - about.z) * dockpars_grid_spacing; 
-			torque_rot += cross(r, torque_rot);
+
+			float3 force = (float3)(-gradient_x[lig_atom_id], -gradient_y[lig_atom_id], -gradient_z[lig_atom_id]) / dockpars_grid_spacing;
+			torque_rot += cross(r, force);
+			printf("%-20s %-10u\n", "contrib. of atom-id: ", lig_atom_id);
+			printf("%-20s %-10.5f %-10.5f %-10.5f\n", "r             : ", r.x, r.y, r.z);
+			printf("%-20s %-10.5f %-10.5f %-10.5f\n", "force         : ", force.x, force.y, force.z);
+			printf("%-20s %-10.5f %-10.5f %-10.5f\n", "partial torque: ", torque_rot.x, torque_rot.y, torque_rot.z);
+			printf("\n");
 		}
 
-		const float rad = 1E-8;
-		const float rad_div_2 = native_divide(rad, 2);
-
-		float quat_w, quat_x, quat_y, quat_z;
+		printf("%-20s %-10.5f %-10.5f %-10.5f\n", "final torque: ", torque_rot.x, torque_rot.y, torque_rot.z);
 
 		// Derived from rotation.py/axisangle_to_q()
 		// genes[3:7] = rotation.axisangle_to_q(torque, rad)
-		torque_rot = fast_normalize(torque_rot);
-		quat_x = torque_rot.x;
-		quat_y = torque_rot.y;
-		quat_z = torque_rot.z;
+		float torque_length = fast_length(torque_rot);
 
-		// Rotation-related gradients are expressed here in quaternions
-		quat_w = native_cos(rad_div_2);
-		quat_x = quat_x * native_sin(rad_div_2);
-		quat_y = quat_y * native_sin(rad_div_2);
-		quat_z = quat_z * native_sin(rad_div_2);
+		// Infinitesimal rotation in radians
+		const float infinitesimal_radian = 1E-8;
+
+		// Finding the quaternion that performs
+		// the infinitesimal rotation around torque axis
+		float4 quat_torque;
+		quat_torque.w = native_cos(infinitesimal_radian*0.5f);
+		quat_torque.x = fast_normalize(torque_rot).x * native_sin(infinitesimal_radian*0.5f);
+		quat_torque.y = fast_normalize(torque_rot).y * native_sin(infinitesimal_radian*0.5f);
+		quat_torque.z = fast_normalize(torque_rot).z * native_sin(infinitesimal_radian*0.5f);
 
 		// Converting quaternion gradients into Shoemake gradients 
 		// Derived from autodockdev/motion.py/_get_cube3_gradient
 
-		// This is where we are in cube3
+		// This is where we are in Shoemake space
 		float current_u1, current_u2, current_u3;
 		current_u1 = genotype[3]; // check very initial input Shoemake genes
 		current_u2 = genotype[4];
@@ -741,47 +753,75 @@ void gpu_calc_gradient(
 
 		// This is where we are in quaternion space
 		// current_q = cube3_to_quaternion(current_u)
-		float current_qw, current_qx, current_qy, current_qz;
-		current_qw = native_sqrt(1-current_u1) * native_sin(PI_TIMES_2*current_u2);
-		current_qx = native_sqrt(1-current_u1) * native_cos(PI_TIMES_2*current_u2);
-		current_qy = native_sqrt(current_u1)   * native_sin(PI_TIMES_2*current_u3);
-		current_qz = native_sqrt(current_u1)   * native_cos(PI_TIMES_2*current_u3);
+		float4 current_q;
+		current_q.w = native_sqrt(1-current_u1) * native_sin(PI_TIMES_2*current_u2);
+		current_q.x = native_sqrt(1-current_u1) * native_cos(PI_TIMES_2*current_u2);
+		current_q.y = native_sqrt(current_u1)   * native_sin(PI_TIMES_2*current_u3);
+		current_q.z = native_sqrt(current_u1)   * native_cos(PI_TIMES_2*current_u3);
 
 		// This is where we want to be in quaternion space
-		float target_qw, target_qx, target_qy, target_qz;
+		float4 target_q;
 
 		// target_q = rotation.q_mult(q, current_q)
 		// Derived from autodockdev/rotation.py/q_mult()
 		// In our terms means q_mult(quat_{w|x|y|z}, current_q{w|x|y|z})
-		target_qw = quat_w*current_qw - quat_x*current_qx - quat_y*current_qy - quat_z*current_qz;// w
-		target_qx = quat_w*current_qx + quat_x*current_qw + quat_y*current_qz - quat_z*current_qy;// x
-		target_qy = quat_w*current_qy + quat_y*current_qw + quat_z*current_qx - quat_x*current_qz;// y
-		target_qz = quat_w*current_qz + quat_z*current_qw + quat_x*current_qy - quat_y*current_qx;// z
+		target_q.w = quat_torque.w*current_q.w - quat_torque.x*current_q.x - quat_torque.y*current_q.y - quat_torque.z*current_q.z;// w
+		target_q.x = quat_torque.w*current_q.x + quat_torque.x*current_q.w + quat_torque.y*current_q.z - quat_torque.z*current_q.y;// x
+		target_q.y = quat_torque.w*current_q.y + quat_torque.y*current_q.w + quat_torque.z*current_q.x - quat_torque.x*current_q.z;// y
+		target_q.z = quat_torque.w*current_q.z + quat_torque.z*current_q.w + quat_torque.x*current_q.y - quat_torque.y*current_q.x;// z
 
-		// This is where we want to be in cube3
+		// This is where we want to be in Shoemake space
 		float target_u1, target_u2, target_u3;
 
 		// target_u = quaternion_to_cube3(target_q)
 		// Derived from autodockdev/motions.py/quaternion_to_cube3()
 		// In our terms means quaternion_to_cube3(target_q{w|x|y|z})
-		target_u1 = target_qy*target_qy + target_qz*target_qz;
-		target_u2 = atan2(target_qw, target_qx);
-		target_u3 = atan2(target_qy, target_qz);
+		target_u1 = target_q.y*target_q.y + target_q.z*target_q.z;
+		target_u2 = atan2(target_q.w, target_q.x);
+		target_u3 = atan2(target_q.y, target_q.z);
+
+		if (target_u2 < 0.0f) {
+			target_u2 += PI_TIMES_2;
+		}
+
+		if (target_u2 > PI_TIMES_2) {
+			target_u2 -= PI_TIMES_2;
+		}
+
+		if (target_u3 < 0.0f) {
+			target_u3 += PI_TIMES_2;
+		}
+
+		if (target_u3 > PI_TIMES_2) {
+			target_u3 -= PI_TIMES_2;
+		}
+
+		target_u2 = target_u2 / PI_TIMES_2;
+		target_u3 = target_u3 / PI_TIMES_2;
+		
+
+   		// The infinitesimal rotation will produce an infinitesimal displacement
+    		// in shoemake space. This is to guarantee that the direction of
+    		// the displacement in shoemake space is not distorted.
+    		// The correct amount of displacement in shoemake space is obtained
+		// by multiplying the infinitesimal displacement by shoemake_scaling:
+		float shoemake_scaling = torque_length / infinitesimal_radian;
+
 
 		// Derivates in cube3
 		float grad_u1, grad_u2, grad_u3;
-		grad_u1 = target_u1 - current_u1;
-		grad_u2 = target_u2 - current_u2;
-		grad_u3 = target_u3 - current_u3;
+		grad_u1 = shoemake_scaling * (target_u1 - current_u1);
+		grad_u2 = shoemake_scaling * (target_u2 - current_u2);
+		grad_u3 = shoemake_scaling * (target_u3 - current_u3);
 			
 		// Empirical scaling
 		float temp_u1 = genotype[3];
 			
-		if ((temp_u1 > 1.0f) || (temp_u1 < 0.0f)){
-			grad_u1 *= ((1/temp_u1) + (1/(1-temp_u1)));
+		if (0.0f < temp_u1 < 1.0f){
+			grad_u1 *= ((1.0f/temp_u1) + (1.0f/(1.0f-temp_u1)));
 		}
-		grad_u2 *= 4 * (1-temp_u1);
-		grad_u3 *= 4 * temp_u1;
+		grad_u2 *= 4.0f * (1.0f-temp_u1);
+		grad_u3 *= 4.0f * temp_u1;
 			
 		// Setting gradient rotation-related genotypes in cube3
 		gradient_genotype[3] = grad_u1;

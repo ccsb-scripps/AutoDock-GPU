@@ -1,0 +1,22 @@
+REMARK   This is the box from the file :  1ac8_1ac8.gpf
+ATOM      1   Fe BOX X   1      20.674  82.194  36.674  1.00 10.00          Fe
+ATOM      2   Fe BOX X   2      43.174  82.194  36.674  1.00 10.00          Fe
+ATOM      3   Fe BOX X   3      43.174 104.694  36.674  1.00 10.00          Fe
+ATOM      4   Fe BOX X   4      20.674 104.694  36.674  1.00 10.00          Fe
+ATOM      5   Fe BOX X   5      20.674  82.194  59.174  1.00 10.00          Fe
+ATOM      6   Fe BOX X   6      43.174  82.194  59.174  1.00 10.00          Fe
+ATOM      7   Fe BOX X   7      43.174 104.694  59.174  1.00 10.00          Fe
+ATOM      8   Fe BOX X   8      20.674 104.694  59.174  1.00 10.00          Fe
+ATOM     10   Fe BOX X   8      31.924  93.444  47.924  1.00 10.00          Fe
+CONECT    1    2
+CONECT    1    4
+CONECT    1    5
+CONECT    2    3
+CONECT    2    6
+CONECT    3    4
+CONECT    3    7
+CONECT    4    8
+CONECT    5    6
+CONECT    5    8
+CONECT    6    7
+CONECT    7    8
