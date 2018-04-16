@@ -701,9 +701,9 @@ void gpu_calc_gradient(
 		float3 about;
 
 //#if 0
-		about.x = 30/*genotype[0]*/;
-		about.y = 30/*genotype[1]*/;
-		about.z = 30/*genotype[2]*/;
+		about.x = /*30*/genotype[0];
+		about.y = /*30*/genotype[1];
+		about.z = /*30*/genotype[2];
 //#endif	
 		// Temporal variable to calculate translation differences.
 		// They are converted back to Angstroms here
@@ -716,7 +716,7 @@ void gpu_calc_gradient(
 			r.y = (calc_coords_y[lig_atom_id] - about.y) * dockpars_grid_spacing;  
 			r.z = (calc_coords_z[lig_atom_id] - about.z) * dockpars_grid_spacing; 
 
-			float3 force = (float3)(-gradient_x[lig_atom_id], -gradient_y[lig_atom_id], -gradient_z[lig_atom_id]) / dockpars_grid_spacing;
+			float3 force = (float3)(gradient_x[lig_atom_id], gradient_y[lig_atom_id], gradient_z[lig_atom_id]) / dockpars_grid_spacing;
 			torque_rot += cross(r, force);
 			printf("%-20s %-10u\n", "contrib. of atom-id: ", lig_atom_id);
 			printf("%-20s %-10.5f %-10.5f %-10.5f\n", "r             : ", r.x, r.y, r.z);
@@ -730,9 +730,10 @@ void gpu_calc_gradient(
 		// Derived from rotation.py/axisangle_to_q()
 		// genes[3:7] = rotation.axisangle_to_q(torque, rad)
 		float torque_length = fast_length(torque_rot);
+		printf("%-20s %-10.5f\n", "torque length: ", torque_length);
 
 		// Infinitesimal rotation in radians
-		const float infinitesimal_radian = 1E-8;
+		const float infinitesimal_radian = 1E-5;
 
 		// Finding the quaternion that performs
 		// the infinitesimal rotation around torque axis
@@ -741,6 +742,7 @@ void gpu_calc_gradient(
 		quat_torque.x = fast_normalize(torque_rot).x * native_sin(infinitesimal_radian*0.5f);
 		quat_torque.y = fast_normalize(torque_rot).y * native_sin(infinitesimal_radian*0.5f);
 		quat_torque.z = fast_normalize(torque_rot).z * native_sin(infinitesimal_radian*0.5f);
+		printf("%-20s %-10.5f %-10.5f %-10.5f %-10.5f\n", "quat_torque (w,x,y,z): ", quat_torque.w, quat_torque.x, quat_torque.y, quat_torque.z);
 
 		// Converting quaternion gradients into Shoemake gradients 
 		// Derived from autodockdev/motion.py/_get_cube3_gradient
@@ -750,6 +752,7 @@ void gpu_calc_gradient(
 		current_u1 = genotype[3]; // check very initial input Shoemake genes
 		current_u2 = genotype[4];
 		current_u3 = genotype[5];
+		printf("%-30s %-10.5f %-10.5f %-10.5f\n", "current_u (1,2,3): ", genotype[3], genotype[4], genotype[5]);
 
 		// This is where we are in quaternion space
 		// current_q = cube3_to_quaternion(current_u)
@@ -758,6 +761,7 @@ void gpu_calc_gradient(
 		current_q.x = native_sqrt(1-current_u1) * native_cos(PI_TIMES_2*current_u2);
 		current_q.y = native_sqrt(current_u1)   * native_sin(PI_TIMES_2*current_u3);
 		current_q.z = native_sqrt(current_u1)   * native_cos(PI_TIMES_2*current_u3);
+		printf("%-30s %-10.8f %-10.8f %-10.8f %-10.8f\n", "current_q (w,x,y,z): ", current_q.w, current_q.x, current_q.y, current_q.z);
 
 		// This is where we want to be in quaternion space
 		float4 target_q;
@@ -769,6 +773,7 @@ void gpu_calc_gradient(
 		target_q.x = quat_torque.w*current_q.x + quat_torque.x*current_q.w + quat_torque.y*current_q.z - quat_torque.z*current_q.y;// x
 		target_q.y = quat_torque.w*current_q.y + quat_torque.y*current_q.w + quat_torque.z*current_q.x - quat_torque.x*current_q.z;// y
 		target_q.z = quat_torque.w*current_q.z + quat_torque.z*current_q.w + quat_torque.x*current_q.y - quat_torque.y*current_q.x;// z
+		printf("%-30s %-10.8f %-10.8f %-10.8f %-10.8f\n", "target_q (w,x,y,z): ", target_q.w, target_q.x, target_q.y, target_q.z);
 
 		// This is where we want to be in Shoemake space
 		float target_u1, target_u2, target_u3;
@@ -779,6 +784,7 @@ void gpu_calc_gradient(
 		target_u1 = target_q.y*target_q.y + target_q.z*target_q.z;
 		target_u2 = atan2(target_q.w, target_q.x);
 		target_u3 = atan2(target_q.y, target_q.z);
+		
 
 		if (target_u2 < 0.0f) {
 			target_u2 += PI_TIMES_2;
@@ -795,9 +801,12 @@ void gpu_calc_gradient(
 		if (target_u3 > PI_TIMES_2) {
 			target_u3 -= PI_TIMES_2;
 		}
-
+/*
+		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "target_u (1,2,3) - before mapping: ", target_u1, target_u2, target_u3);
 		target_u2 = target_u2 / PI_TIMES_2;
 		target_u3 = target_u3 / PI_TIMES_2;
+*/
+		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "target_u (1,2,3) - after mapping: ", target_u1, target_u2, target_u3);
 		
 
    		// The infinitesimal rotation will produce an infinitesimal displacement
@@ -811,22 +820,28 @@ void gpu_calc_gradient(
 		// Derivates in cube3
 		float grad_u1, grad_u2, grad_u3;
 		grad_u1 = shoemake_scaling * (target_u1 - current_u1);
-		grad_u2 = shoemake_scaling * (target_u2 - current_u2);
-		grad_u3 = shoemake_scaling * (target_u3 - current_u3);
+		grad_u2 = shoemake_scaling * (target_u2 - current_u2 * PI_TIMES_2);
+		grad_u3 = shoemake_scaling * (target_u3 - current_u3 * PI_TIMES_2);
+		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "grad_u (1,2,3) - before emp. scaling: ", grad_u1, grad_u2, grad_u3);
 			
 		// Empirical scaling
 		float temp_u1 = genotype[3];
 			
-		if (0.0f < temp_u1 < 1.0f){
+		if ((0.0f < temp_u1) && (temp_u1 < 1.0f)){
 			grad_u1 *= ((1.0f/temp_u1) + (1.0f/(1.0f-temp_u1)));
 		}
 		grad_u2 *= 4.0f * (1.0f-temp_u1);
 		grad_u3 *= 4.0f * temp_u1;
+		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "grad_u (1,2,3) - after emp. scaling: ", grad_u1, grad_u2, grad_u3);
+		
 			
 		// Setting gradient rotation-related genotypes in cube3
+		// Scaling for u2 and u3
 		gradient_genotype[3] = grad_u1;
-		gradient_genotype[4] = grad_u2;
-		gradient_genotype[5] = grad_u3;
+		gradient_genotype[4] = grad_u2 * PI_TIMES_2; 
+		gradient_genotype[5] = grad_u3 * PI_TIMES_2;
+		
+		// TODO: scaling needed here? (x PI_TIMES_2?)
 
 		/*
 		printf("gradient_shoemake_u1:%f\n", gradient_genotype [3]);
