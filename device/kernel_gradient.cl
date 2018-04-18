@@ -342,7 +342,7 @@ resed in the Shoemake space: local_genotype [3|4|5]
 	     		// Taking step
 	     		local_genotype_new[i]  = local_genotype[i] - gradMin_alpha * local_gradient[i];
 
-	     		// Updating terminatiodockpars_num_of_genesn metrics
+	     		// Updating termination metrics
 	     		local_genotype_diff[i] = local_genotype_new[i] - local_genotype[i];
 
 	     		// Updating current solution
@@ -375,11 +375,11 @@ resed in the Shoemake space: local_genotype [3|4|5]
 		}		
 */
 
-/*
+///*
 		if (get_local_id(0) == 0) {
 			printf("Number of gradient iterations: %u\n", local_nIter);
 		}
-*/
+//*/
 
 		is_gradDescent_enabled(
 				      	is_perturb_gt_gene_min,

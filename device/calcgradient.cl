@@ -553,9 +553,7 @@ void gpu_calc_gradient(
 			vz_y1 = (1 - dx) * z62 + dx * z75;	// y = 1
 			gradient_inter_z[atom_id] += fabs(q) *((1 - dy) * vz_y0 + dy * vz_y1);
 
-
 			//printf("%-15s %-3u %-10.8f %-10.8f %-10.8f %-10.8f %-10.8f %-10.8f\n", "desol", atom_id, vx_z0, vx_z1, vy_z0, vy_z1, vz_y0, vz_y1);
-
 			// -------------------------------------------------------------------
 		}
 
@@ -632,6 +630,7 @@ void gpu_calc_gradient(
 					                       			dockpars_coeff_desolv * -0.07716049382716049 * atomic_distance * native_exp(-0.038580246913580245*native_powr(atomic_distance, 2));
 
 		}
+
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
 
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -663,6 +662,8 @@ void gpu_calc_gradient(
 			gradient_intra_x[atom2_id] += gradient_per_intracontributor[contributor_counter] * subx / dist;
 			gradient_intra_y[atom2_id] += gradient_per_intracontributor[contributor_counter] * suby / dist;
 			gradient_intra_z[atom2_id] += gradient_per_intracontributor[contributor_counter] * subz / dist;
+
+			//printf("%-20s %-10u %-5u %-5u %-10.8f\n", "grad_intracontrib", contributor_counter, atom1_id, atom2_id, gradient_per_intracontributor[contributor_counter]);
 		}
 	}
 	
@@ -683,11 +684,11 @@ void gpu_calc_gradient(
 		gradient_inter_y[atom_cnt] = gradient_inter_y[atom_cnt] / dockpars_grid_spacing;
 		gradient_inter_z[atom_cnt] = gradient_inter_z[atom_cnt] / dockpars_grid_spacing;
 
-		gradient_x[atom_cnt] = gradient_inter_x[atom_cnt] ;//+ gradient_intra_x[atom_cnt];
-		gradient_y[atom_cnt] = gradient_inter_y[atom_cnt] ;//+ gradient_intra_y[atom_cnt];
-		gradient_z[atom_cnt] = gradient_inter_z[atom_cnt] ;//+ gradient_intra_z[atom_cnt];
+		gradient_x[atom_cnt] = gradient_inter_x[atom_cnt] + gradient_intra_x[atom_cnt];
+		gradient_y[atom_cnt] = gradient_inter_y[atom_cnt] + gradient_intra_y[atom_cnt];
+		gradient_z[atom_cnt] = gradient_inter_z[atom_cnt] + gradient_intra_z[atom_cnt];
 	
-		printf("%-15s %-5u %-10.8f %-10.8f %-10.8f\n", "grad_grid", atom_cnt, gradient_inter_x[atom_cnt], gradient_inter_y[atom_cnt], gradient_inter_z[atom_cnt]);
+		//printf("%-15s %-5u %-10.8f %-10.8f %-10.8f\n", "grad_grid", atom_cnt, gradient_inter_x[atom_cnt], gradient_inter_y[atom_cnt], gradient_inter_z[atom_cnt]);
 
 		//printf("%-15s %-5u %-10.8f %-10.8f %-10.8f\n", "grad_intra", atom_cnt, gradient_intra_x[atom_cnt], gradient_intra_y[atom_cnt], gradient_intra_z[atom_cnt]);
 

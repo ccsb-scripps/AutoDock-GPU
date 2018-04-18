@@ -409,7 +409,7 @@ filled with clock() */
 	// This should be ultimately configurable by the user as program exec. flags.
 	Gradientparameters gradientpars;
 	gradientpars.tolerance = 1.e-6;
-	gradientpars.max_num_of_iters = 10000;
+	gradientpars.max_num_of_iters = 300; // Same as Solis-Wetts local search
 	gradientpars.alpha = 0.00001f; //0.001f; // TODO: find out why 0.001f, 0.0001f (100 runs, 500 popsize) throws segmentation fault
 	gradientpars.h = 0.0001f;
 
