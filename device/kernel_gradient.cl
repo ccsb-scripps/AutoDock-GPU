@@ -45,6 +45,9 @@ gradient_minimizer(
     	     __constant float* rotbonds_moving_vectors_const,
              __constant float* rotbonds_unit_vectors_const,
              __constant float* ref_orientation_quats_const,
+	     __constant int*   rotbonds_const,
+	     __constant int*   rotbonds_atoms_const,
+	     __constant int*   num_rotating_atoms_per_rotbond_const,
     			// Specific gradient-minimizer args
     //  __global float* restrict dockpars_conformations_next,   // initial population
                                                                 // whose (some) entities (genotypes) are to be minimized
@@ -199,23 +202,67 @@ gradient_minimizer(
 	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
 
+	#if defined (DEBUG_ENERGY)
+	__local float partial_interE [NUM_OF_THREADS_PER_BLOCK];
+	__local float partial_intraE [NUM_OF_THREADS_PER_BLOCK];
+	#endif
 	// -----------------------------------------------------------------------------
 	// Perform gradient-descent iterations
+
+		float grid_center_x = 52.340;
+		float grid_center_y = 15.029;
+		float grid_center_z = -2.932;
+		float ligand_center_x = 52.22740741;
+		float ligand_center_y = 15.51751852;
+		float ligand_center_z = -2.40896296;
+
 	do {
-///*
+/*
 		// Specific input genotypes for a ligand with no rotatable bonds (1ac8).
 		// Translation genes must be expressed in grids in OCLADock (local_genotype [0|1|2]).
 		// However, for testing purposes, 
 		// we start using translation values in real space (Angstrom): {31.79575, 93.743875, 47.699875}
-		// Rotation genes are expresed in the Shoemake space: local_genotype [3|4|5]
+		// Rotation genes are exp5.96902604 / (2*math.pi)
+resed in the Shoemake space: local_genotype [3|4|5]
 		// xyz_gene_gridspace = gridcenter_gridspace + (input_gene_realspace - gridcenter_realspace)/gridsize
+
+		// 1ac8				
 		local_genotype[0] = 30 + (31.79575  - 31.924) / 0.375;
 		local_genotype[1] = 30 + (93.743875 - 93.444) / 0.375;
 		local_genotype[2] = 30 + (47.699875 - 47.924) / 0.375;
 		local_genotype[3] = 0.1f;
 		local_genotype[4] = 0.5f;
 		local_genotype[5] = 0.9f;
-//*/		
+*/		
+
+///*
+		// 3tmn
+
+		local_genotype[0] = 30 + (ligand_center_x - grid_center_x) / 0.375;
+		local_genotype[1] = 30 + (ligand_center_y - grid_center_y) / 0.375;
+		local_genotype[2] = 30 + (ligand_center_z - grid_center_z) / 0.375;
+		local_genotype[3] = 0.02000000f;
+		local_genotype[4] = 1.44513262f / PI_TIMES_2;
+		local_genotype[5] = 5.96902604f / PI_TIMES_2;
+		local_genotype[6] = 0.0f;
+		local_genotype[7] = 0.0f;
+		local_genotype[8] = 0.0f;
+		local_genotype[9] = 0.0f;
+		local_genotype[10] = 0.0f;
+		local_genotype[11] = 0.0f;
+		local_genotype[12] = 0.0f;
+		local_genotype[13] = 0.0f;
+		local_genotype[14] = 0.0f;
+		local_genotype[15] = 0.0f;
+		local_genotype[16] = 0.0f;
+		local_genotype[17] = 0.0f;
+		local_genotype[18] = 0.0f;
+		local_genotype[19] = 0.0f;
+		local_genotype[20] = 0.0f;
+
+
+//*/
+
 		// Calculating gradient
 		// =============================================================
 		gpu_calc_gradient(
@@ -255,7 +302,10 @@ gradient_minimizer(
 				ref_coords_z_const,
 				rotbonds_moving_vectors_const,
 				rotbonds_unit_vectors_const,
-				ref_orientation_quats_const
+				ref_orientation_quats_const,
+				rotbonds_const,
+				rotbonds_atoms_const,
+				num_rotating_atoms_per_rotbond_const
 			 	// Gradient-related arguments
 			 	// Calculate gradients (forces) for intermolecular energy
 			 	// Derived from autodockdev/maps.py
@@ -346,15 +396,41 @@ gradient_minimizer(
 
 	// -----------------------------------------------------------------------------
 
-///*
+/*
+	// 1ac8
 	local_genotype[0] = 30 + (31.79575  - 31.924) / 0.375;
 	local_genotype[1] = 30 + (93.743875 - 93.444) / 0.375;
 	local_genotype[2] = 30 + (47.699875 - 47.924) / 0.375;
 	local_genotype[3] = 0.1f;
 	local_genotype[4] = 0.5f;
 	local_genotype[5] = 0.9f;
-//*/
+*/
 
+///*
+	// 7cpa
+
+	local_genotype[0] = 30 + (ligand_center_x - grid_center_x) / 0.375;
+	local_genotype[1] = 30 + (ligand_center_y - grid_center_y) / 0.375;
+	local_genotype[2] = 30 + (ligand_center_z - grid_center_z) / 0.375;
+	local_genotype[3] = 0.02000000f;
+	local_genotype[4] = 1.44513262f / PI_TIMES_2;
+	local_genotype[5] = 5.96902604f / PI_TIMES_2;
+		local_genotype[6] = 0.0f;
+		local_genotype[7] = 0.0f;
+		local_genotype[8] = 0.0f;
+		local_genotype[9] = 0.0f;
+		local_genotype[10] = 0.0f;
+		local_genotype[11] = 0.0f;
+		local_genotype[12] = 0.0f;
+		local_genotype[13] = 0.0f;
+		local_genotype[14] = 0.0f;
+		local_genotype[15] = 0.0f;
+		local_genotype[16] = 0.0f;
+		local_genotype[17] = 0.0f;
+		local_genotype[18] = 0.0f;
+		local_genotype[19] = 0.0f;
+		local_genotype[20] = 0.0f;
+//*/
 
   	// Calculating energy
 	// =============================================================
@@ -381,6 +457,10 @@ gradient_minimizer(
 			calc_coords_y,
 			calc_coords_z,
 			partial_energies,
+			#if defined (DEBUG_ENERGY)
+			partial_interE,
+			partial_intraE,
+			#endif
 
 	                atom_charges_const,
 		        atom_types_const,
@@ -400,6 +480,14 @@ gradient_minimizer(
 	// =============================================================
 
 	//barrier(CLK_LOCAL_MEM_FENCE);
+
+	#if defined (DEBUG_ENERGY)
+	if (get_local_id(0) == 0) {
+		printf("%-20s %-10.8f\n", "GRIDE: ", partial_interE[0]);
+		printf("%-20s %-10.8f\n", "INTRAE: ", partial_intraE[0]);
+		printf("\n");
+	}
+	#endif
 
 	#if defined (DEBUG_MINIMIZER)
 	if (get_local_id(0) == 0) {

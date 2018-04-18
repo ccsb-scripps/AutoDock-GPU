@@ -1,0 +1,22 @@
+REMARK   This is the box from the file :  3tmn_3tmn.gpf
+ATOM      1   Fe BOX X   1      41.090   3.779 -14.182  1.00 10.00          Fe
+ATOM      2   Fe BOX X   2      63.590   3.779 -14.182  1.00 10.00          Fe
+ATOM      3   Fe BOX X   3      63.590  26.279 -14.182  1.00 10.00          Fe
+ATOM      4   Fe BOX X   4      41.090  26.279 -14.182  1.00 10.00          Fe
+ATOM      5   Fe BOX X   5      41.090   3.779   8.318  1.00 10.00          Fe
+ATOM      6   Fe BOX X   6      63.590   3.779   8.318  1.00 10.00          Fe
+ATOM      7   Fe BOX X   7      63.590  26.279   8.318  1.00 10.00          Fe
+ATOM      8   Fe BOX X   8      41.090  26.279   8.318  1.00 10.00          Fe
+ATOM     10   Fe BOX X   8      52.340  15.029  -2.932  1.00 10.00          Fe
+CONECT    1    2
+CONECT    1    4
+CONECT    1    5
+CONECT    2    3
+CONECT    2    6
+CONECT    3    4
+CONECT    3    7
+CONECT    4    8
+CONECT    5    6
+CONECT    5    8
+CONECT    6    7
+CONECT    7    8

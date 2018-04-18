@@ -110,6 +110,29 @@ int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
 	float rotbonds_moving_vectors[3*MAX_NUM_OF_ROTBONDS];
 	float rotbonds_unit_vectors[3*MAX_NUM_OF_ROTBONDS];
 	float ref_orientation_quats[4*MAX_NUM_OF_RUNS];
+
+	// Added for calculating torsion-related gradients.
+	// Passing list of rotbond-atoms ids to the GPU.
+	// Contains the same information as processligand.h/Liganddata->rotbonds		
+
+	// Each row corresponds to one rotatable bond of the ligand.
+	// The rotatable bond is described with the indexes of the
+	// two atoms which are connected to each other by the bond.
+	// The row index is equal to the index of the rotatable bond.
+	int   rotbonds [2*MAX_NUM_OF_ROTBONDS];
+
+	// Contains the same information as processligand.h/Liganddata->atom_rotbonds
+	// "atom_rotbonds": array that contains the rotatable bonds - atoms assignment.
+	// If the element atom_rotbonds[atom index][rotatable bond index] is equal to 1,
+	// it means,that the atom must be rotated if the bond rotates. A 0 means the opposite.
+
+	// "rotbonds_atoms"
+	int  rotbonds_atoms [MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS];
+
+	// Each entry corresponds to a rotbond_id
+	// The value of an entry indicates the number of atoms that rotate 
+	// along with that rotbond_id
+	int  num_rotating_atoms_per_rotbond [MAX_NUM_OF_ROTBONDS];
 	// ------------------------------
 
 	//charges and type id-s
@@ -267,6 +290,53 @@ int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
 		//printf("Precalculated quaternion for run %d: %f %f %f %f\n", i, ref_orientation_quats[4*i], ref_orientation_quats[4*i+1], ref_orientation_quats[4*i+2], ref_orientation_quats[4*i+3]);
 	}
 
+	// Added for calculating torsion-related gradients.
+	// Passing list of rotbond-atoms ids to the GPU.
+	// Contains the same information as processligand.h/Liganddata->rotbonds
+	for (i=0; i < myligand_reference->num_of_rotbonds; i++)
+	{
+		rotbonds [2*i]   = myligand_reference->rotbonds[i][0]; // id of first-atom
+		rotbonds [2*i+1] = myligand_reference->rotbonds[i][1]; // id of second atom
+	}
+
+	// Contains the same information as processligand.h/Liganddata->atom_rotbonds
+	// "atom_rotbonds": array that contains the rotatable bonds - atoms assignment.
+	// If the element atom_rotbonds[atom index][rotatable bond index] is equal to 1,
+	// it means,that the atom must be rotated if the bond rotates. A 0 means the opposite.
+
+
+	for (i=0; i<MAX_NUM_OF_ROTBONDS; i++)
+	{
+		num_rotating_atoms_per_rotbond [i] = 0;
+	}
+
+
+	int* intpoi;
+	//intpoi = rotbonds_atoms;
+
+	for (i=0; i < myligand_reference->num_of_rotbonds; i++)
+	{	
+		// Pointing to the mem area corresponding to a given rotbond
+		intpoi = rotbonds_atoms + MAX_NUM_OF_ATOMS*i;
+
+		for (j=0; j < myligand_reference->num_of_atoms; j++)
+		{
+			/*
+			rotbonds_atoms [MAX_NUM_OF_ATOMS*i+j] = myligand_reference->atom_rotbonds [j][i]; // 
+			*/
+			
+			// If an atom rotates with a rotbond, then
+			// add its atom-id to the entry corresponding to the rotbond-id.
+			// Also, count the number of atoms that rotate with a certain rotbond
+			if (myligand_reference->atom_rotbonds [j][i] == 1){
+				*intpoi = j;
+				intpoi++;
+				num_rotating_atoms_per_rotbond [i] ++;	
+			}	
+
+		}
+	}
+
 	int m;
 	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst->atom_charges_const[m] = atom_charges[m]; }
 	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst->atom_types_const[m]   = atom_types[m]; }
@@ -282,7 +352,12 @@ int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
 	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst->rotbonds_moving_vectors_const[m]= rotbonds_moving_vectors[m]; }
 	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst->rotbonds_unit_vectors_const[m]  = rotbonds_unit_vectors[m]; }
 	for (m=0;m<4*MAX_NUM_OF_RUNS;m++)    { KerConst->ref_orientation_quats_const[m]  = ref_orientation_quats[m]; }
-
+	// Added for calculating torsion-related gradients.
+	// Passing list of rotbond-atoms ids to the GPU.
+	// Contains the same information as processligand.h/Liganddata->rotbonds
+	for (m=0;m<2*MAX_NUM_OF_ROTBONDS;m++) { KerConst->rotbonds[m] = rotbonds[m]; }
+	for (m=0;m<MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS;m++) { KerConst->rotbonds_atoms[m] = rotbonds_atoms[m]; }
+	for (m=0;m<MAX_NUM_OF_ROTBONDS;m++) { KerConst->num_rotating_atoms_per_rotbond[m] = num_rotating_atoms_per_rotbond[m]; }
 	return 0;
 }
 
@@ -316,7 +391,7 @@ void make_reqrot_ordering(char number_of_req_rotations[MAX_NUM_OF_ATOMS],
 
 /*	printf("\n\nRotation priority list after re-ordering:\n");
 	for (i=0; i<num_of_atoms; i++)
-		printf("Rotation of %d (required rots remaining: %d)\n", atom_id_of_numrots[i], number_of_req_rotations[i]);
+		printf("Roatom_rotbondstation of %d (required rots remaining: %d)\n", atom_id_of_numrots[i], number_of_req_rotations[i]);
 	printf("\n\n");*/
 
 

@@ -292,6 +292,9 @@ filled with clock() */
   cl_mem mem_rotbonds_moving_vectors_const;
   cl_mem mem_rotbonds_unit_vectors_const;
   cl_mem mem_ref_orientation_quats_const;
+  cl_mem mem_rotbonds_const;
+  cl_mem mem_rotbonds_atoms_const;
+  cl_mem mem_num_rotating_atoms_per_rotbond_const;
 
 	// These constants are allocated in global memory since
 	// there is a limited number of constants that can be passed
@@ -310,6 +313,9 @@ filled with clock() */
   mallocBufferObject(context,CL_MEM_READ_ONLY,3*MAX_NUM_OF_ROTBONDS*sizeof(float),                    &mem_rotbonds_moving_vectors_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,3*MAX_NUM_OF_ROTBONDS*sizeof(float),                    &mem_rotbonds_unit_vectors_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,4*MAX_NUM_OF_RUNS*sizeof(float),                        &mem_ref_orientation_quats_const);
+  mallocBufferObject(context,CL_MEM_READ_ONLY,2*MAX_NUM_OF_ROTBONDS*sizeof(int),                      &mem_rotbonds_const);
+  mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int),      &mem_rotbonds_atoms_const);
+  mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ROTBONDS*sizeof(int),      		&mem_num_rotating_atoms_per_rotbond_const);
 
   memcopyBufferObjectToDevice(command_queue,mem_atom_charges_const,         	&KerConst.atom_charges_const,           MAX_NUM_OF_ATOMS*sizeof(float));
   memcopyBufferObjectToDevice(command_queue,mem_atom_types_const,           	&KerConst.atom_types_const,             MAX_NUM_OF_ATOMS*sizeof(char));
@@ -325,6 +331,9 @@ filled with clock() */
   memcopyBufferObjectToDevice(command_queue,mem_rotbonds_moving_vectors_const,&KerConst.rotbonds_moving_vectors_const,3*MAX_NUM_OF_ROTBONDS*sizeof(float));
   memcopyBufferObjectToDevice(command_queue,mem_rotbonds_unit_vectors_const,  &KerConst.rotbonds_unit_vectors_const,  3*MAX_NUM_OF_ROTBONDS*sizeof(float));
   memcopyBufferObjectToDevice(command_queue,mem_ref_orientation_quats_const,  &KerConst.ref_orientation_quats_const,  4*MAX_NUM_OF_RUNS*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_rotbonds_const,  	      &KerConst.rotbonds,  2*MAX_NUM_OF_ROTBONDS*sizeof(int));
+  memcopyBufferObjectToDevice(command_queue,mem_rotbonds_atoms_const,  	      &KerConst.rotbonds_atoms,  MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
+  memcopyBufferObjectToDevice(command_queue,mem_num_rotating_atoms_per_rotbond_const, &KerConst.num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int));
 	// ----------------------------------------------------------------------
 
  	//allocating GPU memory for populations, floatgirds,
@@ -631,12 +640,15 @@ filled with clock() */
   setKernelArg(kernel5,30,sizeof(mem_rotbonds_moving_vectors_const),       &mem_rotbonds_moving_vectors_const);
   setKernelArg(kernel5,31,sizeof(mem_rotbonds_unit_vectors_const),         &mem_rotbonds_unit_vectors_const);
   setKernelArg(kernel5,32,sizeof(mem_ref_orientation_quats_const),         &mem_ref_orientation_quats_const);
+  setKernelArg(kernel5,33,sizeof(mem_rotbonds_const),         		   &mem_rotbonds_const);
+  setKernelArg(kernel5,34,sizeof(mem_rotbonds_atoms_const),   		   &mem_rotbonds_atoms_const);
+  setKernelArg(kernel5,35,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
   // Specific gradient-minimizer args
-  setKernelArg(kernel5,33,sizeof(gradientpars.tolerance),         	   &gradientpars.tolerance);
-  setKernelArg(kernel5,34,sizeof(gradientpars.max_num_of_iters),           &gradientpars.max_num_of_iters);
-  setKernelArg(kernel5,35,sizeof(gradientpars.alpha),            	   &gradientpars.alpha);
-  setKernelArg(kernel5,36,sizeof(gradientpars.h),            	   	   &gradientpars.h);
-  setKernelArg(kernel5,37,sizeof(mem_gradpars_conformation_min_perturbation),              &mem_gradpars_conformation_min_perturbation);
+  setKernelArg(kernel5,36,sizeof(gradientpars.tolerance),         	   &gradientpars.tolerance);
+  setKernelArg(kernel5,37,sizeof(gradientpars.max_num_of_iters),           &gradientpars.max_num_of_iters);
+  setKernelArg(kernel5,38,sizeof(gradientpars.alpha),            	   &gradientpars.alpha);
+  setKernelArg(kernel5,39,sizeof(gradientpars.h),            	   	   &gradientpars.h);
+  setKernelArg(kernel5,40,sizeof(mem_gradpars_conformation_min_perturbation),              &mem_gradpars_conformation_min_perturbation);
 
   kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
   kernel5_lxsize = threadsPerBlock;
@@ -846,7 +858,7 @@ filled with clock() */
 
 	clock_stop_docking = clock();
 
-	//update progress bar (bar length is 50)
+	//update progress bar (bar length is 50)mem_num_of_rotatingatoms_per_rotbond_const
 	while (curr_progress_cnt < 50) {
 		curr_progress_cnt++;
 		printf("*");
@@ -919,6 +931,9 @@ filled with clock() */
 	clReleaseMemObject(mem_rotbonds_moving_vectors_const);
 	clReleaseMemObject(mem_rotbonds_unit_vectors_const);
 	clReleaseMemObject(mem_ref_orientation_quats_const);
+	clReleaseMemObject(mem_rotbonds_const);
+	clReleaseMemObject(mem_rotbonds_atoms_const);
+	clReleaseMemObject(mem_num_rotating_atoms_per_rotbond_const);
 
 	clReleaseMemObject(mem_dockpars_fgrids);
 	clReleaseMemObject(mem_dockpars_conformations_current);

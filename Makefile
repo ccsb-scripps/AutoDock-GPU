@@ -197,7 +197,11 @@ odock: check-env-all stringify $(SRC)
 
 
 # Example
-PDB     := 1ac8
+# 1ac8: for testing gradients of translation and rotation genes
+# 7cpa: for testing gradients of torsion genes (15 torsions) 
+# 3tmn: for testing gradients of torsion genes (1 torsion)
+
+PDB     := 3tmn
 NRUN    := 1
 POPSIZE := 10
 TESTNAME:= test

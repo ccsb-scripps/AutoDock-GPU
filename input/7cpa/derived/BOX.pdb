@@ -1,0 +1,22 @@
+REMARK   This is the box from the file :  7cpa_7cpa.gpf
+ATOM      1   Fe BOX X   1      38.586   6.359  25.022  1.00 10.00          Fe
+ATOM      2   Fe BOX X   2      61.086   6.359  25.022  1.00 10.00          Fe
+ATOM      3   Fe BOX X   3      61.086  28.859  25.022  1.00 10.00          Fe
+ATOM      4   Fe BOX X   4      38.586  28.859  25.022  1.00 10.00          Fe
+ATOM      5   Fe BOX X   5      38.586   6.359  47.522  1.00 10.00          Fe
+ATOM      6   Fe BOX X   6      61.086   6.359  47.522  1.00 10.00          Fe
+ATOM      7   Fe BOX X   7      61.086  28.859  47.522  1.00 10.00          Fe
+ATOM      8   Fe BOX X   8      38.586  28.859  47.522  1.00 10.00          Fe
+ATOM     10   Fe BOX X   8      49.836  17.609  36.272  1.00 10.00          Fe
+CONECT    1    2
+CONECT    1    4
+CONECT    1    5
+CONECT    2    3
+CONECT    2    6
+CONECT    3    4
+CONECT    3    7
+CONECT    4    8
+CONECT    5    6
+CONECT    5    8
+CONECT    6    7
+CONECT    7    8

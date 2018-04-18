@@ -4,6 +4,7 @@ initpop.txt
 *.xml
 input/albumin_dock/
 ocladock.wiki/
+bin/
 final_population_run*
 device/stringify_tmp
 KernelProgramBuildInfo.txt

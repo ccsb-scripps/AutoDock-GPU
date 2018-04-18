@@ -67,6 +67,10 @@ gpu_calc_initpop(
 	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
 	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
+	#if defined (DEBUG_ENERGY)
+	__local float partial_interE [NUM_OF_THREADS_PER_BLOCK];
+	__local float partial_intraE [NUM_OF_THREADS_PER_BLOCK];
+	#endif
 
 	// Copying genotype from global memory
 	event_t ev = async_work_group_copy(genotype,
@@ -105,6 +109,10 @@ gpu_calc_initpop(
 			calc_coords_y,
 			calc_coords_z,
 			partial_energies,
+			#if defined (DEBUG_ENERGY)
+			partial_interE,
+			partial_intraE,
+			#endif
 
 	                atom_charges_const,
 		        atom_types_const,

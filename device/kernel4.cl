@@ -89,6 +89,10 @@ gpu_gen_and_eval_newpops(
 	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
 	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
+	#if defined (DEBUG_ENERGY)
+	__local float partial_interE [NUM_OF_THREADS_PER_BLOCK];
+	__local float partial_intraE [NUM_OF_THREADS_PER_BLOCK];
+	#endif
 
 	// In this case this compute-unit is responsible for elitist selection
 	if ((get_group_id(0) % dockpars_pop_size) == 0) {
@@ -255,6 +259,10 @@ gpu_gen_and_eval_newpops(
 				calc_coords_y,
 				calc_coords_z,
 				partial_energies,
+				#if defined (DEBUG_ENERGY)
+				partial_interE,
+				partial_intraE,
+				#endif
 		
                                 atom_charges_const,
 	                        atom_types_const,
