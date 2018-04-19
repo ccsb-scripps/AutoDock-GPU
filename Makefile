@@ -201,7 +201,7 @@ odock: check-env-all stringify $(SRC)
 # 7cpa: for testing gradients of torsion genes (15 torsions) 
 # 3tmn: for testing gradients of torsion genes (1 torsion)
 
-PDB     := 3tmn
+PDB     := 7cpa
 NRUN    := 1
 POPSIZE := 10
 TESTNAME:= test

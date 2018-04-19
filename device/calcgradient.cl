@@ -37,7 +37,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 //#define DEBUG_GRAD_TRANSLATION_GENES
 //#define DEBUG_GRAD_ROTATION_GENES
-#define DEBUG_GRAD_TORSION_GENES
+//#define DEBUG_GRAD_TORSION_GENES
 //#define DEBUG_GRAD
 
 void gpu_calc_gradient(	    
@@ -574,9 +574,9 @@ void gpu_calc_gradient(
 		// Getting atom IDs
 		uint atom1_id = intraE_contributors_const[3*contributor_counter];
 		uint atom2_id = intraE_contributors_const[3*contributor_counter+1];
-		/*
+		///*
 		printf ("%-5u %-5u %-5u\n", contributor_counter, atom1_id, atom2_id);
-		*/
+		//*/
 
 		// Calculating vector components of vector going
 		// from first atom's to second atom's coordinates
@@ -864,11 +864,6 @@ void gpu_calc_gradient(
 		if (target_u2 > PI_TIMES_2) { target_u2 -= PI_TIMES_2; }
 		if (target_u3 < 0.0f) 	    { target_u3 += PI_TIMES_2; }
 		if (target_u3 > PI_TIMES_2) { target_u3 -= PI_TIMES_2; }
-		/*
-		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "target_u (1,2,3) - before mapping: ", target_u1, target_u2, target_u3);
-		target_u2 = target_u2 / PI_TIMES_2;
-		target_u3 = target_u3 / PI_TIMES_2;
-		*/
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
 		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "target_u (1,2,3) - after mapping: ", target_u1, target_u2, target_u3);
@@ -913,12 +908,6 @@ void gpu_calc_gradient(
 		gradient_genotype[3] = grad_u1;
 		gradient_genotype[4] = grad_u2 * PI_TIMES_2; 
 		gradient_genotype[5] = grad_u3 * PI_TIMES_2;
-		
-		/*
-		printf("gradient_shoemake_u1:%f\n", gradient_genotype [3]);
-		printf("gradient_shoemake_u2:%f\n", gradient_genotype [4]);
-		printf("gradient_shoemake_u3:%f\n", gradient_genotype [5]);
-		*/
 	}
 
 	// ------------------------------------------
@@ -943,7 +932,6 @@ void gpu_calc_gradient(
 			printf("%-15s %-10u\n", "rotbond_id: ", rotbond_id);
 			printf("%-15s %-10i\n", "atom1_id: ", atom1_id);
 			printf("%-15s %-10.8f %-10.8f %-10.8f\n", "atom1_coords: ", calc_coords_x[atom1_id], calc_coords_y[atom1_id], calc_coords_z[atom1_id]);
-
 			printf("%-15s %-10i\n", "atom2_id: ", atom2_id);
 			printf("%-15s %-10.8f %-10.8f %-10.8f\n", "atom2_coords: ", calc_coords_x[atom2_id], calc_coords_y[atom2_id], calc_coords_z[atom2_id]);
 			printf("\n");
@@ -959,18 +947,6 @@ void gpu_calc_gradient(
 			rotation_unitvec.y = calc_coords_y[atom2_id] - calc_coords_y[atom1_id];
 			rotation_unitvec.z = calc_coords_z[atom2_id] - calc_coords_z[atom1_id];
 			rotation_unitvec = fast_normalize(rotation_unitvec);
-
-
-			/*
-			float3 rotation_movingvec;
-			rotation_movingvec.x = rotbonds_moving_vectors_const[3*rotbond_id];
-			rotation_movingvec.y = rotbonds_moving_vectors_const[3*rotbond_id+1];
-			rotation_movingvec.z = rotbonds_moving_vectors_const[3*rotbond_id+2];			
-			*/
-
-			// Atom belonging to "rotbond_id"
-			//uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
-
 
 			// Torque of torsions
 			float3 torque_tor;
@@ -1009,14 +985,13 @@ void gpu_calc_gradient(
 
 				#if defined (DEBUG_GRAD_TORSION_GENES)
 				printf("\n");
-				//printf("%-15s %-10u\n", "rotable_atom_cnt: ", rotable_atom_cnt);
+				printf("%-15s %-10u\n", "rotable_atom_cnt: ", rotable_atom_cnt);
 				printf("%-15s %-10u\n", "atom_id: ", lig_atom_id);
-				//printf("%-15s %-10.8f %-10.8f %-10.8f\n", "atom_coords: ", atom_coords.x, atom_coords.y, atom_coords.z);
-				//printf("%-15s %-10.8f %-10.8f %-10.8f\n", "r: ", r.x, r.y, r.z);
-				//printf("%-15s %-10.8f %-10.8f %-10.8f\n", "unitvec: ", rotation_unitvec.x, rotation_unitvec.y, rotation_unitvec.z);
-				
+				printf("%-15s %-10.8f %-10.8f %-10.8f\n", "atom_coords: ", atom_coords.x, atom_coords.y, atom_coords.z);
+				printf("%-15s %-10.8f %-10.8f %-10.8f\n", "r: ", r.x, r.y, r.z);
+				printf("%-15s %-10.8f %-10.8f %-10.8f\n", "unitvec: ", rotation_unitvec.x, rotation_unitvec.y, rotation_unitvec.z);
 				printf("%-15s %-10.8f %-10.8f %-10.8f\n", "atom_force: ", atom_force.x, atom_force.y, atom_force.z);
-				//printf("%-15s %-10.8f %-10.8f %-10.8f\n", "torque_tor: ", torque_tor.x, torque_tor.y, torque_tor.z);
+				printf("%-15s %-10.8f %-10.8f %-10.8f\n", "torque_tor: ", torque_tor.x, torque_tor.y, torque_tor.z);
 				#endif
 
 			}
@@ -1028,7 +1003,7 @@ void gpu_calc_gradient(
 			float torque_on_axis = dot(rotation_unitvec, torque_tor);
 
 			// Assignment of gene-based gradient
-			gradient_genotype[rotbond_id+6] = torque_on_axis;
+			gradient_genotype[rotbond_id+6] = torque_on_axis * (M_PI / 180.0f);
 
 			//#if defined (DEBUG_GRAD_TORSION_GENES)
 			//printf("gradient_torsion [%u] :%f\n", rotbond_id+6, gradient_genotype [rotbond_id+6]);

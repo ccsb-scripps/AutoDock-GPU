@@ -209,12 +209,27 @@ gradient_minimizer(
 	// -----------------------------------------------------------------------------
 	// Perform gradient-descent iterations
 
+	// 7cpa
+	float grid_center_x = 49.836;
+	float grid_center_y = 17.609;
+	float grid_center_z = 36.272;
+	float ligand_center_x = 49.2216976744186;
+	float ligand_center_y = 17.793953488372097;
+	float ligand_center_z = 36.503837209302326;
+	float shoemake_gene_u1 = 0.02;
+	float shoemake_gene_u2 = 0.23;
+	float shoemake_gene_u3 = 0.95;
+
+
+	/*
+		// 3tmn
 		float grid_center_x = 52.340;
 		float grid_center_y = 15.029;
 		float grid_center_z = -2.932;
 		float ligand_center_x = 52.22740741;
 		float ligand_center_y = 15.51751852;
 		float ligand_center_z = -2.40896296;
+	*/
 
 	do {
 /*
@@ -241,9 +256,9 @@ resed in the Shoemake space: local_genotype [3|4|5]
 		local_genotype[0] = 30 + (ligand_center_x - grid_center_x) / 0.375;
 		local_genotype[1] = 30 + (ligand_center_y - grid_center_y) / 0.375;
 		local_genotype[2] = 30 + (ligand_center_z - grid_center_z) / 0.375;
-		local_genotype[3] = 0.02000000f;
-		local_genotype[4] = 1.44513262f / PI_TIMES_2;
-		local_genotype[5] = 5.96902604f / PI_TIMES_2;
+		local_genotype[3] = shoemake_gene_u1;
+		local_genotype[4] = shoemake_gene_u2;
+		local_genotype[5] = shoemake_gene_u3;
 		local_genotype[6] = 0.0f;
 		local_genotype[7] = 0.0f;
 		local_genotype[8] = 0.0f;
@@ -412,9 +427,9 @@ resed in the Shoemake space: local_genotype [3|4|5]
 	local_genotype[0] = 30 + (ligand_center_x - grid_center_x) / 0.375;
 	local_genotype[1] = 30 + (ligand_center_y - grid_center_y) / 0.375;
 	local_genotype[2] = 30 + (ligand_center_z - grid_center_z) / 0.375;
-	local_genotype[3] = 0.02000000f;
-	local_genotype[4] = 1.44513262f / PI_TIMES_2;
-	local_genotype[5] = 5.96902604f / PI_TIMES_2;
+	local_genotype[3] = shoemake_gene_u1;
+	local_genotype[4] = shoemake_gene_u2;
+	local_genotype[5] = shoemake_gene_u3;
 		local_genotype[6] = 0.0f;
 		local_genotype[7] = 0.0f;
 		local_genotype[8] = 0.0f;
