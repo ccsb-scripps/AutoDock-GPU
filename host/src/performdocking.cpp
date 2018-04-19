@@ -409,23 +409,23 @@ filled with clock() */
 	// This should be ultimately configurable by the user as program exec. flags.
 	Gradientparameters gradientpars;
 	gradientpars.tolerance = 1.e-6;
-	gradientpars.max_num_of_iters = 300; // Same as Solis-Wetts local search
-	gradientpars.alpha = 0.00001f; //0.001f; // TODO: find out why 0.001f, 0.0001f (100 runs, 500 popsize) throws segmentation fault
+	gradientpars.max_num_of_iters = 4; // Same as Solis-Wetts local search
+	gradientpars.alpha = 0.000001f; //0.001f; // TODO: find out why 0.001f, 0.0001f (100 runs, 500 popsize) throws segmentation fault
 	gradientpars.h = 0.0001f;
 
 	// Set minimum values for input conformation (translation genes as x, y, z)
 	for (unsigned int gene_cnt=0; gene_cnt<3; gene_cnt++) {
-			gradientpars.conformation_min_perturbation[0] = 1e-5; // FIXME: set right min values
+			gradientpars.conformation_min_perturbation[0] = 1e-5; // FIXME: set right min values max .1/.375
 	}
 
 	// Set minimum values for input conformation (rotation genes as Shoemake genes)
 	for (unsigned int gene_cnt=3; gene_cnt<6; gene_cnt++) {
-			gradientpars.conformation_min_perturbation[0] = 0.01f;
+			gradientpars.conformation_min_perturbation[0] = 0.0005f; //max 0.01
 	}
 
 	// Set minimum values for input conformations (torsion genes as angles)
 	for (unsigned int gene_cnt=6; gene_cnt<(dockpars.num_of_genes - 6); gene_cnt++) {
-			gradientpars.conformation_min_perturbation[0] = 5.0f; // FIXME: set right min values
+			gradientpars.conformation_min_perturbation[0] = 0.1f; // FIXME: set right min values max 1.0
 	}
 
 	cl_mem mem_gradpars_conformation_min_perturbation;

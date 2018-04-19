@@ -574,9 +574,8 @@ void gpu_calc_gradient(
 		// Getting atom IDs
 		uint atom1_id = intraE_contributors_const[3*contributor_counter];
 		uint atom2_id = intraE_contributors_const[3*contributor_counter+1];
-		///*
-		printf ("%-5u %-5u %-5u\n", contributor_counter, atom1_id, atom2_id);
-		//*/
+		//printf ("%-5u %-5u %-5u\n", contributor_counter, atom1_id, atom2_id);
+		
 
 		// Calculating vector components of vector going
 		// from first atom's to second atom's coordinates

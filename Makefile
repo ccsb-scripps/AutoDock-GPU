@@ -203,7 +203,7 @@ odock: check-env-all stringify $(SRC)
 
 PDB     := 7cpa
 NRUN    := 1
-POPSIZE := 10
+POPSIZE := 1
 TESTNAME:= test
 
 test: odock

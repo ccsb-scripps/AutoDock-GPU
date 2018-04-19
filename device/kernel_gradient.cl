@@ -5,6 +5,10 @@
 
 #define DEBUG_MINIMIZER
 
+#define TRANGENE_ALPHA 1E-8
+#define ROTAGENE_ALPHA 1E-15
+#define TORSGENE_ALPHA 1E-3
+
 
 // FIXME: original call of stepGPU
 // stepGPU<<<iDivUp(M, BLOCK_SIZE), BLOCK_SIZE>>>
@@ -209,6 +213,7 @@ gradient_minimizer(
 	// -----------------------------------------------------------------------------
 	// Perform gradient-descent iterations
 
+	#if 0
 	// 7cpa
 	float grid_center_x = 49.836;
 	float grid_center_y = 17.609;
@@ -219,26 +224,25 @@ gradient_minimizer(
 	float shoemake_gene_u1 = 0.02;
 	float shoemake_gene_u2 = 0.23;
 	float shoemake_gene_u3 = 0.95;
+	#endif
 
-
-	/*
-		// 3tmn
-		float grid_center_x = 52.340;
-		float grid_center_y = 15.029;
-		float grid_center_z = -2.932;
-		float ligand_center_x = 52.22740741;
-		float ligand_center_y = 15.51751852;
-		float ligand_center_z = -2.40896296;
-	*/
+	#if 0
+	// 3tmn
+	float grid_center_x = 52.340;
+	float grid_center_y = 15.029;
+	float grid_center_z = -2.932;
+	float ligand_center_x = 52.22740741;
+	float ligand_center_y = 15.51751852;
+	float ligand_center_z = -2.40896296;
+	#endif
 
 	do {
-/*
+		#if 0
 		// Specific input genotypes for a ligand with no rotatable bonds (1ac8).
 		// Translation genes must be expressed in grids in OCLADock (local_genotype [0|1|2]).
 		// However, for testing purposes, 
 		// we start using translation values in real space (Angstrom): {31.79575, 93.743875, 47.699875}
-		// Rotation genes are exp5.96902604 / (2*math.pi)
-resed in the Shoemake space: local_genotype [3|4|5]
+		// Rotation genes are expresed in the Shoemake space: local_genotype [3|4|5]
 		// xyz_gene_gridspace = gridcenter_gridspace + (input_gene_realspace - gridcenter_realspace)/gridsize
 
 		// 1ac8				
@@ -248,11 +252,10 @@ resed in the Shoemake space: local_genotype [3|4|5]
 		local_genotype[3] = 0.1f;
 		local_genotype[4] = 0.5f;
 		local_genotype[5] = 0.9f;
-*/		
+		#endif
 
-///*
+		#if 0
 		// 3tmn
-
 		local_genotype[0] = 30 + (ligand_center_x - grid_center_x) / 0.375;
 		local_genotype[1] = 30 + (ligand_center_y - grid_center_y) / 0.375;
 		local_genotype[2] = 30 + (ligand_center_z - grid_center_z) / 0.375;
@@ -274,9 +277,7 @@ resed in the Shoemake space: local_genotype [3|4|5]
 		local_genotype[18] = 0.0f;
 		local_genotype[19] = 0.0f;
 		local_genotype[20] = 0.0f;
-
-
-//*/
+		#endif
 
 		// Calculating gradient
 		// =============================================================
@@ -342,20 +343,24 @@ resed in the Shoemake space: local_genotype [3|4|5]
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		#if defined (DEBUG_MINIMIZER)
-		if (get_local_id(0) == 0) {
-			for (uint i=0; i<dockpars_num_of_genes; i++) {
-				printf("AFTER- GRADIENT - local_gradient[%u]: %f\n", i, local_gradient[i]);
-			}
-		}
-		#endif
+		float alpha;
 
 		for(uint i = get_local_id(0); 
 			 i < dockpars_num_of_genes; 
 			 i+= NUM_OF_THREADS_PER_BLOCK) {
 
 	     		// Taking step
-	     		local_genotype_new[i]  = local_genotype[i] - gradMin_alpha * local_gradient[i];
+			//local_genotype_new[i]  = local_genotype[i] - gradMin_alpha * local_gradient[i];	
+
+			if (i<3)      { alpha = TRANGENE_ALPHA;	}
+			else if (i<6) { alpha = ROTAGENE_ALPHA; } 
+			else 	      { alpha = TORSGENE_ALPHA;	}
+
+			local_genotype_new[i]  = local_genotype[i] - alpha * local_gradient[i];	
+
+			#if defined (DEBUG_MINIMIZER)
+			printf("(%u) %-15.15f %-10.10f %-10.10f %-10.10f\n", i, alpha, local_genotype[i], local_gradient[i], local_genotype_new[i]);
+			#endif
 
 	     		// Updating termination metrics
 	     		local_genotype_diff[i] = local_genotype_new[i] - local_genotype[i];
@@ -370,7 +375,14 @@ resed in the Shoemake space: local_genotype [3|4|5]
 		// Updating number of stepest-descent iterations
 		if (get_local_id(0) == 0) {
 	    		local_nIter = local_nIter + 1;
+
+			#if defined (DEBUG_MINIMIZER)
+			printf("Number of grad-minimizer iterations: %u\n", local_nIter);
+			#endif
 		}
+
+
+
 
 	    	// Storing the norm of all gradients
 		gradient_norm(local_gradient, dockpars_num_of_genes, dotProduct, &local_gNorm);
@@ -389,13 +401,6 @@ resed in the Shoemake space: local_genotype [3|4|5]
 			printf("Entity: %u, Run: %u, minimized E: %f\n", entity_id, run_id, local_energy);
 		}		
 */
-
-///*
-		if (get_local_id(0) == 0) {
-			printf("Number of gradient iterations: %u\n", local_nIter);
-		}
-//*/
-
 		is_gradDescent_enabled(
 				      	is_perturb_gt_gene_min,
 				      	&local_gNorm,
@@ -403,6 +408,7 @@ resed in the Shoemake space: local_genotype [3|4|5]
     				      	&local_nIter,
     				      	gradMin_maxiter,
     				      	local_perturbation,
+					local_genotype,
     				      	gradMin_conformation_min_perturbation,
 				      	dockpars_num_of_genes,
     				      	&is_gradDescentEn
@@ -411,7 +417,7 @@ resed in the Shoemake space: local_genotype [3|4|5]
 
 	// -----------------------------------------------------------------------------
 
-/*
+	#if 0
 	// 1ac8
 	local_genotype[0] = 30 + (31.79575  - 31.924) / 0.375;
 	local_genotype[1] = 30 + (93.743875 - 93.444) / 0.375;
@@ -419,33 +425,32 @@ resed in the Shoemake space: local_genotype [3|4|5]
 	local_genotype[3] = 0.1f;
 	local_genotype[4] = 0.5f;
 	local_genotype[5] = 0.9f;
-*/
+	#endif
 
-///*
+	#if 0
 	// 7cpa
-
 	local_genotype[0] = 30 + (ligand_center_x - grid_center_x) / 0.375;
 	local_genotype[1] = 30 + (ligand_center_y - grid_center_y) / 0.375;
 	local_genotype[2] = 30 + (ligand_center_z - grid_center_z) / 0.375;
 	local_genotype[3] = shoemake_gene_u1;
 	local_genotype[4] = shoemake_gene_u2;
 	local_genotype[5] = shoemake_gene_u3;
-		local_genotype[6] = 0.0f;
-		local_genotype[7] = 0.0f;
-		local_genotype[8] = 0.0f;
-		local_genotype[9] = 0.0f;
-		local_genotype[10] = 0.0f;
-		local_genotype[11] = 0.0f;
-		local_genotype[12] = 0.0f;
-		local_genotype[13] = 0.0f;
-		local_genotype[14] = 0.0f;
-		local_genotype[15] = 0.0f;
-		local_genotype[16] = 0.0f;
-		local_genotype[17] = 0.0f;
-		local_genotype[18] = 0.0f;
-		local_genotype[19] = 0.0f;
-		local_genotype[20] = 0.0f;
-//*/
+	local_genotype[6] = 0.0f;
+	local_genotype[7] = 0.0f;
+	local_genotype[8] = 0.0f;
+	local_genotype[9] = 0.0f;
+	local_genotype[10] = 0.0f;
+	local_genotype[11] = 0.0f;
+	local_genotype[12] = 0.0f;
+	local_genotype[13] = 0.0f;
+	local_genotype[14] = 0.0f;
+	local_genotype[15] = 0.0f;
+	local_genotype[16] = 0.0f;
+	local_genotype[17] = 0.0f;
+	local_genotype[18] = 0.0f;
+	local_genotype[19] = 0.0f;
+	local_genotype[20] = 0.0f;
+	#endif
 
   	// Calculating energy
 	// =============================================================
