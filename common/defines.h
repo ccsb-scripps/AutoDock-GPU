@@ -55,8 +55,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define LS_CONT_FACTOR 		0.5f
 
 // Improvements over Pechan's implementation
-#define NATIVE_PRECISION
-#define IMPROVE_GRID
+//#define NATIVE_PRECISION
 #define MAPPED_COPY
+
+#define GRADIENT_ENABLED
 
 #endif /* DEFINES_H_ */

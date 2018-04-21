@@ -97,7 +97,7 @@ perform_LS(
 	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
 
-	#if defined (DEBUG_ENERGY)
+	#if defined (DEBUG_ENERGY_KERNEL3)
 	__local float partial_interE [NUM_OF_THREADS_PER_BLOCK];
 	__local float partial_intraE [NUM_OF_THREADS_PER_BLOCK];
 	#endif
@@ -209,7 +209,7 @@ perform_LS(
 				calc_coords_y,
 				calc_coords_z,
 				partial_energies,
-				#if defined (DEBUG_ENERGY)
+				#if defined (DEBUG_ENERGY_KERNEL3)
 				partial_interE,
 				partial_intraE,
 				#endif
@@ -233,6 +233,10 @@ perform_LS(
 
 		if (get_local_id(0) == 0) {
 			evaluation_cnt++;
+
+			#if defined (DEBUG_ENERGY_KERNEL3)
+			printf("%-18s [%-5s]---{%-5s}   [%-10.8f]---{%-10.8f}\n", "-ENERGY-KERNEL3-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
+			#endif
 		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -307,7 +311,7 @@ perform_LS(
 					calc_coords_y,
 					calc_coords_z,
 					partial_energies,
-					#if defined (DEBUG_ENERGY)
+					#if defined (DEBUG_ENERGY_KERNEL3)
 					partial_interE,
 					partial_intraE,
 					#endif
@@ -331,6 +335,10 @@ perform_LS(
 
 			if (get_local_id(0) == 0) {
 				evaluation_cnt++;
+
+				#if defined (DEBUG_ENERGY_KERNEL3)
+				printf("%-18s [%-5s]---{%-5s}   [%-10.8f]---{%-10.8f}\n", "-ENERGY-KERNEL3-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
+				#endif
 			}
 
 			barrier(CLK_LOCAL_MEM_FENCE);

@@ -21,9 +21,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
-
-#define DEBUG_ENERGY
-
+//#define DEBUG_ENERGY_KERNEL1
+//#define DEBUG_ENERGY_KERNEL4
+//#define DEBUG_ENERGY_KERNEL3
 
 #include "calcenergy_basic.h"
 
@@ -56,7 +56,7 @@ void gpu_calc_energy(
 		    	__local float* calc_coords_z,
 		    	__local float* partial_energies,
 
-			#if defined (DEBUG_ENERGY)
+			#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 			__local float* partial_interE,
 			__local float* partial_intraE,
 			#endif
@@ -84,23 +84,15 @@ void gpu_calc_energy(
 {
 	partial_energies[get_local_id(0)] = 0.0f;
 
-	#if defined (DEBUG_ENERGY)
+	#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 	partial_interE[get_local_id(0)] = 0.0f;
 	partial_intraE[get_local_id(0)] = 0.0f;
 	#endif
 
-
-#if defined (IMPROVE_GRID)
-	// INTERMOLECULAR for-loop (intermediate results)
-	// It stores a product of two chars
-	//uint mul_tmp;
-
 	uchar g1 = dockpars_gridsize_x;
 	uint  g2 = dockpars_gridsize_x * dockpars_gridsize_y;
   	uint  g3 = dockpars_gridsize_x * dockpars_gridsize_y * dockpars_gridsize_z;
-#else
 
-#endif
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -139,23 +131,6 @@ void gpu_calc_energy(
 
 			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation
 			{
-				// -------------------------------------------------------------------
-				// Replacing rotation genes: from spherical space to Shoemake space
-				// gene [0:2]: translation -> kept as original x, y, z
-				// gene [3:5]: rotation    -> transformed into Shoemake (u1, u2, u3)
-				// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
-
-				// Shoemake ranges:
-				// u1, u2, u3: [0, 1]
-
-				// Random generator in the host is changed:
-				// LCG (original, myrand()) -> CPP std (rand())
-				// -------------------------------------------------------------------
-
-				// Transforming Shoemake (u1, u2, u3) genes into quaternions
-				// FIXME: add precision choices with preprocessor directives: 
-				// NATIVE_PRECISION, HALF_PRECISION, Full precision
-
 				// Rotational genes in the Shoemake space expressed in radians
 				float u1 = genotype[3];
 				float u2 = genotype[4];
@@ -192,8 +167,6 @@ void gpu_calc_energy(
 				atom_to_rotate[2] -= rotation_movingvec[2];
 
 				// Transforming torsion angles into quaternions
-				// FIXME: add precision choices with preprocessor directives: 
-				// NATIVE_PRECISION, HALF_PRECISION, Full precision
 				rotation_angle  = native_divide(rotation_angle, 2.0f);
 				float sin_angle = native_sin(rotation_angle);
 				quatrot_left_q  = native_cos(rotation_angle);
@@ -291,7 +264,7 @@ void gpu_calc_energy(
 						  || (z >= dockpars_gridsize_z-1)){
 			partial_energies[get_local_id(0)] += 16777216.0f; //100000.0f;
 	
-			#if defined (DEBUG_ENERGY)
+			#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 			partial_interE[get_local_id(0)] += 16777216.0f;
 			#endif
 		}
@@ -320,7 +293,6 @@ void gpu_calc_energy(
 			weights [1][1][1] = dx*dy*dz;
 
 			// Capturing affinity values
-#if defined (IMPROVE_GRID)
 			uint ylow_times_g1  = y_low*g1;
 			uint yhigh_times_g1 = y_high*g1;
 		  	uint zlow_times_g2  = z_low*g2;
@@ -347,65 +319,17 @@ void gpu_calc_energy(
 			cube [1][0][1] = *(dockpars_fgrids + offset_cube_101 + mul_tmp);
                         cube [0][1][1] = *(dockpars_fgrids + offset_cube_011 + mul_tmp);
                         cube [1][1][1] = *(dockpars_fgrids + offset_cube_111 + mul_tmp);
-#else
-			// -------------------------------------------------------------------
-			// FIXME: this block within the "#else" preprocessor directive 
-			// provides NO gradient corresponding to "atype" intermolecular energy
-			// -------------------------------------------------------------------	
-
-			cube [0][0][0] = GETGRIDVALUE(dockpars_fgrids, 
-						      dockpars_gridsize_x,
-						      dockparsdockpars_num_of_atoms;_gridsize_y, 
-						      dockpars_gridsize_z,
-						      atom_typeid, z_low, y_low, x_low);
-			cube [1][0][0] = GETGRIDVALUE(dockpars_fgrids, 
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y, 
-						      dockpars_gridsize_z,
-						      atom_typeid, z_low, y_low, x_high);
-			cube [0][1][0] = GETGRIDVALUE(dockpars_fgrids, 
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y, 
-						      dockpars_gridsize_z,
-						      atom_typeid, z_low, y_high, x_low);
-			cube [1][1][0] = GETGRIDVALUE(dockpars_fgrids, 
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y, 
-						      dockpars_gridsize_z,
-						      atom_typeid, z_low, y_high, x_high);
-			cube [0][0][1] = GETGRIDVALUE(dockpars_fgrids, 
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y, 
-						      dockpars_gridsize_z,
-						      atom_typeid, z_high, y_low, x_low);
-			cube [1][0][1] = GETGRIDVALUE(dockpars_fgrids, 
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y, 
-						      dockpars_gridsize_z,
-						      atom_typeid, z_high, y_low, x_high);
-			cube [0][1][1] = GETGRIDVALUE(dockpars_fgrids, 
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y, 
-						      dockpars_gridsize_z,
-						      atom_typeid, z_high, y_high, x_low);
-			cube [1][1][1] = GETGRIDVALUE(dockpars_fgrids, 
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y, 
-						      dockpars_gridsize_z,
-						      atom_typeid, z_high, y_high, x_high);
-#endif
 
 			// Calculating affinity energy
 			partial_energies[get_local_id(0)] += TRILININTERPOL(cube, weights);
 
-			#if defined (DEBUG_ENERGY)
+			#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 			partial_interE[get_local_id(0)] += TRILININTERPOL(cube, weights);
 			#endif
 
 			// Capturing electrostatic values
 			atom_typeid = dockpars_num_of_atypes;
 
-#if defined (IMPROVE_GRID)
 			mul_tmp = atom_typeid*g3;
 			cube [0][0][0] = *(dockpars_fgrids + offset_cube_000 + mul_tmp);
 			cube [1][0][0] = *(dockpars_fgrids + offset_cube_100 + mul_tmp);
@@ -415,65 +339,17 @@ void gpu_calc_energy(
 		        cube [1][0][1] = *(dockpars_fgrids + offset_cube_101 + mul_tmp);
 		        cube [0][1][1] = *(dockpars_fgrids + offset_cube_011 + mul_tmp);
 		        cube [1][1][1] = *(dockpars_fgrids + offset_cube_111 + mul_tmp);
-#else
-			// -------------------------------------------------------------------
-			// FIXME: this block within the "#else" preprocessor directive 
-			// provides NO gradient corresponding to "elec" intermolecular energybas
-			// -------------------------------------------------------------------
 
-			cube [0][0][0] = GETGRIDVALUE(dockpars_fgrids, 
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y, 
-						      dockpars_gridsize_z,
-					 	      atom_typeid, z_low, y_low, x_low);
-			cube [1][0][0] = GETGRIDVALUE(dockpars_fgrids, 
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
-						      atom_typeid, z_low, y_low, x_high);
-			cube [0][1][0] = GETGRIDVALUE(dockpars_fgrids,
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-                                                      dockpars_gridsize_z,
-						      atom_typeid, z_low, y_high, x_low);
-			cube [1][1][0] = GETGRIDVALUE(dockpars_fgrids,
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,bas
-						      atom_typeid, z_low, y_high, x_high);
-			cube [0][0][1] = GETGRIDVALUE(dockpars_fgrids,
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
-						      atom_typeid, z_high, y_low, x_low);
-			cube [1][0][1] = GETGRIDVALUE(dockpars_fgrids,
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
-						      atom_typeid, z_high, y_low, x_high);
-			cube [0][1][1] = GETGRIDVALUE(dockpars_fgrids,
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
-						      atom_typeid, z_high, y_high, x_low);
-			cube [1][1][1] = GETGRIDVALUE(dockpars_fgrids,
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
-						      atom_typeid, z_high, y_high, x_high);
-#endif
-
-			// Calculating electrosatic energy
+			// Calculating electrostatic energy
 			partial_energies[get_local_id(0)] += q * TRILININTERPOL(cube, weights);
 
-			#if defined (DEBUG_ENERGY)
+			#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 			partial_interE[get_local_id(0)] += q * TRILININTERPOL(cube, weights);
 			#endif
 
 			// Capturing desolvation values
 			atom_typeid = dockpars_num_of_atypes+1;
 
-#if defined (IMPROVE_GRID)
 			mul_tmp = atom_typeid*g3;
 			cube [0][0][0] = *(dockpars_fgrids + offset_cube_000 + mul_tmp);
 			cube [1][0][0] = *(dockpars_fgrids + offset_cube_100 + mul_tmp);
@@ -483,58 +359,11 @@ void gpu_calc_energy(
       			cube [1][0][1] = *(dockpars_fgrids + offset_cube_101 + mul_tmp);
       			cube [0][1][1] = *(dockpars_fgrids + offset_cube_011 + mul_tmp);
       			cube [1][1][1] = *(dockpars_fgrids + offset_cube_111 + mul_tmp);
-#else
-			// -------------------------------------------------------------------
-			// FIXME: this block within the "#else" preprocessor directive 
-			// provides NO gradient corresponding to "dsol" intermolecular energy
-			// -------------------------------------------------------------------
-
-			cube [0][0][0] = GETGRIDVALUE(dockpars_fgrids,
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
-						      atom_typeid, z_low, y_low, x_low);
-			cube [1][0][0] = GETGRIDVALUE(dockpars_fgridsu2,
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
-						      atom_typeid, z_low, y_low, x_high);
-			cube [0][1][0] = GETGRIDVALUE(dockpars_fgrids,
-						      dockpars_gridsize_x,rotbonds_unit_vectors_const
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
-						      atom_typeid, z_low, y_high, x_low);
-			cube [1][1][0] = GETGRIDVALUE(dockpars_fgrids,
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
-						      atom_typeid, z_low, y_high, x_high);
-			cube [0][0][1] = GETGRIDVALUE(dockpars_fgrids, 
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
-						      atom_typeid, z_high, y_low, x_low);
-			cube [1][0][1] = GETGRIDVALUE(dockpars_fgrids,
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
-						      atom_typeid, z_high, y_low, x_high);
-			cube [0][1][1] = GETGRIDVALUE(dockpars_fgrids,
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
-						      atom_typeid, z_high, y_high, x_low);
-			cube [1][1][1] = GETGRIDVALUE(dockpars_fgrids,
-						      dockpars_gridsize_x,
-						      dockpars_gridsize_y,
-						      dockpars_gridsize_z,
-						      atom_typeid, z_high, y_high, x_high);
-#endif
 
 			// Calculating desolvation energy
 			partial_energies[get_local_id(0)] += fabs(q) * TRILININTERPOL(cube, weights);
 
-			#if defined (DEBUG_ENERGY)
+			#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 			partial_interE[get_local_id(0)] += fabs(q) * TRILININTERPOL(cube, weights);
 			#endif
 		}
@@ -542,7 +371,7 @@ void gpu_calc_energy(
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
 
 
-	#if defined (DEBUG_ENERGY)
+	#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	if (get_local_id(0) == 0)
@@ -579,24 +408,14 @@ void gpu_calc_energy(
 		uint atom1_id = intraE_contributors_const[3*contributor_counter];
 		uint atom2_id = intraE_contributors_const[3*contributor_counter+1];
 
-		// Calculating address of first atom's coordinates
-		float subx = calc_coords_x[atom1_id];
-		float suby = calc_coords_y[atom1_id];
-		float subz = calc_coords_z[atom1_id];
-
-		// Calculating address of second atom's coordinates
-		subx -= calc_coords_x[atom2_id];
-		suby -= calc_coords_y[atom2_id];
-		subz -= calc_coords_z[atom2_id];
+		// Calculating vector components of vector going
+		// from first atom's to second atom's coordinates
+		float subx = calc_coords_x[atom1_id] - calc_coords_x[atom2_id];
+		float suby = calc_coords_y[atom1_id] - calc_coords_y[atom2_id];
+		float subz = calc_coords_z[atom1_id] - calc_coords_z[atom2_id];
 
 		// Calculating atomic_distance
-#if defined (NATIVE_PRECISION)
 		float atomic_distance = native_sqrt(subx*subx + suby*suby + subz*subz)*dockpars_grid_spacing;
-#elif defined (HALF_PRECISION)
-		float atomic_distance = half_sqrt(subx*subx + suby*suby + subz*subz)*dockpars_grid_spacing;
-#else	// Full precision
-		float atomic_distance = sqrt(subx*subx + suby*suby + subz*subz)*dockpars_grid_spacing;
-#endif
 
 		if (atomic_distance < 1.0f)
 			atomic_distance = 1.0f;
@@ -609,128 +428,47 @@ void gpu_calc_energy(
 			uint atom2_typeid = atom_types_const[atom2_id];
 
 			// Calculating van der Waals / hydrogen bond term
-#if defined (NATIVE_PRECISION)
 			partial_energies[get_local_id(0)] += native_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance,12));
 
-
-			#if defined (DEBUG_ENERGY)
+			#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 			partial_intraE[get_local_id(0)] += native_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance,12));
 			#endif
 
-#elif defined (HALF_PRECISION)
-			for (uint rotation_counter = get_local_id(0);
-	          rotation_counter < dockpars_rotbondlist_length;
-	          rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
-	{partial_energies[get_local_id(0)] += half_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],half_powr(atomic_distance,12));
-#else	// Full precision
-			partial_energies[get_local_id(0)] += VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid]/powr(atomic_distance,12);
-#endif
-
 			if (intraE_contributors_const[3*contributor_counter+2] == 1) {	//H-bond
-#if defined (NATIVE_PRECISION)
 				partial_energies[get_local_id(0)] -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance,10));
-			#if defined (DEBUG_ENERGY)
-			partial_intraE[get_local_id(0)] -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance,10));
-			#endif
-
-
-#elif defined (HALF_PRECISION)
-				partial_energies[get_local_id(0)] -= half_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],half_powr(atomic_distance,10));
-#else	// Full precision
-				partial_energies[get_local_id(0)] -= VWpars_BD_const[atom1_typeid*dockpars_num_of_atypes+atom2_typeid]/powr(atomic_distance,10);
-#endif
+				#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
+				partial_intraE[get_local_id(0)] -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance,10));
+				#endif
 			}
 			else {	//van der Waals
-#if defined (NATIVE_PRECISION)
 				partial_energies[get_local_id(0)] -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance,6));
 
-			#if defined (DEBUG_ENERGY)
-			partial_intraE[get_local_id(0)] -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance,6));
-			#endif
-
-#elif defined (HALF_PRECISION)
-				partial_energies[get_local_id(0)] -= half_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],half_powr(atomic_distance,6));
-#else	// Full precision
-				partial_energies[get_local_id(0)] -= VWpars_BD_const[atom1_typeid*dockpars_num_of_atypes+atom2_typeid]/powr(atomic_distance,6);
-#endif
+				#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
+				partial_intraE[get_local_id(0)] -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance,6));
+				#endif
 			}
 			// Calculating electrostatic term
 
-/*
-#if defined (NATIVE_PRECISION)
-        partial_energies[get_local_id(0)] += native_divide (
-                                                             dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
-                                                             atomic_distance * (-8.5525f + native_divide(86.9525f,(1.0f + 7.7839f*native_exp(-0.3154f*atomic_distance))))
-                                                             );
-#elif defined (HALF_PRECISION)
-        partial_energies[get_local_id(0)] += half_divide (
-                                                             dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
-                                                             atomic_distance * (-8.5525f + half_divide(86.9525f,(1.0f + 7.7839f*half_exp(-0.3154f*atomic_distance))))
-                                                             );
-#else	// Full precision
-				partial_energies[get_local_	#if defined (DEBUG_ENERGY)
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	if (get_local_id(0) == 0)
-	{
-		float energy_interE = partial_interE[0];
-
-		for (uint contributor_counter=1;
-		          contributor_counter<NUM_OF_THREADS_PER_BLOCK;
-		          contributor_counter++)
-		{
-			energy_interE += partial_interE[contributor_counter];
-		}
-	}
-	printf("%-20s %-10.8f\n", "energy_interE: ", energy_interE);
-
-	barrier(CLK_LOCAL_MEM_FENCE);
-	#endifid(0)] += dockpars_coeff_elec*atom_charges_const[atom1_id]*atom_charges_const[atom2_id]/
-			                                       (atomic_distance*(-8.5525f + 86.9525f/(1.0f + 7.7839f*exp(-0.3154f*atomic_distance))));
-#endif
-*/
-
-
-#if defined (NATIVE_PRECISION)
-        partial_energies[get_local_id(0)] += native_divide (
+        		partial_energies[get_local_id(0)] += native_divide (
                                                              dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
                                                              atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
                                                              );
 
-			#if defined (DEBUG_ENERGY)
+			#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 			partial_intraE[get_local_id(0)] += native_divide (
                                                              dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
                                                              atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
                                                              );
 			#endif
 
-
-#elif defined (HALF_PRECISION)
-        partial_energies[get_local_id(0)] += half_divide (
-                                                             dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
-                                                             atomic_distance * (DIEL_A + half_divide(DIEL_B,(1.0f + DIEL_K*half_exp(-DIEL_B_TIMES_H*atomic_distance))))
-                                                             );
-#else	// Full precision
-	partial_energies[get_local_id(0)] += dockpars_coeff_elec*atom_charges_const[atom1_id]*atom_charges_const[atom2_id]/
-			                                       (atomic_distance*(DIEL_A + DIEL_B/(1.0f + DIEL_K*exp(-DIEL_B_TIMES_H*atomic_distance))));
-#endif
-
-
-
-
-
-
-
-
 			// Calculating desolvation term
-#if defined (NATIVE_PRECISION)
 			partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
 							       dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
 					                       (dspars_S_const[atom2_typeid] +
 							       dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
 					                       dockpars_coeff_desolv*native_exp(-atomic_distance*native_divide(atomic_distance,25.92f));
 
-			#if defined (DEBUG_ENERGY)
+			#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 			partial_intraE[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
 							       dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
 					                       (dspars_S_const[atom2_typeid] +
@@ -738,19 +476,7 @@ void gpu_calc_energy(
 					                       dockpars_coeff_desolv*native_exp(-atomic_distance*native_divide(atomic_distance,25.92f));
 			#endif
 
-#elif defined (HALF_PRECISION)
-			partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
-							       dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
-					                       (dspars_S_const[atom2_typeid] +
-							       dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
-					                       dockpars_coeff_desolv*half_exp(-atomic_distance*half_divide(atomic_distance,25.92f));
-#else	// Full precision
-			partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
-							       dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
-					                       (dspars_S_const[atom2_typeid] +
-							       dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
-					                       dockpars_coeff_desolv*exp(-atomic_distance*atomic_distance/25.92f);
-#endif
+
 
 		}
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
@@ -769,7 +495,7 @@ void gpu_calc_energy(
 		}
 	}
 
-	#if defined (DEBUG_ENERGY)
+	#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	if (get_local_id(0) == 0)
@@ -796,6 +522,6 @@ void gpu_calc_energy(
 #include "auxiliary_genetic.cl"
 #include "kernel4.cl"
 #include "kernel3.cl"
-#include "auxiliary_gradient.cl"
+//#include "auxiliary_gradient.cl"
 #include "calcgradient.cl"
 #include "kernel_gradient.cl"

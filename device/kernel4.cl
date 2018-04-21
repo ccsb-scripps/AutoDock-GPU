@@ -89,7 +89,7 @@ gpu_gen_and_eval_newpops(
 	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
 	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
-	#if defined (DEBUG_ENERGY)
+	#if defined (DEBUG_ENERGY_KERNEL4)
 	__local float partial_interE [NUM_OF_THREADS_PER_BLOCK];
 	__local float partial_intraE [NUM_OF_THREADS_PER_BLOCK];
 	#endif
@@ -259,7 +259,7 @@ gpu_gen_and_eval_newpops(
 				calc_coords_y,
 				calc_coords_z,
 				partial_energies,
-				#if defined (DEBUG_ENERGY)
+				#if defined (DEBUG_ENERGY_KERNEL4)
 				partial_interE,
 				partial_intraE,
 				#endif
@@ -284,6 +284,10 @@ gpu_gen_and_eval_newpops(
 		if (get_local_id(0) == 0) {
 			dockpars_evals_of_new_entities[get_group_id(0)] = 1;
 			dockpars_energies_next[get_group_id(0)] = energy;
+
+			#if defined (DEBUG_ENERGY_KERNEL4)
+			printf("%-18s [%-5s]---{%-5s}   [%-10.8f]---{%-10.8f}\n", "-ENERGY-KERNEL4-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
+			#endif
 		}
 
 		// Copying new offspring to next generation

@@ -408,10 +408,8 @@ filled with clock() */
 	// Setup here (temporarily?) the gradient and associated parameters.
 	// This should be ultimately configurable by the user as program exec. flags.
 	Gradientparameters gradientpars;
-	gradientpars.tolerance = 1.e-6;
-	gradientpars.max_num_of_iters = 4; // Same as Solis-Wetts local search
+	gradientpars.max_num_of_iters = 40; // Same as Solis-Wetts local search
 	gradientpars.alpha = 0.000001f; //0.001f; // TODO: find out why 0.001f, 0.0001f (100 runs, 500 popsize) throws segmentation fault
-	gradientpars.h = 0.0001f;
 
 	// Set minimum values for input conformation (translation genes as x, y, z)
 	for (unsigned int gene_cnt=0; gene_cnt<3; gene_cnt++) {
@@ -440,8 +438,10 @@ filled with clock() */
 	blocksPerGridForEachGradMinimizerEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
 */
 
+///*
 	// test, only one entity per reach run, undergoes gradient minimization
 	blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
+//*/
 
 	clock_start_docking = clock();
 
@@ -558,6 +558,8 @@ filled with clock() */
 #endif
 // End of Kernel4
 
+
+#if !defined (GRADIENT_ENABLED)
 // Kernel3
   setKernelArg(kernel3,0,sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
   setKernelArg(kernel3,1,sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
@@ -600,12 +602,11 @@ filled with clock() */
   setKernelArg(kernel3,38,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
   kernel3_gxsize = blocksPerGridForEachLSEntity * threadsPerBlock;
   kernel3_lxsize = threadsPerBlock;
-#ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "K_LOCAL_SEARCH: ", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
-#endif
+  #ifdef DOCK_DEBUG
+  printf("%-25s %10s %8u %10s %4u\n", "K_LOCAL_SEARCH: ", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
+  #endif
 // End of Kernel3
-
-
+#else
 // Kernel5
   setKernelArg(kernel5,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
   setKernelArg(kernel5,1, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
@@ -620,43 +621,42 @@ filled with clock() */
   setKernelArg(kernel5,10,sizeof(dockpars.coeff_desolv),                   &dockpars.coeff_desolv);
   setKernelArg(kernel5,11,sizeof(mem_dockpars_conformations_next),         &mem_dockpars_conformations_next);
   setKernelArg(kernel5,12,sizeof(mem_dockpars_energies_next),              &mem_dockpars_energies_next);
-  setKernelArg(kernel5,13,sizeof(mem_dockpars_prng_states),                &mem_dockpars_prng_states);
-  setKernelArg(kernel5,14,sizeof(dockpars.pop_size),                       &dockpars.pop_size);
-  setKernelArg(kernel5,15,sizeof(dockpars.num_of_genes),                   &dockpars.num_of_genes);
-  setKernelArg(kernel5,16,sizeof(dockpars.lsearch_rate),                   &dockpars.lsearch_rate);
-  setKernelArg(kernel5,17,sizeof(dockpars.num_of_lsentities),              &dockpars.num_of_lsentities);
-  setKernelArg(kernel5,18,sizeof(dockpars.qasp),                           &dockpars.qasp);
-  setKernelArg(kernel5,19,sizeof(mem_atom_charges_const),                  &mem_atom_charges_const);
-  setKernelArg(kernel5,20,sizeof(mem_atom_types_const),                    &mem_atom_types_const);
-  setKernelArg(kernel5,21,sizeof(mem_intraE_contributors_const),           &mem_intraE_contributors_const);
-  setKernelArg(kernel5,22,sizeof(mem_VWpars_AC_const),                     &mem_VWpars_AC_const);
-  setKernelArg(kernel5,23,sizeof(mem_VWpars_BD_const),                     &mem_VWpars_BD_const);
-  setKernelArg(kernel5,24,sizeof(mem_dspars_S_const),                      &mem_dspars_S_const);
-  setKernelArg(kernel5,25,sizeof(mem_dspars_V_const),                      &mem_dspars_V_const);
-  setKernelArg(kernel5,26,sizeof(mem_rotlist_const),                       &mem_rotlist_const);
-  setKernelArg(kernel5,27,sizeof(mem_ref_coords_x_const),                  &mem_ref_coords_x_const);
-  setKernelArg(kernel5,28,sizeof(mem_ref_coords_y_const),                  &mem_ref_coords_y_const);
-  setKernelArg(kernel5,29,sizeof(mem_ref_coords_z_const),                  &mem_ref_coords_z_const);
-  setKernelArg(kernel5,30,sizeof(mem_rotbonds_moving_vectors_const),       &mem_rotbonds_moving_vectors_const);
-  setKernelArg(kernel5,31,sizeof(mem_rotbonds_unit_vectors_const),         &mem_rotbonds_unit_vectors_const);
-  setKernelArg(kernel5,32,sizeof(mem_ref_orientation_quats_const),         &mem_ref_orientation_quats_const);
-  setKernelArg(kernel5,33,sizeof(mem_rotbonds_const),         		   &mem_rotbonds_const);
-  setKernelArg(kernel5,34,sizeof(mem_rotbonds_atoms_const),   		   &mem_rotbonds_atoms_const);
-  setKernelArg(kernel5,35,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
+  setKernelArg(kernel5,13,sizeof(mem_dockpars_evals_of_new_entities),      &mem_dockpars_evals_of_new_entities);
+  setKernelArg(kernel5,14,sizeof(mem_dockpars_prng_states),                &mem_dockpars_prng_states);
+  setKernelArg(kernel5,15,sizeof(dockpars.pop_size),                       &dockpars.pop_size);
+  setKernelArg(kernel5,16,sizeof(dockpars.num_of_genes),                   &dockpars.num_of_genes);
+  setKernelArg(kernel5,17,sizeof(dockpars.lsearch_rate),                   &dockpars.lsearch_rate);
+  setKernelArg(kernel5,18,sizeof(dockpars.num_of_lsentities),              &dockpars.num_of_lsentities);
+  setKernelArg(kernel5,19,sizeof(dockpars.qasp),                           &dockpars.qasp);
+  setKernelArg(kernel5,20,sizeof(mem_atom_charges_const),                  &mem_atom_charges_const);
+  setKernelArg(kernel5,21,sizeof(mem_atom_types_const),                    &mem_atom_types_const);
+  setKernelArg(kernel5,22,sizeof(mem_intraE_contributors_const),           &mem_intraE_contributors_const);
+  setKernelArg(kernel5,23,sizeof(mem_VWpars_AC_const),                     &mem_VWpars_AC_const);
+  setKernelArg(kernel5,24,sizeof(mem_VWpars_BD_const),                     &mem_VWpars_BD_const);
+  setKernelArg(kernel5,25,sizeof(mem_dspars_S_const),                      &mem_dspars_S_const);
+  setKernelArg(kernel5,26,sizeof(mem_dspars_V_const),                      &mem_dspars_V_const);
+  setKernelArg(kernel5,27,sizeof(mem_rotlist_const),                       &mem_rotlist_const);
+  setKernelArg(kernel5,28,sizeof(mem_ref_coords_x_const),                  &mem_ref_coords_x_const);
+  setKernelArg(kernel5,29,sizeof(mem_ref_coords_y_const),                  &mem_ref_coords_y_const);
+  setKernelArg(kernel5,30,sizeof(mem_ref_coords_z_const),                  &mem_ref_coords_z_const);
+  setKernelArg(kernel5,31,sizeof(mem_rotbonds_moving_vectors_const),       &mem_rotbonds_moving_vectors_const);
+  setKernelArg(kernel5,32,sizeof(mem_rotbonds_unit_vectors_const),         &mem_rotbonds_unit_vectors_const);
+  setKernelArg(kernel5,33,sizeof(mem_ref_orientation_quats_const),         &mem_ref_orientation_quats_const);
+  setKernelArg(kernel5,34,sizeof(mem_rotbonds_const),         		   &mem_rotbonds_const);
+  setKernelArg(kernel5,35,sizeof(mem_rotbonds_atoms_const),   		   &mem_rotbonds_atoms_const);
+  setKernelArg(kernel5,36,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
   // Specific gradient-minimizer args
-  setKernelArg(kernel5,36,sizeof(gradientpars.tolerance),         	   &gradientpars.tolerance);
   setKernelArg(kernel5,37,sizeof(gradientpars.max_num_of_iters),           &gradientpars.max_num_of_iters);
   setKernelArg(kernel5,38,sizeof(gradientpars.alpha),            	   &gradientpars.alpha);
-  setKernelArg(kernel5,39,sizeof(gradientpars.h),            	   	   &gradientpars.h);
-  setKernelArg(kernel5,40,sizeof(mem_gradpars_conformation_min_perturbation),              &mem_gradpars_conformation_min_perturbation);
+  setKernelArg(kernel5,39,sizeof(mem_gradpars_conformation_min_perturbation),              &mem_gradpars_conformation_min_perturbation);
 
   kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
   kernel5_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MINIMIZER: ", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
+	printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MINIMIZER: ", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
 #endif
-// End of Kernel3
-
+// End of Kernel5
+#endif
 
 
 
@@ -747,7 +747,7 @@ filled with clock() */
 	#endif
 // End of Kernel4
 
-/*
+#if !defined (GRADIENT_ENABLED)
 // Kernel3
 	#ifdef DOCK_DEBUG
 		printf("%-25s", "K_LOCAL_SEARCH: ");fflush(stdout);
@@ -757,9 +757,7 @@ filled with clock() */
 		printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 // End of Kernel3
-*/
-
-
+#else
 // Kernel5
 	#ifdef DOCK_DEBUG
 		printf("%-25s", "K_GRAD_MINIMIZER: ");fflush(stdout);
@@ -769,7 +767,7 @@ filled with clock() */
 		printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 // End of Kernel5
-
+#endif
 
 // Kernel2
 	#ifdef DOCK_DEBUG
@@ -812,16 +810,16 @@ filled with clock() */
 			setKernelArg(kernel4,12,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
       			setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
 			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
-/*
+
+#if !defined (GRADIENT_ENABLED)
 			// Kernel 3
      			setKernelArg(kernel3,11,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
       			setKernelArg(kernel3,12,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
-*/
-
+#else
 			// Kernel 5
      			setKernelArg(kernel5,11,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
       			setKernelArg(kernel5,12,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
-
+#endif
 		}
 		else { // In this configuration, the program starts
 			// Kernel 4
@@ -829,16 +827,16 @@ filled with clock() */
 			setKernelArg(kernel4,12,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
       			setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
 			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
-/*
+
+#if !defined (GRADIENT_ENABLED)
 			// Kernel 3
 			setKernelArg(kernel3,11,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
       			setKernelArg(kernel3,12,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
-*/
-
+#else
 			// Kernel 5
 			setKernelArg(kernel5,11,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
       			setKernelArg(kernel5,12,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
-
+#endif
 		}
 		// ----------------------------------------------------------------------
 
@@ -949,9 +947,12 @@ filled with clock() */
 
 	clReleaseKernel(kernel1);
 	clReleaseKernel(kernel2);
-	clReleaseKernel(kernel3);
 	clReleaseKernel(kernel4);
+#if !defined (GRADIENT_ENABLED)
+	clReleaseKernel(kernel3);
+#else
 	clReleaseKernel(kernel5);
+#endif
 	clReleaseCommandQueue(command_queue);
 	clReleaseContext(context);
 	free(device_id);

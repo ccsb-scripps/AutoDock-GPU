@@ -57,10 +57,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // This should be ultimately configurable by the user as program exec. flags.
 
 typedef struct {
-	float tolerance;
 	unsigned int max_num_of_iters;
 	float alpha;
-	float h;
 	float conformation_min_perturbation [ACTUAL_GENOTYPE_LENGTH];
 } Gradientparameters;
 

@@ -70,13 +70,7 @@ float gpu_randf(
 #if defined (REPRO)
 	state = 0.55f; //0.55f;
 #else
-	#if defined (NATIVE_PRECISION)
 	state =  native_divide(gpu_rand(prng_states),MAX_UINT)*0.999999f;
-	#elif defined (HALF_PRECISION)
-	state =  half_divide(gpu_rand(prng_states),MAX_UINT)*0.999999f;
-	#else	// Full precision
-	state = (((float) gpu_rand(prng_states))/MAX_UINT)*0.999999f;
-	#endif
 #endif
 
   return state;
