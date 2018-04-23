@@ -1,7 +1,7 @@
 // Gradient-based steepest descent minimizer
 // Alternative to Solis-Wetts
 
-//#define DEBUG_MINIMIZER
+#define DEBUG_MINIMIZER
 
 #define TRANGENE_ALPHA 1E-3//1E-8
 #define ROTAGENE_ALPHA 1E-8//1E-15
@@ -47,7 +47,8 @@ gradient_minimizer(
 	     __constant int*   rotbonds_atoms_const,
 	     __constant int*   num_rotating_atoms_per_rotbond_const,
     			// Specific gradient-minimizer args
-		    	uint      	  gradMin_maxiter,
+		    	uint      	  gradMin_maxiters,
+			uint      	  gradMin_maxfails,
 	    		float             gradMin_alpha,
     	     __constant float* gradMin_conformation_min_perturbation     // minimal values for gene perturbation, originally as the scalar "dxmin"
 )
@@ -60,15 +61,19 @@ gradient_minimizer(
 //subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
 	// -----------------------------------------------------------------------------
-	// Number of energy-evaluations counter
-	__local int   evaluation_cnt;
-
-	// -----------------------------------------------------------------------------
 	// Determining entity, and its run, energy, and genotype
 	__local int   entity_id;
 	__local int   run_id;
-  	__local float local_energy;
-	__local float local_genotype[ACTUAL_GENOTYPE_LENGTH];
+  	__local float energy;
+	__local float genotype[ACTUAL_GENOTYPE_LENGTH];
+
+	// Variables for gradient minimizer
+  	__local uint iteration_cnt;  	// minimizer iteration counter
+	__local uint failure_cnt;  	// minimizer failure counter
+	__local bool exit;		
+
+	// Number of energy-evaluations counter
+	__local int  evaluation_cnt;
 
 	if (get_local_id(0) == 0)
 	{
@@ -84,34 +89,24 @@ gradient_minimizer(
 		entity_id = get_group_id(0) % dockpars_num_of_lsentities;
 */
 		
-		local_energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
+		energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
 
 		#if defined (DEBUG_MINIMIZER)
-		printf("run_id:  %5u entity_id: %5u  initial_energy: %.5f\n", run_id, entity_id, local_energy);
-		//printf("%-50s %f\n", "Initial energy: ", local_energy);
+		printf("\nrun_id:  %5u entity_id: %5u  initial_energy: %.5f\n", run_id, entity_id, energy);
 		#endif
+
+		// Initializing gradient-minimizer counters and flags
+    		iteration_cnt  = 0;
+		failure_cnt    = 0;
+		/*exit           = false;*/
+		evaluation_cnt = 0;
 	}
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-  	async_work_group_copy(local_genotype,
+  	async_work_group_copy(genotype,
   			      dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
                               dockpars_num_of_genes, 0);
-
-  	// -----------------------------------------------------------------------------
-	// Initializing variables for gradient minimizer
-  	__local uint local_nIter;  // iteration counter
-	__local uint failure_cnt;  // Failure counter
-	__local bool exit;
-  	
-	if (get_local_id(0) == 0) {
-    		local_nIter = 0;
-		failure_cnt = 0;
-		exit = false;
-
-		evaluation_cnt = 0;
-  	}
-	barrier(CLK_LOCAL_MEM_FENCE);
 
   	// -----------------------------------------------------------------------------
   	// Some OpenCL compilers don't allow declaring 
@@ -120,12 +115,12 @@ gradient_minimizer(
 	// and then passed to non-kernel functions.
 	
 	// Partial results for checking validity of genotype
-	__local bool is_genotype_valid [ACTUAL_GENOTYPE_LENGTH];
+	__local bool is_candidate_genotype_valid [ACTUAL_GENOTYPE_LENGTH];
            
 	// Partial results of the gradient step
-	__local float local_gradient          [ACTUAL_GENOTYPE_LENGTH];
-	__local float local_candidate_energy;
-	__local float local_candidate_genotype[ACTUAL_GENOTYPE_LENGTH];
+	__local float gradient          [ACTUAL_GENOTYPE_LENGTH];
+	__local float candidate_energy;
+	__local float candidate_genotype[ACTUAL_GENOTYPE_LENGTH];
 
 	// -------------------------------------------------------------------
 	// Calculate gradients (forces) for intermolecular energy
@@ -164,10 +159,16 @@ gradient_minimizer(
 	float alpha;
 
 	// Initilizing each (work-item)-specific alpha
-	for(uint i = get_local_id(0); i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {
+	for(uint i = get_local_id(0); 
+		 i < dockpars_num_of_genes; 
+		 i+= NUM_OF_THREADS_PER_BLOCK) {
 			if (i<3)      { alpha = TRANGENE_ALPHA;	}
 			else if (i<6) { alpha = ROTAGENE_ALPHA; } 
 			else 	      { alpha = TORSGENE_ALPHA;	}
+
+			#if defined (DEBUG_MINIMIZER)
+			//printf("(%-3u) %-15.15f\n", i, alpha);
+			#endif
 	}
 
 	// Perform gradient-descent iterations
@@ -198,44 +199,44 @@ gradient_minimizer(
 	do {
 		#if 0
 		// Specific input genotypes for a ligand with no rotatable bonds (1ac8).
-		// Translation genes must be expressed in grids in OCLADock (local_genotype [0|1|2]).
+		// Translation genes must be expressed in grids in OCLADock (genotype [0|1|2]).
 		// However, for testing purposes, 
 		// we start using translation values in real space (Angstrom): {31.79575, 93.743875, 47.699875}
-		// Rotation genes are expresed in the Shoemake space: local_genotype [3|4|5]
+		// Rotation genes are expresed in the Shoemake space: genotype [3|4|5]
 		// xyz_gene_gridspace = gridcenter_gridspace + (input_gene_realspace - gridcenter_realspace)/gridsize
 
 		// 1ac8				
-		local_genotype[0] = 30 + (31.79575  - 31.924) / 0.375;
-		local_genotype[1] = 30 + (93.743875 - 93.444) / 0.375;
-		local_genotype[2] = 30 + (47.699875 - 47.924) / 0.375;
-		local_genotype[3] = 0.1f;
-		local_genotype[4] = 0.5f;
-		local_genotype[5] = 0.9f;
+		genotype[0] = 30 + (31.79575  - 31.924) / 0.375;
+		genotype[1] = 30 + (93.743875 - 93.444) / 0.375;
+		genotype[2] = 30 + (47.699875 - 47.924) / 0.375;
+		genotype[3] = 0.1f;
+		genotype[4] = 0.5f;
+		genotype[5] = 0.9f;
 		#endif
 
 		#if 0
 		// 3tmn
-		local_genotype[0] = 30 + (ligand_center_x - grid_center_x) / 0.375;
-		local_genotype[1] = 30 + (ligand_center_y - grid_center_y) / 0.375;
-		local_genotype[2] = 30 + (ligand_center_z - grid_center_z) / 0.375;
-		local_genotype[3] = shoemake_gene_u1;
-		local_genotype[4] = shoemake_gene_u2;
-		local_genotype[5] = shoemake_gene_u3;
-		local_genotype[6] = 0.0f;
-		local_genotype[7] = 0.0f;
-		local_genotype[8] = 0.0f;
-		local_genotype[9] = 0.0f;
-		local_genotype[10] = 0.0f;
-		local_genotype[11] = 0.0f;
-		local_genotype[12] = 0.0f;
-		local_genotype[13] = 0.0f;
-		local_genotype[14] = 0.0f;
-		local_genotype[15] = 0.0f;
-		local_genotype[16] = 0.0f;
-		local_genotype[17] = 0.0f;
-		local_genotype[18] = 0.0f;
-		local_genotype[19] = 0.0f;
-		local_genotype[20] = 0.0f;
+		genotype[0] = 30 + (ligand_center_x - grid_center_x) / 0.375;
+		genotype[1] = 30 + (ligand_center_y - grid_center_y) / 0.375;
+		genotype[2] = 30 + (ligand_center_z - grid_center_z) / 0.375;
+		genotype[3] = shoemake_gene_u1;
+		genotype[4] = shoemake_gene_u2;
+		genotype[5] = shoemake_gene_u3;
+		genotype[6] = 0.0f;
+		genotype[7] = 0.0f;
+		genotype[8] = 0.0f;
+		genotype[9] = 0.0f;
+		genotype[10] = 0.0f;
+		genotype[11] = 0.0f;
+		genotype[12] = 0.0f;
+		genotype[13] = 0.0f;
+		genotype[14] = 0.0f;
+		genotype[15] = 0.0f;
+		genotype[16] = 0.0f;
+		genotype[17] = 0.0f;
+		genotype[18] = 0.0f;
+		genotype[19] = 0.0f;
+		genotype[20] = 0.0f;
 		#endif
 
 		// Calculating gradient
@@ -257,8 +258,8 @@ gradient_minimizer(
 				// local variables within non-kernel functions.
 				// These local variables must be declared in a kernel, 
 				// and then passed to non-kernel functions.
-				local_genotype,
-				&local_energy,
+				genotype,
+				&energy,
 				&run_id,
 
 				calc_coords_x,
@@ -297,7 +298,7 @@ gradient_minimizer(
 				gradient_y,
 				gradient_z,
 				gradient_per_intracontributor,
-				local_gradient
+				gradient
 				);
 		// =============================================================
 
@@ -307,23 +308,24 @@ gradient_minimizer(
 		for(uint i = get_local_id(0); i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {
 
 	     		// Taking step
-			local_candidate_genotype[i] = local_genotype[i] - alpha * local_gradient[i];	
+			candidate_genotype[i] = genotype[i] - alpha * gradient[i];	
 
 			#if defined (DEBUG_MINIMIZER)
-			//printf("(%-3u) %-0.15f %-10.10f %-10.10f %-10.10f\n", i, alpha, local_genotype[i], local_gradient[i], local_candidate_genotype[i]);
+			//printf("(%-3u) %-0.15f %-10.10f %-10.10f %-10.10f\n", i, alpha, genotype[i], gradient[i], candidate_genotype[i]);
 			#endif
 
-			// Checking if every gene of candidate_genotype is valid
-   			is_genotype_valid[i] = (isnan(local_candidate_genotype[i]) == 0) && (isinf(local_candidate_genotype[i]) == 0);
+			// Checking if every gene of candidate_genotype
+			// is neither a nan, not inf
+   			is_candidate_genotype_valid[i] = (isnan(candidate_genotype[i]) == 0) && (isinf(candidate_genotype[i]) == 0);
 
-			// Verifying the Shoemake genes 
+			// Verifying that Shoemake genes 
 			// do not get out of valid region
 			if ((i > 2) && (i < 6)) {
-				if (is_genotype_valid[i] == true) {
-					//printf("BEFORE is_genotype_valid[%u]?: %s\n", i, (is_genotype_valid[i] == true)?"yes":"no");
-					if ((local_candidate_genotype[i] < 0.0f) || (local_candidate_genotype[i] > 1.0f)){
-						is_genotype_valid[i] = false;
-						//printf("AFTER  is_genotype_valid[%u]?: %s\n", i, (is_genotype_valid[i] == true)?"yes":"no");
+				if (is_candidate_genotype_valid[i] == true) {
+					//printf("BEFORE is_candidate_genotype_valid[%u]?: %s\n", i, (is_candidate_genotype_valid[i] == true)?"yes":"no");
+					if ((candidate_genotype[i] < 0.0f) || (candidate_genotype[i] > 1.0f)){
+						is_candidate_genotype_valid[i] = false;
+						//printf("AFTER  is_candidate_genotype_valid[%u]?: %s\n", i, (is_candidate_genotype_valid[i] == true)?"yes":"no");
 					}
 				}
 			}
@@ -339,26 +341,29 @@ gradient_minimizer(
 			is_valid = true;
 			
 		  	for(uint i = 0; i < dockpars_num_of_genes;i++) {
-		    		is_valid = is_valid && is_genotype_valid[i];
+		    		is_valid = is_valid && is_candidate_genotype_valid[i];
 			
 				#if defined (DEBUG_MINIMIZER)
-				//printf("is_genotype_valid[%u]?: %s\n", i, (is_genotype_valid[i] == true)?"yes":"no");
+				//printf("is_candidate_genotype_valid[%u]?: %s\n", i, (is_candidate_genotype_valid[i] == true)?"yes":"no");
 				#endif
 		  	}
-
+			/*
 			if (is_valid == false) {
 				exit = true;
 			}
-
+			*/
 			#if defined (DEBUG_MINIMIZER)
 			//printf("is_valid?: %s, exit?: %s\n", (is_valid == true)?"yes":"no", (exit == true)?"yes":"no");
+			if (is_valid == false) {
+				printf("Candidate genome is invalid!\n");
+			}
 			#endif
 		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (exit == false) {
-			if (is_valid == true) {
+		/*if (exit == false) {*/
+		if (is_valid == true) {
 				// =============================================================
 				gpu_calc_energy(dockpars_rotbondlist_length,
 						dockpars_num_of_atoms,
@@ -372,8 +377,8 @@ gradient_minimizer(
 						dockpars_coeff_elec,
 						dockpars_qasp,
 						dockpars_coeff_desolv,
-						local_candidate_genotype,
-						&local_candidate_energy,
+						candidate_genotype,
+						&candidate_energy,
 						&run_id,
 						// Some OpenCL compilers don't allow declaring 
 						// local variables within non-kernel functions.
@@ -407,15 +412,15 @@ gradient_minimizer(
 
 				// Updating number of energy-evaluations counter
 				if (get_local_id(0) == 0) {
-					evaluation_cnt++;
+					evaluation_cnt = evaluation_cnt + 1;
 				}
+				barrier(CLK_LOCAL_MEM_FENCE);
 
 				// Checking if E(candidate_genotype) < E(genotype)
-				//if (local_candidate_energy < local_energy){
-				if (local_candidate_energy - local_energy < 0.1){
+				if (candidate_energy < energy){
 					// Updating energy
 					if (get_local_id(0) == 0) {				
-						local_energy = local_candidate_energy;
+						energy = candidate_energy;
 					}
 
 					for(uint i = get_local_id(0); 
@@ -423,55 +428,72 @@ gradient_minimizer(
 					 	 i+= NUM_OF_THREADS_PER_BLOCK) {
 
 						// Updating genotype
-						local_genotype [i] = local_candidate_genotype[i];
+						genotype [i] = candidate_genotype[i];
 			
 						// Up-scaling alpha by one order magnitud
-						alpha = alpha*10;
+						alpha = alpha*/*10*/(5/(failure_cnt == 0?(failure_cnt+1):(failure_cnt)));
 
 						#if defined (DEBUG_MINIMIZER)
-						//printf("(%u) %-15.15f %-10.10f %-10.10f %-10.10f\n", i, alpha, local_genotype[i], local_gradient[i], local_candidate_genotype[i]);
+						//printf("(%-3u) %-15.15f %-10.10f %-10.10f %-10.10f\n", i, alpha, genotype[i], gradient[i], candidate_genotype[i]);
 						#endif
 					}
 				}
 				// If E (candidate) is worse 
 				else {
+					// Update failure counter
+					if (get_local_id(0) == 0) {
+						failure_cnt = failure_cnt + 1;
+
+						#if defined (DEBUG_MINIMIZER)
+						printf("Candidate energy has not improved!\n");
+						#endif
+					}
+					barrier(CLK_LOCAL_MEM_FENCE);
+
 					// Down-scaling alpha by one order magnitud.
 					// Genotype is not updated, meaning that search will be
 					// started over from the same point from with different alpha
 					for(uint i = get_local_id(0); 
 						 i < dockpars_num_of_genes; 
 						 i+= NUM_OF_THREADS_PER_BLOCK) {
-						alpha = native_divide(alpha, 10);
-					}
+						alpha = native_divide(alpha, 5*failure_cnt/*10*/);
 
-					// Update failure counter
-					if (get_local_id(0) == 0) {
-						failure_cnt = failure_cnt++;
-					}			
+						#if defined (DEBUG_MINIMIZER)
+						//printf("(%-3u) %-15.15f\n", i, alpha);
+						#endif
+					}	
 				} // End of energy comparison
-			} // End of if(valid genotypes)
+			/*} // End of if(valid genotypes)*/
 		} 
 		else {
+			// Update failure counter
+			if (get_local_id(0) == 0) {
+				failure_cnt = failure_cnt + 1;
+			}
+			barrier(CLK_LOCAL_MEM_FENCE);
+
 			// Down-scaling alpha by one order magnitud.
 			// Genotype is not updated, meaning that search will be
 			// started over from the same point from with different alpha
 			for(uint i = get_local_id(0); 
 				 i < dockpars_num_of_genes; 
 				 i+= NUM_OF_THREADS_PER_BLOCK) {
-				alpha = native_divide(alpha, 10);
+				alpha = native_divide(alpha, 5*failure_cnt/*10*/);
+
+				#if defined (DEBUG_MINIMIZER)
+				//printf("(%-3u) %-15.15f\n", i, alpha);
+				#endif
 			}
 		} // End of if(exit==false)
-
-
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// Updating number of stepest-descent iterations
 		if (get_local_id(0) == 0) {
-	    		local_nIter = local_nIter + 1;
+	    		iteration_cnt = iteration_cnt + 1;
 
 			#if defined (DEBUG_MINIMIZER)
-			//printf("# grad-mini cycles: %-3u, energy: %f\n", local_nIter,  local_energy);
+			printf("# mini-iters: %-3u, # ener-evals: %-3u, # failures: %-3u, energy: %f\n", iteration_cnt, evaluation_cnt, failure_cnt, energy);
 			#endif
 
 			#if defined (DEBUG_ENERGY_KERNEL5)
@@ -479,17 +501,17 @@ gradient_minimizer(
 			#endif
 		}
 
-  	} while ((local_nIter < gradMin_maxiter) && (failure_cnt < 5) && (exit == false));
+  	} while ((iteration_cnt < gradMin_maxiters) && (failure_cnt < gradMin_maxfails) /*&& (exit == false)*/);
 
 	// -----------------------------------------------------------------------------
 
   	// Updating eval counter and energy
 	if (get_local_id(0) == 0) {
 		dockpars_evals_of_new_entities[run_id*dockpars_pop_size+entity_id] += evaluation_cnt;
-		dockpars_energies_next[run_id*dockpars_pop_size+entity_id] = local_energy;
+		dockpars_energies_next[run_id*dockpars_pop_size+entity_id] = energy;
 
 		#if defined (DEBUG_MINIMIZER)
-		printf("-------> End of grad-min cycle, num of evals: %u, final_energy: %.5f\n", evaluation_cnt, local_energy);
+		printf("-------> End of grad-min cycle, num of evals: %u, final energy: %.5f\n", evaluation_cnt, energy);
 		#endif
 	}
 
@@ -498,15 +520,14 @@ gradient_minimizer(
 	     	  gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 		   if (gene_counter >= 6) {
-			    map_angle(&(local_genotype[gene_counter]));
+			    map_angle(&(genotype[gene_counter]));
 		   }
 	}
-
 
 	// Updating old offspring in population
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	async_work_group_copy(dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
-			      local_genotype,
+			      genotype,
 			      dockpars_num_of_genes, 0);
 }

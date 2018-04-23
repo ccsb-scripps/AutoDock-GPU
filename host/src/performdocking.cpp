@@ -408,7 +408,8 @@ filled with clock() */
 	// Setup here (temporarily?) the gradient and associated parameters.
 	// This should be ultimately configurable by the user as program exec. flags.
 	Gradientparameters gradientpars;
-	gradientpars.max_num_of_iters = 40; // Same as Solis-Wetts local search
+	gradientpars.max_num_of_iters = 100;
+	gradientpars.max_num_of_consec_fails = gradientpars.max_num_of_iters / 5;
 	gradientpars.alpha = 0.000001f; //0.001f; // TODO: find out why 0.001f, 0.0001f (100 runs, 500 popsize) throws segmentation fault
 
 	// Set minimum values for input conformation (translation genes as x, y, z)
@@ -647,8 +648,9 @@ filled with clock() */
   setKernelArg(kernel5,36,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
   // Specific gradient-minimizer args
   setKernelArg(kernel5,37,sizeof(gradientpars.max_num_of_iters),           &gradientpars.max_num_of_iters);
-  setKernelArg(kernel5,38,sizeof(gradientpars.alpha),            	   &gradientpars.alpha);
-  setKernelArg(kernel5,39,sizeof(mem_gradpars_conformation_min_perturbation),              &mem_gradpars_conformation_min_perturbation);
+  setKernelArg(kernel5,38,sizeof(gradientpars.max_num_of_consec_fails),    &gradientpars.max_num_of_consec_fails);
+  setKernelArg(kernel5,39,sizeof(gradientpars.alpha),            	   &gradientpars.alpha);
+  setKernelArg(kernel5,40,sizeof(mem_gradpars_conformation_min_perturbation),              &mem_gradpars_conformation_min_perturbation);
 
   kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
   kernel5_lxsize = threadsPerBlock;
