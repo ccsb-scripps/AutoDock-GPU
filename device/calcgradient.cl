@@ -555,9 +555,11 @@ void gpu_calc_gradient(
 		// Getting atom IDs
 		uint atom1_id = intraE_contributors_const[3*contributor_counter];
 		uint atom2_id = intraE_contributors_const[3*contributor_counter+1];
-		//printf ("%-5u %-5u %-5u\n", contributor_counter, atom1_id, atom2_id);
+	
+		/*
+		printf ("%-5u %-5u %-5u\n", contributor_counter, atom1_id, atom2_id);
+		*/
 		
-
 		// Calculating vector components of vector going
 		// from first atom's to second atom's coordinates
 		float subx = calc_coords_x[atom1_id] - calc_coords_x[atom2_id];
@@ -576,6 +578,7 @@ void gpu_calc_gradient(
 			// Getting type IDs
 			uint atom1_typeid = atom_types_const[atom1_id];
 			uint atom2_typeid = atom_types_const[atom2_id];
+			//printf ("%-5u %-5u %-5u\n", contributor_counter, atom1_id, atom2_id);
 
 			// Calculating van der Waals / hydrogen bond term
 			gradient_per_intracontributor[contributor_counter] += native_divide (-12*VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],

@@ -1,7 +1,7 @@
 // Gradient-based steepest descent minimizer
 // Alternative to Solis-Wetts
 
-#define DEBUG_MINIMIZER
+//#define DEBUG_MINIMIZER
 
 #define TRANGENE_ALPHA 1E-3//1E-8
 #define ROTAGENE_ALPHA 1E-8//1E-15
