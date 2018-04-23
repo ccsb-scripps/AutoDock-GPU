@@ -201,13 +201,24 @@ odock: check-env-all stringify $(SRC)
 # 7cpa: for testing gradients of torsion genes (15 torsions) 
 # 3tmn: for testing gradients of torsion genes (1 torsion)
 
-PDB     := 7cpa
-NRUN    := 1
-POPSIZE := 1
+PDB     := 1stp
+NRUN    := 100
+POPSIZE := 150
 TESTNAME:= test
 
 test: odock
 	$(BIN_DIR)/$(TARGET) -ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld -lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt -nrun $(NRUN) -psize $(POPSIZE) -resnam $(TESTNAME) -gfpop 1 
+
+ASTEX_PDB := 2bsm
+ASTEX_NRUN:= 100
+ASTEX_POPSIZE := 150
+ASTEX_TESTNAME := test_astex
+
+astex: odock
+	$(BIN_DIR)/$(TARGET) -ffile ./input_tsri/search-set-astex/$(ASTEX_PDB)/protein.maps.fld -lfile ./input_tsri/search-set-astex/$(ASTEX_PDB)/flex-xray.pdbqt -nrun $(ASTEX_NRUN) -psize $(ASTEX_POPSIZE) -resnam $(ASTEX_TESTNAME) -gfpop 0
+
+
+#	$(BIN_DIR)/$(TARGET) -ffile ./input_tsri/search-set-astex/$(ASTEX_PDB)/protein.maps.fld -lfile ./input_tsri/search-set-astex/$(ASTEX_PDB)/flex-xray.pdbqt -nrun $(ASTEX_NRUN) -psize $(ASTEX_POPSIZE) -resnam $(ASTEX_TESTNAME) -gfpop 1 | tee ./input_tsri/search-set-astex/intrapairs/$(ASTEX_PDB)_intrapair.txt
 
 clean:
 	rm -f $(BIN_DIR)/* initpop.txt

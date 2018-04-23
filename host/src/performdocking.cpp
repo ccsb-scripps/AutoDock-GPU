@@ -400,9 +400,10 @@ filled with clock() */
 
 	blocksPerGridForEachLSEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
 
+	/*
 	printf("dockpars.num_of_intraE_contributors:%u\n", dockpars.num_of_intraE_contributors);
 	printf("dockpars.rotbondlist_length:%u\n", dockpars.rotbondlist_length);
-
+	*/
 
 	// Experimental TSRI gradient-based minimizer kernel argument
 	// Setup here (temporarily?) the gradient and associated parameters.
@@ -461,8 +462,7 @@ filled with clock() */
 	unsigned int ite_cnt = 0;
 #endif
 
-
-
+	/*
 	// Addded for printing intracontributor_pairs (autodockdevpy)
 	for (unsigned int intrapair_cnt=0; 
 			  intrapair_cnt<dockpars.num_of_intraE_contributors;
@@ -475,7 +475,7 @@ filled with clock() */
 					    KerConst.intraE_contributors_const[3*intrapair_cnt],
 					    KerConst.intraE_contributors_const[3*intrapair_cnt+1]);
 	}
-
+	*/
 
 
 

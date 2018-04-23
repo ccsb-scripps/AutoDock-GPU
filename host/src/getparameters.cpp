@@ -660,7 +660,7 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 #if defined (REPRO)
 					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 22.0452;
 #else
-					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX);
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = ((float) rand()/ (float) RAND_MAX)*360;
 #endif
 
 
@@ -801,8 +801,8 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 	scale_ligand(myligand, 1.0/mygrid->spacing);
 	get_moving_and_unit_vectors(myligand);
 
-
+	/*
 	printf("ligand: movvec_to_origo: %f %f %f\n", movvec_to_origo[0], movvec_to_origo[1], movvec_to_origo[2]);
-	
+	*/
 
 }
