@@ -65,11 +65,34 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define DIEL_LAMBDA		0.003627f
 #define DIEL_H			DIEL_LAMBDA
 #define DIEL_K			7.7839f
-#define DIEL_B_TIMES_H		(DIEL_B*DIEL_H)
-#define DIEL_B_TIMES_H_TIMES_K	(DIEL_B_TIMES_H*DIEL_K)
+#define DIEL_B_TIMES_H		(DIEL_B * DIEL_H)
+#define DIEL_B_TIMES_H_TIMES_K	(DIEL_B_TIMES_H * DIEL_K)
 
-// Used for Shoemake to quternion transformation
-#define PI_TIMES_2 (float)(2.0f*M_PI)
+// Used for Shoemake to quaternion transformation
+#define PI_TIMES_2 		(float)(2.0f*M_PI)
+
+
+// -------------------------------------------
+// Gradient-related defines
+// -------------------------------------------
+
+#define INFINITESIMAL_RADIAN		1E-5
+#define HALF_INFINITESIMAL_RADIAN 	(0.5f * INFINITESIMAL_RADIAN)
+#define INV_INFINITESIMAL_RADIAN	(1/INFINITESIMAL_RADIAN)
+#define COS_HALF_INFINITESIMAL_RADIAN	cos(HALF_INFINITESIMAL_RADIAN)
+#define SIN_HALF_INFINITESIMAL_RADIAN	sin(HALF_INFINITESIMAL_RADIAN)
+
+
+// Enable printf statements for debugging
+// the gradient-based minimizer
+//#define DEBUG_MINIMIZER
+
+#define TRANGENE_ALPHA 1E-3
+#define ROTAGENE_ALPHA 1E-8
+#define TORSGENE_ALPHA 1E-13
+
+
+
 
 
 

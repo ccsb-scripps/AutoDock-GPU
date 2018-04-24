@@ -35,6 +35,9 @@ void gpu_calc_energy(
 			    	char   dockpars_gridsize_x,
 			    	char   dockpars_gridsize_y,
 			    	char   dockpars_gridsize_z,
+								    		// g1 = gridsize_x
+				uint   dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+				uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 		 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
 		            	char   dockpars_num_of_atypes,
 		            	int    dockpars_num_of_intraE_contributors,
@@ -90,9 +93,8 @@ void gpu_calc_energy(
 	#endif
 
 	uchar g1 = dockpars_gridsize_x;
-	uint  g2 = dockpars_gridsize_x * dockpars_gridsize_y;
-  	uint  g3 = dockpars_gridsize_x * dockpars_gridsize_y * dockpars_gridsize_z;
-
+	uint  g2 = dockpars_gridsize_x_times_y /*dockpars_gridsize_x * dockpars_gridsize_y*/;
+  	uint  g3 = dockpars_gridsize_x_times_y_times_z /*dockpars_gridsize_x * dockpars_gridsize_y * dockpars_gridsize_z*/;
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -462,18 +464,19 @@ void gpu_calc_energy(
 			#endif
 
 			// Calculating desolvation term
+			// 1/25.92 = 0.038580246913580245
 			partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
 							       dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
 					                       (dspars_S_const[atom2_typeid] +
 							       dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
-					                       dockpars_coeff_desolv*native_exp(-atomic_distance*native_divide(atomic_distance,25.92f));
+					                       dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
 
 			#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 			partial_intraE[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
 							       dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
 					                       (dspars_S_const[atom2_typeid] +
 							       dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
-					                       dockpars_coeff_desolv*native_exp(-atomic_distance*native_divide(atomic_distance,25.92f));
+					                       dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
 			#endif
 
 

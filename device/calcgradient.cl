@@ -46,6 +46,9 @@ void gpu_calc_gradient(
 			    	char   dockpars_gridsize_x,
 			    	char   dockpars_gridsize_y,
 			    	char   dockpars_gridsize_z,
+								    		// g1 = gridsize_x
+				uint   dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+				uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 		 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
 		            	char   dockpars_num_of_atypes,
 		            	int    dockpars_num_of_intraE_contributors,
@@ -133,13 +136,11 @@ void gpu_calc_gradient(
 		  gene_cnt+= NUM_OF_THREADS_PER_BLOCK) {
 		gradient_genotype[gene_cnt] = 0.0f;
 	}
-
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	uchar g1 = dockpars_gridsize_x;
-	uint  g2 = dockpars_gridsize_x * dockpars_gridsize_y;
-  	uint  g3 = dockpars_gridsize_x * dockpars_gridsize_y * dockpars_gridsize_z;
-
+	uint  g2 = dockpars_gridsize_x_times_y /*dockpars_gridsize_x * dockpars_gridsize_y*/;
+  	uint  g3 = dockpars_gridsize_x_times_y_times_z /*dockpars_gridsize_x * dockpars_gridsize_y * dockpars_gridsize_z*/;
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -781,16 +782,25 @@ void gpu_calc_gradient(
 		printf("%-20s %-10.5f\n", "torque length: ", torque_length);
 		#endif
 
+		/*
 		// Infinitesimal rotation in radians
 		const float infinitesimal_radian = 1E-5;
+		*/
 
 		// Finding the quaternion that performs
 		// the infinitesimal rotation around torque axis
 		float4 quat_torque;
-		quat_torque.w = native_cos(infinitesimal_radian*0.5f);
-		quat_torque.x = fast_normalize(torque_rot).x * native_sin(infinitesimal_radian*0.5f);
-		quat_torque.y = fast_normalize(torque_rot).y * native_sin(infinitesimal_radian*0.5f);
-		quat_torque.z = fast_normalize(torque_rot).z * native_sin(infinitesimal_radian*0.5f);
+		#if 0
+		quat_torque.w = native_cos(HALF_INFINITESIMAL_RADIAN/*infinitesimal_radian*0.5f*/);
+		quat_torque.x = fast_normalize(torque_rot).x * native_sin(HALF_INFINITESIMAL_RADIAN/*infinitesimal_radian*0.5f*/);
+		quat_torque.y = fast_normalize(torque_rot).y * native_sin(HALF_INFINITESIMAL_RADIAN/*infinitesimal_radian*0.5f*/);
+		quat_torque.z = fast_normalize(torque_rot).z * native_sin(HALF_INFINITESIMAL_RADIAN/*infinitesimal_radian*0.5f*/);
+		#endif
+
+		quat_torque.w = COS_HALF_INFINITESIMAL_RADIAN;
+		quat_torque.x = fast_normalize(torque_rot).x * SIN_HALF_INFINITESIMAL_RADIAN;
+		quat_torque.y = fast_normalize(torque_rot).y * SIN_HALF_INFINITESIMAL_RADIAN;
+		quat_torque.z = fast_normalize(torque_rot).z * SIN_HALF_INFINITESIMAL_RADIAN;
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
 		printf("%-20s %-10.5f %-10.5f %-10.5f %-10.5f\n", "quat_torque (w,x,y,z): ", quat_torque.w, quat_torque.x, quat_torque.y, quat_torque.z);
@@ -859,7 +869,8 @@ void gpu_calc_gradient(
     		// the displacement in shoemake space is not distorted.
     		// The correct amount of displacement in shoemake space is obtained
 		// by multiplying the infinitesimal displacement by shoemake_scaling:
-		float shoemake_scaling = torque_length / infinitesimal_radian;
+		//float shoemake_scaling = native_divide(torque_length, INFINITESIMAL_RADIAN/*infinitesimal_radian*/);
+		float shoemake_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
 
 		// Derivates in cube3
 		// "current_u2" and "current_u3" are mapped into 
@@ -877,7 +888,7 @@ void gpu_calc_gradient(
 		float temp_u1 = genotype[3];
 			
 		if ((0.0f < temp_u1) && (temp_u1 < 1.0f)){
-			grad_u1 *= ((1.0f/temp_u1) + (1.0f/(1.0f-temp_u1)));
+			grad_u1 *= (native_divide(1.0f, temp_u1) + native_divide(1.0f, (1.0f-temp_u1)));
 		}
 		grad_u2 *= 4.0f * (1.0f-temp_u1);
 		grad_u3 *= 4.0f * temp_u1;
@@ -988,7 +999,7 @@ void gpu_calc_gradient(
 			float torque_on_axis = dot(rotation_unitvec, torque_tor);
 
 			// Assignment of gene-based gradient
-			gradient_genotype[rotbond_id+6] = torque_on_axis * (M_PI / 180.0f);
+			gradient_genotype[rotbond_id+6] = torque_on_axis * DEG_TO_RAD /*(M_PI / 180.0f)*/;
 
 			#if defined (DEBUG_GRAD_TORSION_GENES)
 			printf("gradient_torsion [%u] :%f\n", rotbond_id+6, gradient_genotype [rotbond_id+6]);

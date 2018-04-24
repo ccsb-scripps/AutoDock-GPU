@@ -1,12 +1,6 @@
 // Gradient-based steepest descent minimizer
 // Alternative to Solis-Wetts
 
-//#define DEBUG_MINIMIZER
-
-#define TRANGENE_ALPHA 1E-3//1E-8
-#define ROTAGENE_ALPHA 1E-8//1E-15
-#define TORSGENE_ALPHA 1E-13//1E-4
-
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gradient_minimizer(	
 			char   dockpars_num_of_atoms,
@@ -15,6 +9,9 @@ gradient_minimizer(
 			char   dockpars_gridsize_x,
 			char   dockpars_gridsize_y,
 			char   dockpars_gridsize_z,
+							    		// g1 = gridsize_x
+			uint   dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+			uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 			float  dockpars_grid_spacing,
 	 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
 			int    dockpars_rotbondlist_length,
@@ -48,9 +45,12 @@ gradient_minimizer(
 	     __constant int*   num_rotating_atoms_per_rotbond_const,
     			// Specific gradient-minimizer args
 		    	uint      	  gradMin_maxiters,
-			uint      	  gradMin_maxfails,
+			uint      	  gradMin_maxfails
+/*
+			,
 	    		float             gradMin_alpha,
     	     __constant float* gradMin_conformation_min_perturbation     // minimal values for gene perturbation, originally as the scalar "dxmin"
+*/
 )
 //The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
 //The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
@@ -87,6 +87,16 @@ gradient_minimizer(
 ///*
 		run_id = get_group_id(0) / dockpars_num_of_lsentities;
 		entity_id = get_group_id(0) % dockpars_num_of_lsentities;
+
+		// Since entity 0 is the best one due to elitism,
+		// it should be subjected to random selection
+		if (entity_id == 0) {
+			// If entity 0 is not selected according to LS-rate,
+			// choosing an other entity
+			if (100.0f*gpu_randf(dockpars_prng_states) > dockpars_lsearch_rate) {
+				entity_id = dockpars_num_of_lsentities;					
+			}
+		}
 //*/
 		
 		energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
@@ -247,6 +257,9 @@ gradient_minimizer(
 				dockpars_gridsize_x,
 				dockpars_gridsize_y,
 				dockpars_gridsize_z,
+								    	// g1 = gridsize_x
+				dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+				dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 				dockpars_fgrids,
 				dockpars_num_of_atypes,
 				dockpars_num_of_intraE_contributors,
@@ -370,6 +383,9 @@ gradient_minimizer(
 						dockpars_gridsize_x,
 						dockpars_gridsize_y,
 						dockpars_gridsize_z,
+										    	// g1 = gridsize_x
+						dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+						dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 						dockpars_fgrids,
 						dockpars_num_of_atypes,
 						dockpars_num_of_intraE_contributors,
@@ -431,7 +447,7 @@ gradient_minimizer(
 						genotype [i] = candidate_genotype[i];
 			
 						// Up-scaling alpha by one order magnitud
-						alpha = alpha*/*10*/(5/(failure_cnt == 0?(failure_cnt+1):(failure_cnt)));
+						alpha = alpha*/*10*/(5/(failure_cnt == 0?1:(failure_cnt)));
 
 						#if defined (DEBUG_MINIMIZER)
 						//printf("(%-3u) %-15.15f %-10.10f %-10.10f %-10.10f\n", i, alpha, genotype[i], gradient[i], candidate_genotype[i]);

@@ -30,6 +30,9 @@ perform_LS(
 			char   dockpars_gridsize_x,
 			char   dockpars_gridsize_y,
 			char   dockpars_gridsize_z,
+							    		// g1 = gridsize_x
+  			uint   dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+			uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 			float  dockpars_grid_spacing,
          __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
 	        	int    dockpars_rotbondlist_length,
@@ -191,6 +194,9 @@ perform_LS(
 				dockpars_gridsize_x,
 				dockpars_gridsize_y,
 				dockpars_gridsize_z,
+								    	// g1 = gridsize_x
+				dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+				dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 				dockpars_fgrids,
 				dockpars_num_of_atypes,
 				dockpars_num_of_intraE_contributors,
@@ -293,6 +299,9 @@ perform_LS(
 					dockpars_gridsize_x,
 					dockpars_gridsize_y,
 					dockpars_gridsize_z,
+									    	// g1 = gridsize_x
+					dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+					dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 					dockpars_fgrids,
 					dockpars_num_of_atypes,
 					dockpars_num_of_intraE_contributors,

@@ -201,16 +201,16 @@ odock: check-env-all stringify $(SRC)
 # 7cpa: for testing gradients of torsion genes (15 torsions) 
 # 3tmn: for testing gradients of torsion genes (1 torsion)
 
-PDB     := 1stp
+PDB     := 3ce3
 NRUN    := 100
-POPSIZE := 150
+POPSIZE := 500
 TESTNAME:= test
 
 test: odock
 	$(BIN_DIR)/$(TARGET) -ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld -lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt -nrun $(NRUN) -psize $(POPSIZE) -resnam $(TESTNAME) -gfpop 1 
 
 ASTEX_PDB := 2bsm
-ASTEX_NRUN:= 100
+ASTEX_NRUN:= 50
 ASTEX_POPSIZE := 500
 ASTEX_TESTNAME := test_astex
 

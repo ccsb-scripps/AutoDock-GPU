@@ -19,7 +19,6 @@ IN_KERNELa=$KERNEL_DIR/"auxiliary_genetic.cl"
 IN_KERNEL3=$KERNEL_DIR/"kernel3.cl"
 IN_KERNEL4=$KERNEL_DIR/"kernel4.cl"
 IN_KERNELb=$KERNEL_DIR/"calcgradient.cl"
-IN_KERNELc=$KERNEL_DIR/"auxiliary_gradient.cl"
 IN_KERNEL5=$KERNEL_DIR/"kernel_gradient.cl"
 
 echo " "
@@ -31,7 +30,6 @@ echo $IN_KERNELa
 echo $IN_KERNEL3
 echo $IN_KERNEL4
 echo $IN_KERNELb
-echo $IN_KERNELc
 echo $IN_KERNEL5
 
 # output file
@@ -59,7 +57,6 @@ sed 's/\\/\\\\/g;s/"/\\"/g;s/^/"/;s/$/\\n"/' $IN_KERNELa >> $TMP
 sed 's/\\/\\\\/g;s/"/\\"/g;s/^/"/;s/$/\\n"/' $IN_KERNEL3 >> $TMP
 sed 's/\\/\\\\/g;s/"/\\"/g;s/^/"/;s/$/\\n"/' $IN_KERNEL4 >> $TMP
 sed 's/\\/\\\\/g;s/"/\\"/g;s/^/"/;s/$/\\n"/' $IN_KERNELb >> $TMP
-sed 's/\\/\\\\/g;s/"/\\"/g;s/^/"/;s/$/\\n"/' $IN_KERNELc >> $TMP
 sed 's/\\/\\\\/g;s/"/\\"/g;s/^/"/;s/$/\\n"/' $IN_KERNEL5 >> $TMP
 echo ";" >>$TMP
 
