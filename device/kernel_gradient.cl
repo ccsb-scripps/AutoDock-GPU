@@ -78,16 +78,16 @@ gradient_minimizer(
 	if (get_local_id(0) == 0)
 	{
 		// Choosing a random entity out of the entire population
-///*
-		run_id = get_group_id(0);
-		entity_id = (uint)(dockpars_pop_size * gpu_randf(dockpars_prng_states));
-		//entity_id = 0;
-//*/
-
 /*
+		run_id = get_group_id(0);
+		//entity_id = (uint)(dockpars_pop_size * gpu_randf(dockpars_prng_states));
+		entity_id = 0;
+*/
+
+///*
 		run_id = get_group_id(0) / dockpars_num_of_lsentities;
 		entity_id = get_group_id(0) % dockpars_num_of_lsentities;
-*/
+//*/
 		
 		energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
 

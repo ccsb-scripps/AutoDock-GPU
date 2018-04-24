@@ -409,8 +409,8 @@ filled with clock() */
 	// Setup here (temporarily?) the gradient and associated parameters.
 	// This should be ultimately configurable by the user as program exec. flags.
 	Gradientparameters gradientpars;
-	gradientpars.max_num_of_iters = 100;
-	gradientpars.max_num_of_consec_fails = gradientpars.max_num_of_iters / 5;
+	gradientpars.max_num_of_iters = 30;
+	gradientpars.max_num_of_consec_fails = (unsigned int)(0.05 * gradientpars.max_num_of_iters);
 	gradientpars.alpha = 0.000001f; //0.001f; // TODO: find out why 0.001f, 0.0001f (100 runs, 500 popsize) throws segmentation fault
 
 	// Set minimum values for input conformation (translation genes as x, y, z)
@@ -434,16 +434,16 @@ filled with clock() */
 	mallocBufferObject(context, CL_MEM_READ_ONLY, size_conformation_min_perturbation, &mem_gradpars_conformation_min_perturbation);
 	memcopyBufferObjectToDevice(command_queue, mem_gradpars_conformation_min_perturbation, gradientpars.conformation_min_perturbation, size_conformation_min_perturbation);
 
-/*
+///*
 	// Initially, the number of entities that undergo gradient-minimization,
 	// by default, it is the same as the number of entities that undergo gradient-based minimizer
 	blocksPerGridForEachGradMinimizerEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
-*/
+//*/
 
-///*
+/*
 	// test, only one entity per reach run, undergoes gradient minimization
 	blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
-//*/
+*/
 
 	clock_start_docking = clock();
 
