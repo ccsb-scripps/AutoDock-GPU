@@ -69,11 +69,16 @@ gradient_minimizer(
 
 	// Variables for gradient minimizer
   	__local uint iteration_cnt;  	// minimizer iteration counter
+	/*
 	__local uint failure_cnt;  	// minimizer failure counter
 	__local bool exit;		
+	*/
 
 	// Number of energy-evaluations counter
 	__local int  evaluation_cnt;
+
+	// Stepsize for the minimizer
+	__local float stepsize;
 
 	if (get_local_id(0) == 0)
 	{
@@ -107,9 +112,11 @@ gradient_minimizer(
 
 		// Initializing gradient-minimizer counters and flags
     		iteration_cnt  = 0;
+		/*
 		failure_cnt    = 0;
-		/*exit           = false;*/
+		*/
 		evaluation_cnt = 0;
+		stepsize       = STEP_START;
 	}
 
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -123,10 +130,7 @@ gradient_minimizer(
 	// local variables within non-kernel functions.
 	// These local variables must be declared in a kernel, 
 	// and then passed to non-kernel functions.
-	
-	// Partial results for checking validity of genotype
-	__local bool is_candidate_genotype_valid [ACTUAL_GENOTYPE_LENGTH];
-           
+	           
 	// Partial results of the gradient step
 	__local float gradient          [ACTUAL_GENOTYPE_LENGTH];
 	__local float candidate_energy;
@@ -165,9 +169,12 @@ gradient_minimizer(
 	#endif
 	// -----------------------------------------------------------------------------
 
+/*
 	// Step size of the steepest descent
 	float alpha;
+*/
 
+#if 0
 	// Initilizing each (work-item)-specific alpha
 	for(uint i = get_local_id(0); 
 		 i < dockpars_num_of_genes; 
@@ -180,6 +187,7 @@ gradient_minimizer(
 			//printf("(%-3u) %-15.15f\n", i, alpha);
 			#endif
 	}
+#endif
 
 	// Perform gradient-descent iterations
 
@@ -205,6 +213,32 @@ gradient_minimizer(
 	float ligand_center_y = 15.51751852;
 	float ligand_center_z = -2.40896296;
 	#endif
+
+
+	// Defining lower and upper bounds for genotypes
+	__local float lower_bounds_genotype[ACTUAL_GENOTYPE_LENGTH];
+	__local float upper_bounds_genotype[ACTUAL_GENOTYPE_LENGTH];
+
+	for (uint gene_counter = get_local_id(0);
+	          gene_counter < dockpars_num_of_genes;
+	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
+		// Translation genes ranges are within the gridbox
+		if (gene_counter <= 2) {
+			lower_bounds_genotype [gene_counter] = 0.0f;
+			upper_bounds_genotype [gene_counter] = (gene_counter == 0) ? dockpars_gridsize_x: 
+							       (gene_counter == 1) ? dockpars_gridsize_y: dockpars_gridsize_z;
+		// Shoemake genes (u1, u2, u3) range between [0,1]
+		} else if (gene_counter <= 5) {
+			lower_bounds_genotype [gene_counter] = 0.0f;
+			upper_bounds_genotype [gene_counter] = 1.0f;
+		}
+		// Torsion genes, see auxiliary_genetic.cl/map_angle()
+		else {
+			lower_bounds_genotype [gene_counter] = 0.0f;
+			upper_bounds_genotype [gene_counter] = 360.0f;
+		}
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
 
 	do {
 		#if 0
@@ -248,6 +282,97 @@ gradient_minimizer(
 		genotype[19] = 0.0f;
 		genotype[20] = 0.0f;
 		#endif
+
+
+				
+		// Calculating maximum possible stepsize (alpha)
+		__local float max_trans_gene, max_rota_gene, max_tors_gene;
+		__local float max_trans_stepsize, max_rota_stepsize, max_tors_stepsize;
+		__local float max_stepsize;
+
+		if (get_local_id(0) == 0) {
+			// Finding maximum of the absolute value 
+			// for the three translation genes
+			if (fabs(genotype[0]) > fabs(genotype[1])) {
+				max_trans_gene = fabs(genotype[0]);
+			}
+			else {
+				max_trans_gene = fabs(genotype[1]);
+			}	
+
+			if (max_trans_gene < fabs(genotype[2])) {
+				max_trans_gene = fabs(genotype[2]);
+			}
+
+			// Note that MAX_DEV_TRANSLATION needs to be 
+			// expressed in grid size first
+			max_trans_stepsize = native_divide(native_divide(MAX_DEV_TRANSLATION, dockpars_grid_spacing), max_trans_gene);
+
+
+			// Finding maximum of the absolute value 
+			// for the three Shoemake rotation genes
+			if (fabs(genotype[3]) > fabs(genotype[4])) {
+				max_rota_gene = fabs(genotype[3]);
+			}
+			else {
+				max_rota_gene = fabs(genotype[4]);
+			}
+
+			if (max_trans_gene < fabs(genotype[5])) {
+				max_rota_gene = fabs(genotype[5]);
+			}
+
+			// Note that MAX_DEV_ROTATION
+			// is already expressed within [0, 1]
+			max_rota_stepsize = native_divide(MAX_DEV_ROTATION, max_rota_gene);
+		}
+
+
+		// Copying torsions genes
+		__local float torsions_genotype[ACTUAL_GENOTYPE_LENGTH];
+		for(uint i = get_local_id(0); 
+			 i < dockpars_num_of_genes-6; 
+			 i+= NUM_OF_THREADS_PER_BLOCK) {
+			torsions_genotype[i] = fabs(genotype[i]+6);
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		// Calculating maximum absolute torsional gene
+		for (uint i=(dockpars_num_of_genes-6); i>=1; i/=2){
+			if (get_local_id(0) < i) {
+				if (torsions_genotype[get_local_id(0)] < torsions_genotype[get_local_id(0) + i]) {
+					torsions_genotype[get_local_id(0)] = torsions_genotype[get_local_id(0) + i];
+				}
+			}
+			barrier(CLK_LOCAL_MEM_FENCE);
+		}
+		if (get_local_id(0) == 0) {
+			max_tors_gene = torsions_genotype[get_local_id(0)];
+			max_tors_stepsize = native_divide(MAX_DEV_TORSION, max_tors_gene);
+		}
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		// Calculating the maximum stepsize using previous three
+		if (get_local_id(0) == 0) {
+			if (max_trans_stepsize < max_rota_stepsize) {
+				max_stepsize = max_trans_stepsize;
+			}
+			else {
+				max_stepsize = max_rota_stepsize;			
+			}
+
+			if (max_stepsize > max_tors_stepsize) {
+				max_stepsize = max_tors_stepsize;
+			}
+		}	
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		// Capping the stepsize
+		if (get_local_id(0) == 0) {
+			stepsize = (stepsize<max_stepsize)?stepsize:max_stepsize;
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// Calculating gradient
 		// =============================================================
@@ -321,186 +446,103 @@ gradient_minimizer(
 		for(uint i = get_local_id(0); i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {
 
 	     		// Taking step
-			candidate_genotype[i] = genotype[i] - alpha * gradient[i];	
+			candidate_genotype[i] = genotype[i] - stepsize * gradient[i];	
 
 			#if defined (DEBUG_MINIMIZER)
-			//printf("(%-3u) %-0.15f %-10.10f %-10.10f %-10.10f\n", i, alpha, genotype[i], gradient[i], candidate_genotype[i]);
+			//printf("(%-3u) %-0.15f %-10.10f %-10.10f %-10.10f\n", i, stepsize, genotype[i], gradient[i], candidate_genotype[i]);
 			#endif
 
-			// Checking if every gene of candidate_genotype
-			// is neither a nan, not inf
-   			is_candidate_genotype_valid[i] = (isnan(candidate_genotype[i]) == 0) && (isinf(candidate_genotype[i]) == 0);
-
-			// Verifying that Shoemake genes 
-			// do not get out of valid region
-			if ((i > 2) && (i < 6)) {
-				if (is_candidate_genotype_valid[i] == true) {
-					//printf("BEFORE is_candidate_genotype_valid[%u]?: %s\n", i, (is_candidate_genotype_valid[i] == true)?"yes":"no");
-					if ((candidate_genotype[i] < 0.0f) || (candidate_genotype[i] > 1.0f)){
-						is_candidate_genotype_valid[i] = false;
-						//printf("AFTER  is_candidate_genotype_valid[%u]?: %s\n", i, (is_candidate_genotype_valid[i] == true)?"yes":"no");
-					}
-				}
-			}
+			// Putting genes back within bounds
+			candidate_genotype[i] = min(candidate_genotype[i], upper_bounds_genotype[i]);
+			candidate_genotype[i] = max(candidate_genotype[i], lower_bounds_genotype[i]);
 	   	}
 		
+
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		__local bool is_valid;
-
-		// Reducing all "valid" values of genes
-		// into their corresponding genotype
-		if (get_local_id(0) == 0) { 
-			is_valid = true;
-			
-		  	for(uint i = 0; i < dockpars_num_of_genes;i++) {
-		    		is_valid = is_valid && is_candidate_genotype_valid[i];
-			
-				#if defined (DEBUG_MINIMIZER)
-				//printf("is_candidate_genotype_valid[%u]?: %s\n", i, (is_candidate_genotype_valid[i] == true)?"yes":"no");
+		// =============================================================
+		gpu_calc_energy(dockpars_rotbondlist_length,
+				dockpars_num_of_atoms,
+				dockpars_gridsize_x,
+				dockpars_gridsize_y,
+				dockpars_gridsize_z,
+								    	// g1 = gridsize_x
+				dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+				dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
+				dockpars_fgrids,
+				dockpars_num_of_atypes,
+				dockpars_num_of_intraE_contributors,
+				dockpars_grid_spacing,
+				dockpars_coeff_elec,
+				dockpars_qasp,
+				dockpars_coeff_desolv,
+				candidate_genotype,
+				&candidate_energy,
+				&run_id,
+				// Some OpenCL compilers don't allow declaring 
+				// local variables within non-kernel functions.
+				// These local variables must be declared in a kernel, 
+				// and then passed to non-kernel functions.
+				calc_coords_x,
+				calc_coords_y,
+				calc_coords_z,
+				partial_energies,
+				#if defined (DEBUG_ENERGY_KERNEL1)
+				partial_interE,
+				partial_intraE,
 				#endif
-		  	}
-			/*
-			if (is_valid == false) {
-				exit = true;
-			}
-			*/
-			#if defined (DEBUG_MINIMIZER)
-			//printf("is_valid?: %s, exit?: %s\n", (is_valid == true)?"yes":"no", (exit == true)?"yes":"no");
-			if (is_valid == false) {
-				printf("Candidate genome is invalid!\n");
-			}
-			#endif
+
+				atom_charges_const,
+				atom_types_const,
+				intraE_contributors_const,
+				VWpars_AC_const,
+				VWpars_BD_const,
+				dspars_S_const,
+				dspars_V_const,
+				rotlist_const,
+				ref_coords_x_const,
+				ref_coords_y_const,
+				ref_coords_z_const,
+				rotbonds_moving_vectors_const,
+				rotbonds_unit_vectors_const,
+				ref_orientation_quats_const
+				);
+		// =============================================================
+
+		// Updating number of energy-evaluations counter
+		if (get_local_id(0) == 0) {
+			evaluation_cnt = evaluation_cnt + 1;
 		}
-
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		/*if (exit == false) {*/
-		if (is_valid == true) {
-				// =============================================================
-				gpu_calc_energy(dockpars_rotbondlist_length,
-						dockpars_num_of_atoms,
-						dockpars_gridsize_x,
-						dockpars_gridsize_y,
-						dockpars_gridsize_z,
-										    	// g1 = gridsize_x
-						dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
-						dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
-						dockpars_fgrids,
-						dockpars_num_of_atypes,
-						dockpars_num_of_intraE_contributors,
-						dockpars_grid_spacing,
-						dockpars_coeff_elec,
-						dockpars_qasp,
-						dockpars_coeff_desolv,
-						candidate_genotype,
-						&candidate_energy,
-						&run_id,
-						// Some OpenCL compilers don't allow declaring 
-						// local variables within non-kernel functions.
-						// These local variables must be declared in a kernel, 
-						// and then passed to non-kernel functions.
-						calc_coords_x,
-						calc_coords_y,
-						calc_coords_z,
-						partial_energies,
-						#if defined (DEBUG_ENERGY_KERNEL1)
-						partial_interE,
-						partial_intraE,
-						#endif
-
-						atom_charges_const,
-						atom_types_const,
-						intraE_contributors_const,
-						VWpars_AC_const,
-						VWpars_BD_const,
-						dspars_S_const,
-						dspars_V_const,
-						rotlist_const,
-						ref_coords_x_const,
-						ref_coords_y_const,
-						ref_coords_z_const,
-						rotbonds_moving_vectors_const,
-						rotbonds_unit_vectors_const,
-						ref_orientation_quats_const
-						);
-				// =============================================================
-
-				// Updating number of energy-evaluations counter
-				if (get_local_id(0) == 0) {
-					evaluation_cnt = evaluation_cnt + 1;
-				}
-				barrier(CLK_LOCAL_MEM_FENCE);
-
-				// Checking if E(candidate_genotype) < E(genotype)
-				if (candidate_energy < energy){
-					// Updating energy
-					if (get_local_id(0) == 0) {				
-						energy = candidate_energy;
-					}
-
-					for(uint i = get_local_id(0); 
-					 	 i < dockpars_num_of_genes; 
-					 	 i+= NUM_OF_THREADS_PER_BLOCK) {
-
-						// Updating genotype
-						genotype [i] = candidate_genotype[i];
+		// Checking if E(candidate_genotype) < E(genotype)
+		if (candidate_energy < energy){
 			
-						// Up-scaling alpha by one order magnitud
-						alpha = alpha*/*10*/(5/(failure_cnt == 0?1:(failure_cnt)));
-
-						#if defined (DEBUG_MINIMIZER)
-						//printf("(%-3u) %-15.15f %-10.10f %-10.10f %-10.10f\n", i, alpha, genotype[i], gradient[i], candidate_genotype[i]);
-						#endif
-					}
-				}
-				// If E (candidate) is worse 
-				else {
-					// Update failure counter
-					if (get_local_id(0) == 0) {
-						failure_cnt = failure_cnt + 1;
-
-						#if defined (DEBUG_MINIMIZER)
-						printf("Candidate energy has not improved!\n");
-						#endif
-					}
-					barrier(CLK_LOCAL_MEM_FENCE);
-
-					// Down-scaling alpha by one order magnitud.
-					// Genotype is not updated, meaning that search will be
-					// started over from the same point from with different alpha
-					for(uint i = get_local_id(0); 
-						 i < dockpars_num_of_genes; 
-						 i+= NUM_OF_THREADS_PER_BLOCK) {
-						alpha = native_divide(alpha, 5*failure_cnt/*10*/);
-
-						#if defined (DEBUG_MINIMIZER)
-						//printf("(%-3u) %-15.15f\n", i, alpha);
-						#endif
-					}	
-				} // End of energy comparison
-			/*} // End of if(valid genotypes)*/
-		} 
-		else {
-			// Update failure counter
-			if (get_local_id(0) == 0) {
-				failure_cnt = failure_cnt + 1;
-			}
-			barrier(CLK_LOCAL_MEM_FENCE);
-
-			// Down-scaling alpha by one order magnitud.
-			// Genotype is not updated, meaning that search will be
-			// started over from the same point from with different alpha
 			for(uint i = get_local_id(0); 
-				 i < dockpars_num_of_genes; 
-				 i+= NUM_OF_THREADS_PER_BLOCK) {
-				alpha = native_divide(alpha, 5*failure_cnt/*10*/);
+			 	 i < dockpars_num_of_genes; 
+		 	 	 i+= NUM_OF_THREADS_PER_BLOCK) {
+				
+				if (i == 0) {
+					// Updating energy
+					energy = candidate_energy;
 
+					// Increase stepsize
+					stepsize *= STEP_INCREASE;
+				}
+
+				// Updating genotype
+				genotype[i] = candidate_genotype[i];
+			
 				#if defined (DEBUG_MINIMIZER)
-				//printf("(%-3u) %-15.15f\n", i, alpha);
+				//printf("(%-3u) %-15.15f %-10.10f %-10.10f %-10.10f\n", i, alpha, genotype[i], gradient[i], candidate_genotype[i]);
 				#endif
 			}
-		} // End of if(exit==false)
+		}
+		else { 
+			if (get_local_id(0) == 0) {
+				stepsize *= STEP_DECREASE;
+			}
+		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -509,7 +551,7 @@ gradient_minimizer(
 	    		iteration_cnt = iteration_cnt + 1;
 
 			#if defined (DEBUG_MINIMIZER)
-			printf("# mini-iters: %-3u, # ener-evals: %-3u, # failures: %-3u, energy: %f\n", iteration_cnt, evaluation_cnt, failure_cnt, energy);
+			printf("# mini-iters: %-3u, # ener-evals: %-3u, stepsize: %f, energy: %f\n", iteration_cnt, evaluation_cnt, stepsize, energy);
 			#endif
 
 			#if defined (DEBUG_ENERGY_KERNEL5)
@@ -517,7 +559,7 @@ gradient_minimizer(
 			#endif
 		}
 
-  	} while ((iteration_cnt < gradMin_maxiters) && (failure_cnt < gradMin_maxfails) /*&& (exit == false)*/);
+  	} while (iteration_cnt < gradMin_maxiters);
 
 	// -----------------------------------------------------------------------------
 

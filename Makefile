@@ -210,8 +210,8 @@ test: odock
 	$(BIN_DIR)/$(TARGET) -ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld -lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt -nrun $(NRUN) -psize $(POPSIZE) -resnam $(TESTNAME) -gfpop 1 
 
 ASTEX_PDB := 2bsm
-ASTEX_NRUN:= 50
-ASTEX_POPSIZE := 500
+ASTEX_NRUN:= 1
+ASTEX_POPSIZE := 1
 ASTEX_TESTNAME := test_astex
 
 astex: odock

@@ -441,16 +441,16 @@ filled with clock() */
 */
 
 
-///*
+/*
 	// Initially, the number of entities that undergo gradient-minimization,
 	// by default, it is the same as the number of entities that undergo gradient-based minimizer
 	blocksPerGridForEachGradMinimizerEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
-//*/
+*/
 
-/*
+///*
 	// test, only one entity per reach run, undergoes gradient minimization
 	blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
-*/
+//*/
 
 	clock_start_docking = clock();
 

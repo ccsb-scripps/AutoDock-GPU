@@ -85,12 +85,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 // Enable printf statements for debugging
 // the gradient-based minimizer
-//#define DEBUG_MINIMIZER
+#define DEBUG_MINIMIZER
 
+
+/*
 #define TRANGENE_ALPHA 1E-3
 #define ROTAGENE_ALPHA 1E-8
 #define TORSGENE_ALPHA 1E-13
+*/
 
+#define STEP_INCREASE 		1.2f
+#define STEP_DECREASE 		0.2f
+#define STEP_START		1E3		// Might look gigantic, but will cap
+#define MAX_DEV_TRANSLATION	2.0f		// 2 Angstrom, but must be divided by the gridspacing
+#define MAX_DEV_ROTATION	0.2f		// Shoemake range [0, 1]
+#define MAX_DEV_TORSION		0.5f/DEG_TO_RAD	// 0.5f RAD
 
 
 
