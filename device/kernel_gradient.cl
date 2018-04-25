@@ -44,13 +44,11 @@ gradient_minimizer(
 	     __constant int*   rotbonds_atoms_const,
 	     __constant int*   num_rotating_atoms_per_rotbond_const,
     			// Specific gradient-minimizer args
-		    	uint      	  gradMin_maxiters,
-			uint      	  gradMin_maxfails
-/*
+		    	uint      	  gradMin_maxiters
+			/*
 			,
-	    		float             gradMin_alpha,
-    	     __constant float* gradMin_conformation_min_perturbation     // minimal values for gene perturbation, originally as the scalar "dxmin"
-*/
+			uint      	  gradMin_maxfails
+			*/
 )
 //The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
 //The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
@@ -74,8 +72,10 @@ gradient_minimizer(
 	__local bool exit;		
 	*/
 
+	/*
 	// Number of energy-evaluations counter
 	__local int  evaluation_cnt;
+	*/
 
 	// Stepsize for the minimizer
 	__local float stepsize;
@@ -107,7 +107,7 @@ gradient_minimizer(
 		energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
 
 		#if defined (DEBUG_MINIMIZER)
-		printf("\nrun_id:  %5u entity_id: %5u  initial_energy: %.5f\n", run_id, entity_id, energy);
+		printf("\nrun_id:  %5u entity_id: %5u  initial_energy: %.7f\n", run_id, entity_id, energy);
 		#endif
 
 		// Initializing gradient-minimizer counters and flags
@@ -115,7 +115,9 @@ gradient_minimizer(
 		/*
 		failure_cnt    = 0;
 		*/
+		/*
 		evaluation_cnt = 0;
+		*/
 		stepsize       = STEP_START;
 	}
 
@@ -237,9 +239,17 @@ gradient_minimizer(
 			lower_bounds_genotype [gene_counter] = 0.0f;
 			upper_bounds_genotype [gene_counter] = 360.0f;
 		}
+
+		#if defined (DEBUG_MINIMIZER)
+		//printf("(%-3u) %-0.7f %-10.7f %-10.7f %-10.7f\n", gene_counter, stepsize, genotype[gene_counter], lower_bounds_genotype[gene_counter], upper_bounds_genotype[gene_counter]);
+		#endif
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
+	// The termination criteria is based on 
+	// a maximum number of iterations, and
+	// the minimum step size allowed for single-floating point numbers 
+	// (IEEE-754 single float has a precision of about 7 decimal digits)
 	do {
 		#if 0
 		// Specific input genotypes for a ligand with no rotatable bonds (1ac8).
@@ -293,53 +303,40 @@ gradient_minimizer(
 		if (get_local_id(0) == 0) {
 			// Finding maximum of the absolute value 
 			// for the three translation genes
-			if (fabs(genotype[0]) > fabs(genotype[1])) {
-				max_trans_gene = fabs(genotype[0]);
-			}
-			else {
-				max_trans_gene = fabs(genotype[1]);
-			}	
-
-			if (max_trans_gene < fabs(genotype[2])) {
-				max_trans_gene = fabs(genotype[2]);
-			}
+			max_trans_gene = max(fabs(genotype[0]), fabs(genotype[1]));
+			max_trans_gene = max(max_trans_gene, fabs(genotype[2]));
 
 			// Note that MAX_DEV_TRANSLATION needs to be 
 			// expressed in grid size first
 			max_trans_stepsize = native_divide(native_divide(MAX_DEV_TRANSLATION, dockpars_grid_spacing), max_trans_gene);
 
-
 			// Finding maximum of the absolute value 
 			// for the three Shoemake rotation genes
-			if (fabs(genotype[3]) > fabs(genotype[4])) {
-				max_rota_gene = fabs(genotype[3]);
-			}
-			else {
-				max_rota_gene = fabs(genotype[4]);
-			}
-
-			if (max_trans_gene < fabs(genotype[5])) {
-				max_rota_gene = fabs(genotype[5]);
-			}
+			max_rota_gene = max(fabs(genotype[3]), fabs(genotype[4]));//printf("max_rota_gene: %-10.7f\n", max_rota_gene);		
+			max_rota_gene = max(max_rota_gene, fabs(genotype[5]));	//printf("max_rota_gene: %-10.7f\n", max_rota_gene);
 
 			// Note that MAX_DEV_ROTATION
 			// is already expressed within [0, 1]
 			max_rota_stepsize = native_divide(MAX_DEV_ROTATION, max_rota_gene);
 		}
 
-
 		// Copying torsions genes
 		__local float torsions_genotype[ACTUAL_GENOTYPE_LENGTH];
 		for(uint i = get_local_id(0); 
 			 i < dockpars_num_of_genes-6; 
 			 i+= NUM_OF_THREADS_PER_BLOCK) {
-			torsions_genotype[i] = fabs(genotype[i]+6);
+			torsions_genotype[i] = fabs(genotype[i+6]);
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// Calculating maximum absolute torsional gene
-		for (uint i=(dockpars_num_of_genes-6); i>=1; i/=2){
+		for (uint i=(dockpars_num_of_genes-6)+1; i>=1; i/=2){
 			if (get_local_id(0) < i) {
+
+			#if defined (DEBUG_MINIMIZER)
+			//printf("---====--- %u %u %-10.10f %-10.10f\n", i, get_local_id(0), torsions_genotype[get_local_id(0)], torsions_genotype[get_local_id(0) + i]);
+			#endif
+
 				if (torsions_genotype[get_local_id(0)] < torsions_genotype[get_local_id(0) + i]) {
 					torsions_genotype[get_local_id(0)] = torsions_genotype[get_local_id(0) + i];
 				}
@@ -353,25 +350,21 @@ gradient_minimizer(
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		// Calculating the maximum stepsize using previous three
+		
 		if (get_local_id(0) == 0) {
-			if (max_trans_stepsize < max_rota_stepsize) {
-				max_stepsize = max_trans_stepsize;
-			}
-			else {
-				max_stepsize = max_rota_stepsize;			
-			}
+			// Calculating the maximum stepsize using previous three
+			max_stepsize = min(max_trans_stepsize, max_rota_stepsize);
+			max_stepsize = min(max_stepsize, max_tors_stepsize);
 
-			if (max_stepsize > max_tors_stepsize) {
-				max_stepsize = max_tors_stepsize;
-			}
+			// Capping the stepsize
+			stepsize = min(stepsize, max_stepsize);
+
+			#if defined (DEBUG_MINIMIZER)
+			//printf("max_genes: %-0.7f %-10.7f %-10.7f %-10.7f\n", max_trans_gene, max_rota_gene, max_tors_gene, stepsize);
+			//printf("max_steps: %-0.7f %-10.7f %-10.7f %-10.7f\n", max_trans_stepsize, max_rota_stepsize, max_tors_stepsize, max_stepsize);
+			#endif
 		}	
-		barrier(CLK_LOCAL_MEM_FENCE);
 
-		// Capping the stepsize
-		if (get_local_id(0) == 0) {
-			stepsize = (stepsize<max_stepsize)?stepsize:max_stepsize;
-		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// Calculating gradient
@@ -449,7 +442,7 @@ gradient_minimizer(
 			candidate_genotype[i] = genotype[i] - stepsize * gradient[i];	
 
 			#if defined (DEBUG_MINIMIZER)
-			//printf("(%-3u) %-0.15f %-10.10f %-10.10f %-10.10f\n", i, stepsize, genotype[i], gradient[i], candidate_genotype[i]);
+			//printf("(%-3u) %-0.7f %-10.7f %-10.7f %-10.7f\n", i, stepsize, genotype[i], gradient[i], candidate_genotype[i]);
 			#endif
 
 			// Putting genes back within bounds
@@ -509,10 +502,12 @@ gradient_minimizer(
 				);
 		// =============================================================
 
+		/*
 		// Updating number of energy-evaluations counter
 		if (get_local_id(0) == 0) {
 			evaluation_cnt = evaluation_cnt + 1;
 		}
+		*/
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// Checking if E(candidate_genotype) < E(genotype)
@@ -534,7 +529,7 @@ gradient_minimizer(
 				genotype[i] = candidate_genotype[i];
 			
 				#if defined (DEBUG_MINIMIZER)
-				//printf("(%-3u) %-15.15f %-10.10f %-10.10f %-10.10f\n", i, alpha, genotype[i], gradient[i], candidate_genotype[i]);
+				//printf("(%-3u) %-15.7f %-10.7f %-10.7f %-10.7f\n", i, alpha, genotype[i], gradient[i], candidate_genotype[i]);
 				#endif
 			}
 		}
@@ -546,30 +541,30 @@ gradient_minimizer(
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		// Updating number of stepest-descent iterations
+		// Updating number of stepest-descent iterations (energy evaluations)
 		if (get_local_id(0) == 0) {
 	    		iteration_cnt = iteration_cnt + 1;
 
 			#if defined (DEBUG_MINIMIZER)
-			printf("# mini-iters: %-3u, # ener-evals: %-3u, stepsize: %f, energy: %f\n", iteration_cnt, evaluation_cnt, stepsize, energy);
+			printf("# minimizer-iters: %-3u, stepsize: %10.7f, E: %10.7f\n", iteration_cnt, stepsize, energy);
 			#endif
 
 			#if defined (DEBUG_ENERGY_KERNEL5)
-			printf("%-18s [%-5s]---{%-5s}   [%-10.8f]---{%-10.8f}\n", "-ENERGY-KERNEL5-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
+			printf("%-18s [%-5s]---{%-5s}   [%-10.7f]---{%-10.7f}\n", "-ENERGY-KERNEL5-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
 			#endif
 		}
 
-  	} while (iteration_cnt < gradMin_maxiters);
+  	} while ((iteration_cnt < gradMin_maxiters) && (stepsize > 1E-8));
 
 	// -----------------------------------------------------------------------------
 
   	// Updating eval counter and energy
 	if (get_local_id(0) == 0) {
-		dockpars_evals_of_new_entities[run_id*dockpars_pop_size+entity_id] += evaluation_cnt;
+		dockpars_evals_of_new_entities[run_id*dockpars_pop_size+entity_id] += iteration_cnt;
 		dockpars_energies_next[run_id*dockpars_pop_size+entity_id] = energy;
 
 		#if defined (DEBUG_MINIMIZER)
-		printf("-------> End of grad-min cycle, num of evals: %u, final energy: %.5f\n", evaluation_cnt, energy);
+		printf("-------> End of grad-min cycle, num of evals: %u, final energy: %.7f\n", iteration_cnt, energy);
 		#endif
 	}
 

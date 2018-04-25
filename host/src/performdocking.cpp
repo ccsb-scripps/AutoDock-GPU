@@ -412,10 +412,11 @@ filled with clock() */
 	// Setup here (temporarily?) the gradient and associated parameters.
 	// This should be ultimately configurable by the user as program exec. flags.
 	Gradientparameters gradientpars;
-	gradientpars.max_num_of_iters = 30;
-	gradientpars.max_num_of_consec_fails = (unsigned int)(0.05 * gradientpars.max_num_of_iters);
+	gradientpars.max_num_of_iters = 300;
 
 /*
+	gradientpars.max_num_of_consec_fails = (unsigned int)(0.05 * gradientpars.max_num_of_iters);
+
 	gradientpars.alpha = 0.000001f; 
 
 	// Set minimum values for input conformation (translation genes as x, y, z)
@@ -441,16 +442,16 @@ filled with clock() */
 */
 
 
-/*
+///*
 	// Initially, the number of entities that undergo gradient-minimization,
 	// by default, it is the same as the number of entities that undergo gradient-based minimizer
 	blocksPerGridForEachGradMinimizerEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
-*/
+//*/
 
-///*
+/*
 	// test, only one entity per reach run, undergoes gradient minimization
 	blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
-//*/
+*/
 
 	clock_start_docking = clock();
 
@@ -683,8 +684,8 @@ filled with clock() */
   setKernelArg(kernel5,38,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
   // Specific gradient-minimizer args
   setKernelArg(kernel5,39,sizeof(gradientpars.max_num_of_iters),           &gradientpars.max_num_of_iters);
-  setKernelArg(kernel5,40,sizeof(gradientpars.max_num_of_consec_fails),    &gradientpars.max_num_of_consec_fails);
 	/*
+  setKernelArg(kernel5,40,sizeof(gradientpars.max_num_of_consec_fails),    &gradientpars.max_num_of_consec_fails);
   setKernelArg(kernel5,39,sizeof(gradientpars.alpha),            	   &gradientpars.alpha);
   setKernelArg(kernel5,40,sizeof(mem_gradpars_conformation_min_perturbation),              &mem_gradpars_conformation_min_perturbation);
 	*/

@@ -58,8 +58,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 typedef struct {
 	unsigned int max_num_of_iters;
-	unsigned int max_num_of_consec_fails;
 	/*
+	unsigned int max_num_of_consec_fails;
 	float alpha;
 	float conformation_min_perturbation [ACTUAL_GENOTYPE_LENGTH];
 	*/
