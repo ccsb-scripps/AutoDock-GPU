@@ -401,6 +401,10 @@ filled with clock() */
 	unsigned int g2 = dockpars.gridsize_x * dockpars.gridsize_y;
 	unsigned int g3 = dockpars.gridsize_x * dockpars.gridsize_y * dockpars.gridsize_z;
 
+	printf("Local-search chosen method is: %s\n", (strcmp(mypars->ls_method, "sw") == 0)?"Solis-Wetts":
+						      (strcmp(mypars->ls_method, "sd") == 0)?"Steepest descent": "Unknown");
+
+
 	blocksPerGridForEachLSEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
 
 	/*
@@ -454,6 +458,9 @@ filled with clock() */
 */
 
 	clock_start_docking = clock();
+
+
+
 
 	//print progress bar
 #ifndef DOCK_DEBUG
@@ -592,7 +599,10 @@ filled with clock() */
 // End of Kernel4
 
 
+/*
 #if !defined (GRADIENT_ENABLED)
+*/
+if (strcmp(mypars->ls_method, "sw") == 0) {
 // Kernel3
   setKernelArg(kernel3,0, sizeof(dockpars.num_of_atoms),                  &dockpars.num_of_atoms);
   setKernelArg(kernel3,1, sizeof(dockpars.num_of_atypes),                 &dockpars.num_of_atypes);
@@ -641,7 +651,11 @@ filled with clock() */
   printf("%-25s %10s %8u %10s %4u\n", "K_LOCAL_SEARCH: ", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
   #endif
 // End of Kernel3
+} else if (strcmp(mypars->ls_method, "sd") == 0) {
+/*
 #else
+*/
+
 // Kernel5
   setKernelArg(kernel5,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
   setKernelArg(kernel5,1, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
@@ -695,9 +709,11 @@ filled with clock() */
 	printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MINIMIZER: ", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
 #endif
 // End of Kernel5
+
+/*
 #endif
-
-
+*/
+}
 
 
 
@@ -786,7 +802,10 @@ filled with clock() */
 	#endif
 // End of Kernel4
 
+	if (strcmp(mypars->ls_method, "sw") == 0) {
+/*
 #if !defined (GRADIENT_ENABLED)
+*/
 // Kernel3
 	#ifdef DOCK_DEBUG
 		printf("%-25s", "K_LOCAL_SEARCH: ");fflush(stdout);
@@ -796,7 +815,13 @@ filled with clock() */
 		printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 // End of Kernel3
+
+/*
 #else
+*/
+	} else if (strcmp(mypars->ls_method, "sd") == 0) {
+
+
 // Kernel5
 	#ifdef DOCK_DEBUG
 		printf("%-25s", "K_GRAD_MINIMIZER: ");fflush(stdout);
@@ -806,7 +831,11 @@ filled with clock() */
 		printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 // End of Kernel5
+
+/*
 #endif
+*/
+	}
 
 // Kernel2
 	#ifdef DOCK_DEBUG
@@ -849,16 +878,24 @@ filled with clock() */
 			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
       			setKernelArg(kernel4,15,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
 			setKernelArg(kernel4,16,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
-
+/*
 #if !defined (GRADIENT_ENABLED)
+*/
+	if (strcmp(mypars->ls_method, "sw") == 0) {
 			// Kernel 3
      			setKernelArg(kernel3,13,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
       			setKernelArg(kernel3,14,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
+/*
 #else
+*/
+	} else if (strcmp(mypars->ls_method, "sd") == 0) {
 			// Kernel 5
      			setKernelArg(kernel5,13,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
       			setKernelArg(kernel5,14,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
+/*
 #endif
+*/
+	}
 		}
 		else { // In this configuration, the program starts
 			// Kernel 4
@@ -867,15 +904,24 @@ filled with clock() */
       			setKernelArg(kernel4,15,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
 			setKernelArg(kernel4,16,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
 
+		if (strcmp(mypars->ls_method, "sw") == 0) {
+/*
 #if !defined (GRADIENT_ENABLED)
+*/
 			// Kernel 3
 			setKernelArg(kernel3,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
       			setKernelArg(kernel3,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
+/*
 #else
+*/
+		} else if (strcmp(mypars->ls_method, "sd") == 0) {
 			// Kernel 5
 			setKernelArg(kernel5,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
       			setKernelArg(kernel5,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
+/*
 #endif
+*/
+		}
 		}
 		// ----------------------------------------------------------------------
 
@@ -987,11 +1033,20 @@ filled with clock() */
 	clReleaseKernel(kernel1);
 	clReleaseKernel(kernel2);
 	clReleaseKernel(kernel4);
+/*
 #if !defined (GRADIENT_ENABLED)
+*/
+if (strcmp(mypars->ls_method, "sw") == 0) {
 	clReleaseKernel(kernel3);
+/*
 #else
+*/
+} else if (strcmp(mypars->ls_method, "sd") == 0) {
 	clReleaseKernel(kernel5);
+/*
 #endif
+*/
+}
 	clReleaseCommandQueue(command_queue);
 	clReleaseContext(context);
 	free(device_id);

@@ -62,7 +62,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 // TODO: convert this into a program arg
-#define GRADIENT_ENABLED
+//#define GRADIENT_ENABLED
 
 
 

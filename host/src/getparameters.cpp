@@ -145,6 +145,10 @@ void get_commandpars(const int* argc,
 	mypars->crossover_rate 	    = 80;		// 80%
 	mypars->lsearch_rate 	    = 6;		// 6%
 				    // unsigned long num_of_ls
+
+	strcpy(mypars->ls_method, "sw");		// "sw": Solis-Wetts, 
+							// "sd": Steepest-Descent", 
+							// "bfgs": Broyden-Fletcher-Goldfarb-Shanno (to be implemented)
 	mypars->tournament_rate     = 60;		// 60%
 	mypars->rho_lower_bound     = 0.01;		// 0.01
 	mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);	// 2 A
@@ -267,6 +271,30 @@ void get_commandpars(const int* argc,
 		// ---------------------------------
 		// MISSING: unsigned long num_of_ls
 		// ---------------------------------
+
+
+		//Argument: local search method: 
+		// "sw": Solis-Wetts
+		// "sd": Steepest-Descent
+		// "bfgs": Broyden-Fletcher-Goldfarb-Shanno (to be implemented)
+		if (strcmp("-lsmet", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+
+			char temp[128];
+
+			strcpy(temp, argv [i+1]);
+
+			if (strcmp(temp, "sw") == 0) {
+				strcpy(mypars->ls_method, temp);
+			}
+			else if (strcmp(temp, "sd") == 0) {
+				strcpy(mypars->ls_method, temp);
+			}
+			else {
+				printf("Warning: value of -lsmet argument ignored. Value must be a valid string: \"sw\", \"sd\".\n");
+			}
+		}
 
 		//Argument: tournament rate. Must be a float between 50 and 100.
 		//Means the probability that the better entity wins the tournament round during selectin

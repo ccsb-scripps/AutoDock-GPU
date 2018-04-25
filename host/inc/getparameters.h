@@ -54,6 +54,7 @@ typedef struct
 		float crossover_rate;
 		float lsearch_rate;
 	unsigned long num_of_ls;
+		char  ls_method[128];
 		float tournament_rate;
 		float rho_lower_bound;
 		float base_dmov_mul_sqrt3;
