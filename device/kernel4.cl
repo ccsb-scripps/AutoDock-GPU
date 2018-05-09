@@ -69,6 +69,15 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
 	      __constant float* atom_charges_const,
               __constant char*  atom_types_const,
 	      __constant char*  intraE_contributors_const,
+
+		// -------------------------------------------
+		// Smoothed pairwise potentials
+		// -------------------------------------------
+                         float  dockpars_smooth,
+ 	      __constant float* reqm,
+	      __constant float* reqm_hbond,
+		// -------------------------------------------
+
               __constant float* VWpars_AC_const,
               __constant float* VWpars_BD_const,
               __constant float* dspars_S_const,
@@ -262,6 +271,15 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
                                 atom_charges_const,
 	                        atom_types_const,
 				intraE_contributors_const,
+
+		// -------------------------------------------
+		// Smoothed pairwise potentials
+		// -------------------------------------------
+				dockpars_smooth,
+				reqm,
+				reqm_hbond,
+		// -------------------------------------------
+
 				VWpars_AC_const,
 				VWpars_BD_const,
 				dspars_S_const,

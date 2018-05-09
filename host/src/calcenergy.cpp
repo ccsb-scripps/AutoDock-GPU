@@ -84,6 +84,14 @@ int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
 	float atom_charges[MAX_NUM_OF_ATOMS];
 	char  atom_types[MAX_NUM_OF_ATOMS];
 	char  intraE_contributors[3*MAX_INTRAE_CONTRIBUTORS];
+
+        // -------------------------------------------
+        // Smoothed pairwise potentials
+        // -------------------------------------------
+	float reqm [ATYPE_NUM];
+        float reqm_hbond [ATYPE_NUM];
+	// -------------------------------------------
+
 	float VWpars_AC[MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
 	float VWpars_BD[MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
 	float dspars_S[MAX_NUM_OF_ATYPES];
@@ -145,6 +153,16 @@ int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
 				charpoi++;
 			}
 		}
+
+        // -------------------------------------------
+        // Smoothed pairwise potentials
+        // -------------------------------------------
+	// reqm, reqm_hbond: equilibrium internuclear separation for vdW and hbond
+	for (i= 0; i<ATYPE_NUM/*myligand_reference->num_of_atypes*/; i++) {
+		reqm[i]       = myligand_reference->reqm[i];
+		reqm_hbond[i] = myligand_reference->reqm_hbond[i];
+	}
+	// -------------------------------------------
 
 	//van der Waals parameters
 	for (i=0; i<myligand_reference->num_of_atypes; i++)
@@ -228,6 +246,14 @@ int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
 	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst->atom_charges_const[m] = atom_charges[m]; }
 	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst->atom_types_const[m]   = atom_types[m]; }
 	for (m=0;m<3*MAX_INTRAE_CONTRIBUTORS;m++){ KerConst->intraE_contributors_const[m]   = intraE_contributors[m]; }
+        
+	// -------------------------------------------
+        // Smoothed pairwise potentials
+        // -------------------------------------------
+	for (m=0;m<ATYPE_NUM;m++){ KerConst->reqm_const[m] = reqm[m]; }
+	for (m=0;m<ATYPE_NUM;m++){ KerConst->reqm_hbond_const[m] = reqm_hbond[m]; }
+	// -------------------------------------------
+
 	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++){ KerConst->VWpars_AC_const[m]   = VWpars_AC[m]; }
 	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++){ KerConst->VWpars_BD_const[m]   = VWpars_BD[m]; }
 	for (m=0;m<MAX_NUM_OF_ATYPES;m++)		   { KerConst->dspars_S_const[m]    = dspars_S[m]; }

@@ -66,6 +66,13 @@ typedef struct
 	float  		abs_max_dmov;
 	float  		abs_max_dang;
 	float  		lsearch_rate;
+
+	// -------------------------------------------
+	// Smoothed pairwise potentials
+	// -------------------------------------------
+	float 		smooth;
+	// -------------------------------------------
+
 	unsigned int 	num_of_lsentities;
 	float  		rho_lower_bound;
 	float  		base_dmov_mul_sqrt3;
@@ -89,6 +96,14 @@ typedef struct
        float atom_charges_const[MAX_NUM_OF_ATOMS];
        char  atom_types_const  [MAX_NUM_OF_ATOMS];
        char  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
+
+       // -------------------------------------------
+       // Smoothed pairwise potentials
+       // -------------------------------------------
+       float reqm_const [ATYPE_NUM];
+       float reqm_hbond_const [ATYPE_NUM];
+       // -------------------------------------------
+
        float VWpars_AC_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
        float VWpars_BD_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
        float dspars_S_const    [MAX_NUM_OF_ATYPES];

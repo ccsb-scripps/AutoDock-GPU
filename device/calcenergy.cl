@@ -57,6 +57,15 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 	       __constant float* atom_charges_const,
                __constant char*  atom_types_const,
                __constant char*  intraE_contributors_const,
+	   
+		// -------------------------------------------
+		// Smoothed pairwise potentials
+		// -------------------------------------------
+	                  float  dockpars_smooth,
+	       __constant float* reqm,
+	       __constant float* reqm_hbond,
+		// -------------------------------------------
+
                __constant float* VWpars_AC_const,
                __constant float* VWpars_BD_const,
                __constant float* dspars_S_const,
@@ -524,17 +533,90 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 		distance_leo = sqrt(subx*subx + suby*suby + subz*subz)*dockpars_grid_spacing;
 #endif
 
+		// -------------------------------------------
+		// Smoothed pairwise potentials
+		// -------------------------------------------
+		/*
 		if (distance_leo < 1.0f)
 			distance_leo = 1.0f;
+		*/
+		// -------------------------------------------
+
 
 		//calculating energy contributions
+
+		// -------------------------------------------
+		// Smoothed pairwise potentials
+		// -------------------------------------------
+		/*
 		if ((distance_leo < 8.0f) && (distance_leo < 20.48f))
+		*/
+		if (distance_leo < 8.0f)
 		{
+
+			// -------------------------------------------
+			// Smoothed pairwise potentials
+			// -------------------------------------------
+			
 			//getting type IDs
 			atom1_typeid = atom_types_const[atom1_id];
 			atom2_typeid = atom_types_const[atom2_id];
 
+			//getting optimum pair distance (opt_distance) from reqm and reqm_hbond
+			//reqm: equilibrium internuclear separation 
+			//      (sum of the vdW radii of two like atoms (A)) in the case of vdW
+			//reqm_hbond: equilibrium internuclear separation
+			//	(sum of the vdW radii of two like atoms (A)) in the case of hbond 
+			float opt_distance;
+
+			if (intraE_contributors_const[3*contributor_counter+2] == 1)	//H-bond
+			{
+				opt_distance = reqm_hbond [atom1_typeid] + reqm_hbond [atom2_typeid];
+			}
+			else	//van der Waals
+			{
+				opt_distance = 0.5f*(reqm [atom1_typeid] + reqm [atom2_typeid]);
+			}
+
+			//getting smoothed distance
+			//smoothed_distance = function(distance_leo, opt_distance)
+			float smoothed_distance;
+			float delta_distance = 0.5f*dockpars_smooth;
+
+			/*
+			if ((opt_distance - delta_distance) < distance_leo) && (distance_leo < (opt_distance + delta_distance)) 
+			{
+				smoothed_distance = opt_distance;
+			}
+			else if (distance_leo >= (opt_distance + delta_distance))
+			{
+				smoothed_distance = distance_leo - delta_distance;
+			}
+			else if (distance_leo <= (opt_distance - delta_distance))
+			{
+				smoothed_distance = distance_leo + delta_distance;
+			}
+			*/
+
+			if (distance_leo <= (opt_distance - delta_distance)) {
+				smoothed_distance = distance_leo + delta_distance;
+			}
+			else if (distance_leo < (opt_distance + delta_distance)) {
+				smoothed_distance = opt_distance;
+			}
+			else { // else if (distance_leo >= (opt_distance + delta_distance))
+				smoothed_distance = distance_leo - delta_distance;
+			}
+
+			// -------------------------------------------
+
 			//calculating van der Waals / hydrogen bond term
+
+
+			// -------------------------------------------
+			// Smoothed pairwise potentials
+			// -------------------------------------------
+/*
 #if defined (NATIVE_PRECISION)
 			partial_energies[get_local_id(0)] += native_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(distance_leo,12));
 #elif defined (HALF_PRECISION)
@@ -560,6 +642,35 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 #else	// Full precision
 				partial_energies[get_local_id(0)] -= VWpars_BD_const[atom1_typeid*dockpars_num_of_atypes+atom2_typeid]/powr(distance_leo,6);
 #endif
+*/
+
+#if defined (NATIVE_PRECISION)
+			partial_energies[get_local_id(0)] += native_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance,12));
+#elif defined (HALF_PRECISION)
+			partial_energies[get_local_id(0)] += half_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],half_powr(smoothed_distance,12));
+#else	// Full precision
+			partial_energies[get_local_id(0)] += VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid]/powr(smoothed_distance,12);
+#endif
+
+			if (intraE_contributors_const[3*contributor_counter+2] == 1)	//H-bond
+#if defined (NATIVE_PRECISION)
+				partial_energies[get_local_id(0)] -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance,10));
+#elif defined (HALF_PRECISION)
+				partial_energies[get_local_id(0)] -= half_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],half_powr(smoothed_distance,10));
+#else	// Full precision
+				partial_energies[get_local_id(0)] -= VWpars_BD_const[atom1_typeid*dockpars_num_of_atypes+atom2_typeid]/powr(smoothed_distance,10);
+#endif
+
+			else	//van der Waals
+#if defined (NATIVE_PRECISION)
+				partial_energies[get_local_id(0)] -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance,6));
+#elif defined (HALF_PRECISION)
+				partial_energies[get_local_id(0)] -= half_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],half_powr(smoothed_distance,6));
+#else	// Full precision
+				partial_energies[get_local_id(0)] -= VWpars_BD_const[atom1_typeid*dockpars_num_of_atypes+atom2_typeid]/powr(smoothed_distance,6);
+#endif
+
+			// -------------------------------------------
 
 			//calculating electrostatic term
 #if defined (NATIVE_PRECISION)
