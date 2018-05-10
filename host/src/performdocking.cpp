@@ -270,14 +270,8 @@ filled with clock() */
   cl_mem mem_atom_charges_const;
   cl_mem mem_atom_types_const;
   cl_mem mem_intraE_contributors_const;
-  
-  // -------------------------------------------
-  // Smoothed pairwise potentials
-  // -------------------------------------------
   cl_mem mem_reqm_const;
   cl_mem mem_reqm_hbond_const;
-  // -------------------------------------------
-
   cl_mem mem_VWpars_AC_const;
   cl_mem mem_VWpars_BD_const;
   cl_mem mem_dspars_S_const;
@@ -296,14 +290,8 @@ filled with clock() */
   mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(float),                         &mem_atom_charges_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(char),                          &mem_atom_types_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,3*MAX_INTRAE_CONTRIBUTORS*sizeof(char),                 &mem_intraE_contributors_const);
-
-  // -------------------------------------------
-  // Smoothed pairwise potentials
-  // ------------------------------------------- 
   mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(float),&mem_reqm_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(float),&mem_reqm_hbond_const);
-  // -------------------------------------------
-
   mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float),      &mem_VWpars_AC_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float),      &mem_VWpars_BD_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*sizeof(float),                        &mem_dspars_S_const);
@@ -319,14 +307,8 @@ filled with clock() */
   memcopyBufferObjectToDevice(command_queue,mem_atom_charges_const,         	&KerConst.atom_charges_const,           MAX_NUM_OF_ATOMS*sizeof(float));
   memcopyBufferObjectToDevice(command_queue,mem_atom_types_const,           	&KerConst.atom_types_const,             MAX_NUM_OF_ATOMS*sizeof(char));
   memcopyBufferObjectToDevice(command_queue,mem_intraE_contributors_const,  	&KerConst.intraE_contributors_const,    3*MAX_INTRAE_CONTRIBUTORS*sizeof(char));
-
-  // -------------------------------------------
-  // Smoothed pairwise potentials
-  // ------------------------------------------- 
   memcopyBufferObjectToDevice(command_queue,mem_reqm_const,         		&KerConst.reqm_const,           	ATYPE_NUM*sizeof(float));
   memcopyBufferObjectToDevice(command_queue,mem_reqm_hbond_const,         	&KerConst.reqm_hbond_const,           	ATYPE_NUM*sizeof(float));
-  // -------------------------------------------
-
   memcopyBufferObjectToDevice(command_queue,mem_VWpars_AC_const,            	&KerConst.VWpars_AC_const,              MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float));
   memcopyBufferObjectToDevice(command_queue,mem_VWpars_BD_const,            	&KerConst.VWpars_BD_const,              MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float));
   memcopyBufferObjectToDevice(command_queue,mem_dspars_S_const,             	&KerConst.dspars_S_const,               MAX_NUM_OF_ATYPES*sizeof(float));
@@ -401,15 +383,7 @@ filled with clock() */
 	dockpars.cons_limit        = (unsigned int) mypars->cons_limit;
 	dockpars.max_num_of_iters  = (unsigned int) mypars->max_num_of_iters;
 	dockpars.qasp = mypars->qasp;
-
-        // -------------------------------------------
-        // Smoothed pairwise potentials
-	// -------------------------------------------
-	//float smooth = 0.5f;
 	dockpars.smooth = mypars->smooth;
-	//printf("dockpars.smooth: %f\n", dockpars.smooth);
-	// -------------------------------------------
-
 
 	blocksPerGridForEachLSEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
 
@@ -450,15 +424,9 @@ filled with clock() */
 	setKernelArg(kernel1,16,sizeof(mem_atom_charges_const),                 &mem_atom_charges_const);
   setKernelArg(kernel1,17,sizeof(mem_atom_types_const),                   &mem_atom_types_const);
   setKernelArg(kernel1,18,sizeof(mem_intraE_contributors_const),          &mem_intraE_contributors_const);
-
-  // -------------------------------------------
-  // Smoothed pairwise potentials
-  // -------------------------------------------
   setKernelArg(kernel1,19,sizeof(dockpars.smooth),                        &dockpars.smooth);
   setKernelArg(kernel1,20,sizeof(mem_reqm_const),                         &mem_reqm_const);
   setKernelArg(kernel1,21,sizeof(mem_reqm_hbond_const),                   &mem_reqm_hbond_const);
-  // -------------------------------------------
-
   setKernelArg(kernel1,22/*19*/,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
   setKernelArg(kernel1,23/*20*/,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
   setKernelArg(kernel1,24/*21*/,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
@@ -518,15 +486,9 @@ filled with clock() */
   setKernelArg(kernel4,25,sizeof(mem_atom_charges_const),                 &mem_atom_charges_const);
   setKernelArg(kernel4,26,sizeof(mem_atom_types_const),                  	&mem_atom_types_const);
   setKernelArg(kernel4,27,sizeof(mem_intraE_contributors_const),          &mem_intraE_contributors_const);
-
-  // -------------------------------------------
-  // Smoothed pairwise potentials
-  // -------------------------------------------
   setKernelArg(kernel4,28,sizeof(dockpars.smooth),                        &dockpars.smooth);
   setKernelArg(kernel4,29,sizeof(mem_reqm_const),                         &mem_reqm_const);
   setKernelArg(kernel4,30,sizeof(mem_reqm_hbond_const),                   &mem_reqm_hbond_const);
-  // -------------------------------------------
-
   setKernelArg(kernel4,31/*28*/,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
   setKernelArg(kernel4,32/*29*/,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
   setKernelArg(kernel4,33/*30*/,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
@@ -575,15 +537,9 @@ filled with clock() */
   setKernelArg(kernel3,25,sizeof(mem_atom_charges_const),                 &mem_atom_charges_const);
   setKernelArg(kernel3,26,sizeof(mem_atom_types_const),                   &mem_atom_types_const);
   setKernelArg(kernel3,27,sizeof(mem_intraE_contributors_const),          &mem_intraE_contributors_const);
-
-  // -------------------------------------------
-  // Smoothed pairwise potentials
-  // -------------------------------------------
   setKernelArg(kernel3,28,sizeof(dockpars.smooth),                        &dockpars.smooth);
   setKernelArg(kernel3,29,sizeof(mem_reqm_const),                         &mem_reqm_const);
   setKernelArg(kernel3,30,sizeof(mem_reqm_hbond_const),                   &mem_reqm_hbond_const);
-  // -------------------------------------------
-
   setKernelArg(kernel3,31/*28*/,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
   setKernelArg(kernel3,32/*29*/,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
   setKernelArg(kernel3,33/*30*/,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
@@ -811,14 +767,8 @@ filled with clock() */
 	clReleaseMemObject(mem_atom_charges_const);
   	clReleaseMemObject(mem_atom_types_const);
   	clReleaseMemObject(mem_intraE_contributors_const);
-
-	// -------------------------------------------
-  	// Smoothed pairwise potentials
-  	// ------------------------------------------- 
   	clReleaseMemObject(mem_reqm_const);
   	clReleaseMemObject(mem_reqm_hbond_const);
-	// -------------------------------------------
-
   	clReleaseMemObject(mem_VWpars_AC_const);
 	clReleaseMemObject(mem_VWpars_BD_const);
 	clReleaseMemObject(mem_dspars_S_const);

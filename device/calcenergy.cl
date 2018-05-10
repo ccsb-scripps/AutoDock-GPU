@@ -57,15 +57,9 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 	       __constant float* atom_charges_const,
                __constant char*  atom_types_const,
                __constant char*  intraE_contributors_const,
-	   
-		// -------------------------------------------
-		// Smoothed pairwise potentials
-		// -------------------------------------------
 	                  float  dockpars_smooth,
 	       __constant float* reqm,
 	       __constant float* reqm_hbond,
-		// -------------------------------------------
-
                __constant float* VWpars_AC_const,
                __constant float* VWpars_BD_const,
                __constant float* dspars_S_const,
@@ -533,31 +527,9 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 		distance_leo = sqrt(subx*subx + suby*suby + subz*subz)*dockpars_grid_spacing;
 #endif
 
-		// -------------------------------------------
-		// Smoothed pairwise potentials
-		// -------------------------------------------
-		/*
-		if (distance_leo < 1.0f)
-			distance_leo = 1.0f;
-		*/
-		// -------------------------------------------
-
-
 		//calculating energy contributions
-
-		// -------------------------------------------
-		// Smoothed pairwise potentials
-		// -------------------------------------------
-		/*
-		if ((distance_leo < 8.0f) && (distance_leo < 20.48f))
-		*/
 		if (distance_leo < 8.0f)
 		{
-
-			// -------------------------------------------
-			// Smoothed pairwise potentials
-			// -------------------------------------------
-			
 			//getting type IDs
 			atom1_typeid = atom_types_const[atom1_id];
 			atom2_typeid = atom_types_const[atom2_id];
@@ -608,14 +580,24 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				smoothed_distance = distance_leo - delta_distance;
 			}
 
-			// -------------------------------------------
+/*
+			if (get_local_id (0) == 0) {
+
+				if (intraE_contributors_const[3*contributor_counter+2] == 1)	//H-bond
+				{
+					printf("%-5s %u %u %f %f %f %f %f %f\n", "hbond", atom1_typeid, atom2_typeid, reqm_hbond [atom1_typeid], reqm_hbond [atom2_typeid], opt_distance, delta_distance, distance_leo, smoothed_distance);
+
+				}
+				else	//van der Waals
+				{
+					printf("%-5s %u %u %f %f %f %f %f %f\n", "vdw", atom1_typeid, atom2_typeid, reqm [atom1_typeid], reqm [atom2_typeid], opt_distance, delta_distance, distance_leo, smoothed_distance);	
+				}
+			}
+*/
 
 			//calculating van der Waals / hydrogen bond term
 
-
-			// -------------------------------------------
-			// Smoothed pairwise potentials
-			// -------------------------------------------
+			//commenting calculation based on non-smoothed distances
 /*
 #if defined (NATIVE_PRECISION)
 			partial_energies[get_local_id(0)] += native_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(distance_leo,12));
@@ -669,8 +651,6 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 #else	// Full precision
 				partial_energies[get_local_id(0)] -= VWpars_BD_const[atom1_typeid*dockpars_num_of_atypes+atom2_typeid]/powr(smoothed_distance,6);
 #endif
-
-			// -------------------------------------------
 
 			//calculating electrostatic term
 #if defined (NATIVE_PRECISION)

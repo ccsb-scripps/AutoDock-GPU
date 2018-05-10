@@ -145,13 +145,7 @@ void get_commandpars(const int* argc,
 	mypars->crossover_rate 	    = 80;		// 80%
 	mypars->lsearch_rate 	    = 6;		// 6%
 				    // unsigned long num_of_ls
-
-	// -------------------------------------------
-	// Smoothed pairwise potentials
-	// -------------------------------------------
 	mypars->smooth              = 0.5f;
-	// -------------------------------------------
-
 	mypars->tournament_rate     = 60;		// 60%
 	mypars->rho_lower_bound     = 0.01;		// 0.01
 	mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);	// 2 A
@@ -275,17 +269,7 @@ void get_commandpars(const int* argc,
 		// MISSING: unsigned long num_of_ls
 		// ---------------------------------
 
-
-
-
-
-
-
-		// -------------------------------------------
 		// Smoothed pairwise potentials
-		// -------------------------------------------
-		mypars->smooth              = 0.5f;
-
 		if (strcmp("-smooth", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -297,14 +281,6 @@ void get_commandpars(const int* argc,
 			else
 				printf("Warning: value of -smooth argument ignored. Value must be a float between 0 and 0.5.\n");
 		}
-		// -------------------------------------------
-
-
-
-
-
-
-
 
 		//Argument: tournament rate. Must be a float between 50 and 100.
 		//Means the probability that the better entity wins the tournament round during selectin
