@@ -585,6 +585,15 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 			}
 		}
 
+	// -------------------------------------------
+	// Smoothed pairwise potentials
+	// -------------------------------------------
+	for (atom_typeid1 = 0; atom_typeid1 < ATYPE_NUM/*myligand->num_of_atypes*/; atom_typeid1++) {
+		myligand->reqm[atom_typeid1]       = reqm[atom_typeid1];
+		myligand->reqm_hbond[atom_typeid1] = reqm_hbond[atom_typeid1];
+	}
+	// -------------------------------------------
+
 	for (atom_typeid1 = 0; atom_typeid1 < myligand->num_of_atypes; atom_typeid1++)
 	{
 		VWid_atype1 = ATYPE_NUM;

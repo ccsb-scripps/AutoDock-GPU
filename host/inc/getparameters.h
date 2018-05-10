@@ -53,6 +53,13 @@ typedef struct
 		float mutation_rate;
 		float crossover_rate;
 		float lsearch_rate;
+
+		// -------------------------------------------
+		// Smoothed pairwise potentials
+		// -------------------------------------------
+		float smooth;
+		// -------------------------------------------
+
 	unsigned long num_of_ls;
 		char  ls_method[128];
 		float tournament_rate;

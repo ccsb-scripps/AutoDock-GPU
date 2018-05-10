@@ -92,6 +92,17 @@ typedef struct
 	int 	atom_rigid_structures [MAX_NUM_OF_ATOMS];
 	char 	bonds [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
 	char 	intraE_contributors [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
+
+	// -------------------------------------------
+	// Smoothed pairwise potentials
+	// -------------------------------------------
+	// Sizes are hardcoded, ATYPE_NUM=22 float elements as in
+	// https://git.esa.informatik.tu-darmstadt.de/docking/ocladock/blob/master/host/src/processligand.cpp#L456
+	// See "User Guide AutoDock 4.2" (page 34)
+	double  reqm [ATYPE_NUM];
+	double  reqm_hbond [ATYPE_NUM];
+	// -------------------------------------------
+
 	double 	VWpars_A [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];
 	double	VWpars_B [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];
 	double 	VWpars_C [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];

@@ -149,6 +149,13 @@ void get_commandpars(const int* argc,
 	strcpy(mypars->ls_method, "sw");		// "sw": Solis-Wetts, 
 							// "sd": Steepest-Descent", 
 							// "bfgs": Broyden-Fletcher-Goldfarb-Shanno (to be implemented)
+
+	// -------------------------------------------
+	// Smoothed pairwise potentials
+	// -------------------------------------------
+	mypars->smooth              = 0.5f;
+	// -------------------------------------------
+
 	mypars->tournament_rate     = 60;		// 60%
 	mypars->rho_lower_bound     = 0.01;		// 0.01
 	mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);	// 2 A
@@ -271,6 +278,23 @@ void get_commandpars(const int* argc,
 		// ---------------------------------
 		// MISSING: unsigned long num_of_ls
 		// ---------------------------------
+
+		// -------------------------------------------
+		// Smoothed pairwise potentials
+		// -------------------------------------------
+		if (strcmp("-smooth", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv [i+1], "%f", &tempfloat);
+
+			// smooth is measured in Angstrom
+			if ((tempfloat >= 0.0f) && (tempfloat <= 0.5f))
+				mypars->smooth = tempfloat;
+			else
+				printf("Warning: value of -smooth argument ignored. Value must be a float between 0 and 0.5.\n");
+		}
+		// -------------------------------------------
+
 
 
 		//Argument: local search method: 
