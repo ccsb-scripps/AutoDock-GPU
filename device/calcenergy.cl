@@ -67,15 +67,9 @@ void gpu_calc_energy(
 	             __constant float* atom_charges_const,
                      __constant char*  atom_types_const,
                      __constant char*  intraE_contributors_const,
-		
-		// -------------------------------------------
-		// Smoothed pairwise potentials
-		// -------------------------------------------
 	                  	float  dockpars_smooth,
 	       	     __constant float* reqm,
 	       	     __constant float* reqm_hbond,
-		// -------------------------------------------
-
                      __constant float* VWpars_AC_const,
                      __constant float* VWpars_BD_const,
                      __constant float* dspars_S_const,
@@ -428,25 +422,9 @@ void gpu_calc_energy(
 		// Calculating atomic_distance
 		float atomic_distance = native_sqrt(subx*subx + suby*suby + subz*subz)*dockpars_grid_spacing;
 
-
-		// -------------------------------------------
-		// Smoothed pairwise potentials
-		// -------------------------------------------
-		/*
-		if (atomic_distance < 1.0f)
-			atomic_distance = 1.0f;
-		*/
-
 		// Calculating energy contributions
-		/*
-		if ((atomic_distance < 8.0f) && (atomic_distance < 20.48f))
-		*/
 		if (atomic_distance < 8.0f)
 		{
-			// -------------------------------------------
-			// Smoothed pairwise potentials
-			// -------------------------------------------
-
 			// Getting type IDs
 			uint atom1_typeid = atom_types_const[atom1_id];
 			uint atom2_typeid = atom_types_const[atom2_id];
@@ -517,10 +495,8 @@ void gpu_calc_energy(
 				partial_intraE[get_local_id(0)] -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance/*atomic_distance*/,6));
 				#endif
 			}
-			// -------------------------------------------
 
 			// Calculating electrostatic term
-
         		partial_energies[get_local_id(0)] += native_divide (
                                                              dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
                                                              atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
