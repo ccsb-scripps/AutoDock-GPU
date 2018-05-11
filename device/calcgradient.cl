@@ -218,7 +218,15 @@ void gpu_calc_gradient(
 				atom_to_rotate[2] -= rotation_movingvec[2];
 
 				// Transforming torsion angles into quaternions
+				//----------------------------------
+				// fastergrad
+				//----------------------------------
+				/*
 				rotation_angle  = native_divide(rotation_angle, 2.0f);
+				*/
+				rotation_angle  = rotation_angle * 0.5f;
+				//----------------------------------
+
 				float sin_angle = native_sin(rotation_angle);
 				quatrot_left_q  = native_cos(rotation_angle);
 				quatrot_left_x  = sin_angle*rotation_unitvec[0];
@@ -955,11 +963,22 @@ void gpu_calc_gradient(
 	// ------------------------------------------
 	// Obtaining torsion-related gradients
 	// ------------------------------------------
+
+	//----------------------------------
+	// fastergrad
+	//----------------------------------
+/*
 	if (get_local_id(0) == 2) {
 
 		for (uint rotbond_id = 0;
 			  rotbond_id < dockpars_num_of_genes-6;
 			  rotbond_id ++) {
+*/
+
+		for (uint rotbond_id = get_local_id(0);
+			  rotbond_id < dockpars_num_of_genes-6;
+			  rotbond_id +=NUM_OF_THREADS_PER_BLOCK) {
+	//----------------------------------
 
 			// Querying ids of atoms belonging to the rotatable bond in question
 			int atom1_id = rotbonds_const[2*rotbond_id];
@@ -1052,6 +1071,12 @@ void gpu_calc_gradient(
 			#endif
 			
 		} // End of iterations over rotatable bonds
-	}
 
+	//----------------------------------
+	// fastergrad
+	//----------------------------------
+/*
+	}
+*/
+	//----------------------------------
 }

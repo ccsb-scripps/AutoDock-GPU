@@ -249,6 +249,24 @@ gradient_minimizer(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
+
+	//----------------------------------
+	// fastergrad
+	//----------------------------------
+ 		
+	// Calculating maximum possible stepsize (alpha)
+	__local float max_trans_gene, max_rota_gene, max_tors_gene;
+	__local float max_trans_stepsize, max_rota_stepsize, max_tors_stepsize;
+	__local float max_stepsize;
+	//----------------------------------
+
+	//----------------------------------
+	// fastergrad
+	//----------------------------------
+
+	__local float torsions_genotype[ACTUAL_GENOTYPE_LENGTH];
+	//----------------------------------
+
 	// The termination criteria is based on 
 	// a maximum number of iterations, and
 	// the minimum step size allowed for single-floating point numbers 
@@ -297,11 +315,16 @@ gradient_minimizer(
 		#endif
 
 
-				
+		//----------------------------------
+		// fastergrad
+		//----------------------------------
+/* 		
 		// Calculating maximum possible stepsize (alpha)
 		__local float max_trans_gene, max_rota_gene, max_tors_gene;
 		__local float max_trans_stepsize, max_rota_stepsize, max_tors_stepsize;
 		__local float max_stepsize;
+*/
+		//----------------------------------
 
 		if (get_local_id(0) == 0) {
 			// Finding maximum of the absolute value 
@@ -324,7 +347,15 @@ gradient_minimizer(
 		}
 
 		// Copying torsions genes
+
+		//----------------------------------
+		// fastergrad
+		//----------------------------------
+/*
 		__local float torsions_genotype[ACTUAL_GENOTYPE_LENGTH];
+*/
+		//----------------------------------
+
 		for(uint i = get_local_id(0); 
 			 i < dockpars_num_of_genes-6; 
 			 i+= NUM_OF_THREADS_PER_BLOCK) {
@@ -440,6 +471,18 @@ gradient_minimizer(
 		// =============================================================
 
 		barrier(CLK_LOCAL_MEM_FENCE);
+
+		//----------------------------------
+		// fastergrad
+		//----------------------------------
+/*		
+		if ((get_group_id(0) == 0) && (get_local_id(0) == 0)) {
+			for(uint i = 0; i < dockpars_num_of_genes; i++) {
+				printf("gradient[%u]=%f \n", i, gradient[i]);
+			}
+		}
+*/
+		//----------------------------------
 
 		
 		for(uint i = get_local_id(0); i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {

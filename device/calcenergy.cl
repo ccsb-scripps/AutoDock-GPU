@@ -172,7 +172,14 @@ void gpu_calc_energy(
 				atom_to_rotate[2] -= rotation_movingvec[2];
 
 				// Transforming torsion angles into quaternions
+				//----------------------------------
+				// fastergrad
+				//----------------------------------
+				/*
 				rotation_angle  = native_divide(rotation_angle, 2.0f);
+				*/
+				rotation_angle  = rotation_angle * 0.5f;
+				//----------------------------------
 				float sin_angle = native_sin(rotation_angle);
 				quatrot_left_q  = native_cos(rotation_angle);
 				quatrot_left_x  = sin_angle*rotation_unitvec[0];

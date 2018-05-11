@@ -423,7 +423,18 @@ filled with clock() */
 	// Setup here (temporarily?) the gradient and associated parameters.
 	// This should be ultimately configurable by the user as program exec. flags.
 	Gradientparameters gradientpars;
+
+	//----------------------------------
+	// fastergrad
+	//----------------------------------
+/*
 	gradientpars.max_num_of_iters = 300;
+*/
+/*
+	gradientpars.max_num_of_iters = 10;
+*/
+	gradientpars.max_num_of_iters =	(unsigned int) mypars->max_num_of_iters;
+	//----------------------------------
 
 /*
 	gradientpars.max_num_of_consec_fails = (unsigned int)(0.05 * gradientpars.max_num_of_iters);
