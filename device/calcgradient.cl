@@ -72,15 +72,9 @@ void gpu_calc_gradient(
 	             __constant float* atom_charges_const,
                      __constant char*  atom_types_const,
                      __constant char*  intraE_contributors_const,
-
-		// -------------------------------------------
-		// Smoothed pairwise gradients
-		// -------------------------------------------
 	                  	float  dockpars_smooth,
 	       	     __constant float* reqm,
 	       	     __constant float* reqm_hbond,
-		// -------------------------------------------
-
                      __constant float* VWpars_AC_const,
                      __constant float* VWpars_BD_const,
                      __constant float* dspars_S_const,
@@ -579,19 +573,7 @@ void gpu_calc_gradient(
 		// Calculating atomic distance
 		float atomic_distance = native_sqrt(subx*subx + suby*suby + subz*subz)*dockpars_grid_spacing;
 
-/*
-		// -------------------------------------------
-		// Smoothed pairwise gradients
-		// -------------------------------------------
-		if (atomic_distance < 1.0f)
-			atomic_distance = 1.0f;
-		// -------------------------------------------
-*/
-
 		// Calculating gradient contributions
-/*
-		if ((atomic_distance < 8.0f) && (atomic_distance < 20.48f))
-*/
 		if (atomic_distance < 8.0f)
 		{
 			// Getting type IDs

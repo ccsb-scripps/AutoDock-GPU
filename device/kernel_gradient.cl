@@ -403,15 +403,9 @@ gradient_minimizer(
 			        atom_charges_const,
 				atom_types_const,
 				intraE_contributors_const,
-
-		// -------------------------------------------
-		// Smoothed pairwise potentials
-		// -------------------------------------------
 				dockpars_smooth,
 				reqm,
 				reqm_hbond,
-		// -------------------------------------------
-
 				VWpars_AC_const,
 				VWpars_BD_const,
 				dspars_S_const,
