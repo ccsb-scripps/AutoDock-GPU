@@ -53,6 +53,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
   int memcopyBufferObjectToDevice(cl_command_queue cmd_queue,
                                   cl_mem           dest,
+				  bool		   blocking,
                                   void*            src,
                                   size_t           size);
 
