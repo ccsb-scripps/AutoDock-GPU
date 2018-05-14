@@ -56,12 +56,12 @@ int convertToString2(const char *filename, std::string& s)
 }
 
 int ImportSource(const char*    filename,
-			     const char*    kernel_name,
-				 cl_device_id*  device_id,
-				 cl_context	context,
-				 /*cl_program*	program,*/
-				 const char*    options,
-				 cl_kernel*	kernel)
+	         const char*    kernel_name,
+		 cl_device_id*  device_id,
+		 cl_context	context,
+		 /*cl_program*	program,*/
+		 const char*    options,
+		 cl_kernel*	kernel)
 {
 	cl_int err;
 
@@ -189,6 +189,7 @@ int ImportSource(const char*    filename,
 	}
 #endif
 
+	clReleaseProgram(local_program);
 	/* *program = local_program;*/
 	*kernel = local_kernel;
 	return CL_SUCCESS;
