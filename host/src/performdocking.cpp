@@ -304,22 +304,22 @@ filled with clock() */
   mallocBufferObject(context,CL_MEM_READ_ONLY,3*MAX_NUM_OF_ROTBONDS*sizeof(float),                    &mem_rotbonds_unit_vectors_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,4*MAX_NUM_OF_RUNS*sizeof(float),                        &mem_ref_orientation_quats_const);
 
-  memcopyBufferObjectToDevice(command_queue,mem_atom_charges_const,         	&KerConst.atom_charges_const,           MAX_NUM_OF_ATOMS*sizeof(float));
-  memcopyBufferObjectToDevice(command_queue,mem_atom_types_const,           	&KerConst.atom_types_const,             MAX_NUM_OF_ATOMS*sizeof(char));
-  memcopyBufferObjectToDevice(command_queue,mem_intraE_contributors_const,  	&KerConst.intraE_contributors_const,    3*MAX_INTRAE_CONTRIBUTORS*sizeof(char));
-  memcopyBufferObjectToDevice(command_queue,mem_reqm_const,         		&KerConst.reqm_const,           	ATYPE_NUM*sizeof(float));
-  memcopyBufferObjectToDevice(command_queue,mem_reqm_hbond_const,         	&KerConst.reqm_hbond_const,           	ATYPE_NUM*sizeof(float));
-  memcopyBufferObjectToDevice(command_queue,mem_VWpars_AC_const,            	&KerConst.VWpars_AC_const,              MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float));
-  memcopyBufferObjectToDevice(command_queue,mem_VWpars_BD_const,            	&KerConst.VWpars_BD_const,              MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float));
-  memcopyBufferObjectToDevice(command_queue,mem_dspars_S_const,             	&KerConst.dspars_S_const,               MAX_NUM_OF_ATYPES*sizeof(float));
-  memcopyBufferObjectToDevice(command_queue,mem_dspars_V_const,             	&KerConst.dspars_V_const,               MAX_NUM_OF_ATYPES*sizeof(float));
-  memcopyBufferObjectToDevice(command_queue,mem_rotlist_const,              	&KerConst.rotlist_const,                MAX_NUM_OF_ROTATIONS*sizeof(int));
-  memcopyBufferObjectToDevice(command_queue,mem_ref_coords_x_const,         	&KerConst.ref_coords_x_const,           MAX_NUM_OF_ATOMS*sizeof(float));
-  memcopyBufferObjectToDevice(command_queue,mem_ref_coords_y_const,         	&KerConst.ref_coords_y_const,           MAX_NUM_OF_ATOMS*sizeof(float));
-  memcopyBufferObjectToDevice(command_queue,mem_ref_coords_z_const,         	&KerConst.ref_coords_z_const,           MAX_NUM_OF_ATOMS*sizeof(float));
-  memcopyBufferObjectToDevice(command_queue,mem_rotbonds_moving_vectors_const,&KerConst.rotbonds_moving_vectors_const,3*MAX_NUM_OF_ROTBONDS*sizeof(float));
-  memcopyBufferObjectToDevice(command_queue,mem_rotbonds_unit_vectors_const,  &KerConst.rotbonds_unit_vectors_const,  3*MAX_NUM_OF_ROTBONDS*sizeof(float));
-  memcopyBufferObjectToDevice(command_queue,mem_ref_orientation_quats_const,  &KerConst.ref_orientation_quats_const,  4*MAX_NUM_OF_RUNS*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_atom_charges_const,         	false,		&KerConst.atom_charges_const,           MAX_NUM_OF_ATOMS*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_atom_types_const,           	false,		&KerConst.atom_types_const,             MAX_NUM_OF_ATOMS*sizeof(char));
+  memcopyBufferObjectToDevice(command_queue,mem_intraE_contributors_const,  	false,		&KerConst.intraE_contributors_const,    3*MAX_INTRAE_CONTRIBUTORS*sizeof(char));
+  memcopyBufferObjectToDevice(command_queue,mem_reqm_const,         		false,		&KerConst.reqm_const,           	ATYPE_NUM*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_reqm_hbond_const,         	false,		&KerConst.reqm_hbond_const,           	ATYPE_NUM*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_VWpars_AC_const,            	false,		&KerConst.VWpars_AC_const,              MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_VWpars_BD_const,            	false,		&KerConst.VWpars_BD_const,              MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_dspars_S_const,             	false,		&KerConst.dspars_S_const,               MAX_NUM_OF_ATYPES*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_dspars_V_const,             	false,		&KerConst.dspars_V_const,               MAX_NUM_OF_ATYPES*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_rotlist_const,              	false,		&KerConst.rotlist_const,                MAX_NUM_OF_ROTATIONS*sizeof(int));
+  memcopyBufferObjectToDevice(command_queue,mem_ref_coords_x_const,         	false,		&KerConst.ref_coords_x_const,           MAX_NUM_OF_ATOMS*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_ref_coords_y_const,         	false,		&KerConst.ref_coords_y_const,           MAX_NUM_OF_ATOMS*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_ref_coords_z_const,         	false,		&KerConst.ref_coords_z_const,           MAX_NUM_OF_ATOMS*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_rotbonds_moving_vectors_const,	false,		&KerConst.rotbonds_moving_vectors_const,3*MAX_NUM_OF_ROTBONDS*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_rotbonds_unit_vectors_const,  	false,		&KerConst.rotbonds_unit_vectors_const,  3*MAX_NUM_OF_ROTBONDS*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_ref_orientation_quats_const,  	false,		&KerConst.ref_orientation_quats_const,  4*MAX_NUM_OF_RUNS*sizeof(float));
 	// ----------------------------------------------------------------------
 
  	//allocating GPU memory for populations, floatgirds,
@@ -352,10 +352,10 @@ filled with clock() */
 
 	mallocBufferObject(context,CL_MEM_READ_WRITE,size_prng_seeds,  	      				&mem_dockpars_prng_states);
 
-	memcopyBufferObjectToDevice(command_queue,mem_dockpars_fgrids,                /*(void *)*/ cpu_floatgrids,  size_floatgrids);
- 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_current, cpu_init_populations, 				size_populations);
-	memcopyBufferObjectToDevice(command_queue,mem_gpu_evals_of_runs, 							cpu_evals_of_runs, 	 					size_evals_of_runs);
-	memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,     			cpu_prng_seeds,      					size_prng_seeds);
+	memcopyBufferObjectToDevice(command_queue,mem_dockpars_fgrids,			false,		cpu_floatgrids,  	size_floatgrids);
+ 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_current, 	false,		cpu_init_populations, 	size_populations);
+	memcopyBufferObjectToDevice(command_queue,mem_gpu_evals_of_runs, 		false,		cpu_evals_of_runs, 	size_evals_of_runs);
+	memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,     	false,		cpu_prng_seeds,      	size_prng_seeds);
 
 	//preparing parameter struct
 	dockpars.num_of_atoms  = ((char)  myligand_reference.num_of_atoms);

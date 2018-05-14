@@ -215,10 +215,11 @@ int getBufferObjectInfo(cl_mem object){
 
 int memcopyBufferObjectToDevice(cl_command_queue cmd_queue,
 			        cl_mem           dest,
+				bool		 blocking,
 			        void*            src,
 			        size_t           size){
   cl_int err;
-  err = clEnqueueWriteBuffer(cmd_queue,dest,CL_TRUE,0,size,src,0,NULL,NULL);
+  err = clEnqueueWriteBuffer(cmd_queue,dest,blocking,0,size,src,0,NULL,NULL);
   if (err != CL_SUCCESS){
 	printf("Error: clEnqueueWriteBuffer() %d\n", err);
 	fflush(stdout);
