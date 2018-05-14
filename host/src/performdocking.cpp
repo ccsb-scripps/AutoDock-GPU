@@ -1062,8 +1062,8 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
 	clReleaseMemObject(mem_gradpars_conformation_min_perturbation);
 	*/
 
-	// Release all local-search kernels,
-	// regarless of the chosen method for execution.
+	// Release all kernels,
+	// regardless of the chosen local-search method for execution.
 	// Otherwise, memory leak in clCreateKernel()
 	clReleaseKernel(kernel1);
 	clReleaseKernel(kernel2);

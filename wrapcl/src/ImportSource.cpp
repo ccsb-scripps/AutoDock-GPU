@@ -189,7 +189,7 @@ int ImportSource(const char*    filename,
 	}
 #endif
 
-	// Release all programs.
+	// Release all program objects.
 	// Otherwise, memory leak in clCreateProgramWithSource()
 	clReleaseProgram(local_program);
 
