@@ -189,6 +189,7 @@ int ImportSource(const char*    filename,
 	}
 #endif
 
+	clReleaseProgram(local_program);
 	/* *program = local_program;*/
 	*kernel = local_kernel;
 	return CL_SUCCESS;
