@@ -1062,23 +1062,15 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
 	clReleaseMemObject(mem_gradpars_conformation_min_perturbation);
 	*/
 
+	// Release all local-search kernels,
+	// regarless of the chosen method for execution.
+	// Otherwise, memory leak in clCreateKernel()
 	clReleaseKernel(kernel1);
 	clReleaseKernel(kernel2);
-	clReleaseKernel(kernel4);
-/*
-#if !defined (GRADIENT_ENABLED)
-*/
-if (strcmp(mypars->ls_method, "sw") == 0) {
 	clReleaseKernel(kernel3);
-/*
-#else
-*/
-} else if (strcmp(mypars->ls_method, "sd") == 0) {
+	clReleaseKernel(kernel4);
 	clReleaseKernel(kernel5);
-/*
-#endif
-*/
-}
+
 	clReleaseCommandQueue(command_queue);
 	clReleaseContext(context);
 	free(device_id);
