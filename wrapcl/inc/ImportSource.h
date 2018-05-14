@@ -45,12 +45,10 @@ int convertToString2(const char *filename, std::string& s);
 /*
 
 */
-int ImportSource(const char*    filename,
-				 const char*    kernel_name,
-				 cl_device_id*  device_id,
-				 cl_context     context,
-				 /*cl_program*  program,*/
-				 const char*    options,
-				 cl_kernel*     kernel);
+int ImportSourceToProgram(const char*    filename,
+			  cl_device_id*  device_id,
+			  cl_context     context,
+			  cl_program*  	 program,
+			  const char*    options);
 
 #endif /* IMPORT_SOURCE_H */

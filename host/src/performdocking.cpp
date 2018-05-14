@@ -116,10 +116,11 @@ filled with clock() */
 // =======================================================================
 // OpenCL Host Setup
 // =======================================================================
-	cl_platform_id* platform_id;
-	cl_device_id* device_id;
-	cl_context context;
+	cl_platform_id*  platform_id;
+	cl_device_id*    device_id;
+	cl_context       context;
 	cl_command_queue command_queue;
+	cl_program       program;
 
 #ifdef _WIN32
 	const char *filename = KRNL_FILE;
@@ -166,7 +167,7 @@ filled with clock() */
 	// Create command queue for first device
 	if (createCommandQueue(context,device_id[0],&command_queue) != 0) return 1;
 
-	// Create program and kernel from source
+	// Create program from source 
 #ifdef _WIN32
 	if (ImportSource(filename, name_k1, device_id, context, options_program, &kernel1) != 0) return 1;
 	if (ImportSource(filename, name_k2, device_id, context, options_program, &kernel2) != 0) return 1;
@@ -174,12 +175,15 @@ filled with clock() */
 	if (ImportSource(filename, name_k4, device_id, context, options_program, &kernel4) != 0) return 1;
 	if (ImportSource(filename, name_k5, device_id, context, options_program, &kernel5) != 0) return 1;
 #else
-	if (ImportSource(calcenergy_ocl, name_k1, device_id, context, options_program, &kernel1) != 0) return 1;
-	if (ImportSource(calcenergy_ocl, name_k2, device_id, context, options_program, &kernel2) != 0) return 1;
-	if (ImportSource(calcenergy_ocl, name_k3, device_id, context, options_program, &kernel3) != 0) return 1;
-	if (ImportSource(calcenergy_ocl, name_k4, device_id, context, options_program, &kernel4) != 0) return 1;
-	if (ImportSource(calcenergy_ocl, name_k5, device_id, context, options_program, &kernel5) != 0) return 1;
+	if (ImportSourceToProgram(calcenergy_ocl, device_id, context, &program, options_program) != 0) return 1;
 #endif
+
+	// Create kernels
+	if (createKernel(device_id, &program, name_k1, &kernel1) != 0) return 1;
+	if (createKernel(device_id, &program, name_k2, &kernel2) != 0) return 1;
+	if (createKernel(device_id, &program, name_k3, &kernel3) != 0) return 1;
+	if (createKernel(device_id, &program, name_k4, &kernel4) != 0) return 1;
+	if (createKernel(device_id, &program, name_k5, &kernel5) != 0) return 1;
 
 // End of OpenCL Host Setup
 // =======================================================================
@@ -1070,6 +1074,8 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
 	clReleaseKernel(kernel3);
 	clReleaseKernel(kernel4);
 	clReleaseKernel(kernel5);
+
+	clReleaseProgram(program);
 
 	clReleaseCommandQueue(command_queue);
 	clReleaseContext(context);
