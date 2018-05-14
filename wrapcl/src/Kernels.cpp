@@ -24,6 +24,43 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "Kernels.h"
 
+int createKernel( cl_device_id*  device_id,
+		  cl_program*	 program,
+		  const char*    kernel_name,
+		  cl_kernel*	 kernel)
+{
+	cl_int err;
+
+	// Create the compute kernel in the program we wish to run
+	*kernel = clCreateKernel(*program, kernel_name, &err);
+
+	if ((! *kernel) || (err != CL_SUCCESS)){
+		printf("Error: clCreateKernel() %s %d\n", kernel_name, err);
+		fflush(stdout);
+		return EXIT_FAILURE;
+	}
+
+#ifdef KERNEL_INFO_DISPLAY
+	err = getKernelInfo(*kernel);
+	if (err != CL_SUCCESS){
+		printf("Error: getKernelInfo() %d\n", kernel_name, err);
+		fflush(stdout);
+		return EXIT_FAILURE;
+	}
+#endif
+
+#ifdef KERNEL_WORK_GROUP_INFO_DISPLAY
+	err = getKernelWorkGroupInfo(*kernel, device_id[0]);
+	if (err != CL_SUCCESS){
+		printf("Error: getKernelWorkGroupInfo() %d\n", kernel_name, err);
+		fflush(stdout);
+		return EXIT_FAILURE;
+	}
+#endif
+
+	return CL_SUCCESS;
+}
+
 #ifdef KERNEL_INFO_DISPLAY
 int getKernelInfo(cl_kernel kernel){
 
