@@ -140,19 +140,19 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 
 	unsigned char g1 = dockpars_gridsize_x;
 	unsigned int  g2 = dockpars_gridsize_x * dockpars_gridsize_y;
-  unsigned int  g3 = dockpars_gridsize_x * dockpars_gridsize_y * dockpars_gridsize_z;
+  	unsigned int  g3 = dockpars_gridsize_x * dockpars_gridsize_y * dockpars_gridsize_z;
 
 	unsigned int ylow_times_g1, yhigh_times_g1;
 	unsigned int zlow_times_g2, zhigh_times_g2;
 
 	unsigned int cube_000;
 	unsigned int cube_100;
-  unsigned int cube_010;
+	unsigned int cube_010;
 	unsigned int cube_110;
 	unsigned int cube_001;
-  unsigned int cube_101;
-  unsigned int cube_011;
-  unsigned int cube_111;
+  	unsigned int cube_101;
+  	unsigned int cube_011;
+  	unsigned int cube_111;
 
 #else
 	sin_angle = sin(theta);
@@ -222,16 +222,18 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 
 			//performing rotation
 
+			rotation_angle = rotation_angle * 0.5f;
+
 #if defined (NATIVE_PRECISION)
-			rotation_angle = native_divide(rotation_angle,2);
+			/*rotation_angle = native_divide(rotation_angle,2);*/
 			quatrot_left_q = native_cos(rotation_angle);
 			sin_angle = native_sin(rotation_angle);
 #elif defined (HALF_PRECISION)
-			rotation_angle = half_divide(rotation_angle,2);
+			/*rotation_angle = half_divide(rotation_angle,2);*/
 			quatrot_left_q = half_cos(rotation_angle);
 			sin_angle = half_sin(rotation_angle);
 #else	// Full precision
-			rotation_angle = rotation_angle/2;
+			/*rotation_angle = rotation_angle/2;*/
 			quatrot_left_q = cos(rotation_angle);
 			sin_angle = sin(rotation_angle);
 #endif
@@ -251,21 +253,21 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 				quatrot_temp_z = quatrot_left_z;
 
 				quatrot_left_q = quatrot_temp_q*ref_orientation_quats_const[4*(*run_id)]-
-						 						 quatrot_temp_x*ref_orientation_quats_const[4*(*run_id)+1]-
-						 					 	 quatrot_temp_y*ref_orientation_quats_const[4*(*run_id)+2]-
-						   			 	   quatrot_temp_z*ref_orientation_quats_const[4*(*run_id)+3];
+						 quatrot_temp_x*ref_orientation_quats_const[4*(*run_id)+1]-
+						 quatrot_temp_y*ref_orientation_quats_const[4*(*run_id)+2]-
+						 quatrot_temp_z*ref_orientation_quats_const[4*(*run_id)+3];
 				quatrot_left_x = quatrot_temp_q*ref_orientation_quats_const[4*(*run_id)+1]+
-						 						 ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_x+
-						 					 	 quatrot_temp_y*ref_orientation_quats_const[4*(*run_id)+3]-
-						 					 	 ref_orientation_quats_const[4*(*run_id)+2]*quatrot_temp_z;
+						 ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_x+
+						 quatrot_temp_y*ref_orientation_quats_const[4*(*run_id)+3]-
+						 ref_orientation_quats_const[4*(*run_id)+2]*quatrot_temp_z;
 				quatrot_left_y = quatrot_temp_q*ref_orientation_quats_const[4*(*run_id)+2]+
-						 						 ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_y+
-						      			 ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_z-
-						 					 	 quatrot_temp_x*ref_orientation_quats_const[4*(*run_id)+3];
+						 ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_y+
+						 ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_z-
+						 quatrot_temp_x*ref_orientation_quats_const[4*(*run_id)+3];
 				quatrot_left_z = quatrot_temp_q*ref_orientation_quats_const[4*(*run_id)+3]+
-						 						 ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_z+
-						 					 	 quatrot_temp_x*ref_orientation_quats_const[4*(*run_id)+2]-
-						 					 	 ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_y;
+						 ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_z+
+						 quatrot_temp_x*ref_orientation_quats_const[4*(*run_id)+2]-
+						 ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_y;
 
 			}
 
@@ -324,8 +326,8 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 		q = atom_charges_const[atom1_id];
 
 		if ((x < 0) || (y < 0) || (z < 0) || (x >= dockpars_gridsize_x-1)
-				                  						|| (y >= dockpars_gridsize_y-1)
-						  												|| (z >= dockpars_gridsize_z-1)){
+				                  || (y >= dockpars_gridsize_y-1)
+						  || (z >= dockpars_gridsize_z-1)){
 			partial_energies[get_local_id(0)] += 16777216.0f; //100000.0f;
 		}
 		else
@@ -349,7 +351,7 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 #if defined (IMPROVE_GRID)
 			ylow_times_g1  = y_low*g1;
 			yhigh_times_g1 = y_high*g1;
-		  zlow_times_g2  = z_low*g2;
+		  	zlow_times_g2  = z_low*g2;
 			zhigh_times_g2 = z_high*g2;
 
 			cube_000 = x_low  + ylow_times_g1  + zlow_times_g2;
@@ -364,12 +366,12 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 
 			cube [0][0][0] = *(dockpars_fgrids + cube_000 + mul_tmp);
 			cube [1][0][0] = *(dockpars_fgrids + cube_100 + mul_tmp);
-      cube [0][1][0] = *(dockpars_fgrids + cube_010 + mul_tmp);
-      cube [1][1][0] = *(dockpars_fgrids + cube_110 + mul_tmp);
-      cube [0][0][1] = *(dockpars_fgrids + cube_001 + mul_tmp);
-      cube [1][0][1] = *(dockpars_fgrids + cube_101 + mul_tmp);
-      cube [0][1][1] = *(dockpars_fgrids + cube_011 + mul_tmp);
-      cube [1][1][1] = *(dockpars_fgrids + cube_111 + mul_tmp);
+      			cube [0][1][0] = *(dockpars_fgrids + cube_010 + mul_tmp);
+      			cube [1][1][0] = *(dockpars_fgrids + cube_110 + mul_tmp);
+      			cube [0][0][1] = *(dockpars_fgrids + cube_001 + mul_tmp);
+      			cube [1][0][1] = *(dockpars_fgrids + cube_101 + mul_tmp);
+      			cube [0][1][1] = *(dockpars_fgrids + cube_011 + mul_tmp);
+      			cube [1][1][1] = *(dockpars_fgrids + cube_111 + mul_tmp);
 
 #else
 			cube [0][0][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
@@ -408,12 +410,12 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			mul_tmp = atom1_typeid*g3;
 			cube [0][0][0] = *(dockpars_fgrids + cube_000 + mul_tmp);
 			cube [1][0][0] = *(dockpars_fgrids + cube_100 + mul_tmp);
-      cube [0][1][0] = *(dockpars_fgrids + cube_010 + mul_tmp);
-      cube [1][1][0] = *(dockpars_fgrids + cube_110 + mul_tmp);
-      cube [0][0][1] = *(dockpars_fgrids + cube_001 + mul_tmp);
-      cube [1][0][1] = *(dockpars_fgrids + cube_101 + mul_tmp);
-      cube [0][1][1] = *(dockpars_fgrids + cube_011 + mul_tmp);
-      cube [1][1][1] = *(dockpars_fgrids + cube_111 + mul_tmp);
+      			cube [0][1][0] = *(dockpars_fgrids + cube_010 + mul_tmp);
+      			cube [1][1][0] = *(dockpars_fgrids + cube_110 + mul_tmp);
+      			cube [0][0][1] = *(dockpars_fgrids + cube_001 + mul_tmp);
+      			cube [1][0][1] = *(dockpars_fgrids + cube_101 + mul_tmp);
+      			cube [0][1][1] = *(dockpars_fgrids + cube_011 + mul_tmp);
+      			cube [1][1][1] = *(dockpars_fgrids + cube_111 + mul_tmp);
 
 #else
 			cube [0][0][0] = GETGRIDVALUE(dockpars_fgrids, dockpars_gridsize_x,
