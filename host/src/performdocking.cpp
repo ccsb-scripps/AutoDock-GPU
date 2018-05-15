@@ -394,9 +394,11 @@ filled with clock() */
 	dockpars.coeff_desolv  = ((float) mypars->coeffs.AD4_coeff_desolv);
 	dockpars.pop_size      = mypars->pop_size;
 	dockpars.num_of_genes  = myligand_reference.num_of_rotbonds + 6;
-	dockpars.tournament_rate = mypars->tournament_rate;
-	dockpars.crossover_rate  = mypars->crossover_rate;
-	dockpars.mutation_rate   = mypars->mutation_rate;
+	// Notice: dockpars.tournament_rate, dockpars.crossover_rate, dockpars.mutation_rate
+	// were scaled down to [0,1] in host to reduce number of operations in device
+	dockpars.tournament_rate = mypars->tournament_rate/100.0f; 
+	dockpars.crossover_rate  = mypars->crossover_rate/100.0f;
+	dockpars.mutation_rate   = mypars->mutation_rate/100.f;
 	dockpars.abs_max_dang    = mypars->abs_max_dang;
 	dockpars.abs_max_dmov    = mypars->abs_max_dmov;
 	dockpars.lsearch_rate    = mypars->lsearch_rate;

@@ -143,15 +143,17 @@ gpu_gen_and_eval_newpops(
 
 		if (get_local_id(0) < 2) 
 		{
+			// Notice: dockpars_tournament_rate was scaled down to [0,1] in host
+			// to reduce number of operations in device
 			if (candidate_energies[2*get_local_id(0)] < candidate_energies[2*get_local_id(0)+1])
-				if (100.0f*randnums[4+get_local_id(0)] < dockpars_tournament_rate) {		//using randnum[4..5]
+				if (/*100.0f**/randnums[4+get_local_id(0)] < dockpars_tournament_rate) {		//using randnum[4..5]
 					parents[get_local_id(0)] = parent_candidates[2*get_local_id(0)];
 				}
 				else {
 					parents[get_local_id(0)] = parent_candidates[2*get_local_id(0)+1];
 				}
 			else
-				if (100.0f*randnums[4+get_local_id(0)] < dockpars_tournament_rate) {
+				if (/*100.0f**/randnums[4+get_local_id(0)] < dockpars_tournament_rate) {
 					parents[get_local_id(0)] = parent_candidates[2*get_local_id(0)+1];
 				}
 				else {
@@ -162,7 +164,9 @@ gpu_gen_and_eval_newpops(
 		// Performing crossover
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (100.0f*randnums[6] < dockpars_crossover_rate)	// Using randnums[6]
+		// Notice: dockpars_crossover_rate was scaled down to [0,1] in host
+		// to reduce number of operations in device
+		if (/*100.0f**/randnums[6] < dockpars_crossover_rate)	// Using randnums[6]
 		{
 			if (get_local_id(0) < 2) {
 				// Using randnum[7..8]
@@ -219,7 +223,9 @@ gpu_gen_and_eval_newpops(
 		     gene_counter < dockpars_num_of_genes;
 		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
-			if (100.0f*gpu_randf(dockpars_prng_states) < dockpars_mutation_rate)
+			// Notice: dockpars_mutation_rate was scaled down to [0,1] in host
+			// to reduce number of operations in device
+			if (/*100.0f**/gpu_randf(dockpars_prng_states) < dockpars_mutation_rate)
 			{
 				// Translation genes
 				if (gene_counter <= 2) {
