@@ -154,7 +154,14 @@ gradient_minimizer(
 	__local float gradient_intra_x[MAX_NUM_OF_ATOMS];
 	__local float gradient_intra_y[MAX_NUM_OF_ATOMS];
 	__local float gradient_intra_z[MAX_NUM_OF_ATOMS];
+
+
+	//----------------------------------
+	// eliminate unnecessary local storage
+	//----------------------------------
+/*
 	__local float gradient_per_intracontributor[MAX_INTRAE_CONTRIBUTORS];
+*/
 
 	// Accummulated gradient per each ligand atom
 	__local float gradient_x[MAX_NUM_OF_ATOMS];
@@ -465,7 +472,12 @@ gradient_minimizer(
 				gradient_x,
 				gradient_y,
 				gradient_z,
+	//----------------------------------
+	// eliminate unnecessary local storage
+	//----------------------------------
+/*
 				gradient_per_intracontributor,
+*/
 				gradient
 				);
 		// =============================================================
