@@ -155,14 +155,6 @@ gradient_minimizer(
 	__local float gradient_intra_y[MAX_NUM_OF_ATOMS];
 	__local float gradient_intra_z[MAX_NUM_OF_ATOMS];
 
-
-	//----------------------------------
-	// eliminate unnecessary local storage
-	//----------------------------------
-/*
-	__local float gradient_per_intracontributor[MAX_INTRAE_CONTRIBUTORS];
-*/
-
 	// Accummulated gradient per each ligand atom
 	__local float gradient_x[MAX_NUM_OF_ATOMS];
 	__local float gradient_y[MAX_NUM_OF_ATOMS];
@@ -265,12 +257,8 @@ gradient_minimizer(
 	__local float max_trans_gene, max_rota_gene, max_tors_gene;
 	__local float max_trans_stepsize, max_rota_stepsize, max_tors_stepsize;
 	__local float max_stepsize;
-	//----------------------------------
 
-	//----------------------------------
-	// fastergrad
-	//----------------------------------
-
+	// Storing torsion genotypes here
 	__local float torsions_genotype[ACTUAL_GENOTYPE_LENGTH];
 	//----------------------------------
 
@@ -321,23 +309,11 @@ gradient_minimizer(
 		genotype[20] = 0.0f;
 		#endif
 
-
-		//----------------------------------
-		// fastergrad
-		//----------------------------------
-/* 		
-		// Calculating maximum possible stepsize (alpha)
-		__local float max_trans_gene, max_rota_gene, max_tors_gene;
-		__local float max_trans_stepsize, max_rota_stepsize, max_tors_stepsize;
-		__local float max_stepsize;
-*/
-		//----------------------------------
-
 		if (get_local_id(0) == 0) {
 			// Finding maximum of the absolute value 
 			// for the three translation genes
-			max_trans_gene = max(fabs(genotype[0]), fabs(genotype[1]));
-			max_trans_gene = max(max_trans_gene, fabs(genotype[2]));
+			max_trans_gene = fmax/*max*/(fabs(genotype[0]), fabs(genotype[1]));
+			max_trans_gene = fmax/*max*/(max_trans_gene, fabs(genotype[2]));
 
 			// Note that MAX_DEV_TRANSLATION needs to be 
 			// expressed in grid size first
@@ -345,8 +321,8 @@ gradient_minimizer(
 
 			// Finding maximum of the absolute value 
 			// for the three Shoemake rotation genes
-			max_rota_gene = max(fabs(genotype[3]), fabs(genotype[4]));//printf("max_rota_gene: %-10.7f\n", max_rota_gene);		
-			max_rota_gene = max(max_rota_gene, fabs(genotype[5]));	//printf("max_rota_gene: %-10.7f\n", max_rota_gene);
+			max_rota_gene = fmax/*max*/(fabs(genotype[3]), fabs(genotype[4]));//printf("max_rota_gene: %-10.7f\n", max_rota_gene);		
+			max_rota_gene = fmax/*max*/(max_rota_gene, fabs(genotype[5]));	//printf("max_rota_gene: %-10.7f\n", max_rota_gene);
 
 			// Note that MAX_DEV_ROTATION
 			// is already expressed within [0, 1]
@@ -354,15 +330,6 @@ gradient_minimizer(
 		}
 
 		// Copying torsions genes
-
-		//----------------------------------
-		// fastergrad
-		//----------------------------------
-/*
-		__local float torsions_genotype[ACTUAL_GENOTYPE_LENGTH];
-*/
-		//----------------------------------
-
 		for(uint i = get_local_id(0); 
 			 i < dockpars_num_of_genes-6; 
 			 i+= NUM_OF_THREADS_PER_BLOCK) {
@@ -394,11 +361,11 @@ gradient_minimizer(
 		
 		if (get_local_id(0) == 0) {
 			// Calculating the maximum stepsize using previous three
-			max_stepsize = min(max_trans_stepsize, max_rota_stepsize);
-			max_stepsize = min(max_stepsize, max_tors_stepsize);
+			max_stepsize = fmin/*min*/(max_trans_stepsize, max_rota_stepsize);
+			max_stepsize = fmin/*min*/(max_stepsize, max_tors_stepsize);
 
 			// Capping the stepsize
-			stepsize = min(stepsize, max_stepsize);
+			stepsize = fmin/*min*/(stepsize, max_stepsize);
 
 			#if defined (DEBUG_MINIMIZER)
 			//printf("max_genes: %-0.7f %-10.7f %-10.7f %-10.7f\n", max_trans_gene, max_rota_gene, max_tors_gene, stepsize);
@@ -472,12 +439,6 @@ gradient_minimizer(
 				gradient_x,
 				gradient_y,
 				gradient_z,
-	//----------------------------------
-	// eliminate unnecessary local storage
-	//----------------------------------
-/*
-				gradient_per_intracontributor,
-*/
 				gradient
 				);
 		// =============================================================
@@ -507,8 +468,8 @@ gradient_minimizer(
 			#endif
 
 			// Putting genes back within bounds
-			candidate_genotype[i] = min(candidate_genotype[i], upper_bounds_genotype[i]);
-			candidate_genotype[i] = max(candidate_genotype[i], lower_bounds_genotype[i]);
+			candidate_genotype[i] = fmin/*min*/(candidate_genotype[i], upper_bounds_genotype[i]);
+			candidate_genotype[i] = fmax/*max*/(candidate_genotype[i], lower_bounds_genotype[i]);
 	   	}
 		
 

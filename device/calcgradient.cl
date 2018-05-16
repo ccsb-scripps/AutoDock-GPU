@@ -41,7 +41,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //#define DEBUG_ENERGY_KERNEL5
 
 
-///*
+// Atomic operations used in gradients of intra contributors.
+// Only atomic_cmpxchg() works on floats. 
+// So for atomic add on floats, this link was used:
+// https://streamhpc.com/blog/2016-02-09/atomic-operations-for-floats-in-opencl-improved/
 void atomicAdd_g_f(volatile __local float *addr, float val)
 {
 	union{
@@ -73,7 +76,7 @@ void atomicSub_g_f(volatile __local float *addr, float val)
 		current.u32 = atomic_cmpxchg( (volatile __local unsigned int *)addr, expected.u32, next.u32);
 	} while( current.u32 != expected.u32 );
 }
-//*/
+
 
 void gpu_calc_gradient(	    
 				int    dockpars_rotbondlist_length,
@@ -142,12 +145,6 @@ void gpu_calc_gradient(
 		    __local float* gradient_x,
 		    __local float* gradient_y,
 		    __local float* gradient_z,
-	//----------------------------------
-	// eliminate unnecessary local storage
-	//----------------------------------
-/*
-	            __local float* gradient_per_intracontributor,
-*/
 		    __local float* gradient_genotype			
 )
 {
@@ -165,18 +162,6 @@ void gpu_calc_gradient(
 		gradient_intra_y[atom_id] = 0.0f;
 		gradient_intra_z[atom_id] = 0.0f;
 	}
-
-	//----------------------------------
-	// eliminate unnecessary local storage
-	//----------------------------------
-/*
-	// Initializing gradients per intramolecular contributor pairs 
-	for (uint intracontrib_atompair_id = get_local_id(0);
-		  intracontrib_atompair_id < dockpars_num_of_intraE_contributors;
-		  intracontrib_atompair_id+= NUM_OF_THREADS_PER_BLOCK) {
-		gradient_per_intracontributor[intracontrib_atompair_id] = 0.0f;
-	}
-*/
 
 	// Initializing gradient genotypes
 	for (uint gene_cnt = get_local_id(0);
@@ -609,11 +594,9 @@ void gpu_calc_gradient(
 	          contributor_counter < dockpars_num_of_intraE_contributors;
 	          contributor_counter+= NUM_OF_THREADS_PER_BLOCK)
 	{
-		//----------------------------------
-		// eliminate unnecessary local storage
-		//----------------------------------
+		// Storing in a private variable 
+		// the gradient contribution of each contributing atomic pair
 		float priv_gradient_per_intracontributor= 0.0f;
-		//----------------------------------
 
 		// Getting atom IDs
 		uint atom1_id = intraE_contributors_const[3*contributor_counter];
@@ -687,25 +670,20 @@ void gpu_calc_gradient(
 			}
 */
 
-
-		//----------------------------------
-		// eliminate unnecessary local storage
-		//----------------------------------
-
 			// Calculating van der Waals / hydrogen bond term
-			/*gradient_per_intracontributor[contributor_counter]*/ priv_gradient_per_intracontributor += native_divide (-12*VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
-									                     native_powr(smoothed_distance/*atomic_distance*/, 13)
-									       		    );
+			priv_gradient_per_intracontributor += native_divide (-12*VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
+									     native_powr(smoothed_distance/*atomic_distance*/, 13)
+									    );
 
 			if (intraE_contributors_const[3*contributor_counter+2] == 1) {	//H-bond
-				/*gradient_per_intracontributor[contributor_counter]*/ priv_gradient_per_intracontributor += native_divide (10*VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
-										                     native_powr(smoothed_distance/*atomic_distance*/, 11)
-												    );
+				priv_gradient_per_intracontributor += native_divide (10*VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
+										     native_powr(smoothed_distance/*atomic_distance*/, 11)
+										    );
 			}
 			else {	//van der Waals
-				/*gradient_per_intracontributor[contributor_counter]*/ priv_gradient_per_intracontributor += native_divide (6*VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
-										                     native_powr(smoothed_distance/*atomic_distance*/, 7)
-										                    );
+				priv_gradient_per_intracontributor += native_divide (6*VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
+										     native_powr(smoothed_distance/*atomic_distance*/, 7)
+										    );
 			}
 
 			// Calculating electrostatic term
@@ -714,23 +692,17 @@ void gpu_calc_gradient(
 		
 			float lower = native_powr(atomic_distance, 2) * native_powr(DIEL_A * (native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K) + DIEL_B * native_exp(DIEL_B_TIMES_H*atomic_distance), 2);
 
-        		/*gradient_per_intracontributor[contributor_counter]*/ priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id] * native_divide (upper, lower);
+        		priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id] * native_divide (upper, lower);
 
 			// Calculating desolvation term
-			/*gradient_per_intracontributor[contributor_counter]*/ priv_gradient_per_intracontributor += (
+			priv_gradient_per_intracontributor += (
 									       (dspars_S_const[atom1_typeid] + dockpars_qasp*fabs(atom_charges_const[atom1_id])) * dspars_V_const[atom2_typeid] +
 							                       (dspars_S_const[atom2_typeid] + dockpars_qasp*fabs(atom_charges_const[atom2_id])) * dspars_V_const[atom1_typeid]
 				        				      ) *
 					                       			dockpars_coeff_desolv * -0.07716049382716049 * atomic_distance * native_exp(-0.038580246913580245*native_powr(atomic_distance, 2));
 
-		//----------------------------------
-
-
-			//----------------------------------
-			// eliminate unnecessary local storage
-			//----------------------------------
-
-			// Accumulating gradients from "priv_gradient_per_intracontributor" for each each
+			// Decomposing "priv_gradient_per_intracontributor" 
+			// into the contribution of each atom of the pair 
 			float subx_div_dist = native_divide(subx, dist);
 			float suby_div_dist = native_divide(suby, dist);
 			float subz_div_dist = native_divide(subz, dist);
@@ -738,65 +710,20 @@ void gpu_calc_gradient(
 			float priv_intra_gradient_x = priv_gradient_per_intracontributor * subx_div_dist;
 			float priv_intra_gradient_y = priv_gradient_per_intracontributor * suby_div_dist;
 			float priv_intra_gradient_z = priv_gradient_per_intracontributor * subz_div_dist;
-
-/*
-			barrier(CLK_LOCAL_MEM_FENCE);
-			gradient_intra_x[atom1_id] -= priv_intra_gradient_x;
-			gradient_intra_y[atom1_id] -= priv_intra_gradient_y;
-			gradient_intra_z[atom1_id] -= priv_intra_gradient_z;
-			barrier(CLK_LOCAL_MEM_FENCE);
-			gradient_intra_x[atom2_id] += priv_intra_gradient_x;
-			gradient_intra_y[atom2_id] += priv_intra_gradient_y;
-			gradient_intra_z[atom2_id] += priv_intra_gradient_z;
-*/
-#if 1		
+		
 			// Calculating gradients in xyz components.
 			// Gradients for both atoms in a single contributor pair
 			// have the same magnitude, but opposite directions
-			/*
-			gradient_intra_x[atom1_id] -= priv_intra_gradient_x;
-			gradient_intra_y[atom1_id] -= priv_intra_gradient_y;
-			gradient_intra_z[atom1_id] -= priv_intra_gradient_z;
-			*/
 			atomicSub_g_f(&gradient_intra_x[atom1_id], priv_intra_gradient_x);
 			atomicSub_g_f(&gradient_intra_y[atom1_id], priv_intra_gradient_y);
 			atomicSub_g_f(&gradient_intra_z[atom1_id], priv_intra_gradient_z);
 
-			/*
-			gradient_intra_x[atom2_id] += priv_intra_gradient_x;
-			gradient_intra_y[atom2_id] += priv_intra_gradient_y;
-			gradient_intra_z[atom2_id] += priv_intra_gradient_z;
-			*/
-			//atomic_add(&gradient_intra_x[atom2_id], priv_intra_gradient_x);
-			//atomic_add(&gradient_intra_y[atom2_id], priv_intra_gradient_y);
-			//atomic_add(&gradient_intra_z[atom2_id], priv_intra_gradient_z);
-
 			atomicAdd_g_f(&gradient_intra_x[atom2_id], priv_intra_gradient_x);
 			atomicAdd_g_f(&gradient_intra_y[atom2_id], priv_intra_gradient_y);
 			atomicAdd_g_f(&gradient_intra_z[atom2_id], priv_intra_gradient_z);
-
-			//----------------------------------
-#endif
-
-
-
-
 		}
 
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 		//----------------------------------
 		// eliminate unnecessary local storage
@@ -840,23 +767,6 @@ void gpu_calc_gradient(
 		}
 	}
 */	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
