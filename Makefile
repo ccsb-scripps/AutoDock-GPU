@@ -205,8 +205,8 @@ PDB      := 3ce3
 NRUN     := 100
 POPSIZE  := 150
 TESTNAME := test
-TESTLS   := sd
-NUM_LSIT := 30
+TESTLS   := sw
+NUM_LSIT := 300
 
 test: odock
 	$(BIN_DIR)/$(TARGET) -ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld -lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt -nrun $(NRUN) -psize $(POPSIZE) -resnam $(TESTNAME) -gfpop 1 -lsmet $(TESTLS) -lsit $(NUM_LSIT) -smooth 0.5

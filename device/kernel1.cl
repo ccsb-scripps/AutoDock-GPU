@@ -81,12 +81,13 @@ gpu_calc_initpop(
 			                   dockpars_conformations_current + GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0),
 			                   GENOTYPE_LENGTH_IN_GLOBMEM, 0);
 
-	wait_group_events(1,&ev);
-
 	// Determining run-ID
 	if (get_local_id(0) == 0) {
 		run_id = get_group_id(0) / dockpars_pop_size;
 	}
+
+	// Asynchronous copy should be finished by here
+	wait_group_events(1,&ev);
 
 	// Evaluating initial genotypes
 	barrier(CLK_LOCAL_MEM_FENCE);

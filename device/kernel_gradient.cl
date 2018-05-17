@@ -126,9 +126,9 @@ gradient_minimizer(
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-  	async_work_group_copy(genotype,
-  			      dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
-                              dockpars_num_of_genes, 0);
+  	event_t ev = async_work_group_copy(genotype,
+  			      		   dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
+                              		   dockpars_num_of_genes, 0);
 
   	// -----------------------------------------------------------------------------
   	// Some OpenCL compilers don't allow declaring 
@@ -218,7 +218,6 @@ gradient_minimizer(
 	float ligand_center_z = -2.40896296;
 	#endif
 
-
 	// Defining lower and upper bounds for genotypes
 	__local float lower_bounds_genotype[ACTUAL_GENOTYPE_LENGTH];
 	__local float upper_bounds_genotype[ACTUAL_GENOTYPE_LENGTH];
@@ -261,6 +260,9 @@ gradient_minimizer(
 	// Storing torsion genotypes here
 	__local float torsions_genotype[ACTUAL_GENOTYPE_LENGTH];
 	//----------------------------------
+
+	// Asynchronous copy should be finished by here
+	wait_group_events(1,&ev);
 
 	// The termination criteria is based on 
 	// a maximum number of iterations, and
