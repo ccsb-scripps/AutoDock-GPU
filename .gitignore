@@ -4,6 +4,11 @@ initpop.txt
 *.xml
 input/albumin_dock/
 ocladock.wiki/
+bin/
+host/inc/stringify.h
+final_population_run*
+device/stringify_tmp
+KernelProgramBuildInfo.txt
 
 # ===================
 # C gitignore
