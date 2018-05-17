@@ -131,9 +131,9 @@ perform_LS(	char   dockpars_num_of_atoms,
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 #if defined (ASYNC_COPY)
-  async_work_group_copy(offspring_genotype,
-			dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
-                        dockpars_num_of_genes,0);
+  	event_t ev = async_work_group_copy(offspring_genotype,
+					   dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
+                        	           dockpars_num_of_genes,0);
 #else
 	for (gene_counter=get_local_id(0);
 	     gene_counter<dockpars_num_of_genes;
@@ -153,6 +153,9 @@ perform_LS(	char   dockpars_num_of_atoms,
 		iteration_cnt = 0;
 		evaluation_cnt = 0;
 	}
+
+	// Asynchronous copy should be finished by here
+	wait_group_events(1,&ev);
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 

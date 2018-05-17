@@ -49,9 +49,12 @@ gpu_sum_evals(/*unsigned long pop_size,*/
 #if defined (ASYNC_COPY)
   __local int local_evals_of_new_entities[MAX_POPSIZE];	// defined in defines.h
 
-  async_work_group_copy(local_evals_of_new_entities,
-                        dockpars_evals_of_new_entities+get_group_id(0)*pop_size,
-                        pop_size,0);
+  event_t ev = async_work_group_copy(local_evals_of_new_entities,
+                        	     dockpars_evals_of_new_entities+get_group_id(0)*pop_size,
+                                     pop_size,0);
+  
+  // Asynchronous copy should be finished by here
+  wait_group_events(1,&ev);
 
   for (entity_counter=get_local_id(0);
 	     entity_counter<pop_size;

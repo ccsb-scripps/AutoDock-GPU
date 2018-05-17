@@ -208,10 +208,12 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
 		else	//no crossover
 		{
 #if defined (ASYNC_COPY)
-			async_work_group_copy(offspring_genotype,
-					     dockpars_conformations_current+(run_id*dockpars_pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM,
-					     dockpars_num_of_genes,0);
+			event_t ev = async_work_group_copy(offspring_genotype,
+					     		   dockpars_conformations_current+(run_id*dockpars_pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM,
+					     		   dockpars_num_of_genes,0);
 
+			// Asynchronous copy should be finished by here
+			wait_group_events(1,&ev);
 #else
 			for (gene_counter=get_local_id(0);
 			     gene_counter<dockpars_num_of_genes;

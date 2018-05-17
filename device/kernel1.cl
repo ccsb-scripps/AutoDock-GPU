@@ -88,8 +88,12 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 	wait_group_events(1,&ev);
 
 	//determining run ID
-	if (get_local_id(0) == 0)
+	if (get_local_id(0) == 0) {
 		run_id = get_group_id(0) / dockpars_pop_size;
+	}
+
+	// Asynchronous copy should be finished by here
+	wait_group_events(1,&ev);
 
 	// Evaluating initial genotype
 	barrier(CLK_LOCAL_MEM_FENCE);
