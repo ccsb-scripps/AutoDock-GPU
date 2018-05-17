@@ -643,7 +643,7 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		mypars->ref_ori_angles[2] = 190.279;
 #else
 		mypars->ref_ori_angles[0] = (float) floor(myrand()*360*100)/100.0;
-		mypars->ref_ori_angles[1] = (float) floor(myrand()*360*100)/100.0;
+		mypars->ref_ori_angles[1] = (float) floor(myrand()*/*360*/180*100)/100.0;
 		mypars->ref_ori_angles[2] = (float) floor(myrand()*360*100)/100.0;
 #endif
 
