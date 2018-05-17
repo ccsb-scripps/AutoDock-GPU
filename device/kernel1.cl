@@ -91,8 +91,10 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 	if (get_local_id(0) == 0)
 		run_id = get_group_id(0) / dockpars_pop_size;
 
+	// Evaluating initial genotype
+	barrier(CLK_LOCAL_MEM_FENCE);
+
 	// =============================================================
-	// WARNING: only energy of work-item=0 will be valid
 	gpu_calc_energy(dockpars_rotbondlist_length,
 			dockpars_num_of_atoms,
 			dockpars_gridsize_x,

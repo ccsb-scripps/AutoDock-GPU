@@ -707,6 +707,8 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 			*energy += partial_energies[contributor_counter];
 		}
 	}
+
+	barrier(CLK_LOCAL_MEM_FENCE);
 }
 
 #include "kernel1.cl"
