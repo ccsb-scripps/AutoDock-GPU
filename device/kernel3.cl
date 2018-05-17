@@ -296,7 +296,7 @@ perform_LS(
 				}
 			}
 
-			//evaluating candidate
+			// Evaluating candidate
 			barrier(CLK_LOCAL_MEM_FENCE);
 
 			// =================================================================

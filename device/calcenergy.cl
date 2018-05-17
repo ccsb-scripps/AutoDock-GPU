@@ -551,9 +551,9 @@ void gpu_calc_energy(
 		}
 	}
 
-	#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 	barrier(CLK_LOCAL_MEM_FENCE);
 
+	#if defined (DEBUG_ENERGY_KERNEL1) || defined (DEBUG_ENERGY_KERNEL4) || defined (DEBUG_ENERGY_KERNEL3)
 	if (get_local_id(0) == 0)
 	{
 		float energy_intraE = partial_intraE[0];

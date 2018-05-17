@@ -1138,4 +1138,6 @@ void gpu_calc_gradient(
 	}
 */
 	//----------------------------------
+
+	barrier(CLK_LOCAL_MEM_FENCE);
 }

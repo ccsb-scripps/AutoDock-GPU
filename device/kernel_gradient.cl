@@ -373,9 +373,9 @@ gradient_minimizer(
 			#endif
 		}	
 
+		// Calculating gradient
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		// Calculating gradient
 		// =============================================================
 		gpu_calc_gradient(
 				dockpars_rotbondlist_length,
@@ -443,7 +443,7 @@ gradient_minimizer(
 				);
 		// =============================================================
 
-		barrier(CLK_LOCAL_MEM_FENCE);
+		/*barrier(CLK_LOCAL_MEM_FENCE);*/
 
 		//----------------------------------
 		// fastergrad
@@ -472,7 +472,7 @@ gradient_minimizer(
 			candidate_genotype[i] = fmax/*max*/(candidate_genotype[i], lower_bounds_genotype[i]);
 	   	}
 		
-
+		// Evaluating candidate
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// =============================================================
@@ -533,7 +533,7 @@ gradient_minimizer(
 			evaluation_cnt = evaluation_cnt + 1;
 		}
 		*/
-		barrier(CLK_LOCAL_MEM_FENCE);
+		/*barrier(CLK_LOCAL_MEM_FENCE);*/
 
 		// Checking if E(candidate_genotype) < E(genotype)
 		if (candidate_energy < energy){
