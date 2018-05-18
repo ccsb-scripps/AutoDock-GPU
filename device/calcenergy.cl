@@ -96,8 +96,8 @@ void gpu_calc_energy(
 	#endif
 
 	uchar g1 = dockpars_gridsize_x;
-	uint  g2 = dockpars_gridsize_x_times_y /*dockpars_gridsize_x * dockpars_gridsize_y*/;
-  	uint  g3 = dockpars_gridsize_x_times_y_times_z /*dockpars_gridsize_x * dockpars_gridsize_y * dockpars_gridsize_z*/;
+	uint  g2 = dockpars_gridsize_x_times_y;
+  	uint  g3 = dockpars_gridsize_x_times_y_times_z;
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -172,14 +172,7 @@ void gpu_calc_energy(
 				atom_to_rotate[2] -= rotation_movingvec[2];
 
 				// Transforming torsion angles into quaternions
-				//----------------------------------
-				// fastergrad
-				//----------------------------------
-				/*
-				rotation_angle  = native_divide(rotation_angle, 2.0f);
-				*/
 				rotation_angle  = rotation_angle * 0.5f;
-				//----------------------------------
 				float sin_angle = native_sin(rotation_angle);
 				quatrot_left_q  = native_cos(rotation_angle);
 				quatrot_left_x  = sin_angle*rotation_unitvec[0];
@@ -578,6 +571,5 @@ void gpu_calc_energy(
 #include "auxiliary_genetic.cl"
 #include "kernel4.cl"
 #include "kernel3.cl"
-//#include "auxiliary_gradient.cl"
 #include "calcgradient.cl"
 #include "kernel_gradient.cl"

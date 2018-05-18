@@ -34,12 +34,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // whose population includes the current entity (which can be determined with get_group_id(0)), 
 // since this determines which reference orientation should be used.
 
-
 //#define DEBUG_GRAD_TRANSLATION_GENES
 //#define DEBUG_GRAD_ROTATION_GENES
 //#define DEBUG_GRAD_TORSION_GENES
 //#define DEBUG_ENERGY_KERNEL5
-
 
 // Atomic operations used in gradients of intra contributors.
 // Only atomic_cmpxchg() works on floats. 
@@ -142,11 +140,6 @@ void gpu_calc_gradient(
 		    __local float* gradient_intra_x,
 		    __local float* gradient_intra_y,
 		    __local float* gradient_intra_z,
-/*
-		    __local float* gradient_x,
-		    __local float* gradient_y,
-		    __local float* gradient_z,
-*/
 		    __local float* gradient_genotype			
 )
 {
@@ -174,8 +167,8 @@ void gpu_calc_gradient(
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	uchar g1 = dockpars_gridsize_x;
-	uint  g2 = dockpars_gridsize_x_times_y /*dockpars_gridsize_x * dockpars_gridsize_y*/;
-  	uint  g3 = dockpars_gridsize_x_times_y_times_z /*dockpars_gridsize_x * dockpars_gridsize_y * dockpars_gridsize_z*/;
+	uint  g2 = dockpars_gridsize_x_times_y;
+  	uint  g3 = dockpars_gridsize_x_times_y_times_z;
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -250,15 +243,7 @@ void gpu_calc_gradient(
 				atom_to_rotate[2] -= rotation_movingvec[2];
 
 				// Transforming torsion angles into quaternions
-				//----------------------------------
-				// fastergrad
-				//----------------------------------
-				/*
-				rotation_angle  = native_divide(rotation_angle, 2.0f);
-				*/
 				rotation_angle  = rotation_angle * 0.5f;
-				//----------------------------------
-
 				float sin_angle = native_sin(rotation_angle);
 				quatrot_left_q  = native_cos(rotation_angle);
 				quatrot_left_x  = sin_angle*rotation_unitvec[0];
@@ -727,10 +712,10 @@ void gpu_calc_gradient(
 
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
 
-		//----------------------------------
-		// eliminate unnecessary local storage
-		//----------------------------------
-/*
+	
+	// Commented to remove unnecessary local storage which was
+	// required by gradient_per_intracontributor[MAX_INTRAE_CONTRIBUTORS]
+	/*
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// Accumulating gradients from "gradient_per_intracontributor" for each each
@@ -768,7 +753,7 @@ void gpu_calc_gradient(
 			//printf("%-20s %-10u %-5u %-5u %-10.8f\n", "grad_intracontrib", contributor_counter, atom1_id, atom2_id, gradient_per_intracontributor[contributor_counter]);
 		}
 	}
-*/	
+	*/	
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -786,22 +771,14 @@ void gpu_calc_gradient(
 		gradient_inter_y[atom_cnt] = native_divide(gradient_inter_y[atom_cnt], dockpars_grid_spacing);
 		gradient_inter_z[atom_cnt] = native_divide(gradient_inter_z[atom_cnt], dockpars_grid_spacing);
 
-/*
-		gradient_x[atom_cnt] = gradient_inter_x[atom_cnt] + gradient_intra_x[atom_cnt];
-		gradient_y[atom_cnt] = gradient_inter_y[atom_cnt] + gradient_intra_y[atom_cnt];
-		gradient_z[atom_cnt] = gradient_inter_z[atom_cnt] + gradient_intra_z[atom_cnt];
-*/	
+		// Re-using "gradient_inter_*" for total gradient (inter+intra)
 		gradient_inter_x[atom_cnt] += gradient_intra_x[atom_cnt];
 		gradient_inter_y[atom_cnt] += gradient_intra_y[atom_cnt];
 		gradient_inter_z[atom_cnt] += gradient_intra_z[atom_cnt];
 
-
 		//printf("%-15s %-5u %-10.8f %-10.8f %-10.8f\n", "grad_grid", atom_cnt, gradient_inter_x[atom_cnt], gradient_inter_y[atom_cnt], gradient_inter_z[atom_cnt]);
-
 		//printf("%-15s %-5u %-10.8f %-10.8f %-10.8f\n", "grad_intra", atom_cnt, gradient_intra_x[atom_cnt], gradient_intra_y[atom_cnt], gradient_intra_z[atom_cnt]);
-
 		//printf("%-15s %-5u %-10.8f %-10.8f %-10.8f\n", "calc_coords", atom_cnt, calc_coords_x[atom_cnt], calc_coords_y[atom_cnt], calc_coords_z[atom_cnt]);
-
 	}
 
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -813,11 +790,8 @@ void gpu_calc_gradient(
 		for (uint lig_atom_id = 0;
 			  lig_atom_id<dockpars_num_of_atoms;
 			  lig_atom_id++) {
-/*
-			gradient_genotype[0] += gradient_x[lig_atom_id]; // gradient for gene 0: gene x
-			gradient_genotype[1] += gradient_y[lig_atom_id]; // gradient for gene 1: gene y
-			gradient_genotype[2] += gradient_z[lig_atom_id]; // gradient for gene 2: gene z
-*/
+
+			// Re-using "gradient_inter_*" for total gradient (inter+intra)
 			gradient_genotype[0] += gradient_inter_x[lig_atom_id]; // gradient for gene 0: gene x
 			gradient_genotype[1] += gradient_inter_y[lig_atom_id]; // gradient for gene 1: gene y
 			gradient_genotype[2] += gradient_inter_z[lig_atom_id]; // gradient for gene 2: gene z
@@ -832,14 +806,9 @@ void gpu_calc_gradient(
 		gradient_genotype[2] *= dockpars_grid_spacing;
 
 		#if defined (DEBUG_GRAD_TRANSLATION_GENES)
-/*
 		printf("gradient_x:%f\n", gradient_genotype [0]);
 		printf("gradient_y:%f\n", gradient_genotype [1]);
 		printf("gradient_z:%f\n", gradient_genotype [2]);
-*/
-		printf("gradient_inter_x:%f\n", gradient_genotype [0]);
-		printf("gradient_inter_y:%f\n", gradient_genotype [1]);
-		printf("gradient_inter_z:%f\n", gradient_genotype [2]);
 		#endif
 	}
 
@@ -885,12 +854,8 @@ void gpu_calc_gradient(
 			r.y = (calc_coords_y[lig_atom_id] - about.y) * dockpars_grid_spacing;  
 			r.z = (calc_coords_z[lig_atom_id] - about.z) * dockpars_grid_spacing; 
 
+			// Re-using "gradient_inter_*" for total gradient (inter+intra)
 			float3 force;
-/*
-			force.x	= gradient_x[lig_atom_id];
-			force.y	= gradient_y[lig_atom_id]; 
-			force.z	= gradient_z[lig_atom_id];
-*/
 			force.x	= gradient_inter_x[lig_atom_id];
 			force.y	= gradient_inter_y[lig_atom_id]; 
 			force.z	= gradient_inter_z[lig_atom_id];
@@ -1119,12 +1084,8 @@ void gpu_calc_gradient(
 				r.y = (atom_coords.y - atomRef_coords.y) * dockpars_grid_spacing;
 				r.z = (atom_coords.z - atomRef_coords.z) * dockpars_grid_spacing;
 
+				// Re-using "gradient_inter_*" for total gradient (inter+intra)
 				float3 atom_force;
-/*
-				atom_force.x = gradient_x[lig_atom_id]; 
-				atom_force.y = gradient_y[lig_atom_id];
-				atom_force.z = gradient_z[lig_atom_id];
-*/
 				atom_force.x = gradient_inter_x[lig_atom_id]; 
 				atom_force.y = gradient_inter_y[lig_atom_id];
 				atom_force.z = gradient_inter_z[lig_atom_id];

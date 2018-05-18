@@ -48,10 +48,6 @@ gradient_minimizer(
 	     __constant int*   num_rotating_atoms_per_rotbond_const,
     			// Specific gradient-minimizer args
 		    	uint      	  gradMin_maxiters
-			/*
-			,
-			uint      	  gradMin_maxfails
-			*/
 )
 //The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
 //The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
@@ -68,17 +64,8 @@ gradient_minimizer(
   	__local float energy;
 	__local float genotype[ACTUAL_GENOTYPE_LENGTH];
 
-	// Variables for gradient minimizer
-  	__local uint iteration_cnt;  	// minimizer iteration counter
-	/*
-	__local uint failure_cnt;  	// minimizer failure counter
-	__local bool exit;		
-	*/
-
-	/*
-	// Number of energy-evaluations counter
-	__local int  evaluation_cnt;
-	*/
+	// Iteration counter fot the minimizer
+  	__local uint iteration_cnt;  	
 
 	// Stepsize for the minimizer
 	__local float stepsize;
@@ -92,7 +79,6 @@ gradient_minimizer(
 		entity_id = 0;
 */
 
-///*
 		run_id = get_group_id(0) / dockpars_num_of_lsentities;
 		entity_id = get_group_id(0) % dockpars_num_of_lsentities;
 
@@ -105,7 +91,6 @@ gradient_minimizer(
 				entity_id = dockpars_num_of_lsentities;					
 			}
 		}
-//*/
 		
 		energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
 
@@ -115,12 +100,6 @@ gradient_minimizer(
 
 		// Initializing gradient-minimizer counters and flags
     		iteration_cnt  = 0;
-		/*
-		failure_cnt    = 0;
-		*/
-		/*
-		evaluation_cnt = 0;
-		*/
 		stepsize       = STEP_START;
 	}
 
@@ -146,6 +125,7 @@ gradient_minimizer(
 	// Derived from autodockdev/maps.py
 	// -------------------------------------------------------------------
 	// Gradient of the intermolecular energy per each ligand atom
+	// Also used to store the accummulated gradient per each ligand atom
 	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
 	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
 	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
@@ -155,14 +135,7 @@ gradient_minimizer(
 	__local float gradient_intra_y[MAX_NUM_OF_ATOMS];
 	__local float gradient_intra_z[MAX_NUM_OF_ATOMS];
 
-	// Accummulated gradient per each ligand atom
-/*
-	__local float gradient_x[MAX_NUM_OF_ATOMS];
-	__local float gradient_y[MAX_NUM_OF_ATOMS];
-	__local float gradient_z[MAX_NUM_OF_ATOMS];	
-*/
 	// -------------------------------------------------------------------
-
 	// Ligand-atom position and partial energies
 	__local float calc_coords_x[MAX_NUM_OF_ATOMS];
 	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
@@ -173,28 +146,8 @@ gradient_minimizer(
 	__local float partial_interE[NUM_OF_THREADS_PER_BLOCK];
 	__local float partial_intraE[NUM_OF_THREADS_PER_BLOCK];
 	#endif
+
 	// -----------------------------------------------------------------------------
-
-/*
-	// Step size of the steepest descent
-	float alpha;
-*/
-
-#if 0
-	// Initilizing each (work-item)-specific alpha
-	for(uint i = get_local_id(0); 
-		 i < dockpars_num_of_genes; 
-		 i+= NUM_OF_THREADS_PER_BLOCK) {
-			if (i<3)      { alpha = TRANGENE_ALPHA;	}
-			else if (i<6) { alpha = ROTAGENE_ALPHA; } 
-			else 	      { alpha = TORSGENE_ALPHA;	}
-
-			#if defined (DEBUG_MINIMIZER)
-			//printf("(%-3u) %-15.15f\n", i, alpha);
-			#endif
-	}
-#endif
-
 	// Perform gradient-descent iterations
 
 	#if 0
@@ -249,21 +202,13 @@ gradient_minimizer(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-
-	//----------------------------------
-	// fastergrad
-	//----------------------------------
- 		
 	// Calculating maximum possible stepsize (alpha)
-
 	__local float max_trans_gene, max_rota_gene, max_tors_gene;
 	__local float max_trans_stepsize, max_rota_stepsize, max_tors_stepsize;
-
 	__local float max_stepsize;
 
 	// Storing torsion genotypes here
 	__local float torsions_genotype[ACTUAL_GENOTYPE_LENGTH];
-	//----------------------------------
 
 	// Asynchronous copy should be finished by here
 	wait_group_events(1,&ev);
@@ -318,8 +263,8 @@ gradient_minimizer(
 		if (get_local_id(0) == 0) {
 			// Finding maximum of the absolute value 
 			// for the three translation genes
-			max_trans_gene = fmax/*max*/(fabs(genotype[0]), fabs(genotype[1]));
-			max_trans_gene = fmax/*max*/(max_trans_gene, fabs(genotype[2]));
+			max_trans_gene = fmax(fabs(genotype[0]), fabs(genotype[1]));
+			max_trans_gene = fmax(max_trans_gene, fabs(genotype[2]));
 
 			// Note that MAX_DEV_TRANSLATION needs to be 
 			// expressed in grid size first
@@ -327,8 +272,8 @@ gradient_minimizer(
 
 			// Finding maximum of the absolute value 
 			// for the three Shoemake rotation genes
-			max_rota_gene = fmax/*max*/(fabs(genotype[3]), fabs(genotype[4]));//printf("max_rota_gene: %-10.7f\n", max_rota_gene);		
-			max_rota_gene = fmax/*max*/(max_rota_gene, fabs(genotype[5]));	//printf("max_rota_gene: %-10.7f\n", max_rota_gene);
+			max_rota_gene = fmax(fabs(genotype[3]), fabs(genotype[4]));	//printf("max_rota_gene: %-10.7f\n", max_rota_gene);		
+			max_rota_gene = fmax(max_rota_gene, fabs(genotype[5]));		//printf("max_rota_gene: %-10.7f\n", max_rota_gene);
 
 			// Note that MAX_DEV_ROTATION
 			// is already expressed within [0, 1]
@@ -367,11 +312,11 @@ gradient_minimizer(
 		
 		if (get_local_id(0) == 0) {
 			// Calculating the maximum stepsize using previous three
-			max_stepsize = fmin/*min*/(max_trans_stepsize, max_rota_stepsize);
-			max_stepsize = fmin/*min*/(max_stepsize, max_tors_stepsize);
+			max_stepsize = fmin(max_trans_stepsize, max_rota_stepsize);
+			max_stepsize = fmin(max_stepsize, max_tors_stepsize);
 
 			// Capping the stepsize
-			stepsize = fmin/*min*/(stepsize, max_stepsize);
+			stepsize = fmin(stepsize, max_stepsize);
 
 			#if defined (DEBUG_MINIMIZER)
 			//printf("max_genes: %-0.7f %-10.7f %-10.7f %-10.7f\n", max_trans_gene, max_rota_gene, max_tors_gene, stepsize);
@@ -442,20 +387,10 @@ gradient_minimizer(
 				gradient_intra_x,
 				gradient_intra_y,
 				gradient_intra_z,
-/*
-				gradient_x,
-				gradient_y,
-				gradient_z,
-*/
 				gradient
 				);
 		// =============================================================
 
-		/*barrier(CLK_LOCAL_MEM_FENCE);*/
-
-		//----------------------------------
-		// fastergrad
-		//----------------------------------
 /*		
 		if ((get_group_id(0) == 0) && (get_local_id(0) == 0)) {
 			for(uint i = 0; i < dockpars_num_of_genes; i++) {
@@ -463,8 +398,6 @@ gradient_minimizer(
 			}
 		}
 */
-		//----------------------------------
-
 		
 		for(uint i = get_local_id(0); i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {
 
@@ -476,8 +409,8 @@ gradient_minimizer(
 			#endif
 
 			// Putting genes back within bounds
-			candidate_genotype[i] = fmin/*min*/(candidate_genotype[i], upper_bounds_genotype[i]);
-			candidate_genotype[i] = fmax/*max*/(candidate_genotype[i], lower_bounds_genotype[i]);
+			candidate_genotype[i] = fmin(candidate_genotype[i], upper_bounds_genotype[i]);
+			candidate_genotype[i] = fmax(candidate_genotype[i], lower_bounds_genotype[i]);
 	   	}
 		
 		// Evaluating candidate
@@ -510,7 +443,7 @@ gradient_minimizer(
 				calc_coords_y,
 				calc_coords_z,
 				partial_energies,
-				#if defined (DEBUG_ENERGY_KERNEL1)
+				#if defined (DEBUG_ENERGY_KERNEL5)
 				partial_interE,
 				partial_intraE,
 				#endif
@@ -534,14 +467,6 @@ gradient_minimizer(
 				ref_orientation_quats_const
 				);
 		// =============================================================
-
-		/*
-		// Updating number of energy-evaluations counter
-		if (get_local_id(0) == 0) {
-			evaluation_cnt = evaluation_cnt + 1;
-		}
-		*/
-		/*barrier(CLK_LOCAL_MEM_FENCE);*/
 
 		// Checking if E(candidate_genotype) < E(genotype)
 		if (candidate_energy < energy){
