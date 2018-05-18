@@ -142,9 +142,11 @@ void gpu_calc_gradient(
 		    __local float* gradient_intra_x,
 		    __local float* gradient_intra_y,
 		    __local float* gradient_intra_z,
+/*
 		    __local float* gradient_x,
 		    __local float* gradient_y,
 		    __local float* gradient_z,
+*/
 		    __local float* gradient_genotype			
 )
 {
@@ -784,10 +786,16 @@ void gpu_calc_gradient(
 		gradient_inter_y[atom_cnt] = native_divide(gradient_inter_y[atom_cnt], dockpars_grid_spacing);
 		gradient_inter_z[atom_cnt] = native_divide(gradient_inter_z[atom_cnt], dockpars_grid_spacing);
 
+/*
 		gradient_x[atom_cnt] = gradient_inter_x[atom_cnt] + gradient_intra_x[atom_cnt];
 		gradient_y[atom_cnt] = gradient_inter_y[atom_cnt] + gradient_intra_y[atom_cnt];
 		gradient_z[atom_cnt] = gradient_inter_z[atom_cnt] + gradient_intra_z[atom_cnt];
-	
+*/	
+		gradient_inter_x[atom_cnt] += gradient_intra_x[atom_cnt];
+		gradient_inter_y[atom_cnt] += gradient_intra_y[atom_cnt];
+		gradient_inter_z[atom_cnt] += gradient_intra_z[atom_cnt];
+
+
 		//printf("%-15s %-5u %-10.8f %-10.8f %-10.8f\n", "grad_grid", atom_cnt, gradient_inter_x[atom_cnt], gradient_inter_y[atom_cnt], gradient_inter_z[atom_cnt]);
 
 		//printf("%-15s %-5u %-10.8f %-10.8f %-10.8f\n", "grad_intra", atom_cnt, gradient_intra_x[atom_cnt], gradient_intra_y[atom_cnt], gradient_intra_z[atom_cnt]);
@@ -805,9 +813,14 @@ void gpu_calc_gradient(
 		for (uint lig_atom_id = 0;
 			  lig_atom_id<dockpars_num_of_atoms;
 			  lig_atom_id++) {
+/*
 			gradient_genotype[0] += gradient_x[lig_atom_id]; // gradient for gene 0: gene x
 			gradient_genotype[1] += gradient_y[lig_atom_id]; // gradient for gene 1: gene y
 			gradient_genotype[2] += gradient_z[lig_atom_id]; // gradient for gene 2: gene z
+*/
+			gradient_genotype[0] += gradient_inter_x[lig_atom_id]; // gradient for gene 0: gene x
+			gradient_genotype[1] += gradient_inter_y[lig_atom_id]; // gradient for gene 1: gene y
+			gradient_genotype[2] += gradient_inter_z[lig_atom_id]; // gradient for gene 2: gene z
 		}
 
 		// Scaling gradient for translational genes as 
@@ -819,9 +832,14 @@ void gpu_calc_gradient(
 		gradient_genotype[2] *= dockpars_grid_spacing;
 
 		#if defined (DEBUG_GRAD_TRANSLATION_GENES)
+/*
 		printf("gradient_x:%f\n", gradient_genotype [0]);
 		printf("gradient_y:%f\n", gradient_genotype [1]);
 		printf("gradient_z:%f\n", gradient_genotype [2]);
+*/
+		printf("gradient_inter_x:%f\n", gradient_genotype [0]);
+		printf("gradient_inter_y:%f\n", gradient_genotype [1]);
+		printf("gradient_inter_z:%f\n", gradient_genotype [2]);
 		#endif
 	}
 
@@ -868,9 +886,14 @@ void gpu_calc_gradient(
 			r.z = (calc_coords_z[lig_atom_id] - about.z) * dockpars_grid_spacing; 
 
 			float3 force;
+/*
 			force.x	= gradient_x[lig_atom_id];
 			force.y	= gradient_y[lig_atom_id]; 
 			force.z	= gradient_z[lig_atom_id];
+*/
+			force.x	= gradient_inter_x[lig_atom_id];
+			force.y	= gradient_inter_y[lig_atom_id]; 
+			force.z	= gradient_inter_z[lig_atom_id];
 
 			torque_rot += cross(r, force);
 
@@ -1097,9 +1120,14 @@ void gpu_calc_gradient(
 				r.z = (atom_coords.z - atomRef_coords.z) * dockpars_grid_spacing;
 
 				float3 atom_force;
+/*
 				atom_force.x = gradient_x[lig_atom_id]; 
 				atom_force.y = gradient_y[lig_atom_id];
 				atom_force.z = gradient_z[lig_atom_id];
+*/
+				atom_force.x = gradient_inter_x[lig_atom_id]; 
+				atom_force.y = gradient_inter_y[lig_atom_id];
+				atom_force.z = gradient_inter_z[lig_atom_id];
 
 				torque_tor += cross(r, atom_force);
 

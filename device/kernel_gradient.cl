@@ -156,9 +156,11 @@ gradient_minimizer(
 	__local float gradient_intra_z[MAX_NUM_OF_ATOMS];
 
 	// Accummulated gradient per each ligand atom
+/*
 	__local float gradient_x[MAX_NUM_OF_ATOMS];
 	__local float gradient_y[MAX_NUM_OF_ATOMS];
 	__local float gradient_z[MAX_NUM_OF_ATOMS];	
+*/
 	// -------------------------------------------------------------------
 
 	// Ligand-atom position and partial energies
@@ -253,8 +255,10 @@ gradient_minimizer(
 	//----------------------------------
  		
 	// Calculating maximum possible stepsize (alpha)
+
 	__local float max_trans_gene, max_rota_gene, max_tors_gene;
 	__local float max_trans_stepsize, max_rota_stepsize, max_tors_stepsize;
+
 	__local float max_stepsize;
 
 	// Storing torsion genotypes here
@@ -438,9 +442,11 @@ gradient_minimizer(
 				gradient_intra_x,
 				gradient_intra_y,
 				gradient_intra_z,
+/*
 				gradient_x,
 				gradient_y,
 				gradient_z,
+*/
 				gradient
 				);
 		// =============================================================
