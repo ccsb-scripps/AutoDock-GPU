@@ -287,6 +287,8 @@ filled with clock() */
   cl_mem mem_intraE_contributors_const;
   cl_mem mem_reqm_const;
   cl_mem mem_reqm_hbond_const;
+  cl_mem mem_atom1_types_reqm_const;
+  cl_mem mem_atom2_types_reqm_const;
   cl_mem mem_VWpars_AC_const;
   cl_mem mem_VWpars_BD_const;
   cl_mem mem_dspars_S_const;
@@ -308,8 +310,10 @@ filled with clock() */
   mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(float),                         &mem_atom_charges_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(char),                          &mem_atom_types_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,3*MAX_INTRAE_CONTRIBUTORS*sizeof(char),                 &mem_intraE_contributors_const);
-  mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(float),&mem_reqm_const);
-  mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(float),&mem_reqm_hbond_const);
+  mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(float),				      &mem_reqm_const);
+  mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(float),				      &mem_reqm_hbond_const);
+  mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(unsigned int),			      &mem_atom1_types_reqm_const);
+  mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(unsigned int),                         &mem_atom2_types_reqm_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float),      &mem_VWpars_AC_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float),      &mem_VWpars_BD_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*sizeof(float),                        &mem_dspars_S_const);
@@ -322,14 +326,16 @@ filled with clock() */
   mallocBufferObject(context,CL_MEM_READ_ONLY,3*MAX_NUM_OF_ROTBONDS*sizeof(float),                    &mem_rotbonds_unit_vectors_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,4*MAX_NUM_OF_RUNS*sizeof(float),                        &mem_ref_orientation_quats_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,2*MAX_NUM_OF_ROTBONDS*sizeof(int),                      &mem_rotbonds_const);
-  mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int),      &mem_rotbonds_atoms_const);
-  mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ROTBONDS*sizeof(int),      		&mem_num_rotating_atoms_per_rotbond_const);
+  mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int),       &mem_rotbonds_atoms_const);
+  mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ROTBONDS*sizeof(int),      		      &mem_num_rotating_atoms_per_rotbond_const);
 
   memcopyBufferObjectToDevice(command_queue,mem_atom_charges_const,			false,  &KerConst.atom_charges_const,           MAX_NUM_OF_ATOMS*sizeof(float));
   memcopyBufferObjectToDevice(command_queue,mem_atom_types_const,           		false,	&KerConst.atom_types_const,             MAX_NUM_OF_ATOMS*sizeof(char));
   memcopyBufferObjectToDevice(command_queue,mem_intraE_contributors_const,  		false,  &KerConst.intraE_contributors_const,    3*MAX_INTRAE_CONTRIBUTORS*sizeof(char));
   memcopyBufferObjectToDevice(command_queue,mem_reqm_const,         			false,  &KerConst.reqm_const,           	ATYPE_NUM*sizeof(float));
   memcopyBufferObjectToDevice(command_queue,mem_reqm_hbond_const,         		false,	&KerConst.reqm_hbond_const,           	ATYPE_NUM*sizeof(float));
+  memcopyBufferObjectToDevice(command_queue,mem_atom1_types_reqm_const,         	false,  &KerConst.atom1_types_reqm_const,       ATYPE_NUM*sizeof(unsigned int));
+  memcopyBufferObjectToDevice(command_queue,mem_atom2_types_reqm_const,         	false,	&KerConst.atom2_types_reqm_const,       ATYPE_NUM*sizeof(unsigned int));
   memcopyBufferObjectToDevice(command_queue,mem_VWpars_AC_const,            		false,	&KerConst.VWpars_AC_const,              MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float));
   memcopyBufferObjectToDevice(command_queue,mem_VWpars_BD_const,            		false,	&KerConst.VWpars_BD_const,              MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float));
   memcopyBufferObjectToDevice(command_queue,mem_dspars_S_const,             		false,	&KerConst.dspars_S_const,               MAX_NUM_OF_ATYPES*sizeof(float));
@@ -546,17 +552,20 @@ filled with clock() */
   setKernelArg(kernel1,21,sizeof(dockpars.smooth),                        &dockpars.smooth);
   setKernelArg(kernel1,22,sizeof(mem_reqm_const),                         &mem_reqm_const);
   setKernelArg(kernel1,23,sizeof(mem_reqm_hbond_const),                   &mem_reqm_hbond_const);
-  setKernelArg(kernel1,24/*21*/,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
-  setKernelArg(kernel1,25/*22*/,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
-  setKernelArg(kernel1,26/*23*/,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
-  setKernelArg(kernel1,27/*24*/,sizeof(mem_dspars_V_const),                     &mem_dspars_V_const);
-  setKernelArg(kernel1,28/*25*/,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
-  setKernelArg(kernel1,29/*26*/,sizeof(mem_ref_coords_x_const),                 &mem_ref_coords_x_const);
-  setKernelArg(kernel1,30/*27*/,sizeof(mem_ref_coords_y_const),                 &mem_ref_coords_y_const);
-  setKernelArg(kernel1,31/*28*/,sizeof(mem_ref_coords_z_const),                 &mem_ref_coords_z_const);
-  setKernelArg(kernel1,32/*29*/,sizeof(mem_rotbonds_moving_vectors_const),      &mem_rotbonds_moving_vectors_const);
-  setKernelArg(kernel1,33/*30*/,sizeof(mem_rotbonds_unit_vectors_const),        &mem_rotbonds_unit_vectors_const);
-  setKernelArg(kernel1,34/*31*/,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
+  setKernelArg(kernel1,24,sizeof(mem_atom1_types_reqm_const),             &mem_atom1_types_reqm_const);
+  setKernelArg(kernel1,25,sizeof(mem_atom2_types_reqm_const),             &mem_atom2_types_reqm_const);
+
+  setKernelArg(kernel1,26/*21*/,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
+  setKernelArg(kernel1,27/*22*/,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
+  setKernelArg(kernel1,28/*23*/,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
+  setKernelArg(kernel1,29/*24*/,sizeof(mem_dspars_V_const),                     &mem_dspars_V_const);
+  setKernelArg(kernel1,30/*25*/,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
+  setKernelArg(kernel1,31/*26*/,sizeof(mem_ref_coords_x_const),                 &mem_ref_coords_x_const);
+  setKernelArg(kernel1,32/*27*/,sizeof(mem_ref_coords_y_const),                 &mem_ref_coords_y_const);
+  setKernelArg(kernel1,33/*28*/,sizeof(mem_ref_coords_z_const),                 &mem_ref_coords_z_const);
+  setKernelArg(kernel1,34/*29*/,sizeof(mem_rotbonds_moving_vectors_const),      &mem_rotbonds_moving_vectors_const);
+  setKernelArg(kernel1,35/*30*/,sizeof(mem_rotbonds_unit_vectors_const),        &mem_rotbonds_unit_vectors_const);
+  setKernelArg(kernel1,36/*31*/,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
   kernel1_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
   kernel1_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
@@ -610,17 +619,20 @@ filled with clock() */
   setKernelArg(kernel4,30,sizeof(dockpars.smooth),                        &dockpars.smooth);
   setKernelArg(kernel4,31,sizeof(mem_reqm_const),                         &mem_reqm_const);
   setKernelArg(kernel4,32,sizeof(mem_reqm_hbond_const),                   &mem_reqm_hbond_const);
-  setKernelArg(kernel4,33/*30*/,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
-  setKernelArg(kernel4,34/*31*/,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
-  setKernelArg(kernel4,35/*32*/,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
-  setKernelArg(kernel4,36/*33*/,sizeof(mem_dspars_V_const),                     &mem_dspars_V_const);
-  setKernelArg(kernel4,37/*34*/,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
-  setKernelArg(kernel4,38/*35*/,sizeof(mem_ref_coords_x_const),                 &mem_ref_coords_x_const);
-  setKernelArg(kernel4,39/*36*/,sizeof(mem_ref_coords_y_const),                 &mem_ref_coords_y_const);
-  setKernelArg(kernel4,40/*37*/,sizeof(mem_ref_coords_z_const),                 &mem_ref_coords_z_const);
-  setKernelArg(kernel4,41/*38*/,sizeof(mem_rotbonds_moving_vectors_const),      &mem_rotbonds_moving_vectors_const);
-  setKernelArg(kernel4,42/*39*/,sizeof(mem_rotbonds_unit_vectors_const),        &mem_rotbonds_unit_vectors_const);
-  setKernelArg(kernel4,43/*40*/,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
+  setKernelArg(kernel4,33,sizeof(mem_atom1_types_reqm_const),             &mem_atom1_types_reqm_const);
+  setKernelArg(kernel4,34,sizeof(mem_atom2_types_reqm_const),             &mem_atom2_types_reqm_const);
+
+  setKernelArg(kernel4,35/*30*/,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
+  setKernelArg(kernel4,36/*31*/,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
+  setKernelArg(kernel4,37/*32*/,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
+  setKernelArg(kernel4,38/*33*/,sizeof(mem_dspars_V_const),                     &mem_dspars_V_const);
+  setKernelArg(kernel4,39/*34*/,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
+  setKernelArg(kernel4,40/*35*/,sizeof(mem_ref_coords_x_const),                 &mem_ref_coords_x_const);
+  setKernelArg(kernel4,41/*36*/,sizeof(mem_ref_coords_y_const),                 &mem_ref_coords_y_const);
+  setKernelArg(kernel4,42/*37*/,sizeof(mem_ref_coords_z_const),                 &mem_ref_coords_z_const);
+  setKernelArg(kernel4,43/*38*/,sizeof(mem_rotbonds_moving_vectors_const),      &mem_rotbonds_moving_vectors_const);
+  setKernelArg(kernel4,44/*39*/,sizeof(mem_rotbonds_unit_vectors_const),        &mem_rotbonds_unit_vectors_const);
+  setKernelArg(kernel4,45/*40*/,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
   kernel4_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
   kernel4_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
@@ -667,17 +679,19 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
   setKernelArg(kernel3,30,sizeof(dockpars.smooth),                        &dockpars.smooth);
   setKernelArg(kernel3,31,sizeof(mem_reqm_const),                         &mem_reqm_const);
   setKernelArg(kernel3,32,sizeof(mem_reqm_hbond_const),                   &mem_reqm_hbond_const);
-  setKernelArg(kernel3,33/*30*/,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
-  setKernelArg(kernel3,34/*31*/,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
-  setKernelArg(kernel3,35/*32*/,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
-  setKernelArg(kernel3,36/*33*/,sizeof(mem_dspars_V_const),                     &mem_dspars_V_const);
-  setKernelArg(kernel3,37/*34*/,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
-  setKernelArg(kernel3,38/*35*/,sizeof(mem_ref_coords_x_const),                 &mem_ref_coords_x_const);
-  setKernelArg(kernel3,39/*36*/,sizeof(mem_ref_coords_y_const),                 &mem_ref_coords_y_const);
-  setKernelArg(kernel3,40/*37*/,sizeof(mem_ref_coords_z_const),                 &mem_ref_coords_z_const);
-  setKernelArg(kernel3,41/*38*/,sizeof(mem_rotbonds_moving_vectors_const),      &mem_rotbonds_moving_vectors_const);
-  setKernelArg(kernel3,42/*39*/,sizeof(mem_rotbonds_unit_vectors_const),        &mem_rotbonds_unit_vectors_const);
-  setKernelArg(kernel3,43/*40*/,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
+  setKernelArg(kernel3,33,sizeof(mem_atom1_types_reqm_const),             &mem_atom1_types_reqm_const);
+  setKernelArg(kernel3,34,sizeof(mem_atom2_types_reqm_const),             &mem_atom2_types_reqm_const);
+  setKernelArg(kernel3,35/*30*/,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
+  setKernelArg(kernel3,36/*31*/,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
+  setKernelArg(kernel3,37/*32*/,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
+  setKernelArg(kernel3,38/*33*/,sizeof(mem_dspars_V_const),                     &mem_dspars_V_const);
+  setKernelArg(kernel3,39/*34*/,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
+  setKernelArg(kernel3,40/*35*/,sizeof(mem_ref_coords_x_const),                 &mem_ref_coords_x_const);
+  setKernelArg(kernel3,41/*36*/,sizeof(mem_ref_coords_y_const),                 &mem_ref_coords_y_const);
+  setKernelArg(kernel3,42/*37*/,sizeof(mem_ref_coords_z_const),                 &mem_ref_coords_z_const);
+  setKernelArg(kernel3,43/*38*/,sizeof(mem_rotbonds_moving_vectors_const),      &mem_rotbonds_moving_vectors_const);
+  setKernelArg(kernel3,44/*39*/,sizeof(mem_rotbonds_unit_vectors_const),        &mem_rotbonds_unit_vectors_const);
+  setKernelArg(kernel3,45/*40*/,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
   kernel3_gxsize = blocksPerGridForEachLSEntity * threadsPerBlock;
   kernel3_lxsize = threadsPerBlock;
   #ifdef DOCK_DEBUG
@@ -718,22 +732,26 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
   setKernelArg(kernel5,25,sizeof(dockpars.smooth),                        &dockpars.smooth);
   setKernelArg(kernel5,26,sizeof(mem_reqm_const),                         &mem_reqm_const);
   setKernelArg(kernel5,27,sizeof(mem_reqm_hbond_const),                   &mem_reqm_hbond_const);
-  setKernelArg(kernel5,28/*25*/,sizeof(mem_VWpars_AC_const),                     &mem_VWpars_AC_const);
-  setKernelArg(kernel5,29/*26*/,sizeof(mem_VWpars_BD_const),                     &mem_VWpars_BD_const);
-  setKernelArg(kernel5,30/*27*/,sizeof(mem_dspars_S_const),                      &mem_dspars_S_const);
-  setKernelArg(kernel5,31/*28*/,sizeof(mem_dspars_V_const),                      &mem_dspars_V_const);
-  setKernelArg(kernel5,32/*29*/,sizeof(mem_rotlist_const),                       &mem_rotlist_const);
-  setKernelArg(kernel5,33/*30*/,sizeof(mem_ref_coords_x_const),                  &mem_ref_coords_x_const);
-  setKernelArg(kernel5,34/*31*/,sizeof(mem_ref_coords_y_const),                  &mem_ref_coords_y_const);
-  setKernelArg(kernel5,35/*32*/,sizeof(mem_ref_coords_z_const),                  &mem_ref_coords_z_const);
-  setKernelArg(kernel5,36/*33*/,sizeof(mem_rotbonds_moving_vectors_const),       &mem_rotbonds_moving_vectors_const);
-  setKernelArg(kernel5,37/*34*/,sizeof(mem_rotbonds_unit_vectors_const),         &mem_rotbonds_unit_vectors_const);
-  setKernelArg(kernel5,38/*35*/,sizeof(mem_ref_orientation_quats_const),         &mem_ref_orientation_quats_const);
-  setKernelArg(kernel5,39/*36*/,sizeof(mem_rotbonds_const),         		   &mem_rotbonds_const);
-  setKernelArg(kernel5,40/*37*/,sizeof(mem_rotbonds_atoms_const),   		   &mem_rotbonds_atoms_const);
-  setKernelArg(kernel5,41/*38*/,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
+  setKernelArg(kernel5,28,sizeof(mem_atom1_types_reqm_const),             &mem_atom1_types_reqm_const);
+  setKernelArg(kernel5,29,sizeof(mem_atom2_types_reqm_const),             &mem_atom2_types_reqm_const);
+
+
+  setKernelArg(kernel5,30/*25*/,sizeof(mem_VWpars_AC_const),                     &mem_VWpars_AC_const);
+  setKernelArg(kernel5,31/*26*/,sizeof(mem_VWpars_BD_const),                     &mem_VWpars_BD_const);
+  setKernelArg(kernel5,32/*27*/,sizeof(mem_dspars_S_const),                      &mem_dspars_S_const);
+  setKernelArg(kernel5,33/*28*/,sizeof(mem_dspars_V_const),                      &mem_dspars_V_const);
+  setKernelArg(kernel5,34/*29*/,sizeof(mem_rotlist_const),                       &mem_rotlist_const);
+  setKernelArg(kernel5,35/*30*/,sizeof(mem_ref_coords_x_const),                  &mem_ref_coords_x_const);
+  setKernelArg(kernel5,36/*31*/,sizeof(mem_ref_coords_y_const),                  &mem_ref_coords_y_const);
+  setKernelArg(kernel5,37/*32*/,sizeof(mem_ref_coords_z_const),                  &mem_ref_coords_z_const);
+  setKernelArg(kernel5,38/*33*/,sizeof(mem_rotbonds_moving_vectors_const),       &mem_rotbonds_moving_vectors_const);
+  setKernelArg(kernel5,39/*34*/,sizeof(mem_rotbonds_unit_vectors_const),         &mem_rotbonds_unit_vectors_const);
+  setKernelArg(kernel5,40/*35*/,sizeof(mem_ref_orientation_quats_const),         &mem_ref_orientation_quats_const);
+  setKernelArg(kernel5,41/*36*/,sizeof(mem_rotbonds_const),         		   &mem_rotbonds_const);
+  setKernelArg(kernel5,42/*37*/,sizeof(mem_rotbonds_atoms_const),   		   &mem_rotbonds_atoms_const);
+  setKernelArg(kernel5,43/*38*/,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
   // Specific gradient-minimizer args
-  setKernelArg(kernel5,42/*39*/,sizeof(gradientpars.max_num_of_iters),           &gradientpars.max_num_of_iters);
+  setKernelArg(kernel5,44/*39*/,sizeof(gradientpars.max_num_of_iters),           &gradientpars.max_num_of_iters);
 	/*
   setKernelArg(kernel5,40,sizeof(gradientpars.max_num_of_consec_fails),    &gradientpars.max_num_of_consec_fails);
   setKernelArg(kernel5,39,sizeof(gradientpars.alpha),            	   &gradientpars.alpha);
@@ -1041,6 +1059,8 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
         clReleaseMemObject(mem_intraE_contributors_const);
   	clReleaseMemObject(mem_reqm_const);
   	clReleaseMemObject(mem_reqm_hbond_const);
+  	clReleaseMemObject(mem_atom1_types_reqm_const);
+  	clReleaseMemObject(mem_atom2_types_reqm_const);
         clReleaseMemObject(mem_VWpars_AC_const);
 	clReleaseMemObject(mem_VWpars_BD_const);
 	clReleaseMemObject(mem_dspars_S_const);

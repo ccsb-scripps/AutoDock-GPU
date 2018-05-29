@@ -58,6 +58,8 @@ perform_LS(
                      	float  dockpars_smooth,
 	     __constant float* reqm,
 	     __constant float* reqm_hbond,
+	     __constant uint*  atom1_types_reqm,
+	     __constant uint*  atom2_types_reqm,
              __constant float* VWpars_AC_const,
              __constant float* VWpars_BD_const,
              __constant float* dspars_S_const,
@@ -103,7 +105,7 @@ perform_LS(
 	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
 
-	#if defined (DEBUG_ENERGY_KERNEL3)
+	#if defined (DEBUG_ENERGY_KERNEL)
 	__local float partial_interE [NUM_OF_THREADS_PER_BLOCK];
 	__local float partial_intraE [NUM_OF_THREADS_PER_BLOCK];
 	#endif
@@ -222,7 +224,7 @@ perform_LS(
 				calc_coords_y,
 				calc_coords_z,
 				partial_energies,
-				#if defined (DEBUG_ENERGY_KERNEL3)
+				#if defined (DEBUG_ENERGY_KERNEL)
 				partial_interE,
 				partial_intraE,
 				#endif
@@ -230,9 +232,14 @@ perform_LS(
 				atom_charges_const,
 				atom_types_const,
 				intraE_contributors_const,
+#if 0
+				false,
+#endif
 				dockpars_smooth,
 				reqm,
 				reqm_hbond,
+		     	        atom1_types_reqm,
+		     	        atom2_types_reqm,
 				VWpars_AC_const,
 				VWpars_BD_const,
 				dspars_S_const,
@@ -250,7 +257,7 @@ perform_LS(
 		if (get_local_id(0) == 0) {
 			evaluation_cnt++;
 
-			#if defined (DEBUG_ENERGY_KERNEL3)
+			#if defined (DEBUG_ENERGY_KERNEL)
 			printf("%-18s [%-5s]---{%-5s}   [%-10.8f]---{%-10.8f}\n", "-ENERGY-KERNEL3-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
 			#endif
 		}
@@ -330,7 +337,7 @@ perform_LS(
 					calc_coords_y,
 					calc_coords_z,
 					partial_energies,
-					#if defined (DEBUG_ENERGY_KERNEL3)
+					#if defined (DEBUG_ENERGY_KERNEL)
 					partial_interE,
 					partial_intraE,
 					#endif
@@ -338,9 +345,14 @@ perform_LS(
 					atom_charges_const,
 					atom_types_const,
 					intraE_contributors_const,
+#if 0
+					false,
+#endif
 					dockpars_smooth,
 					reqm,
 					reqm_hbond,
+	     			        atom1_types_reqm,
+			     	        atom2_types_reqm,
 					VWpars_AC_const,
 					VWpars_BD_const,
 					dspars_S_const,
@@ -358,7 +370,7 @@ perform_LS(
 			if (get_local_id(0) == 0) {
 				evaluation_cnt++;
 
-				#if defined (DEBUG_ENERGY_KERNEL3)
+				#if defined (DEBUG_ENERGY_KERNEL)
 				printf("%-18s [%-5s]---{%-5s}   [%-10.8f]---{%-10.8f}\n", "-ENERGY-KERNEL3-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
 				#endif
 			}

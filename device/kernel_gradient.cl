@@ -32,6 +32,8 @@ gradient_minimizer(
                         float  dockpars_smooth,
  	     __constant float* reqm,
 	     __constant float* reqm_hbond,
+	     __constant uint*  atom1_types_reqm,
+	     __constant uint*  atom2_types_reqm,
     	     __constant float* VWpars_AC_const,
     	     __constant float* VWpars_BD_const,
              __constant float* dspars_S_const,
@@ -142,7 +144,7 @@ gradient_minimizer(
 	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
 
-	#if defined (DEBUG_ENERGY_KERNEL5)
+	#if defined (DEBUG_ENERGY_KERNEL)
 	__local float partial_interE[NUM_OF_THREADS_PER_BLOCK];
 	__local float partial_intraE[NUM_OF_THREADS_PER_BLOCK];
 	#endif
@@ -362,6 +364,8 @@ gradient_minimizer(
 				dockpars_smooth,
 				reqm,
 				reqm_hbond,
+		     	        atom1_types_reqm,
+		     	        atom2_types_reqm,
 				VWpars_AC_const,
 				VWpars_BD_const,
 				dspars_S_const,
@@ -432,7 +436,7 @@ gradient_minimizer(
 				dockpars_coeff_elec,
 				dockpars_qasp,
 				dockpars_coeff_desolv,
-				candidate_genotype,
+				/*candidate_genotype,*/genotype, /*use genotype only for reproduce results*/
 				&candidate_energy,
 				&run_id,
 				// Some OpenCL compilers don't allow declaring 
@@ -443,7 +447,7 @@ gradient_minimizer(
 				calc_coords_y,
 				calc_coords_z,
 				partial_energies,
-				#if defined (DEBUG_ENERGY_KERNEL5)
+				#if defined (DEBUG_ENERGY_KERNEL)
 				partial_interE,
 				partial_intraE,
 				#endif
@@ -451,9 +455,14 @@ gradient_minimizer(
 				atom_charges_const,
 				atom_types_const,
 				intraE_contributors_const,
+#if 0
+				true,
+#endif
 				dockpars_smooth,
 				reqm,
 				reqm_hbond,
+		     	        atom1_types_reqm,
+		     	        atom2_types_reqm,
 				VWpars_AC_const,
 				VWpars_BD_const,
 				dspars_S_const,
@@ -467,6 +476,16 @@ gradient_minimizer(
 				ref_orientation_quats_const
 				);
 		// =============================================================
+
+		#if defined (DEBUG_ENERGY_KERNEL)
+		if ((get_group_id(0) == 0) && (get_local_id(0) == 0)) {
+			for(uint i = 0; i < dockpars_num_of_genes; i++) {
+				printf("genotype[%u]=%f \n", i, genotype[i]);
+			}
+			printf("partial_interE=%f \n", partial_interE[0]);
+			printf("partial_intraE=%f \n", partial_intraE[0]);
+		}
+		#endif
 
 		// Checking if E(candidate_genotype) < E(genotype)
 		if (candidate_energy < energy){
@@ -507,7 +526,7 @@ gradient_minimizer(
 			printf("# minimizer-iters: %-3u, stepsize: %10.7f, E: %10.7f\n", iteration_cnt, stepsize, energy);
 			#endif
 
-			#if defined (DEBUG_ENERGY_KERNEL5)
+			#if defined (DEBUG_ENERGY_KERNEL)
 			printf("%-18s [%-5s]---{%-5s}   [%-10.7f]---{%-10.7f}\n", "-ENERGY-KERNEL5-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
 			#endif
 		}

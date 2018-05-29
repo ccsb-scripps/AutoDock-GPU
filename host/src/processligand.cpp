@@ -541,16 +541,29 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 
 			//identifying atom types
 			for (i=0; i<ATYPE_NUM; i++)
+/*
 				// OCLADock
-				if (stricmp(atom_names [i], myligand->atom_types [atom_typeid1]) == 0)
+				if (stricmp(atom_names [i], myligand->atom_types [atom_typeid1]) == 0) 
 				//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
 					VWid_atype1 = i;
+*/
+				if (stricmp(atom_names [i], myligand->atom_types [atom_typeid1]) == 0) {
+					VWid_atype1 = i;
+					myligand->atom1_types_reqm [atom_typeid1] = VWid_atype1;
+				}
 
 			for (i=0; i<ATYPE_NUM; i++)
 				// OCLADock
+/*
 				if (stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
 				//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
 					VWid_atype2 = i;
+*/
+				if (stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0) {
+					VWid_atype2 = i;
+					myligand->atom2_types_reqm [atom_typeid2] = VWid_atype2;
+				}
+
 
 			if (VWid_atype1 == ATYPE_NUM)
 			{
@@ -582,6 +595,24 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 				myligand->VWpars_B [atom_typeid1][atom_typeid2] = 2*eps12*pow(reqm12, 6);
 				myligand->VWpars_C [atom_typeid1][atom_typeid2] = 0;
 				myligand->VWpars_D [atom_typeid1][atom_typeid2] = 0;
+
+/*
+				// ----------------------------------
+				// ocladock test, smoothing
+				// remove after successful test
+				eps12 = AD4_coeff_vdW * sqrt(eps [3]*eps [8]);		//weighting with coefficient for van der Waals term
+				reqm12 = 0.5*(reqm [3]+reqm [8]);
+				
+				printf("epsii (C): %f\n", eps [3]);
+				printf("epsii (OA): %f\n", eps [8]);
+				printf("epsij: %f\n", eps12);
+				printf("rij: %f\n", reqm12);
+				printf("C12=%f\n", eps12*pow(reqm12, 12));
+				printf("C6=%f\n", 2*eps12*pow(reqm12, 6));
+
+				// ----------------------------------
+*/				
+
 			}
 		}
 

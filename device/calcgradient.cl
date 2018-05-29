@@ -37,7 +37,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //#define DEBUG_GRAD_TRANSLATION_GENES
 //#define DEBUG_GRAD_ROTATION_GENES
 //#define DEBUG_GRAD_TORSION_GENES
-//#define DEBUG_ENERGY_KERNEL5
+
 
 // Atomic operations used in gradients of intra contributors.
 // Only atomic_cmpxchg() works on floats. 
@@ -111,6 +111,8 @@ void gpu_calc_gradient(
 	                  	float  dockpars_smooth,
 	       	     __constant float* reqm,
 	       	     __constant float* reqm_hbond,
+	             __constant uint*  atom1_types_reqm,
+       	             __constant uint*  atom2_types_reqm,
                      __constant float* VWpars_AC_const,
                      __constant float* VWpars_BD_const,
                      __constant float* dspars_S_const,
@@ -609,6 +611,9 @@ void gpu_calc_gradient(
 			// Getting type IDs
 			uint atom1_typeid = atom_types_const[atom1_id];
 			uint atom2_typeid = atom_types_const[atom2_id];
+
+			uint atom1_type_vdw_hb = atom1_types_reqm [atom1_typeid];
+	     	        uint atom2_type_vdw_hb = atom2_types_reqm [atom2_typeid];
 			//printf ("%-5u %-5u %-5u\n", contributor_counter, atom1_id, atom2_id);
 
 			// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
@@ -620,11 +625,17 @@ void gpu_calc_gradient(
 
 			if (intraE_contributors_const[3*contributor_counter+2] == 1)	//H-bond
 			{
+/*
 				opt_distance = reqm_hbond [atom1_typeid] + reqm_hbond [atom2_typeid];
+*/
+				opt_distance = reqm_hbond [atom1_type_vdw_hb] + reqm_hbond [atom2_type_vdw_hb];
 			}
 			else	//van der Waals
 			{
+/*
 				opt_distance = 0.5f*(reqm [atom1_typeid] + reqm [atom2_typeid]);
+*/
+				opt_distance = 0.5f*(reqm [atom1_type_vdw_hb] + reqm [atom2_type_vdw_hb]);
 			}
 
 			// Getting smoothed distance
