@@ -605,69 +605,51 @@ void gpu_calc_gradient(
 		float dist = native_sqrt(subx*subx + suby*suby + subz*subz);
 		float atomic_distance = dist*dockpars_grid_spacing;
 
+		// Getting type IDs
+		uint atom1_typeid = atom_types_const[atom1_id];
+		uint atom2_typeid = atom_types_const[atom2_id];
+
+		uint atom1_type_vdw_hb = atom1_types_reqm [atom1_typeid];
+	     	uint atom2_type_vdw_hb = atom2_types_reqm [atom2_typeid];
+		//printf ("%-5u %-5u %-5u\n", contributor_counter, atom1_id, atom2_id);
+
+		// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
+		// reqm: equilibrium internuclear separation 
+		//       (sum of the vdW radii of two like atoms (A)) in the case of vdW
+		// reqm_hbond: equilibrium internuclear separation
+		//  	 (sum of the vdW radii of two like atoms (A)) in the case of hbond 
+		float opt_distance;
+
+		if (intraE_contributors_const[3*contributor_counter+2] == 1)	//H-bond
+		{
+			opt_distance = reqm_hbond [atom1_type_vdw_hb] + reqm_hbond [atom2_type_vdw_hb];
+		}
+		else	//van der Waals
+		{
+			opt_distance = 0.5f*(reqm [atom1_type_vdw_hb] + reqm [atom2_type_vdw_hb]);
+		}
+
+		// Getting smoothed distance
+		// smoothed_distance = function(atomic_distance, opt_distance)
+		float smoothed_distance;
+		float delta_distance = 0.5f*dockpars_smooth;
+
+		if (atomic_distance <= (opt_distance - delta_distance)) {
+			smoothed_distance = atomic_distance + delta_distance;
+		}
+		else if (atomic_distance < (opt_distance + delta_distance)) {
+			smoothed_distance = opt_distance;
+		}
+		else { // else if (atomic_distance >= (opt_distance + delta_distance))
+			smoothed_distance = atomic_distance - delta_distance;
+		}
+
 		// Calculating gradient contributions
+		// Cuttoff: internuclear-distance at 8A.
+		// Cutoff only for vdw and hbond.
+		// el and sol contributions are calculated at all distances.
 		if (atomic_distance < 8.0f)
 		{
-			// Getting type IDs
-			uint atom1_typeid = atom_types_const[atom1_id];
-			uint atom2_typeid = atom_types_const[atom2_id];
-
-			uint atom1_type_vdw_hb = atom1_types_reqm [atom1_typeid];
-	     	        uint atom2_type_vdw_hb = atom2_types_reqm [atom2_typeid];
-			//printf ("%-5u %-5u %-5u\n", contributor_counter, atom1_id, atom2_id);
-
-			// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
-			// reqm: equilibrium internuclear separation 
-			//       (sum of the vdW radii of two like atoms (A)) in the case of vdW
-			// reqm_hbond: equilibrium internuclear separation
-			//  	 (sum of the vdW radii of two like atoms (A)) in the case of hbond 
-			float opt_distance;
-
-			if (intraE_contributors_const[3*contributor_counter+2] == 1)	//H-bond
-			{
-/*
-				opt_distance = reqm_hbond [atom1_typeid] + reqm_hbond [atom2_typeid];
-*/
-				opt_distance = reqm_hbond [atom1_type_vdw_hb] + reqm_hbond [atom2_type_vdw_hb];
-			}
-			else	//van der Waals
-			{
-/*
-				opt_distance = 0.5f*(reqm [atom1_typeid] + reqm [atom2_typeid]);
-*/
-				opt_distance = 0.5f*(reqm [atom1_type_vdw_hb] + reqm [atom2_type_vdw_hb]);
-			}
-
-			// Getting smoothed distance
-			// smoothed_distance = function(atomic_distance, opt_distance)
-			float smoothed_distance;
-			float delta_distance = 0.5f*dockpars_smooth;
-
-			if (atomic_distance <= (opt_distance - delta_distance)) {
-				smoothed_distance = atomic_distance + delta_distance;
-			}
-			else if (atomic_distance < (opt_distance + delta_distance)) {
-				smoothed_distance = opt_distance;
-			}
-			else { // else if (atomic_distance >= (opt_distance + delta_distance))
-				smoothed_distance = atomic_distance - delta_distance;
-			}
-
-/*
-			if (get_local_id (0) == 0) {
-
-				if (intraE_contributors_const[3*contributor_counter+2] == 1)	//H-bond
-				{
-					printf("%-5s %u %u %f %f %f %f %f %f\n", "hbond", atom1_typeid, atom2_typeid, reqm_hbond [atom1_typeid], reqm_hbond [atom2_typeid], opt_distance, delta_distance, atomic_distance, smoothed_distance);
-
-				}
-				else	//van der Waals
-				{
-					printf("%-5s %u %u %f %f %f %f %f %f\n", "vdw", atom1_typeid, atom2_typeid, reqm [atom1_typeid], reqm [atom2_typeid], opt_distance, delta_distance, atomic_distance, smoothed_distance);	
-				}
-			}
-*/
-
 			// Calculating van der Waals / hydrogen bond term
 			priv_gradient_per_intracontributor += native_divide (-12*VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
 									     native_powr(smoothed_distance/*atomic_distance*/, 13)
@@ -683,44 +665,43 @@ void gpu_calc_gradient(
 										     native_powr(smoothed_distance/*atomic_distance*/, 7)
 										    );
 			}
+		} // if cuttoff - internuclear-distance at 8A	
 
-			// Calculating electrostatic term
-			// http://www.wolframalpha.com/input/?i=1%2F(x*(A%2B(B%2F(1%2BK*exp(-h*B*x)))))
-			float upper = DIEL_A*native_powr(native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K, 2) + (DIEL_B)*native_exp(DIEL_B_TIMES_H*atomic_distance)*(DIEL_B_TIMES_H_TIMES_K*atomic_distance + native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K);
+		// Calculating electrostatic term
+		// http://www.wolframalpha.com/input/?i=1%2F(x*(A%2B(B%2F(1%2BK*exp(-h*B*x)))))
+		float upper = DIEL_A*native_powr(native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K, 2) + (DIEL_B)*native_exp(DIEL_B_TIMES_H*atomic_distance)*(DIEL_B_TIMES_H_TIMES_K*atomic_distance + native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K);
 		
-			float lower = native_powr(atomic_distance, 2) * native_powr(DIEL_A * (native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K) + DIEL_B * native_exp(DIEL_B_TIMES_H*atomic_distance), 2);
+		float lower = native_powr(atomic_distance, 2) * native_powr(DIEL_A * (native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K) + DIEL_B * native_exp(DIEL_B_TIMES_H*atomic_distance), 2);
 
-        		priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id] * native_divide (upper, lower);
+       		priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id] * native_divide (upper, lower);
 
-			// Calculating desolvation term
-			priv_gradient_per_intracontributor += (
-									       (dspars_S_const[atom1_typeid] + dockpars_qasp*fabs(atom_charges_const[atom1_id])) * dspars_V_const[atom2_typeid] +
-							                       (dspars_S_const[atom2_typeid] + dockpars_qasp*fabs(atom_charges_const[atom2_id])) * dspars_V_const[atom1_typeid]
-				        				      ) *
-					                       			dockpars_coeff_desolv * -0.07716049382716049 * atomic_distance * native_exp(-0.038580246913580245*native_powr(atomic_distance, 2));
+		// Calculating desolvation term
+		priv_gradient_per_intracontributor += (
+								       (dspars_S_const[atom1_typeid] + dockpars_qasp*fabs(atom_charges_const[atom1_id])) * dspars_V_const[atom2_typeid] +
+						                       (dspars_S_const[atom2_typeid] + dockpars_qasp*fabs(atom_charges_const[atom2_id])) * dspars_V_const[atom1_typeid]
+			        				      ) *
+				                       			dockpars_coeff_desolv * -0.07716049382716049 * atomic_distance * native_exp(-0.038580246913580245*native_powr(atomic_distance, 2));
 
-			// Decomposing "priv_gradient_per_intracontributor" 
-			// into the contribution of each atom of the pair 
-			float subx_div_dist = native_divide(subx, dist);
-			float suby_div_dist = native_divide(suby, dist);
-			float subz_div_dist = native_divide(subz, dist);
+		// Decomposing "priv_gradient_per_intracontributor" 
+		// into the contribution of each atom of the pair 
+		float subx_div_dist = native_divide(subx, dist);
+		float suby_div_dist = native_divide(suby, dist);
+		float subz_div_dist = native_divide(subz, dist);
 
-			float priv_intra_gradient_x = priv_gradient_per_intracontributor * subx_div_dist;
-			float priv_intra_gradient_y = priv_gradient_per_intracontributor * suby_div_dist;
-			float priv_intra_gradient_z = priv_gradient_per_intracontributor * subz_div_dist;
+		float priv_intra_gradient_x = priv_gradient_per_intracontributor * subx_div_dist;
+		float priv_intra_gradient_y = priv_gradient_per_intracontributor * suby_div_dist;
+		float priv_intra_gradient_z = priv_gradient_per_intracontributor * subz_div_dist;
 		
-			// Calculating gradients in xyz components.
-			// Gradients for both atoms in a single contributor pair
-			// have the same magnitude, but opposite directions
-			atomicSub_g_f(&gradient_intra_x[atom1_id], priv_intra_gradient_x);
-			atomicSub_g_f(&gradient_intra_y[atom1_id], priv_intra_gradient_y);
-			atomicSub_g_f(&gradient_intra_z[atom1_id], priv_intra_gradient_z);
+		// Calculating gradients in xyz components.
+		// Gradients for both atoms in a single contributor pair
+		// have the same magnitude, but opposite directions
+		atomicSub_g_f(&gradient_intra_x[atom1_id], priv_intra_gradient_x);
+		atomicSub_g_f(&gradient_intra_y[atom1_id], priv_intra_gradient_y);
+		atomicSub_g_f(&gradient_intra_z[atom1_id], priv_intra_gradient_z);
 
-			atomicAdd_g_f(&gradient_intra_x[atom2_id], priv_intra_gradient_x);
-			atomicAdd_g_f(&gradient_intra_y[atom2_id], priv_intra_gradient_y);
-			atomicAdd_g_f(&gradient_intra_z[atom2_id], priv_intra_gradient_z);
-		}
-
+		atomicAdd_g_f(&gradient_intra_x[atom2_id], priv_intra_gradient_x);
+		atomicAdd_g_f(&gradient_intra_y[atom2_id], priv_intra_gradient_y);
+		atomicAdd_g_f(&gradient_intra_z[atom2_id], priv_intra_gradient_z);
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
 
 	
