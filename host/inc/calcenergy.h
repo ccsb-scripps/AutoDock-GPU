@@ -92,6 +92,8 @@ typedef struct
        char  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
        float reqm_const [ATYPE_NUM];
        float reqm_hbond_const [ATYPE_NUM];
+       unsigned int  atom1_types_reqm_const [ATYPE_NUM];
+       unsigned int  atom2_types_reqm_const [ATYPE_NUM];
        float VWpars_AC_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
        float VWpars_BD_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
        float dspars_S_const    [MAX_NUM_OF_ATYPES];
