@@ -436,7 +436,7 @@ gradient_minimizer(
 				dockpars_coeff_elec,
 				dockpars_qasp,
 				dockpars_coeff_desolv,
-				/*candidate_genotype,*/genotype, /*use genotype only for reproduce results*/
+				candidate_genotype, /*genotype,*/ /*use genotype only for reproduce results*/
 				&candidate_energy,
 				&run_id,
 				// Some OpenCL compilers don't allow declaring 
