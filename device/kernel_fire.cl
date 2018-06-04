@@ -38,6 +38,7 @@ gradient_minFire(
 			int    dockpars_num_of_genes,
 			float  dockpars_lsearch_rate,
 			uint   dockpars_num_of_lsentities,
+			uint   dockpars_max_num_of_iters,
 			float  dockpars_qasp,
 	     __constant float* atom_charges_const,
     	     __constant char*  atom_types_const,
@@ -61,11 +62,6 @@ gradient_minFire(
 	     __constant int*   rotbonds_const,
 	     __constant int*   rotbonds_atoms_const,
 	     __constant int*   num_rotating_atoms_per_rotbond_const
-/*
-    			// Specific gradient-minimizer args
-			,
-		    	uint      	  gradMin_maxiters
-*/
 )
 //The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
 //The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
@@ -342,10 +338,16 @@ gradient_minFire(
 	          gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 
+		 // TODO: remove division
 		 velocity [gene_counter] = - native_divide(gradient [gene_counter], gradient_norm) * ALPHA_START;
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
-	
+
+/*
+	if (get_local_id(0) == 0 ){
+		printf("dt:%f, DT_MIN:%f, power: %f\n", dt, DT_MIN, power);
+	}
+*/
 
 	// The termination criteria is based on 
 	// a maximum number of iterations, and
@@ -441,9 +443,10 @@ gradient_minFire(
 	        	  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 
 			//velocity [gene_counter] = (1 - alpha) * velocity [gene_counter] - alpha * gradient [gene_counter] * velnorm_div_gradnorm/*native_divide(velocity_norm, gradient_norm)*/;
-			velocity [gene_counter] = (1 - alpha) * velocity [gene_counter] - gradient [gene_counter] * velnorm_div_gradnorm;
+			velocity [gene_counter] = (1 - alpha) * velocity [gene_counter] - velnorm_div_gradnorm * gradient [gene_counter];
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
+
 
 		// Going uphill (against the gradient)
 		if (power < 0.0f) {
@@ -456,15 +459,16 @@ gradient_minFire(
 				velocity [gene_counter] = - native_divide(gradient [gene_counter], gradient_norm) * ALPHA_START;	
 			}
 
-		 	if (get_local_id (0) == 0) {
+		 	if (get_local_id(0) == 0) {
 				count_success = 0;
 				alpha         = ALPHA_START;
 				dt 	      = dt * DT_DEC; 
+				//printf("UPHILL dt:%f, DT_MIN:%f, power: %f, count: %u \n", dt, DT_MIN, power, count_success);
 			}
 		}
 		// Going downhill
 		else {
-			if (get_local_id (0) == 0) {
+			if (get_local_id(0) == 0) {
 				count_success ++;
 
 				// Reaching minimum number of consecutive successful steps (power >= 0)
@@ -472,6 +476,7 @@ gradient_minFire(
 					dt    = fmin (dt * DT_INC, DT_MAX);	// increase dt
 					alpha = alpha * ALPHA_DEC; 		// decrease alpha
 				}
+				//printf("DOWNHILL dt:%f, DT_MIN:%f, power: %f, count: %u \n", dt, DT_MIN, power, count_success);
 			}
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -649,9 +654,10 @@ gradient_minFire(
 			printf("%-18s [%-5s]---{%-5s}   [%-10.7f]---{%-10.7f}\n", "-ENERGY-KERNEL5-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
 			#endif
 		}
+		barrier(CLK_LOCAL_MEM_FENCE);
 
-  	} while (dt > DT_MIN);
-	// } while ((iteration_cnt < gradMin_maxiters) && (stepsize > 1E-8));
+  	//} //while (dt > DT_MIN);
+	} while ((iteration_cnt < dockpars_max_num_of_iters) && (dt > DT_MIN));
 
 	// -----------------------------------------------------------------------------
 

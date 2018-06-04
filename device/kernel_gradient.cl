@@ -25,6 +25,7 @@ gradient_minimizer(
 			int    dockpars_num_of_genes,
 			float  dockpars_lsearch_rate,
 			uint   dockpars_num_of_lsentities,
+			uint   dockpars_max_num_of_iters,
 			float  dockpars_qasp,
 	     __constant float* atom_charges_const,
     	     __constant char*  atom_types_const,
@@ -47,9 +48,7 @@ gradient_minimizer(
              __constant float* ref_orientation_quats_const,
 	     __constant int*   rotbonds_const,
 	     __constant int*   rotbonds_atoms_const,
-	     __constant int*   num_rotating_atoms_per_rotbond_const,
-    			// Specific gradient-minimizer args
-		    	uint      	  gradMin_maxiters
+	     __constant int*   num_rotating_atoms_per_rotbond_const
 )
 //The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
 //The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
@@ -531,7 +530,7 @@ gradient_minimizer(
 			#endif
 		}
 
-  	} while ((iteration_cnt < gradMin_maxiters) && (stepsize > 1E-8));
+  	} while ((iteration_cnt < dockpars_max_num_of_iters) && (stepsize > 1E-8));
 
 	// -----------------------------------------------------------------------------
 
