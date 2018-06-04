@@ -658,3 +658,4 @@ raw_intraE_sol = ((dspars_S_const[atom1_typeid] +
 #include "kernel3.cl"
 #include "calcgradient.cl"
 #include "kernel_gradient.cl"
+#include "kernel_fire.cl"

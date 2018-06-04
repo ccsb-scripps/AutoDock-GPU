@@ -33,6 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define KRNL3 STRINGIZE(K3)
 #define KRNL4 STRINGIZE(K4)
 #define KRNL5 STRINGIZE(K5)
+#define KRNL6 STRINGIZE(K6)
 
 #else
 #define KRNL_FILE KRNL_SOURCE
@@ -43,6 +44,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define KRNL3 K3
 #define KRNL4 K4
 #define KRNL5 K5
+#define KRNL5 K6
 #endif
 
 #define INC " -I " KRNL_FOLDER " -I " KRNL_COMMON
@@ -148,6 +150,9 @@ filled with clock() */
 	cl_kernel kernel5; const char *name_k5 = KRNL5;
 	size_t kernel5_gxsize, kernel5_lxsize;
 
+	cl_kernel kernel6; const char *name_k6 = KRNL6;
+	size_t kernel6_gxsize, kernel6_lxsize;
+
 	cl_uint platformCount;
 	cl_uint deviceCount;
 
@@ -174,6 +179,7 @@ filled with clock() */
 	if (ImportSource(filename, name_k3, device_id, context, options_program, &kernel3) != 0) return 1;
 	if (ImportSource(filename, name_k4, device_id, context, options_program, &kernel4) != 0) return 1;
 	if (ImportSource(filename, name_k5, device_id, context, options_program, &kernel5) != 0) return 1;
+	if (ImportSource(filename, name_k6, device_id, context, options_program, &kernel6) != 0) return 1;
 #else
 	if (ImportSourceToProgram(calcenergy_ocl, device_id, context, &program, options_program) != 0) return 1;
 #endif
@@ -184,6 +190,7 @@ filled with clock() */
 	if (createKernel(device_id, &program, name_k3, &kernel3) != 0) return 1;
 	if (createKernel(device_id, &program, name_k4, &kernel4) != 0) return 1;
 	if (createKernel(device_id, &program, name_k5, &kernel5) != 0) return 1;
+	if (createKernel(device_id, &program, name_k6, &kernel6) != 0) return 1;
 
 // End of OpenCL Host Setup
 // =======================================================================
@@ -420,8 +427,9 @@ filled with clock() */
 	unsigned int g2 = dockpars.gridsize_x * dockpars.gridsize_y;
 	unsigned int g3 = dockpars.gridsize_x * dockpars.gridsize_y * dockpars.gridsize_z;
 
-	printf("Local-search chosen method is: %s\n", (strcmp(mypars->ls_method, "sw") == 0)?"Solis-Wets":
-						      (strcmp(mypars->ls_method, "sd") == 0)?"Steepest descent": "Unknown");
+	printf("Local-search chosen method is: %s\n", (strcmp(mypars->ls_method, "sw")   == 0)?"Solis-Wets":
+						      (strcmp(mypars->ls_method, "sd")   == 0)?"Steepest descent": 
+						      (strcmp(mypars->ls_method, "fire") == 0)?"Fire": "Unknown");
 
 
 	blocksPerGridForEachLSEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
@@ -555,17 +563,17 @@ filled with clock() */
   setKernelArg(kernel1,24,sizeof(mem_atom1_types_reqm_const),             &mem_atom1_types_reqm_const);
   setKernelArg(kernel1,25,sizeof(mem_atom2_types_reqm_const),             &mem_atom2_types_reqm_const);
 
-  setKernelArg(kernel1,26/*21*/,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
-  setKernelArg(kernel1,27/*22*/,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
-  setKernelArg(kernel1,28/*23*/,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
-  setKernelArg(kernel1,29/*24*/,sizeof(mem_dspars_V_const),                     &mem_dspars_V_const);
-  setKernelArg(kernel1,30/*25*/,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
-  setKernelArg(kernel1,31/*26*/,sizeof(mem_ref_coords_x_const),                 &mem_ref_coords_x_const);
-  setKernelArg(kernel1,32/*27*/,sizeof(mem_ref_coords_y_const),                 &mem_ref_coords_y_const);
-  setKernelArg(kernel1,33/*28*/,sizeof(mem_ref_coords_z_const),                 &mem_ref_coords_z_const);
-  setKernelArg(kernel1,34/*29*/,sizeof(mem_rotbonds_moving_vectors_const),      &mem_rotbonds_moving_vectors_const);
-  setKernelArg(kernel1,35/*30*/,sizeof(mem_rotbonds_unit_vectors_const),        &mem_rotbonds_unit_vectors_const);
-  setKernelArg(kernel1,36/*31*/,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
+  setKernelArg(kernel1,26,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
+  setKernelArg(kernel1,27,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
+  setKernelArg(kernel1,28,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
+  setKernelArg(kernel1,29,sizeof(mem_dspars_V_const),                     &mem_dspars_V_const);
+  setKernelArg(kernel1,30,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
+  setKernelArg(kernel1,31,sizeof(mem_ref_coords_x_const),                 &mem_ref_coords_x_const);
+  setKernelArg(kernel1,32,sizeof(mem_ref_coords_y_const),                 &mem_ref_coords_y_const);
+  setKernelArg(kernel1,33,sizeof(mem_ref_coords_z_const),                 &mem_ref_coords_z_const);
+  setKernelArg(kernel1,34,sizeof(mem_rotbonds_moving_vectors_const),      &mem_rotbonds_moving_vectors_const);
+  setKernelArg(kernel1,35,sizeof(mem_rotbonds_unit_vectors_const),        &mem_rotbonds_unit_vectors_const);
+  setKernelArg(kernel1,36,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
   kernel1_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
   kernel1_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
@@ -622,17 +630,17 @@ filled with clock() */
   setKernelArg(kernel4,33,sizeof(mem_atom1_types_reqm_const),             &mem_atom1_types_reqm_const);
   setKernelArg(kernel4,34,sizeof(mem_atom2_types_reqm_const),             &mem_atom2_types_reqm_const);
 
-  setKernelArg(kernel4,35/*30*/,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
-  setKernelArg(kernel4,36/*31*/,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
-  setKernelArg(kernel4,37/*32*/,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
-  setKernelArg(kernel4,38/*33*/,sizeof(mem_dspars_V_const),                     &mem_dspars_V_const);
-  setKernelArg(kernel4,39/*34*/,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
-  setKernelArg(kernel4,40/*35*/,sizeof(mem_ref_coords_x_const),                 &mem_ref_coords_x_const);
-  setKernelArg(kernel4,41/*36*/,sizeof(mem_ref_coords_y_const),                 &mem_ref_coords_y_const);
-  setKernelArg(kernel4,42/*37*/,sizeof(mem_ref_coords_z_const),                 &mem_ref_coords_z_const);
-  setKernelArg(kernel4,43/*38*/,sizeof(mem_rotbonds_moving_vectors_const),      &mem_rotbonds_moving_vectors_const);
-  setKernelArg(kernel4,44/*39*/,sizeof(mem_rotbonds_unit_vectors_const),        &mem_rotbonds_unit_vectors_const);
-  setKernelArg(kernel4,45/*40*/,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
+  setKernelArg(kernel4,35,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
+  setKernelArg(kernel4,36,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
+  setKernelArg(kernel4,37,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
+  setKernelArg(kernel4,38,sizeof(mem_dspars_V_const),                     &mem_dspars_V_const);
+  setKernelArg(kernel4,39,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
+  setKernelArg(kernel4,40,sizeof(mem_ref_coords_x_const),                 &mem_ref_coords_x_const);
+  setKernelArg(kernel4,41,sizeof(mem_ref_coords_y_const),                 &mem_ref_coords_y_const);
+  setKernelArg(kernel4,42,sizeof(mem_ref_coords_z_const),                 &mem_ref_coords_z_const);
+  setKernelArg(kernel4,43,sizeof(mem_rotbonds_moving_vectors_const),      &mem_rotbonds_moving_vectors_const);
+  setKernelArg(kernel4,44,sizeof(mem_rotbonds_unit_vectors_const),        &mem_rotbonds_unit_vectors_const);
+  setKernelArg(kernel4,45,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
   kernel4_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
   kernel4_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
@@ -681,17 +689,17 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
   setKernelArg(kernel3,32,sizeof(mem_reqm_hbond_const),                   &mem_reqm_hbond_const);
   setKernelArg(kernel3,33,sizeof(mem_atom1_types_reqm_const),             &mem_atom1_types_reqm_const);
   setKernelArg(kernel3,34,sizeof(mem_atom2_types_reqm_const),             &mem_atom2_types_reqm_const);
-  setKernelArg(kernel3,35/*30*/,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
-  setKernelArg(kernel3,36/*31*/,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
-  setKernelArg(kernel3,37/*32*/,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
-  setKernelArg(kernel3,38/*33*/,sizeof(mem_dspars_V_const),                     &mem_dspars_V_const);
-  setKernelArg(kernel3,39/*34*/,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
-  setKernelArg(kernel3,40/*35*/,sizeof(mem_ref_coords_x_const),                 &mem_ref_coords_x_const);
-  setKernelArg(kernel3,41/*36*/,sizeof(mem_ref_coords_y_const),                 &mem_ref_coords_y_const);
-  setKernelArg(kernel3,42/*37*/,sizeof(mem_ref_coords_z_const),                 &mem_ref_coords_z_const);
-  setKernelArg(kernel3,43/*38*/,sizeof(mem_rotbonds_moving_vectors_const),      &mem_rotbonds_moving_vectors_const);
-  setKernelArg(kernel3,44/*39*/,sizeof(mem_rotbonds_unit_vectors_const),        &mem_rotbonds_unit_vectors_const);
-  setKernelArg(kernel3,45/*40*/,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
+  setKernelArg(kernel3,35,sizeof(mem_VWpars_AC_const),                    &mem_VWpars_AC_const);
+  setKernelArg(kernel3,36,sizeof(mem_VWpars_BD_const),                    &mem_VWpars_BD_const);
+  setKernelArg(kernel3,37,sizeof(mem_dspars_S_const),                     &mem_dspars_S_const);
+  setKernelArg(kernel3,38,sizeof(mem_dspars_V_const),                     &mem_dspars_V_const);
+  setKernelArg(kernel3,39,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
+  setKernelArg(kernel3,40,sizeof(mem_ref_coords_x_const),                 &mem_ref_coords_x_const);
+  setKernelArg(kernel3,41,sizeof(mem_ref_coords_y_const),                 &mem_ref_coords_y_const);
+  setKernelArg(kernel3,42,sizeof(mem_ref_coords_z_const),                 &mem_ref_coords_z_const);
+  setKernelArg(kernel3,43,sizeof(mem_rotbonds_moving_vectors_const),      &mem_rotbonds_moving_vectors_const);
+  setKernelArg(kernel3,44,sizeof(mem_rotbonds_unit_vectors_const),        &mem_rotbonds_unit_vectors_const);
+  setKernelArg(kernel3,45,sizeof(mem_ref_orientation_quats_const),        &mem_ref_orientation_quats_const);
   kernel3_gxsize = blocksPerGridForEachLSEntity * threadsPerBlock;
   kernel3_lxsize = threadsPerBlock;
   #ifdef DOCK_DEBUG
@@ -699,10 +707,6 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
   #endif
 // End of Kernel3
 } else if (strcmp(mypars->ls_method, "sd") == 0) {
-/*
-#else
-*/
-
 // Kernel5
   setKernelArg(kernel5,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
   setKernelArg(kernel5,1, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
@@ -729,44 +733,87 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
   setKernelArg(kernel5,22,sizeof(mem_atom_charges_const),                  &mem_atom_charges_const);
   setKernelArg(kernel5,23,sizeof(mem_atom_types_const),                    &mem_atom_types_const);
   setKernelArg(kernel5,24,sizeof(mem_intraE_contributors_const),           &mem_intraE_contributors_const);
-  setKernelArg(kernel5,25,sizeof(dockpars.smooth),                        &dockpars.smooth);
-  setKernelArg(kernel5,26,sizeof(mem_reqm_const),                         &mem_reqm_const);
-  setKernelArg(kernel5,27,sizeof(mem_reqm_hbond_const),                   &mem_reqm_hbond_const);
-  setKernelArg(kernel5,28,sizeof(mem_atom1_types_reqm_const),             &mem_atom1_types_reqm_const);
-  setKernelArg(kernel5,29,sizeof(mem_atom2_types_reqm_const),             &mem_atom2_types_reqm_const);
-
-
-  setKernelArg(kernel5,30/*25*/,sizeof(mem_VWpars_AC_const),                     &mem_VWpars_AC_const);
-  setKernelArg(kernel5,31/*26*/,sizeof(mem_VWpars_BD_const),                     &mem_VWpars_BD_const);
-  setKernelArg(kernel5,32/*27*/,sizeof(mem_dspars_S_const),                      &mem_dspars_S_const);
-  setKernelArg(kernel5,33/*28*/,sizeof(mem_dspars_V_const),                      &mem_dspars_V_const);
-  setKernelArg(kernel5,34/*29*/,sizeof(mem_rotlist_const),                       &mem_rotlist_const);
-  setKernelArg(kernel5,35/*30*/,sizeof(mem_ref_coords_x_const),                  &mem_ref_coords_x_const);
-  setKernelArg(kernel5,36/*31*/,sizeof(mem_ref_coords_y_const),                  &mem_ref_coords_y_const);
-  setKernelArg(kernel5,37/*32*/,sizeof(mem_ref_coords_z_const),                  &mem_ref_coords_z_const);
-  setKernelArg(kernel5,38/*33*/,sizeof(mem_rotbonds_moving_vectors_const),       &mem_rotbonds_moving_vectors_const);
-  setKernelArg(kernel5,39/*34*/,sizeof(mem_rotbonds_unit_vectors_const),         &mem_rotbonds_unit_vectors_const);
-  setKernelArg(kernel5,40/*35*/,sizeof(mem_ref_orientation_quats_const),         &mem_ref_orientation_quats_const);
-  setKernelArg(kernel5,41/*36*/,sizeof(mem_rotbonds_const),         		   &mem_rotbonds_const);
-  setKernelArg(kernel5,42/*37*/,sizeof(mem_rotbonds_atoms_const),   		   &mem_rotbonds_atoms_const);
-  setKernelArg(kernel5,43/*38*/,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
+  setKernelArg(kernel5,25,sizeof(dockpars.smooth),                         &dockpars.smooth);
+  setKernelArg(kernel5,26,sizeof(mem_reqm_const),                          &mem_reqm_const);
+  setKernelArg(kernel5,27,sizeof(mem_reqm_hbond_const),                    &mem_reqm_hbond_const);
+  setKernelArg(kernel5,28,sizeof(mem_atom1_types_reqm_const),              &mem_atom1_types_reqm_const);
+  setKernelArg(kernel5,29,sizeof(mem_atom2_types_reqm_const),              &mem_atom2_types_reqm_const);
+  setKernelArg(kernel5,30,sizeof(mem_VWpars_AC_const),                     &mem_VWpars_AC_const);
+  setKernelArg(kernel5,31,sizeof(mem_VWpars_BD_const),                     &mem_VWpars_BD_const);
+  setKernelArg(kernel5,32,sizeof(mem_dspars_S_const),                      &mem_dspars_S_const);
+  setKernelArg(kernel5,33,sizeof(mem_dspars_V_const),                      &mem_dspars_V_const);
+  setKernelArg(kernel5,34,sizeof(mem_rotlist_const),                       &mem_rotlist_const);
+  setKernelArg(kernel5,35,sizeof(mem_ref_coords_x_const),                  &mem_ref_coords_x_const);
+  setKernelArg(kernel5,36,sizeof(mem_ref_coords_y_const),                  &mem_ref_coords_y_const);
+  setKernelArg(kernel5,37,sizeof(mem_ref_coords_z_const),                  &mem_ref_coords_z_const);
+  setKernelArg(kernel5,38,sizeof(mem_rotbonds_moving_vectors_const),       &mem_rotbonds_moving_vectors_const);
+  setKernelArg(kernel5,39,sizeof(mem_rotbonds_unit_vectors_const),         &mem_rotbonds_unit_vectors_const);
+  setKernelArg(kernel5,40,sizeof(mem_ref_orientation_quats_const),         &mem_ref_orientation_quats_const);
+  setKernelArg(kernel5,41,sizeof(mem_rotbonds_const),         		   &mem_rotbonds_const);
+  setKernelArg(kernel5,42,sizeof(mem_rotbonds_atoms_const),   		   &mem_rotbonds_atoms_const);
+  setKernelArg(kernel5,43,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
   // Specific gradient-minimizer args
-  setKernelArg(kernel5,44/*39*/,sizeof(gradientpars.max_num_of_iters),           &gradientpars.max_num_of_iters);
-	/*
-  setKernelArg(kernel5,40,sizeof(gradientpars.max_num_of_consec_fails),    &gradientpars.max_num_of_consec_fails);
-  setKernelArg(kernel5,39,sizeof(gradientpars.alpha),            	   &gradientpars.alpha);
-  setKernelArg(kernel5,40,sizeof(mem_gradpars_conformation_min_perturbation),              &mem_gradpars_conformation_min_perturbation);
-	*/
+  setKernelArg(kernel5,44,sizeof(gradientpars.max_num_of_iters),           &gradientpars.max_num_of_iters);
   kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
   kernel5_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
 	printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MINIMIZER: ", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
 #endif
 // End of Kernel5
-
-/*
+} else if (strcmp(mypars->ls_method, "fire") == 0) {
+// Kernel6
+  setKernelArg(kernel6,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
+  setKernelArg(kernel6,1, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
+  setKernelArg(kernel6,2, sizeof(dockpars.num_of_intraE_contributors),     &dockpars.num_of_intraE_contributors);
+  setKernelArg(kernel6,3, sizeof(dockpars.gridsize_x),                     &dockpars.gridsize_x);
+  setKernelArg(kernel6,4, sizeof(dockpars.gridsize_y),                     &dockpars.gridsize_y);
+  setKernelArg(kernel6,5, sizeof(dockpars.gridsize_z),                     &dockpars.gridsize_z);
+  setKernelArg(kernel6,6, sizeof(g2),                    		   &g2);
+  setKernelArg(kernel6,7, sizeof(g3),                    		   &g3);
+  setKernelArg(kernel6,8, sizeof(dockpars.grid_spacing),                   &dockpars.grid_spacing);
+  setKernelArg(kernel6,9, sizeof(mem_dockpars_fgrids),                     &mem_dockpars_fgrids);
+  setKernelArg(kernel6,10,sizeof(dockpars.rotbondlist_length),             &dockpars.rotbondlist_length);
+  setKernelArg(kernel6,11,sizeof(dockpars.coeff_elec),                     &dockpars.coeff_elec);
+  setKernelArg(kernel6,12,sizeof(dockpars.coeff_desolv),                   &dockpars.coeff_desolv);
+  setKernelArg(kernel6,13,sizeof(mem_dockpars_conformations_next),         &mem_dockpars_conformations_next);
+  setKernelArg(kernel6,14,sizeof(mem_dockpars_energies_next),              &mem_dockpars_energies_next);
+  setKernelArg(kernel6,15,sizeof(mem_dockpars_evals_of_new_entities),      &mem_dockpars_evals_of_new_entities);
+  setKernelArg(kernel6,16,sizeof(mem_dockpars_prng_states),                &mem_dockpars_prng_states);
+  setKernelArg(kernel6,17,sizeof(dockpars.pop_size),                       &dockpars.pop_size);
+  setKernelArg(kernel6,18,sizeof(dockpars.num_of_genes),                   &dockpars.num_of_genes);
+  setKernelArg(kernel6,19,sizeof(dockpars.lsearch_rate),                   &dockpars.lsearch_rate);
+  setKernelArg(kernel6,20,sizeof(dockpars.num_of_lsentities),              &dockpars.num_of_lsentities);
+  setKernelArg(kernel6,21,sizeof(dockpars.qasp),                           &dockpars.qasp);
+  setKernelArg(kernel6,22,sizeof(mem_atom_charges_const),                  &mem_atom_charges_const);
+  setKernelArg(kernel6,23,sizeof(mem_atom_types_const),                    &mem_atom_types_const);
+  setKernelArg(kernel6,24,sizeof(mem_intraE_contributors_const),           &mem_intraE_contributors_const);
+  setKernelArg(kernel6,25,sizeof(dockpars.smooth),                         &dockpars.smooth);
+  setKernelArg(kernel6,26,sizeof(mem_reqm_const),                          &mem_reqm_const);
+  setKernelArg(kernel6,27,sizeof(mem_reqm_hbond_const),                    &mem_reqm_hbond_const);
+  setKernelArg(kernel6,28,sizeof(mem_atom1_types_reqm_const),              &mem_atom1_types_reqm_const);
+  setKernelArg(kernel6,29,sizeof(mem_atom2_types_reqm_const),              &mem_atom2_types_reqm_const);
+  setKernelArg(kernel6,30,sizeof(mem_VWpars_AC_const),                     &mem_VWpars_AC_const);
+  setKernelArg(kernel6,31,sizeof(mem_VWpars_BD_const),                     &mem_VWpars_BD_const);
+  setKernelArg(kernel6,32,sizeof(mem_dspars_S_const),                      &mem_dspars_S_const);
+  setKernelArg(kernel6,33,sizeof(mem_dspars_V_const),                      &mem_dspars_V_const);
+  setKernelArg(kernel6,34,sizeof(mem_rotlist_const),                       &mem_rotlist_const);
+  setKernelArg(kernel6,35,sizeof(mem_ref_coords_x_const),                  &mem_ref_coords_x_const);
+  setKernelArg(kernel6,36,sizeof(mem_ref_coords_y_const),                  &mem_ref_coords_y_const);
+  setKernelArg(kernel6,37,sizeof(mem_ref_coords_z_const),                  &mem_ref_coords_z_const);
+  setKernelArg(kernel6,38,sizeof(mem_rotbonds_moving_vectors_const),       &mem_rotbonds_moving_vectors_const);
+  setKernelArg(kernel6,39,sizeof(mem_rotbonds_unit_vectors_const),         &mem_rotbonds_unit_vectors_const);
+  setKernelArg(kernel6,40,sizeof(mem_ref_orientation_quats_const),         &mem_ref_orientation_quats_const);
+  setKernelArg(kernel6,41,sizeof(mem_rotbonds_const),         		   &mem_rotbonds_const);
+  setKernelArg(kernel6,42,sizeof(mem_rotbonds_atoms_const),   		   &mem_rotbonds_atoms_const);
+  setKernelArg(kernel6,43,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
+  kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
+  kernel6_lxsize = threadsPerBlock;
+#ifdef DOCK_DEBUG
+	printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MINFIRE: ", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
 #endif
-*/
+// End of Kernel5
+
+
 }
 
 
@@ -949,6 +996,10 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
 /*
 #endif
 */
+	} else if (strcmp(mypars->ls_method, "fire") == 0) {
+			// Kernel 6
+     			setKernelArg(kernel6,13,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
+      			setKernelArg(kernel6,14,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
 	}
 		}
 		else { // In this configuration, the program starts
@@ -975,6 +1026,10 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
 /*
 #endif
 */
+		} else if (strcmp(mypars->ls_method, "fire") == 0) {
+			// Kernel 6
+			setKernelArg(kernel6,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
+      			setKernelArg(kernel6,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
 		}
 		}
 		// ----------------------------------------------------------------------
@@ -1096,6 +1151,7 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
 	clReleaseKernel(kernel3);
 	clReleaseKernel(kernel4);
 	clReleaseKernel(kernel5);
+	clReleaseKernel(kernel6);
 
 	clReleaseProgram(program);
 

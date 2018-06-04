@@ -147,7 +147,8 @@ void get_commandpars(const int* argc,
 				    // unsigned long num_of_ls
 
 	strcpy(mypars->ls_method, "sw");		// "sw": Solis-Wetts, 
-							// "sd": Steepest-Descent", 
+							// "sd": Steepest-Descent",
+							// "fire": FIRE", https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
 							// "bfgs": Broyden-Fletcher-Goldfarb-Shanno (to be implemented)
 	mypars->smooth              = 0.5f;
 	mypars->tournament_rate     = 60;		// 60%
@@ -304,8 +305,11 @@ void get_commandpars(const int* argc,
 			else if (strcmp(temp, "sd") == 0) {
 				strcpy(mypars->ls_method, temp);
 			}
+			else if (strcmp(temp, "fire") == 0) {
+				strcpy(mypars->ls_method, temp);
+			}
 			else {
-				printf("Warning: value of -lsmet argument ignored. Value must be a valid string: \"sw\", \"sd\".\n");
+				printf("Warning: value of -lsmet argument ignored. Value must be a valid string: \"sw\", \"sd\", \"fire\".\n");
 			}
 		}
 
