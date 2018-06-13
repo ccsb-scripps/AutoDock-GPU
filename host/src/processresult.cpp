@@ -60,7 +60,7 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 
 
 	fprintf(fp, "***********************************\n");
-	fprintf(fp, "**   OCLADOCK REPORT FILE   **\n");
+	fprintf(fp, "**      OCLADOCK REPORT FILE     **\n");
 	fprintf(fp, "***********************************\n\n\n");
 
 	//Writing out docking parameters
@@ -153,7 +153,7 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 
 
 	fprintf(fp, "**********************************************************\n");
-	fprintf(fp, "**       OCLADOCK AUTODOCKTOOLS-COMPATIBLE DLG FILE       **\n");
+	fprintf(fp, "**      OCLADOCK AUTODOCKTOOLS-COMPATIBLE DLG FILE      **\n");
 	fprintf(fp, "**********************************************************\n\n\n");
 
 	//Writing out docking parameters
@@ -302,7 +302,10 @@ void make_resfiles(float* final_population, float* energies, const Liganddata* l
 		//if (i==127)
 		//	accurate_intraE [i] = calc_intraE(&temp_docked, 8, 0, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, 1);				//calculating the intramolecular energy
 		//else
+			#if 0
 			accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, 0, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp, debug);
+			#endif
+			accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp, debug);
 
 
 		move_ligand(&temp_docked, mygrid->origo_real_xyz);				//moving it according to grid location

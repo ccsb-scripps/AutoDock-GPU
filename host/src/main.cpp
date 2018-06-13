@@ -93,8 +93,20 @@ int main(int argc, char* argv[])
 	//------------------------------------------------------------
 	// Calculating energies of reference ligand if required
 	//------------------------------------------------------------
+#if 0
 	if (mypars.reflig_en_reqired == 1)
 		print_ref_lig_energies_f(myligand_init, mygrid, floatgrids, mypars.coeffs.scaled_AD4_coeff_elec, mypars.coeffs.AD4_coeff_desolv, mypars.qasp);
+#endif
+
+	if (mypars.reflig_en_reqired == 1) {
+		print_ref_lig_energies_f(myligand_init,
+					 mypars.smooth,
+					 mygrid,
+					 floatgrids,
+					 mypars.coeffs.scaled_AD4_coeff_elec,
+					 mypars.coeffs.AD4_coeff_desolv,
+					 mypars.qasp);
+	}
 
 	//------------------------------------------------------------
 	// Starting Docking

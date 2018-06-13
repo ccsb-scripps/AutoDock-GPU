@@ -194,5 +194,14 @@ stringify:
 odock: check-env-all stringify $(SRC)
 	g++ $(SRC) $(CFLAGS) -lOpenCL -o$(BIN_DIR)/$(TARGET) $(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
 
+PDB      := 3ce3
+NRUN     := 100
+POPSIZE  := 150
+TESTNAME := test
+SMOOTH   := 0.5f
+
+test: odock
+	$(BIN_DIR)/$(TARGET) -ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld -lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt -nrun $(NRUN) -psize $(POPSIZE) -resnam $(TESTNAME) -gfpop 0 -smooth $(SMOOTH)
+
 clean:
 	rm -f $(BIN_DIR)/* initpop.txt
