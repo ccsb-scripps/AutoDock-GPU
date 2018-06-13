@@ -1086,11 +1086,11 @@ void gpu_calc_gradient(
 		// Using interpolation on out-of-bounds elements results in hang
 		if (index_theta <= 0) {
 			//printf("WARNING: index_theta: %u\n", index_theta);
-			dependence_on_theta = dependence_on_theta_const[0];
+			dependence_on_theta = dependence_on_theta_const[0];	//printf("%f\n",dependence_on_theta_const[0]);
 		}
 		else if (index_theta >= 999){
 			//printf("WARNING: index_theta: %u\n", index_theta);
-			dependence_on_theta = dependence_on_theta_const[999];
+			dependence_on_theta = dependence_on_theta_const[999];	//printf("%f\n",dependence_on_theta_const[999]);
 		}
 		else {
 			X0_theta = angle_const[index_theta];
@@ -1110,11 +1110,11 @@ void gpu_calc_gradient(
 		// Using interpolation on previous and/or next elements results in hang
 		if (index_rotangle <= 0) {
 			//printf("WARNING: index_rotangle: %u\n", index_rotangle);
-			dependence_on_rotangle = dependence_on_rotangle_const[0];
+			dependence_on_rotangle = dependence_on_rotangle_const[0]; 	//printf("%f\n",dependence_on_rotangle_const[0]);
 		}
 		else if (index_rotangle >= 999){
 			//printf("WARNING: index_rotangle: %u\n", index_rotangle);
-			dependence_on_rotangle = dependence_on_rotangle_const[999];
+			dependence_on_rotangle = dependence_on_rotangle_const[999];	//printf("%f\n",dependence_on_rotangle_const[999]);
 		}
 		else {
 			X0_rotangle = angle_const[index_rotangle];

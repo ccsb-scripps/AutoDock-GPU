@@ -206,11 +206,11 @@ PDB      := 3ce3
 NRUN     := 100
 POPSIZE  := 150
 TESTNAME := test
-TESTLS   := fire
+TESTLS   := sd
 
 
 test: odock
-	$(BIN_DIR)/$(TARGET) -ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld -lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt -nrun $(NRUN) -psize $(POPSIZE) -resnam $(TESTNAME) -gfpop 0 -lsmet $(TESTLS) -lsit 10
+	$(BIN_DIR)/$(TARGET) -ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld -lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt -nrun $(NRUN) -psize $(POPSIZE) -resnam $(TESTNAME) -gfpop 0 -lsmet $(TESTLS) -lsit 30
 
 ASTEX_PDB := 2bsm
 ASTEX_NRUN:= 10
