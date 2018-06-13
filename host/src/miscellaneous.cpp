@@ -251,7 +251,7 @@ void rotate(double point [], const double movvec [], const double normvec [], co
 			point [0], point [1], point [2]);
 }
 
-
+#if 0
 void rotate_shoemake(double point [], 
 		    const double movvec [], 
 		    const double shoemake [],
@@ -386,7 +386,7 @@ void rotate_shoemake(double point [],
 		printf("rotated point (x,y,z): %lf, %lf, %lf\n\n",
 			point [0], point [1], point [2]);
 }
-
+#endif
 
 
 

@@ -1188,7 +1188,7 @@ void calc_q_tables_f(const Liganddata* myligand,
 // Random generator in the host is changed:
 // LCG (original, myrand()) -> CPP std (rand())
 // -------------------------------------------------------------------
-#if 0
+#if 1
 void change_conform_f(Liganddata* myligand,
 		      const float genotype_f [],
 		      float* cpu_ref_ori_angles,
@@ -1276,7 +1276,7 @@ void change_conform_f(Liganddata* myligand,
 }
 #endif // End of original change_conform_f()
 
-#if 1
+#if 0
 void change_conform_f(Liganddata* myligand,
 		      const float genotype_f [],
 		      float* cpu_ref_ori_angles,

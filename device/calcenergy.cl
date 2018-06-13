@@ -98,6 +98,17 @@ void gpu_calc_energy(
 	partial_intraE[get_local_id(0)] = 0.0f;
 	#endif
 
+	// Convert orientation genes from sex. to radians
+	float phi         = genotype[3] * DEG_TO_RAD;
+	float theta       = genotype[4] * DEG_TO_RAD;
+	float genrotangle = genotype[5] * DEG_TO_RAD;
+
+	float genrot_unitvec [3];
+	float sin_angle = native_sin(theta);
+	genrot_unitvec [0] = sin_angle*native_cos(phi);
+	genrot_unitvec [1] = sin_angle*native_sin(phi);
+	genrot_unitvec [2] = native_cos(theta);
+
 	uchar g1 = dockpars_gridsize_x;
 	uint  g2 = dockpars_gridsize_x_times_y;
   	uint  g3 = dockpars_gridsize_x_times_y_times_z;
@@ -132,56 +143,53 @@ void gpu_calc_energy(
 			}
 
 			// Capturing rotation vectors and angle
+			float rotation_unitvec[3];
 			float rotation_movingvec[3];
+			float rotation_angle;
 
 			float quatrot_left_x, quatrot_left_y, quatrot_left_z, quatrot_left_q;
 			float quatrot_temp_x, quatrot_temp_y, quatrot_temp_z, quatrot_temp_q;
 
 			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation
 			{
-				// Rotational genes in the Shoemake space expressed in radians
-				float u1 = genotype[3];
-				float u2 = genotype[4];
-				float u3 = genotype[5];
-
-				// u1, u2, u3 should be within their valid range of [0,1]
-				quatrot_left_q = native_sqrt(1 - u1) * native_sin(PI_TIMES_2*u2); 
-				quatrot_left_x = native_sqrt(1 - u1) * native_cos(PI_TIMES_2*u2);
-				quatrot_left_y = native_sqrt(u1)     * native_sin(PI_TIMES_2*u3);
-				quatrot_left_z = native_sqrt(u1)     * native_cos(PI_TIMES_2*u3);
+				rotation_unitvec[0] = genrot_unitvec[0];
+				rotation_unitvec[1] = genrot_unitvec[1];
+				rotation_unitvec[2] = genrot_unitvec[2];
 
 				rotation_movingvec[0] = genotype[0];
 				rotation_movingvec[1] = genotype[1];
 				rotation_movingvec[2] = genotype[2];
+
+				rotation_angle = genrotangle;
 			}
 			else	// If rotating around rotatable bond
 			{
 				uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
 
-				float rotation_unitvec[3];
 				rotation_unitvec[0] = rotbonds_unit_vectors_const[3*rotbond_id];
 				rotation_unitvec[1] = rotbonds_unit_vectors_const[3*rotbond_id+1];
 				rotation_unitvec[2] = rotbonds_unit_vectors_const[3*rotbond_id+2];
-				float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD;
-
+				
 				rotation_movingvec[0] = rotbonds_moving_vectors_const[3*rotbond_id];
 				rotation_movingvec[1] = rotbonds_moving_vectors_const[3*rotbond_id+1];
 				rotation_movingvec[2] = rotbonds_moving_vectors_const[3*rotbond_id+2];
+
+				rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD;
 
 				// Performing additionally the first movement which 
 				// is needed only if rotating around rotatable bond
 				atom_to_rotate[0] -= rotation_movingvec[0];
 				atom_to_rotate[1] -= rotation_movingvec[1];
 				atom_to_rotate[2] -= rotation_movingvec[2];
-
-				// Transforming torsion angles into quaternions
-				rotation_angle  = rotation_angle * 0.5f;
-				float sin_angle = native_sin(rotation_angle);
-				quatrot_left_q  = native_cos(rotation_angle);
-				quatrot_left_x  = sin_angle*rotation_unitvec[0];
-				quatrot_left_y  = sin_angle*rotation_unitvec[1];
-				quatrot_left_z  = sin_angle*rotation_unitvec[2];
 			}
+
+			// Transforming orientation and torsion angles into quaternions
+			rotation_angle  = rotation_angle * 0.5f;
+			float sin_angle = native_sin(rotation_angle);
+			quatrot_left_q  = native_cos(rotation_angle);
+			quatrot_left_x  = sin_angle*rotation_unitvec[0];
+			quatrot_left_y  = sin_angle*rotation_unitvec[1];
+			quatrot_left_z  = sin_angle*rotation_unitvec[2];
 
 			// Performing rotation
 			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation,
@@ -468,7 +476,7 @@ if (get_local_id (0) == 0) {
 		// Getting smoothed distance
 		// smoothed_distance = function(atomic_distance, opt_distance)
 		float smoothed_distance;
-		float delta_distance = 0.5f*dockpars_smooth;
+		float delta_distance = 0.5f*dockpars_smooth; 
 
 		if (atomic_distance <= (opt_distance - delta_distance)) {
 			smoothed_distance = atomic_distance + delta_distance;

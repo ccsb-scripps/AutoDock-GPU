@@ -233,14 +233,10 @@ gpu_gen_and_eval_newpops(
 			if (/*100.0f**/gpu_randf(dockpars_prng_states) < dockpars_mutation_rate)
 			{
 				// Translation genes
-				if (gene_counter <= 2) {
+				if (gene_counter < 3) {
 					offspring_genotype[gene_counter] += dockpars_abs_max_dmov*(2*gpu_randf(dockpars_prng_states)-1);
 				}
-				// Shoemake genes (u1, u2, u3) ranges between [0,1]
-				else if (gene_counter <= 5) {
-					offspring_genotype[gene_counter] = gpu_randf(dockpars_prng_states);
-				}
-				// Torsion genes
+				// Orientation and torsion genes
 				else {
 					offspring_genotype[gene_counter] += dockpars_abs_max_dang*(2*gpu_randf(dockpars_prng_states)-1);
 					map_angle(&(offspring_genotype[gene_counter]));

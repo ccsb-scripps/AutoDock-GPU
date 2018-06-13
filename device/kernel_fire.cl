@@ -62,6 +62,10 @@ gradient_minFire(
 	     __constant int*   rotbonds_const,
 	     __constant int*   rotbonds_atoms_const,
 	     __constant int*   num_rotating_atoms_per_rotbond_const
+			,
+	     __constant float* angle_const,
+	     __constant float* dependence_on_theta_const,
+	     __constant float* dependence_on_rotangle_const
 )
 //The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
 //The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
@@ -117,6 +121,9 @@ gradient_minFire(
   	event_t ev = async_work_group_copy(genotype,
   			      		   dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
                               		   dockpars_num_of_genes, 0);
+
+	// Asynchronous copy should be finished by here
+	wait_group_events(1,&ev);
 
   	// -----------------------------------------------------------------------------
   	// Some OpenCL compilers don't allow declaring 
@@ -192,14 +199,11 @@ gradient_minFire(
 		if (gene_counter <= 2) {
 			lower_bounds_genotype [gene_counter] = 0.0f;
 			upper_bounds_genotype [gene_counter] = (gene_counter == 0) ? dockpars_gridsize_x: 
-							       (gene_counter == 1) ? dockpars_gridsize_y: dockpars_gridsize_z;
-		// Shoemake genes (u1, u2, u3) range between [0,1]
-		} else if (gene_counter <= 5) {
-			lower_bounds_genotype [gene_counter] = 0.0f;
-			upper_bounds_genotype [gene_counter] = 1.0f;
-		}
-		// Torsion genes, see auxiliary_genetic.cl/map_angle()
-		else {
+							       (gene_counter == 1) ? dockpars_gridsize_y: 
+										     dockpars_gridsize_z;
+		// Orientation and torsion genes range between [0, 360]
+		// See auxiliary_genetic.cl/map_angle()
+		} else {
 			lower_bounds_genotype [gene_counter] = 0.0f;
 			upper_bounds_genotype [gene_counter] = 360.0f;
 		}
@@ -208,22 +212,6 @@ gradient_minFire(
 		//printf("(%-3u) %-10.7f %-10.7f %-10.7f\n", gene_counter, genotype[gene_counter], lower_bounds_genotype[gene_counter], upper_bounds_genotype[gene_counter]);
 		#endif
 	}
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	// Asynchronous copy should be finished by here
-	wait_group_events(1,&ev);
-
-	// Defining velocity for FIRE
-	__local float velocity [ACTUAL_GENOTYPE_LENGTH];
-
-	// Defining alpha for FIRE
-	__local float alpha;
-
-	// Defining count_success
-	__local uint count_success;
-
-	// Defining "dt"
-	__local float dt;
 
 	// Calculating gradient
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -279,6 +267,10 @@ gradient_minFire(
 			rotbonds_const,
 			rotbonds_atoms_const,
 			num_rotating_atoms_per_rotbond_const
+			,
+	     		angle_const,
+	     		dependence_on_theta_const,
+	     		dependence_on_rotangle_const
 		 	// Gradient-related arguments
 		 	// Calculate gradients (forces) for intermolecular energy
 		 	// Derived from autodockdev/maps.py
@@ -294,18 +286,26 @@ gradient_minFire(
 			);
 	// =============================================================
 
+	// FIRE counters
+	__local float velocity [ACTUAL_GENOTYPE_LENGTH];// velocity
+	__local float alpha;				// alpha
+	__local uint count_success;			// count_success
+	__local float dt;				// "dt"
+
 	// Calculating the gradient/velocity norm
 	__local float gradient_tmp [ACTUAL_GENOTYPE_LENGTH];
 	__local float gradient_norm;
+	__local float inv_gradient_norm;
 	__local float velocity_tmp [ACTUAL_GENOTYPE_LENGTH];
 	__local float velocity_norm;
 
 	__local float velnorm_div_gradnorm;
 
-	// Defining power for FIRE
+	// Defining FIRE power
 	__local float power_tmp [ACTUAL_GENOTYPE_LENGTH];
 	__local float power;
 
+	// Calculating gradient norm
 	for (uint gene_counter = get_local_id(0);
 	          gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
@@ -324,12 +324,13 @@ gradient_minFire(
 		// Continuing calculation of gradient norm
 		gradient_norm = 0.0f;
 		
-		// Summming squares
+		// Summing up squares
 		for (uint i = 0; i < dockpars_num_of_genes; i++) {
 			gradient_norm += gradient_tmp [i];
 		}
 		
-		gradient_norm = native_sqrt(gradient_norm);
+		gradient_norm     = native_sqrt(gradient_norm);
+		inv_gradient_norm = native_recip(gradient_norm);
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -337,9 +338,7 @@ gradient_minFire(
 	for (uint gene_counter = get_local_id(0);
 	          gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-
-		 // TODO: remove division
-		 velocity [gene_counter] = - native_divide(gradient [gene_counter], gradient_norm) * ALPHA_START;
+		 velocity [gene_counter] = - gradient [gene_counter] * inv_gradient_norm * ALPHA_START;
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -428,12 +427,13 @@ gradient_minFire(
 				gradient_norm += gradient_tmp [i];
 			}
 
-			power         = -power;
-			velocity_norm = native_sqrt(velocity_norm);
-			gradient_norm = native_sqrt(gradient_norm);
+			power             = -power;
+			velocity_norm     = native_sqrt(velocity_norm);
+			gradient_norm     = native_sqrt(gradient_norm);
+			inv_gradient_norm = native_recip(gradient_norm);
 			
-			//velnorm_div_gradnorm = native_divide(velocity_norm, gradient_norm);
-			velnorm_div_gradnorm = alpha * native_divide(velocity_norm, gradient_norm);
+			// Note: alpha is included as a factor here
+			velnorm_div_gradnorm = alpha * velocity_norm * inv_gradient_norm;
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -442,11 +442,9 @@ gradient_minFire(
 	        	  gene_counter < dockpars_num_of_genes;
 	        	  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 
-			//velocity [gene_counter] = (1 - alpha) * velocity [gene_counter] - alpha * gradient [gene_counter] * velnorm_div_gradnorm/*native_divide(velocity_norm, gradient_norm)*/;
 			velocity [gene_counter] = (1 - alpha) * velocity [gene_counter] - velnorm_div_gradnorm * gradient [gene_counter];
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
-
 
 		// Going uphill (against the gradient)
 		if (power < 0.0f) {
@@ -456,7 +454,7 @@ gradient_minFire(
 		        	  gene_counter < dockpars_num_of_genes;
 		        	  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {			
 			
-				velocity [gene_counter] = - native_divide(gradient [gene_counter], gradient_norm) * ALPHA_START;	
+				velocity [gene_counter] = - gradient [gene_counter] * inv_gradient_norm * ALPHA_START;	
 			}
 
 		 	if (get_local_id(0) == 0) {
@@ -549,6 +547,10 @@ gradient_minFire(
 				rotbonds_const,
 				rotbonds_atoms_const,
 				num_rotating_atoms_per_rotbond_const
+				,
+	     			angle_const,
+	     			dependence_on_theta_const,
+	     			dependence_on_rotangle_const
 			 	// Gradient-related arguments
 			 	// Calculate gradients (forces) for intermolecular energy
 			 	// Derived from autodockdev/maps.py
@@ -675,7 +677,7 @@ gradient_minFire(
 	for (uint gene_counter = get_local_id(0);
 	     	  gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-		   if (gene_counter >= 6) {
+		   if (gene_counter >= 3) {
 			    map_angle(&(genotype[gene_counter]));
 		   }
 	}

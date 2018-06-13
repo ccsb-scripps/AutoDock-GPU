@@ -78,24 +78,7 @@ int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
 	int type_id1, type_id2;
 	float* floatpoi;
 	char* charpoi;
-
-// -------------------------------------------------------------------
-// L30nardoSV
-// Replacing rotation genes: from spherical space to Shoemake space
-// gene [0:2]: translation -> kept as original x, y, z
-// gene [3:5]: rotation    -> transformed into Shoemake (all in radians)
-// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
-
-// Shoemake ranges:
-// u1: [0, 1]
-// u2: [0: 2PI]
-
-// Random generator in the host is changed:
-// LCG (original, myrand()) -> CPP std (rand())
-// -------------------------------------------------------------------
-	//float phi, theta, genrotangle;
-
-	// ------------------------------
+	float phi, theta, genrotangle;
 	float atom_charges[MAX_NUM_OF_ATOMS];
 	char  atom_types[MAX_NUM_OF_ATOMS];
 	char  intraE_contributors[3*MAX_INTRAE_CONTRIBUTORS];
@@ -264,21 +247,6 @@ int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
 	{
 		//printf("Pregenerated angles for run %d: %f %f %f\n", i, cpu_ref_ori_angles[3*i], cpu_ref_ori_angles[3*i+1], cpu_ref_ori_angles[3*i+2]);
 
-// -------------------------------------------------------------------
-// L30nardoSV
-// Replacing rotation genes: from spherical space to Shoemake space
-// gene [0:2]: translation -> kept as original x, y, z
-// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
-// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
-
-// Shoemake ranges:
-// u1: [0, 1]
-// u2: [0: 2PI] or [0: 360]
-
-// Random generator in the host is changed:
-// LCG (original, myrand()) -> CPP std (rand())
-// -------------------------------------------------------------------
-/*
 		phi = cpu_ref_ori_angles[3*i]*DEG_TO_RAD;
 		theta = cpu_ref_ori_angles[3*i+1]*DEG_TO_RAD;
 		genrotangle = cpu_ref_ori_angles[3*i+2]*DEG_TO_RAD;
@@ -287,7 +255,7 @@ int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
 		ref_orientation_quats[4*i+1] = sinf(genrotangle/2.0f)*sinf(theta)*cosf(phi);		//x
 		ref_orientation_quats[4*i+2] = sinf(genrotangle/2.0f)*sinf(theta)*sinf(phi);		//y
 		ref_orientation_quats[4*i+3] = sinf(genrotangle/2.0f)*cosf(theta);			//z
-*/
+/*
 		// Shoemake genes
 		// autodockdev/motions.py
 
@@ -300,7 +268,7 @@ int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
 		ref_orientation_quats[4*i+1] = sqrt(1-u1) * cosf(2*PI*u2);	//x
 		ref_orientation_quats[4*i+2] = sqrt(u1)   * sinf(2*PI*u3);	//y
 		ref_orientation_quats[4*i+3] = sqrt(u1)   * cosf(2*PI*u3);	//z
-
+*/
 		//printf("Precalculated quaternion for run %d: %f %f %f %f\n", i, ref_orientation_quats[4*i], ref_orientation_quats[4*i+1], ref_orientation_quats[4*i+2], ref_orientation_quats[4*i+3]);
 	}
 

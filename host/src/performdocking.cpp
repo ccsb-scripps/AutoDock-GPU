@@ -89,6 +89,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "performdocking.h"
 #include "stringify.h"
+#include "correct_grad_axisangle.h"
 
 int docking_with_gpu(const Gridinfo*   mygrid,
 	         /*const*/ float*      cpu_floatgrids,
@@ -289,27 +290,32 @@ filled with clock() */
 	// Constant data holding struct data
 	// Created because structs containing array
 	// are not supported as OpenCL kernel args
-  cl_mem mem_atom_charges_const;
-  cl_mem mem_atom_types_const;
-  cl_mem mem_intraE_contributors_const;
-  cl_mem mem_reqm_const;
-  cl_mem mem_reqm_hbond_const;
-  cl_mem mem_atom1_types_reqm_const;
-  cl_mem mem_atom2_types_reqm_const;
-  cl_mem mem_VWpars_AC_const;
-  cl_mem mem_VWpars_BD_const;
-  cl_mem mem_dspars_S_const;
-  cl_mem mem_dspars_V_const;
-  cl_mem mem_rotlist_const;
-  cl_mem mem_ref_coords_x_const;
-  cl_mem mem_ref_coords_y_const;
-  cl_mem mem_ref_coords_z_const;
-  cl_mem mem_rotbonds_moving_vectors_const;
-  cl_mem mem_rotbonds_unit_vectors_const;
-  cl_mem mem_ref_orientation_quats_const;
-  cl_mem mem_rotbonds_const;
-  cl_mem mem_rotbonds_atoms_const;
-  cl_mem mem_num_rotating_atoms_per_rotbond_const;
+  	cl_mem mem_atom_charges_const;
+	cl_mem mem_atom_types_const;
+  	cl_mem mem_intraE_contributors_const;
+  	cl_mem mem_reqm_const;
+  	cl_mem mem_reqm_hbond_const;
+  	cl_mem mem_atom1_types_reqm_const;
+  	cl_mem mem_atom2_types_reqm_const;
+  	cl_mem mem_VWpars_AC_const;
+  	cl_mem mem_VWpars_BD_const;
+  	cl_mem mem_dspars_S_const;
+  	cl_mem mem_dspars_V_const;
+  	cl_mem mem_rotlist_const;
+  	cl_mem mem_ref_coords_x_const;
+  	cl_mem mem_ref_coords_y_const;
+  	cl_mem mem_ref_coords_z_const;
+  	cl_mem mem_rotbonds_moving_vectors_const;
+  	cl_mem mem_rotbonds_unit_vectors_const;
+  	cl_mem mem_ref_orientation_quats_const;
+  	cl_mem mem_rotbonds_const;
+  	cl_mem mem_rotbonds_atoms_const;
+  	cl_mem mem_num_rotating_atoms_per_rotbond_const;
+
+	// Constant data for correcting axisangle gradients
+	cl_mem mem_angle_const;
+	cl_mem mem_dependence_on_theta_const;
+	cl_mem mem_dependence_on_rotangle_const;
 
 	// These constants are allocated in global memory since
 	// there is a limited number of constants that can be passed
@@ -336,6 +342,10 @@ filled with clock() */
   mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int),       &mem_rotbonds_atoms_const);
   mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ROTBONDS*sizeof(int),      		      &mem_num_rotating_atoms_per_rotbond_const);
 
+	mallocBufferObject(context,CL_MEM_READ_ONLY,1000*sizeof(float),&mem_angle_const);
+	mallocBufferObject(context,CL_MEM_READ_ONLY,1000*sizeof(float),&mem_dependence_on_theta_const);
+	mallocBufferObject(context,CL_MEM_READ_ONLY,1000*sizeof(float),&mem_dependence_on_rotangle_const);
+   	
   memcopyBufferObjectToDevice(command_queue,mem_atom_charges_const,			false,  &KerConst.atom_charges_const,           MAX_NUM_OF_ATOMS*sizeof(float));
   memcopyBufferObjectToDevice(command_queue,mem_atom_types_const,           		false,	&KerConst.atom_types_const,             MAX_NUM_OF_ATOMS*sizeof(char));
   memcopyBufferObjectToDevice(command_queue,mem_intraE_contributors_const,  		false,  &KerConst.intraE_contributors_const,    3*MAX_INTRAE_CONTRIBUTORS*sizeof(char));
@@ -357,6 +367,10 @@ filled with clock() */
   memcopyBufferObjectToDevice(command_queue,mem_rotbonds_const,  	      		false,	&KerConst.rotbonds,  2*MAX_NUM_OF_ROTBONDS*sizeof(int));
   memcopyBufferObjectToDevice(command_queue,mem_rotbonds_atoms_const,  	      		false,	&KerConst.rotbonds_atoms,  MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
   memcopyBufferObjectToDevice(command_queue,mem_num_rotating_atoms_per_rotbond_const, 	false,	&KerConst.num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int));
+
+  	memcopyBufferObjectToDevice(command_queue,mem_angle_const,			false,  &angle,           		1000*sizeof(float));
+	memcopyBufferObjectToDevice(command_queue,mem_dependence_on_theta_const,	false,  &dependence_on_theta,           1000*sizeof(float));
+	memcopyBufferObjectToDevice(command_queue,mem_dependence_on_rotangle_const,	false,  &dependence_on_rotangle,        1000*sizeof(float));
 	// ----------------------------------------------------------------------
 
  	//allocating GPU memory for populations, floatgirds,
@@ -744,6 +758,11 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
   setKernelArg(kernel5,42,sizeof(mem_rotbonds_const),         		   &mem_rotbonds_const);
   setKernelArg(kernel5,43,sizeof(mem_rotbonds_atoms_const),   		   &mem_rotbonds_atoms_const);
   setKernelArg(kernel5,44,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
+
+  setKernelArg(kernel5,45,sizeof(mem_angle_const)			  ,&mem_angle_const);
+  setKernelArg(kernel5,46,sizeof(mem_dependence_on_theta_const)		  ,&mem_dependence_on_theta_const);
+  setKernelArg(kernel5,47,sizeof(mem_dependence_on_rotangle_const)	  ,&mem_dependence_on_rotangle_const);
+
   kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
   kernel5_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
@@ -797,6 +816,11 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
   setKernelArg(kernel6,42,sizeof(mem_rotbonds_const),         		   &mem_rotbonds_const);
   setKernelArg(kernel6,43,sizeof(mem_rotbonds_atoms_const),   		   &mem_rotbonds_atoms_const);
   setKernelArg(kernel6,44,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
+
+  setKernelArg(kernel6,45,sizeof(mem_angle_const)			  ,&mem_angle_const);
+  setKernelArg(kernel6,46,sizeof(mem_dependence_on_theta_const)		  ,&mem_dependence_on_theta_const);
+  setKernelArg(kernel6,47,sizeof(mem_dependence_on_rotangle_const)	  ,&mem_dependence_on_rotangle_const);
+
   kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
   kernel6_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
@@ -1151,6 +1175,9 @@ if (strcmp(mypars->ls_method, "sw") == 0) {
 	/*
 	clReleaseMemObject(mem_gradpars_conformation_min_perturbation);
 	*/
+	clReleaseMemObject(mem_angle_const);
+	clReleaseMemObject(mem_dependence_on_theta_const);
+	clReleaseMemObject(mem_dependence_on_rotangle_const);
 
 	// Release all kernels,
 	// regardless of the chosen local-search method for execution.

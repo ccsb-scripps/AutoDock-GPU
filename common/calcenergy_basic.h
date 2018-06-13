@@ -70,6 +70,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 // Used for Shoemake to quaternion transformation
 #define PI_TIMES_2 		(float)(2.0f*M_PI)
+#define PI_FLOAT		(float)(M_PI)
 
 
 // -------------------------------------------
@@ -98,7 +99,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define STEP_DECREASE 		0.2f
 #define STEP_START		1E3		// Starting step size. This might look gigantic but will cap
 #define MAX_DEV_TRANSLATION	2.0f		// 2 Angstrom, but must be divided by the gridspacing (store in variable)
-#define MAX_DEV_ROTATION	0.2f		// Shoemake range [0, 1]
+//#define MAX_DEV_ROTATION	0.2f		// Shoemake range [0, 1]
+#define MAX_DEV_ROTATION	0.5f/DEG_TO_RAD	// 0.5f RAD
 #define MAX_DEV_TORSION		0.5f/DEG_TO_RAD	// 0.5f RAD
 
 

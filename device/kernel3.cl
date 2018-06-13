@@ -166,32 +166,22 @@ perform_LS(
 			genotype_deviate[gene_counter] = rho*(2*gpu_randf(dockpars_prng_states)-1);
 
 			// Translation genes
-			if (gene_counter <= 2)
+			if (gene_counter < 3) {
 				genotype_deviate[gene_counter] *= dockpars_base_dmov_mul_sqrt3;
-			
-			// Shoemake orientation-genes do not use initial deviation
-
-			// Torsion genes
-			else if (gene_counter >= 6) 
+			}
+			// Orientation and torsion genes
+			else {
 				genotype_deviate[gene_counter] *= dockpars_base_dang_mul_sqrt3;
-
+			}
 		}
 
 		// Generating new genotype candidate
 		for (gene_counter = get_local_id(0);
 		     gene_counter < dockpars_num_of_genes;
 		     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-
-			// Shoemake genes (u1, u2, u3) ranges between [0,1]
-			if ((gene_counter >= 3) && (gene_counter <= 5)) { 
-			   genotype_candidate[gene_counter] = gpu_randf(dockpars_prng_states);
-			}
-			// Other genes: translation and torsions
-			else {
 			   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] + 
 							      genotype_deviate[gene_counter]   + 
 							      genotype_bias[gene_counter];
-			}
 		}
 
 		// Evaluating candidate
@@ -294,17 +284,9 @@ perform_LS(
 			for (gene_counter = get_local_id(0);
 			     gene_counter < dockpars_num_of_genes;
 			     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-
-				// Shoemake genes (u1, u2, u3) ranges between [0,1]
-				if ((gene_counter >= 3) && (gene_counter <= 5)) {
-				   genotype_candidate[gene_counter] = gpu_randf(dockpars_prng_states);
-				}
-				// Other genes: translation and torsions
-				else {
 				   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] - 
 								      genotype_deviate[gene_counter] - 
 								      genotype_bias[gene_counter];
-				}
 			}
 
 			// Evaluating candidate
@@ -447,7 +429,7 @@ perform_LS(
 	for (gene_counter = get_local_id(0);
 	     gene_counter < dockpars_num_of_genes;
 	     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-		   if (gene_counter >= 6) {
+		   if (gene_counter >= 3) {
 			    map_angle(&(offspring_genotype[gene_counter]));
 		   }
 	}

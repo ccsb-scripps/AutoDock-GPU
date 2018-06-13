@@ -49,6 +49,10 @@ gradient_minimizer(
 	     __constant int*   rotbonds_const,
 	     __constant int*   rotbonds_atoms_const,
 	     __constant int*   num_rotating_atoms_per_rotbond_const
+			,
+	     __constant float* angle_const,
+	     __constant float* dependence_on_theta_const,
+	     __constant float* dependence_on_rotangle_const
 )
 //The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
 //The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
@@ -109,6 +113,9 @@ gradient_minimizer(
   	event_t ev = async_work_group_copy(genotype,
   			      		   dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
                               		   dockpars_num_of_genes, 0);
+
+	// Asynchronous copy should be finished by here
+	wait_group_events(1,&ev);
 
   	// -----------------------------------------------------------------------------
   	// Some OpenCL compilers don't allow declaring 
@@ -185,14 +192,11 @@ gradient_minimizer(
 		if (gene_counter <= 2) {
 			lower_bounds_genotype [gene_counter] = 0.0f;
 			upper_bounds_genotype [gene_counter] = (gene_counter == 0) ? dockpars_gridsize_x: 
-							       (gene_counter == 1) ? dockpars_gridsize_y: dockpars_gridsize_z;
-		// Shoemake genes (u1, u2, u3) range between [0,1]
-		} else if (gene_counter <= 5) {
-			lower_bounds_genotype [gene_counter] = 0.0f;
-			upper_bounds_genotype [gene_counter] = 1.0f;
-		}
-		// Torsion genes, see auxiliary_genetic.cl/map_angle()
-		else {
+							       (gene_counter == 1) ? dockpars_gridsize_y: 
+										     dockpars_gridsize_z;
+		// Orientation and torsion genes range between [0, 360]
+		// See auxiliary_genetic.cl/map_angle()
+		} else {
 			lower_bounds_genotype [gene_counter] = 0.0f;
 			upper_bounds_genotype [gene_counter] = 360.0f;
 		}
@@ -211,8 +215,7 @@ gradient_minimizer(
 	// Storing torsion genotypes here
 	__local float torsions_genotype[ACTUAL_GENOTYPE_LENGTH];
 
-	// Asynchronous copy should be finished by here
-	wait_group_events(1,&ev);
+
 
 	// The termination criteria is based on 
 	// a maximum number of iterations, and
@@ -272,7 +275,7 @@ gradient_minimizer(
 			max_trans_stepsize = native_divide(native_divide(MAX_DEV_TRANSLATION, dockpars_grid_spacing), max_trans_gene);
 
 			// Finding maximum of the absolute value 
-			// for the three Shoemake rotation genes
+			// for the three rotation genes
 			max_rota_gene = fmax(fabs(genotype[3]), fabs(genotype[4]));	//printf("max_rota_gene: %-10.7f\n", max_rota_gene);		
 			max_rota_gene = fmax(max_rota_gene, fabs(genotype[5]));		//printf("max_rota_gene: %-10.7f\n", max_rota_gene);
 
@@ -379,6 +382,10 @@ gradient_minimizer(
 				rotbonds_const,
 				rotbonds_atoms_const,
 				num_rotating_atoms_per_rotbond_const
+				,
+	     			angle_const,
+	     			dependence_on_theta_const,
+	     			dependence_on_rotangle_const
 			 	// Gradient-related arguments
 			 	// Calculate gradients (forces) for intermolecular energy
 			 	// Derived from autodockdev/maps.py
@@ -548,7 +555,7 @@ gradient_minimizer(
 	for (uint gene_counter = get_local_id(0);
 	     	  gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-		   if (gene_counter >= 6) {
+		   if (gene_counter >= 3) {
 			    map_angle(&(genotype[gene_counter]));
 		   }
 	}

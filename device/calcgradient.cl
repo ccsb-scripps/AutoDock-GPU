@@ -39,6 +39,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //#define DEBUG_GRAD_TORSION_GENES
 
 
+void map_priv_angle(float* angle)
+// The GPU device function maps
+// the input parameter to the interval 0...360
+// (supposing that it is an angle).
+{
+	while (*angle >= 360.0f) {
+		*angle -= 360.0f;
+	}
+
+	while (*angle < 0.0f) {
+		*angle += 360.0f;
+	}
+}
+
 // Atomic operations used in gradients of intra contributors.
 // Only atomic_cmpxchg() works on floats. 
 // So for atomic add on floats, this link was used:
@@ -127,6 +141,10 @@ void gpu_calc_gradient(
 		     __constant int*   rotbonds_const,
 		     __constant int*   rotbonds_atoms_const,
 		     __constant int*   num_rotating_atoms_per_rotbond_const
+			,
+		     __constant float* angle_const,
+		     __constant float* dependence_on_theta_const,
+		     __constant float* dependence_on_rotangle_const
 
 		    // Gradient-related arguments
 		    // Calculate gradients (forces) for intermolecular energy
@@ -168,6 +186,17 @@ void gpu_calc_gradient(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
+	// Convert orientation genes from sex. to radians
+	float phi         = genotype[3] * DEG_TO_RAD;
+	float theta       = genotype[4] * DEG_TO_RAD;
+	float genrotangle = genotype[5] * DEG_TO_RAD;
+
+	float genrot_unitvec [3];
+	float sin_angle = native_sin(theta);
+	genrot_unitvec [0] = sin_angle*native_cos(phi);
+	genrot_unitvec [1] = sin_angle*native_sin(phi);
+	genrot_unitvec [2] = native_cos(theta);
+
 	uchar g1 = dockpars_gridsize_x;
 	uint  g2 = dockpars_gridsize_x_times_y;
   	uint  g3 = dockpars_gridsize_x_times_y_times_z;
@@ -202,56 +231,53 @@ void gpu_calc_gradient(
 			}
 
 			// Capturing rotation vectors and angle
+			float rotation_unitvec[3];
 			float rotation_movingvec[3];
+			float rotation_angle;
 
 			float quatrot_left_x, quatrot_left_y, quatrot_left_z, quatrot_left_q;
 			float quatrot_temp_x, quatrot_temp_y, quatrot_temp_z, quatrot_temp_q;
 
 			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation
 			{
-				// Rotational genes in the Shoemake space are expressed in radians
-				float u1 = genotype[3];
-				float u2 = genotype[4];
-				float u3 = genotype[5];
-
-				// u1, u2, u3 should be within their valid range of [0,1]
-				quatrot_left_q = native_sqrt(1 - u1) * native_sin(PI_TIMES_2*u2); 
-				quatrot_left_x = native_sqrt(1 - u1) * native_cos(PI_TIMES_2*u2);
-				quatrot_left_y = native_sqrt(u1)     * native_sin(PI_TIMES_2*u3);
-				quatrot_left_z = native_sqrt(u1)     * native_cos(PI_TIMES_2*u3);
+				rotation_unitvec[0] = genrot_unitvec[0];
+				rotation_unitvec[1] = genrot_unitvec[1];
+				rotation_unitvec[2] = genrot_unitvec[2];
 
 				rotation_movingvec[0] = genotype[0];
 				rotation_movingvec[1] = genotype[1];
 				rotation_movingvec[2] = genotype[2];
+
+				rotation_angle = genrotangle;
 			}
 			else	// If rotating around rotatable bond
 			{
 				uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
 
-				float rotation_unitvec[3];
 				rotation_unitvec[0] = rotbonds_unit_vectors_const[3*rotbond_id];
 				rotation_unitvec[1] = rotbonds_unit_vectors_const[3*rotbond_id+1];
 				rotation_unitvec[2] = rotbonds_unit_vectors_const[3*rotbond_id+2];
-				float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD;
 
 				rotation_movingvec[0] = rotbonds_moving_vectors_const[3*rotbond_id];
 				rotation_movingvec[1] = rotbonds_moving_vectors_const[3*rotbond_id+1];
 				rotation_movingvec[2] = rotbonds_moving_vectors_const[3*rotbond_id+2];
+
+				float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD;
 
 				// Performing additionally the first movement which 
 				// is needed only if rotating around rotatable bond
 				atom_to_rotate[0] -= rotation_movingvec[0];
 				atom_to_rotate[1] -= rotation_movingvec[1];
 				atom_to_rotate[2] -= rotation_movingvec[2];
-
-				// Transforming torsion angles into quaternions
-				rotation_angle  = rotation_angle * 0.5f;
-				float sin_angle = native_sin(rotation_angle);
-				quatrot_left_q  = native_cos(rotation_angle);
-				quatrot_left_x  = sin_angle*rotation_unitvec[0];
-				quatrot_left_y  = sin_angle*rotation_unitvec[1];
-				quatrot_left_z  = sin_angle*rotation_unitvec[2];
 			}
+
+			// Transforming orientation and torsion angles into quaternions
+			rotation_angle  = rotation_angle * 0.5f;
+			float sin_angle = native_sin(rotation_angle);
+			quatrot_left_q  = native_cos(rotation_angle);
+			quatrot_left_x  = sin_angle*rotation_unitvec[0];
+			quatrot_left_y  = sin_angle*rotation_unitvec[1];
+			quatrot_left_z  = sin_angle*rotation_unitvec[2];
 
 			// Performing rotation
 			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation,
@@ -899,26 +925,46 @@ void gpu_calc_gradient(
 		printf("%-20s %-10.5f %-10.5f %-10.5f %-10.5f\n", "quat_torque (w,x,y,z): ", quat_torque.w, quat_torque.x, quat_torque.y, quat_torque.z);
 		#endif
 
-		// Converting quaternion gradients into Shoemake gradients 
+		// Converting quaternion gradients into orientation gradients 
 		// Derived from autodockdev/motion.py/_get_cube3_gradient
 
-		// This is where we are in Shoemake space
-		float current_u1, current_u2, current_u3;
-		current_u1 = genotype[3]; // check very initial input Shoemake genes
-		current_u2 = genotype[4];
-		current_u3 = genotype[5];
-		
+		// This is where we are in the orientation axis-angle space
+		// Equivalent to "current_oclacube" in autodockdev/motions.py
+		// TODO: Check very initial input orientation genes
+		float current_phi, current_theta, current_rotangle;
+		current_phi      = genotype[3]; // phi      (in sexagesimal (DEG) unbounded)
+		current_theta    = genotype[4]; // theta    (in sexagesimal (DEG) unbounded)
+		current_rotangle = genotype[5]; // rotangle (in sexagesimal (DEG) unbounded)
+
+		map_priv_angle(&current_phi);	   // phi      (in DEG bounded within [0, 360])
+		map_priv_angle(&current_theta);	   // theta    (in DEG bounded within [0, 360])
+		map_priv_angle(&current_rotangle); // rotangle (in DEG bounded within [0, 360])
+
+		current_phi      = current_phi      * DEG_TO_RAD; // phi      (in RAD)
+		current_theta    = current_theta    * DEG_TO_RAD; // theta    (in RAD)
+ 		current_rotangle = current_rotangle * DEG_TO_RAD; // rotangle (in RAD)
+
+		bool is_theta_gt_pi = (current_theta > PI_FLOAT) ? true: false;
+
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-30s %-10.5f %-10.5f %-10.5f\n", "current_u (1,2,3): ", genotype[3], genotype[4], genotype[5]);
+		printf("%-30s %-10.5f %-10.5f %-10.5f\n", "current_axisangle (1,2,3): ", current_phi, current_theta, current_rotangle);
 		#endif		
 
 		// This is where we are in quaternion space
-		// current_q = cube3_to_quaternion(current_u)
+		// current_q = oclacube_to_quaternion(angles)
 		float4 current_q;
-		current_q.w = native_sqrt(1-current_u1) * native_sin(PI_TIMES_2*current_u2);
-		current_q.x = native_sqrt(1-current_u1) * native_cos(PI_TIMES_2*current_u2);
-		current_q.y = native_sqrt(current_u1)   * native_sin(PI_TIMES_2*current_u3);
-		current_q.z = native_sqrt(current_u1)   * native_cos(PI_TIMES_2*current_u3);
+
+		// Axis of rotation
+		float rotaxis_x = native_sin(current_theta) * native_cos(current_phi);
+		float rotaxis_y = native_sin(current_theta) * native_sin(current_phi);
+		float rotaxis_z = native_cos(current_theta);
+		
+		float ang;
+		ang = current_rotangle * 0.5f;
+		current_q.w = native_cos(ang); 
+		current_q.x = rotaxis_x * native_sin(ang);
+		current_q.y = rotaxis_y * native_sin(ang);
+		current_q.z = rotaxis_z * native_sin(ang);
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
 		printf("%-30s %-10.8f %-10.8f %-10.8f %-10.8f\n", "current_q (w,x,y,z): ", current_q.w, current_q.x, current_q.y, current_q.z);
@@ -938,23 +984,33 @@ void gpu_calc_gradient(
 		printf("%-30s %-10.8f %-10.8f %-10.8f %-10.8f\n", "target_q (w,x,y,z): ", target_q.w, target_q.x, target_q.y, target_q.z);
 		#endif
 
-		// This is where we want to be in Shoemake space
-		float target_u1, target_u2, target_u3;
+		// This is where we want to be in the orientation axis-angle space
+		float target_phi, target_theta, target_rotangle;
 
-		// target_u = quaternion_to_cube3(target_q)
-		// Derived from autodockdev/motions.py/quaternion_to_cube3()
-		// In our terms means quaternion_to_cube3(target_q{w|x|y|z})
-		target_u1 = target_q.y*target_q.y + target_q.z*target_q.z;
-		target_u2 = atan2(target_q.w, target_q.x);
-		target_u3 = atan2(target_q.y, target_q.z);
-		
-		if (target_u2 < 0.0f)       { target_u2 += PI_TIMES_2; }
-		if (target_u2 > PI_TIMES_2) { target_u2 -= PI_TIMES_2; }
-		if (target_u3 < 0.0f) 	    { target_u3 += PI_TIMES_2; }
-		if (target_u3 > PI_TIMES_2) { target_u3 -= PI_TIMES_2; }
+		// target_oclacube = quaternion_to_oclacube(target_q, theta_larger_than_pi)
+		// Derived from autodockdev/motions.py/quaternion_to_oclacube()
+		// In our terms means quaternion_to_oclacube(target_q{w|x|y|z}, theta_larger_than_pi)
+
+		ang = acos(target_q.w);
+		target_rotangle = 2.0f * ang;
+
+		float inv_sin_ang = native_recip(native_sin(ang));
+		rotaxis_x = target_q.x * inv_sin_ang;
+		rotaxis_y = target_q.y * inv_sin_ang;
+		rotaxis_z = target_q.z * inv_sin_ang;
+
+		target_theta = acos(rotaxis_z);
+
+    		if (is_theta_gt_pi == false) {
+		        target_phi   = remainder((atan2( rotaxis_y,  rotaxis_x) + PI_TIMES_2), PI_TIMES_2);
+		}
+		else {
+		        target_phi   = remainder((atan2(-rotaxis_y, -rotaxis_x) + PI_TIMES_2), PI_TIMES_2);
+		        target_theta = PI_TIMES_2 - target_theta;
+		}
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "target_u (1,2,3) - after mapping: ", target_u1, target_u2, target_u3);
+		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "target_axisangle (1,2,3) - after mapping: ", target_phi, target_theta, target_rotangle);
 		#endif
 		
    		// The infinitesimal rotation will produce an infinitesimal displacement
@@ -963,40 +1019,120 @@ void gpu_calc_gradient(
     		// The correct amount of displacement in shoemake space is obtained
 		// by multiplying the infinitesimal displacement by shoemake_scaling:
 		//float shoemake_scaling = native_divide(torque_length, INFINITESIMAL_RADIAN/*infinitesimal_radian*/);
-		float shoemake_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
+		float orientation_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
 
 		// Derivates in cube3
-		// "current_u2" and "current_u3" are mapped into 
-		// the same range [0, 2PI] of "target_u2" and "target_u3"
-		float grad_u1, grad_u2, grad_u3;
-		grad_u1 = shoemake_scaling * (target_u1 - current_u1);
-		grad_u2 = shoemake_scaling * (target_u2 - current_u2 * PI_TIMES_2);
-		grad_u3 = shoemake_scaling * (target_u3 - current_u3 * PI_TIMES_2);
+		float grad_phi, grad_theta, grad_rotangle;
+		/*
+		grad_phi      = orientation_scaling * (target_phi      - current_phi);
+		grad_theta    = orientation_scaling * (target_theta    - current_theta);
+		grad_rotangle = orientation_scaling * (target_rotangle - current_rotangle);
+		*/
+		grad_phi      = orientation_scaling * (remainder(target_phi 	 - current_phi 	    + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
+		grad_theta    = orientation_scaling * (remainder(target_theta    - current_theta    + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
+		grad_rotangle = orientation_scaling * (remainder(target_rotangle - current_rotangle + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "grad_u (1,2,3) - before emp. scaling: ", grad_u1, grad_u2, grad_u3);
+		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "grad_axisangle (1,2,3) - before emp. scaling: ", grad_phi, grad_theta, grad_rotangle);
 		#endif
 			
-		// Empirical scaling
-		float temp_u1 = genotype[3];
-			
-		if ((0.0f < temp_u1) && (temp_u1 < 1.0f)){
-			grad_u1 *= (native_divide(1.0f, temp_u1) + native_divide(1.0f, (1.0f-temp_u1)));
+		// Corrections of derivatives
+		// Constant arrays have 1000 elements.
+		// Each array spans approximatedly from 0.0 to 2*PI.
+		// The distance between each x-point (angle-delta) is 2*PI/1000.
+		const float angle_delta = 0.00628353f;
+		const float inv_angle_delta = 159.154943;
+				
+		// Correcting theta gradients interpolating 
+		// values from correction look-up-tables
+		// (X0,Y0) and (X1,Y1) are known points
+		// How to find the Y value in the straight line between Y0 and Y1,
+		// corresponding to a certain X?
+		/*
+			| dependence_on_theta_const
+			| dependence_on_rotangle_const
+			|
+			|
+			|                        Y1
+			|
+			|             Y=?
+			|    Y0   
+			|_________________________________ angle_const
+			     X0  	X	 X1
+		*/
+
+		// Finding the index-position of "grad_delta" in the "angle_const" array
+		//uint index_theta    = floor(native_divide(current_theta    - angle_const[0], angle_delta));
+		//uint index_rotangle = floor(native_divide(current_rotangle - angle_const[0], angle_delta));
+		uint index_theta    = floor((current_theta    - angle_const[0]) * inv_angle_delta);
+		uint index_rotangle = floor((current_rotangle - angle_const[0]) * inv_angle_delta);
+
+		// Interpolating theta values
+		// X0 -> index - 1
+		// X1 -> index + 1
+		// Expresed as weighted average:
+		// Y = [Y0 * ((X1 - X) / (X1-X0))] +  [Y1 * ((X - X0) / (X1-X0))]
+		// Simplified for GPU (less terms):
+		// Y = [Y0 * (X1 - X) + Y1 * (X - X0)] / (X1 - X0)
+		// Taking advantage of constant:
+		// Y = [Y0 * (X1 - X) + Y1 * (X - X0)] * inv_angle_delta
+
+		float X0_theta, Y0_theta;
+		float X1_theta, Y1_theta;
+		float X_theta;
+		float dependence_on_theta;  	//Y = dependence_on_theta
+		X_theta = current_theta;
+
+		// Using interpolation on out-of-bounds elements results in hang
+		if (index_theta <= 0) {
+			//printf("WARNING: index_theta: %u\n", index_theta);
+			dependence_on_theta = dependence_on_theta_const[0];
 		}
-		grad_u2 *= 4.0f * (1.0f-temp_u1);
-		grad_u3 *= 4.0f * temp_u1;
+		else if (index_theta >= 999){
+			//printf("WARNING: index_theta: %u\n", index_theta);
+			dependence_on_theta = dependence_on_theta_const[999];
+		}
+		else {
+			X0_theta = angle_const[index_theta];
+			Y0_theta = dependence_on_theta_const[index_theta];
+			X1_theta = angle_const[index_theta+1];
+			Y1_theta = dependence_on_theta_const[index_theta+1];
+		}
+		dependence_on_theta = (Y0_theta * (X1_theta-X_theta) + Y1_theta * (X_theta-X0_theta)) * inv_angle_delta;
+
+		// Interpolating rotangle values
+		float X0_rotangle, Y0_rotangle;
+		float X1_rotangle, Y1_rotangle;
+		float X_rotangle;
+		float dependence_on_rotangle; 	//Y = dependence_on_rotangle
+		X_rotangle = current_rotangle;
+
+		// Using interpolation on previous and/or next elements results in hang
+		if (index_rotangle <= 0) {
+			//printf("WARNING: index_rotangle: %u\n", index_rotangle);
+			dependence_on_rotangle = dependence_on_rotangle_const[0];
+		}
+		else if (index_rotangle >= 999){
+			//printf("WARNING: index_rotangle: %u\n", index_rotangle);
+			dependence_on_rotangle = dependence_on_rotangle_const[999];
+		}
+		else {
+			X0_rotangle = angle_const[index_rotangle];
+			Y0_rotangle = dependence_on_rotangle_const[index_rotangle];
+			X1_rotangle = angle_const[index_rotangle+1];
+			Y1_rotangle = dependence_on_rotangle_const[index_rotangle+1];
+		}
+		dependence_on_rotangle = (Y0_rotangle * (X1_rotangle-X_rotangle) + Y1_rotangle * (X_rotangle-X0_rotangle)) * inv_angle_delta;
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "grad_u (1,2,3) - after emp. scaling: ", grad_u1, grad_u2, grad_u3);
+		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "grad_axisangle (1,2,3) - after emp. scaling: ", grad_phi, grad_theta, grad_rotangle);
 		#endif
-		
-		// Setting gradient rotation-related genotypes in cube3.
-		// Scaling gradient for u2 and u3 genes as 
-		// their corresponding gradients were calculated in the space where u2/3 are within [0, 2PI]
-		// but OCLaDock u2/3 genes are within [0, 1]
-		gradient_genotype[3] = grad_u1;
-		gradient_genotype[4] = grad_u2 * PI_TIMES_2; 
-		gradient_genotype[5] = grad_u3 * PI_TIMES_2;
+
+		// Setting gradient rotation-related genotypes in cube
+		// Multiplicating by DEG_TO_RAD is to make it uniform to DEG (see torsion gradients)
+		gradient_genotype[3] = native_divide(grad_phi, (dependence_on_theta * dependence_on_rotangle))  * DEG_TO_RAD;
+		gradient_genotype[4] = native_divide(grad_theta, dependence_on_rotangle)			* DEG_TO_RAD; 
+		gradient_genotype[5] = grad_rotangle                                                            * DEG_TO_RAD;
 	}
 
 	// ------------------------------------------
