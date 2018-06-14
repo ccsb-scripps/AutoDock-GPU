@@ -147,7 +147,17 @@ double calc_ddd_Mehler_Solmajer(double);
 
 int is_H_bond(const char*, const char*);
 
+#if 0
 void print_ref_lig_energies_f(Liganddata,
+			      Gridinfo,
+			      const float*,
+			      const float,
+			      const float,
+			      const float);
+#endif
+
+void print_ref_lig_energies_f(Liganddata,
+			      const float,
 			      Gridinfo,
 			      const float*,
 			      const float,
@@ -190,8 +200,20 @@ void calc_interE_peratom_f(const Gridinfo* 	mygrid,
 			   float 		peratom_elec [MAX_NUM_OF_ATOMS],
 			   int 			debug);
 
+
+#if 0
 float calc_intraE_f(const Liganddata* 	myligand,
 		    float 		dcutoff,
+		    char 		ignore_desolv,
+		    const float 	scaled_AD4_coeff_elec,
+		    const float 	AD4_coeff_desolv,
+		    const float 	qasp,
+		    int 		debug);
+#endif
+
+float calc_intraE_f(const Liganddata* 	myligand,
+		    float 		dcutoff,
+		    float 		smooth,
 		    char 		ignore_desolv,
 		    const float 	scaled_AD4_coeff_elec,
 		    const float 	AD4_coeff_desolv,
