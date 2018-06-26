@@ -601,47 +601,49 @@ void gpu_calc_energy(	    int    dockpars_rotbondlist_length,
 #else	// Full precision
 				partial_energies[get_local_id(0)] -= VWpars_BD_const[atom1_typeid*dockpars_num_of_atypes+atom2_typeid]/powr(smoothed_distance,6);
 #endif
+
 		} // if cuttoff - internuclear-distance at 8A	
 
+		if (distance_leo < 20.48f)
+		{
+			//calculating electrostatic term
+	#if defined (NATIVE_PRECISION)
+			partial_energies[get_local_id(0)] += native_divide (
+		                                                     dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
+		                                                     distance_leo * (-8.5525f + native_divide(86.9525f,(1.0f + 7.7839f*native_exp(-0.3154f*distance_leo))))
+		                                                     );
+	#elif defined (HALF_PRECISION)
+			partial_energies[get_local_id(0)] += half_divide (
+		                                                     dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
+		                                                     distance_leo * (-8.5525f + half_divide(86.9525f,(1.0f + 7.7839f*half_exp(-0.3154f*distance_leo))))
+		                                                     );
+	#else	// Full precision
+			partial_energies[get_local_id(0)] += dockpars_coeff_elec*atom_charges_const[atom1_id]*atom_charges_const[atom2_id]/
+					                             (distance_leo*(-8.5525f + 86.9525f/(1.0f + 7.7839f*exp(-0.3154f*distance_leo))));
+	#endif
 
-		//calculating electrostatic term
-#if defined (NATIVE_PRECISION)
-        	partial_energies[get_local_id(0)] += native_divide (
-                                                             dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
-                                                             distance_leo * (-8.5525f + native_divide(86.9525f,(1.0f + 7.7839f*native_exp(-0.3154f*distance_leo))))
-                                                             );
-#elif defined (HALF_PRECISION)
-        	partial_energies[get_local_id(0)] += half_divide (
-                                                             dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
-                                                             distance_leo * (-8.5525f + half_divide(86.9525f,(1.0f + 7.7839f*half_exp(-0.3154f*distance_leo))))
-                                                             );
-#else	// Full precision
-		partial_energies[get_local_id(0)] += dockpars_coeff_elec*atom_charges_const[atom1_id]*atom_charges_const[atom2_id]/
-			                                     (distance_leo*(-8.5525f + 86.9525f/(1.0f + 7.7839f*exp(-0.3154f*distance_leo))));
-#endif
+			//calculating desolvation term
+	#if defined (NATIVE_PRECISION)
+			partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
+								       											 dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
+							              					 (dspars_S_const[atom2_typeid] +
+								       								 			 dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
+							               					 dockpars_coeff_desolv*native_exp(-distance_leo*native_divide(distance_leo,25.92f));
+	#elif defined (HALF_PRECISION)
+			partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
+								       											 dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
+							              					 (dspars_S_const[atom2_typeid] +
+								       								 			 dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
+							               					 dockpars_coeff_desolv*half_exp(-distance_leo*half_divide(distance_leo,25.92f));
+	#else	// Full precision
+			partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
+					   				       									     	 dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
+							              				   	 (dspars_S_const[atom2_typeid] +
+								       								 			 dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
+							               					 dockpars_coeff_desolv*exp(-distance_leo*distance_leo/25.92f);
+	#endif
 
-		//calculating desolvation term
-#if defined (NATIVE_PRECISION)
-		partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
-							       											 dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
-					                      					 (dspars_S_const[atom2_typeid] +
-							       								 			 dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
-					                       					 dockpars_coeff_desolv*native_exp(-distance_leo*native_divide(distance_leo,25.92f));
-#elif defined (HALF_PRECISION)
-		partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
-							       											 dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
-					                      					 (dspars_S_const[atom2_typeid] +
-							       								 			 dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
-					                       					 dockpars_coeff_desolv*half_exp(-distance_leo*half_divide(distance_leo,25.92f));
-#else	// Full precision
-		partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
-				   				       									     	 dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
-					                      				   	 (dspars_S_const[atom2_typeid] +
-							       								 			 dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
-					                       					 dockpars_coeff_desolv*exp(-distance_leo*distance_leo/25.92f);
-#endif
-
-
+		} // if cuttoff - internuclear-distance at 20.48A
 	
 	} // End contributor_counter for-loop
 
