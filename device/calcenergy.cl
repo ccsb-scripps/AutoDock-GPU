@@ -489,99 +489,105 @@ if (get_local_id (0) == 0) {
 		}
 
 		// Calculating energy contributions
-		// Cuttoff: internuclear-distance at 8A.
-		// Cutoff only for vdw and hbond.
-		// el and sol contributions are calculated at all distances.
+		// Cuttoff1: internuclear-distance at 8A only for vdw and hbond.
 		if (atomic_distance < 8.0f)
 		{
 			// Calculating van der Waals / hydrogen bond term
 			partial_energies[get_local_id(0)] += native_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance/*atomic_distance*/,12));
-#if 0
-smoothed_intraE = native_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance,12));
-raw_intraE_vdw_hb      = native_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance  ,12)); 
-#endif
+
+			#if 0
+			smoothed_intraE = native_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance,12));
+			raw_intraE_vdw_hb      = native_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance  ,12)); 
+			#endif
+
 			#if defined (DEBUG_ENERGY_KERNEL)
 			partial_intraE[get_local_id(0)] += native_divide(VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance/*atomic_distance*/,12));
 			#endif
 
 			if (intraE_contributors_const[3*contributor_counter+2] == 1) {	//H-bond
 				partial_energies[get_local_id(0)] -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance/*atomic_distance*/,10));
-#if 0
-smoothed_intraE -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance,10));
-raw_intraE_vdw_hb 	-= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance  ,10));
-#endif
+
+				#if 0
+				smoothed_intraE -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance,10));
+				raw_intraE_vdw_hb 	-= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance  ,10));
+				#endif
+
 				#if defined (DEBUG_ENERGY_KERNEL)
 				partial_intraE[get_local_id(0)] -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance/*atomic_distance*/,10));
 				#endif
 			}
 			else {	//van der Waals
 				partial_energies[get_local_id(0)] -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance/*atomic_distance*/,6));
-#if 0
-smoothed_intraE -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance,6));
-raw_intraE_vdw_hb      -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance  ,6));
-#endif
+
+				#if 0
+				smoothed_intraE -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance,6));
+				raw_intraE_vdw_hb      -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance  ,6));
+				#endif
+
 				#if defined (DEBUG_ENERGY_KERNEL)
 				partial_intraE[get_local_id(0)] -= native_divide(VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance/*atomic_distance*/,6));
 				#endif
 			}
-		} // if cuttoff - internuclear-distance at 8A	
+		} // if cuttoff1 - internuclear-distance at 8A	
 
-		// Calculating electrostatic term
-       		partial_energies[get_local_id(0)] += native_divide (
-                                                             dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
-                                                             atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
-                                                             );
-#if 0
-smoothed_intraE += native_divide (
-                              dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
-                              atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
-                             );
+		// Calculating energy contributions
+		// Cuttoff2: internuclear-distance at 20.48A only for el and sol.
+		if (atomic_distance < 20.48f)
+		{
+			// Calculating electrostatic term
+	       		partial_energies[get_local_id(0)] += native_divide (
+		                                                     dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
+		                                                     atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
+		                                                     );
+			#if 0
+			smoothed_intraE += native_divide (
+						      dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
+						      atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
+						     );
 
-raw_intraE_el 	= native_divide (
-                              dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
-                              atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
-                             );
-#endif
+			raw_intraE_el 	= native_divide (
+						      dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
+						      atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
+						     );
+			#endif
 
-		#if defined (DEBUG_ENERGY_KERNEL)
-		partial_intraE[get_local_id(0)] += native_divide (
-                                                             dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
-                                                             atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
-                                                             );
-		#endif
+			#if defined (DEBUG_ENERGY_KERNEL)
+			partial_intraE[get_local_id(0)] += native_divide (
+		                                                     dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id],
+		                                                     atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
+		                                                     );
+			#endif
 
-		// Calculating desolvation term
-		// 1/25.92 = 0.038580246913580245
-		partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
+			// Calculating desolvation term
+			// 1/25.92 = 0.038580246913580245
+			partial_energies[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
+								       dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
+							               (dspars_S_const[atom2_typeid] +
+								       dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
+							               dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
+
+			#if 0
+			smoothed_intraE += ((dspars_S_const[atom1_typeid] +
+					dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
+				       (dspars_S_const[atom2_typeid] +
+				       dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
+				       dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
+
+			raw_intraE_sol = ((dspars_S_const[atom1_typeid] +
+					dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
+				       (dspars_S_const[atom2_typeid] +
+				       dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
+				       dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
+			#endif
+
+			#if defined (DEBUG_ENERGY_KERNEL)
+			partial_intraE[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
 							       dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
-					                       (dspars_S_const[atom2_typeid] +
+						               (dspars_S_const[atom2_typeid] +
 							       dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
-					                       dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
-
-#if 0
-smoothed_intraE += ((dspars_S_const[atom1_typeid] +
-		dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
-	       (dspars_S_const[atom2_typeid] +
-	       dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
-	       dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
-
-raw_intraE_sol = ((dspars_S_const[atom1_typeid] +
-		dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
-	       (dspars_S_const[atom2_typeid] +
-	       dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
-	       dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
-#endif
-		#if defined (DEBUG_ENERGY_KERNEL)
-		partial_intraE[get_local_id(0)] += ((dspars_S_const[atom1_typeid] +
-						       dockpars_qasp*fabs(atom_charges_const[atom1_id]))*dspars_V_const[atom2_typeid] +
-				                       (dspars_S_const[atom2_typeid] +
-						       dockpars_qasp*fabs(atom_charges_const[atom2_id]))*dspars_V_const[atom1_typeid]) *
-				                       dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
-		#endif
-
-
-
-
+						               dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
+			#endif
+		} // if cuttoff2 - internuclear-distance at 20.48A
 
 
 

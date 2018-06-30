@@ -2094,23 +2094,25 @@ float calc_intraE_f(const Liganddata* myligand,
 						if (debug == 1)
 							printf("van der Waals interaction = ");
 					}
+
+					vW += vdW1 - vdW2;
 				}
 
-				s1 = (myligand->solpar [type_id1] + qasp_mul_absq [atom_id1]);
-				s2 = (myligand->solpar [type_id2] + qasp_mul_absq [atom_id2]);
-				v1 = myligand->volume [type_id1];
-				v2 = myligand->volume [type_id2];
+				if (dist < 20.48)
+				{
+					s1 = (myligand->solpar [type_id1] + qasp_mul_absq [atom_id1]);
+					s2 = (myligand->solpar [type_id2] + qasp_mul_absq [atom_id2]);
+					v1 = myligand->volume [type_id1];
+					v2 = myligand->volume [type_id2];
 
-				if (debug == 1)
-					printf(" %lf, electrostatic = %lf, desolv = %lf\n", (vdW1 - vdW2), q1q2[atom_id1][atom_id2] * r_epsr_table [distance_id],
-						   (s1*v2 + s2*v1) * desolv_table [distance_id]);
+					if (debug == 1)
+						printf(" %lf, electrostatic = %lf, desolv = %lf\n", (vdW1 - vdW2), q1q2[atom_id1][atom_id2] * r_epsr_table [distance_id],
+							   (s1*v2 + s2*v1) * desolv_table [distance_id]);
 
-				vW += vdW1 - vdW2;
-				el += q1q2[atom_id1][atom_id2] * r_epsr_table [distance_id];
-				desolv += (s1*v2 + s2*v1) * desolv_table [distance_id];
-				#if 0
+				
+					el += q1q2[atom_id1][atom_id2] * r_epsr_table [distance_id];
+					desolv += (s1*v2 + s2*v1) * desolv_table [distance_id];
 				}
-				#endif
 			}
 		}
 

@@ -671,9 +671,7 @@ void gpu_calc_gradient(
 		}
 
 		// Calculating gradient contributions
-		// Cuttoff: internuclear-distance at 8A.
-		// Cutoff only for vdw and hbond.
-		// el and sol contributions are calculated at all distances.
+		// Cuttoff1: internuclear-distance at 8A only for vdw and hbond.
 		if (atomic_distance < 8.0f)
 		{
 			// Calculating van der Waals / hydrogen bond term
@@ -691,22 +689,27 @@ void gpu_calc_gradient(
 										     native_powr(smoothed_distance/*atomic_distance*/, 7)
 										    );
 			}
-		} // if cuttoff - internuclear-distance at 8A	
+		} // if cuttoff1 - internuclear-distance at 8A	
 
-		// Calculating electrostatic term
-		// http://www.wolframalpha.com/input/?i=1%2F(x*(A%2B(B%2F(1%2BK*exp(-h*B*x)))))
-		float upper = DIEL_A*native_powr(native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K, 2) + (DIEL_B)*native_exp(DIEL_B_TIMES_H*atomic_distance)*(DIEL_B_TIMES_H_TIMES_K*atomic_distance + native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K);
+		// Calculating energy contributions
+		// Cuttoff2: internuclear-distance at 20.48A only for el and sol.
+		if (atomic_distance < 20.48f)
+		{
+			// Calculating electrostatic term
+			// http://www.wolframalpha.com/input/?i=1%2F(x*(A%2B(B%2F(1%2BK*exp(-h*B*x)))))
+			float upper = DIEL_A*native_powr(native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K, 2) + (DIEL_B)*native_exp(DIEL_B_TIMES_H*atomic_distance)*(DIEL_B_TIMES_H_TIMES_K*atomic_distance + native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K);
 		
-		float lower = native_powr(atomic_distance, 2) * native_powr(DIEL_A * (native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K) + DIEL_B * native_exp(DIEL_B_TIMES_H*atomic_distance), 2);
+			float lower = native_powr(atomic_distance, 2) * native_powr(DIEL_A * (native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K) + DIEL_B * native_exp(DIEL_B_TIMES_H*atomic_distance), 2);
 
-       		priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id] * native_divide (upper, lower);
+	       		priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * atom_charges_const[atom1_id] * atom_charges_const[atom2_id] * native_divide (upper, lower);
 
-		// Calculating desolvation term
-		priv_gradient_per_intracontributor += (
-								       (dspars_S_const[atom1_typeid] + dockpars_qasp*fabs(atom_charges_const[atom1_id])) * dspars_V_const[atom2_typeid] +
-						                       (dspars_S_const[atom2_typeid] + dockpars_qasp*fabs(atom_charges_const[atom2_id])) * dspars_V_const[atom1_typeid]
-			        				      ) *
-				                       			dockpars_coeff_desolv * -0.07716049382716049 * atomic_distance * native_exp(-0.038580246913580245*native_powr(atomic_distance, 2));
+			// Calculating desolvation term
+			priv_gradient_per_intracontributor += (
+									       (dspars_S_const[atom1_typeid] + dockpars_qasp*fabs(atom_charges_const[atom1_id])) * dspars_V_const[atom2_typeid] +
+								               (dspars_S_const[atom2_typeid] + dockpars_qasp*fabs(atom_charges_const[atom2_id])) * dspars_V_const[atom1_typeid]
+									      ) *
+						               			dockpars_coeff_desolv * -0.07716049382716049 * atomic_distance * native_exp(-0.038580246913580245*native_powr(atomic_distance, 2));
+		} // if cuttoff2 - internuclear-distance at 20.48A
 
 		// Decomposing "priv_gradient_per_intracontributor" 
 		// into the contribution of each atom of the pair 
