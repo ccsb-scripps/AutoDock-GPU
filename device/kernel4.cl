@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
+//#define DEBUG_ENERGY_KERNEL4
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gpu_gen_and_eval_newpops(
@@ -309,7 +310,7 @@ gpu_gen_and_eval_newpops(
 			dockpars_evals_of_new_entities[get_group_id(0)] = 1;
 			dockpars_energies_next[get_group_id(0)] = energy;
 
-			#if defined (DEBUG_ENERGY_KERNEL)
+			#if defined (DEBUG_ENERGY_KERNEL4)
 			printf("%-18s [%-5s]---{%-5s}   [%-10.8f]---{%-10.8f}\n", "-ENERGY-KERNEL4-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
 			#endif
 		}

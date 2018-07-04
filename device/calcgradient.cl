@@ -35,7 +35,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // since this determines which reference orientation should be used.
 
 //#define DEBUG_GRAD_TRANSLATION_GENES
-//#define DEBUG_GRAD_ROTATION_GENES
+#define DEBUG_GRAD_ROTATION_GENES
 //#define DEBUG_GRAD_TORSION_GENES
 
 
@@ -853,7 +853,8 @@ void gpu_calc_gradient(
 		torque_rot.z = 0.0f;
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-20s %-10.5f %-10.5f %-10.5f\n", "initial torque: ", torque_rot.x, torque_rot.y, torque_rot.z);
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-20s %-10.6f %-10.6f %-10.6f\n", "initial torque: ", torque_rot.x, torque_rot.y, torque_rot.z);
 		#endif
 
 		// Declaring a variable to hold the center of rotation 
@@ -884,16 +885,31 @@ void gpu_calc_gradient(
 			torque_rot += cross(r, force);
 
 			#if defined (DEBUG_GRAD_ROTATION_GENES)
+#if 0
 			printf("%-20s %-10u\n", "contrib. of atom-id: ", lig_atom_id);
 			printf("%-20s %-10.5f %-10.5f %-10.5f\n", "r             : ", r.x, r.y, r.z);
 			printf("%-20s %-10.5f %-10.5f %-10.5f\n", "force         : ", force.x, force.y, force.z);
 			printf("%-20s %-10.5f %-10.5f %-10.5f\n", "partial torque: ", torque_rot.x, torque_rot.y, torque_rot.z);
 			printf("\n");
+#endif
+			// This printing is similar to autodockdevpy
+			if (lig_atom_id == 0) {
+				printf("\n%s\n", "----------------------------------------------------------");
+				printf("%-10s %-10s %-10s %-10s %-11s %-11s %-11s %-11s %-11s %-11s\n", "atom_id", "r.x", "r.y", "r.z", "force.x", "force.y", "force.z", "torque.x", "torque.y", "torque.z");
+			}
+			printf("%-10u %-10.6f %-10.6f %-10.6f %-11.6f %-11.6f %-11.6f %-11.6f %-11.6f %-11.6f\n", lig_atom_id, r.x, r.y, r.z, force.x, force.y, force.z, torque_rot.x, torque_rot.y, torque_rot.z);
+			//printf("%-10u %-10.6f %-10.6f %-10.6f %-10.6f %-10.6f %-10.6f\n", lig_atom_id, r.x, r.y, r.z, force.x, force.y, force.z);
 			#endif
+
 		}
 
+
+
+
+
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-20s %-10.5f %-10.5f %-10.5f\n", "final torque: ", torque_rot.x, torque_rot.y, torque_rot.z);
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-20s %-10.6f %-10.6f %-10.6f\n", "final torque: ", torque_rot.x, torque_rot.y, torque_rot.z);
 		#endif
 
 		// Derived from rotation.py/axisangle_to_q()
@@ -901,7 +917,8 @@ void gpu_calc_gradient(
 		float torque_length = fast_length(torque_rot);
 		
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-20s %-10.5f\n", "torque length: ", torque_length);
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-20s %-10.6f\n", "torque length: ", torque_length);
 		#endif
 
 		/*
@@ -920,12 +937,19 @@ void gpu_calc_gradient(
 		#endif
 
 		quat_torque.w = COS_HALF_INFINITESIMAL_RADIAN;
-		quat_torque.x = fast_normalize(torque_rot).x * SIN_HALF_INFINITESIMAL_RADIAN;
+		quat_torque.x = fast_normalize(torque_rot).x * SIN_HALF_INFINITESIMAL_RADIAN; 
 		quat_torque.y = fast_normalize(torque_rot).y * SIN_HALF_INFINITESIMAL_RADIAN;
 		quat_torque.z = fast_normalize(torque_rot).z * SIN_HALF_INFINITESIMAL_RADIAN;
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-20s %-10.5f %-10.5f %-10.5f %-10.5f\n", "quat_torque (w,x,y,z): ", quat_torque.w, quat_torque.x, quat_torque.y, quat_torque.z);
+		#if 0		
+		printf("fast_normalize(torque_rot).x:%-.6f\n", fast_normalize(torque_rot).x);
+		printf("fast_normalize(torque_rot).y:%-.6f\n", fast_normalize(torque_rot).y);
+		printf("fast_normalize(torque_rot).z:%-.6f\n", fast_normalize(torque_rot).z);
+		#endif
+
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-20s %-10.6f %-10.6f %-10.6f %-10.6f\n", "quat_torque (w,x,y,z): ", quat_torque.w, quat_torque.x, quat_torque.y, quat_torque.z);
 		#endif
 
 		// Converting quaternion gradients into orientation gradients 
@@ -950,7 +974,8 @@ void gpu_calc_gradient(
 		bool is_theta_gt_pi = (current_theta > PI_FLOAT) ? true: false;
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-30s %-10.5f %-10.5f %-10.5f\n", "current_axisangle (1,2,3): ", current_phi, current_theta, current_rotangle);
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-30s %-10.6f %-10.6f %-10.6f\n", "current_axisangle (1,2,3): ", current_phi, current_theta, current_rotangle);
 		#endif		
 
 		// This is where we are in quaternion space
@@ -970,7 +995,8 @@ void gpu_calc_gradient(
 		current_q.z = rotaxis_z * native_sin(ang);
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-30s %-10.8f %-10.8f %-10.8f %-10.8f\n", "current_q (w,x,y,z): ", current_q.w, current_q.x, current_q.y, current_q.z);
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-30s %-10.6f %-10.6f %-10.6f %-10.6f\n", "current_q (w,x,y,z): ", current_q.w, current_q.x, current_q.y, current_q.z);
 		#endif
 
 		// This is where we want to be in quaternion space
@@ -984,7 +1010,8 @@ void gpu_calc_gradient(
 		target_q.y = quat_torque.w*current_q.y + quat_torque.y*current_q.w + quat_torque.z*current_q.x - quat_torque.x*current_q.z;// y
 		target_q.z = quat_torque.w*current_q.z + quat_torque.z*current_q.w + quat_torque.x*current_q.y - quat_torque.y*current_q.x;// z
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-30s %-10.8f %-10.8f %-10.8f %-10.8f\n", "target_q (w,x,y,z): ", target_q.w, target_q.x, target_q.y, target_q.z);
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-30s %-10.6f %-10.6f %-10.6f %-10.6f\n", "target_q (w,x,y,z): ", target_q.w, target_q.x, target_q.y, target_q.z);
 		#endif
 
 		// This is where we want to be in the orientation axis-angle space
@@ -1013,7 +1040,8 @@ void gpu_calc_gradient(
 		}
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "target_axisangle (1,2,3) - after mapping: ", target_phi, target_theta, target_rotangle);
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-30s %-10.6f %-10.6f %-10.6f\n", "target_axisangle (1,2,3) - after mapping: ", target_phi, target_theta, target_rotangle);
 		#endif
 		
    		// The infinitesimal rotation will produce an infinitesimal displacement
@@ -1023,6 +1051,11 @@ void gpu_calc_gradient(
 		// by multiplying the infinitesimal displacement by shoemake_scaling:
 		//float shoemake_scaling = native_divide(torque_length, INFINITESIMAL_RADIAN/*infinitesimal_radian*/);
 		float orientation_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
+
+		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-30s %-10.6f\n", "orientation_scaling: ", orientation_scaling);
+		#endif
 
 		// Derivates in cube3
 		float grad_phi, grad_theta, grad_rotangle;
@@ -1036,7 +1069,8 @@ void gpu_calc_gradient(
 		grad_rotangle = orientation_scaling * (remainder(target_rotangle - current_rotangle + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "grad_axisangle (1,2,3) - before emp. scaling: ", grad_phi, grad_theta, grad_rotangle);
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-30s %-10.6f %-10.6f %-10.6f\n", "grad_axisangle (1,2,3) - before emp. scaling: ", grad_phi, grad_theta, grad_rotangle);
 		#endif
 			
 		// Corrections of derivatives
@@ -1103,6 +1137,11 @@ void gpu_calc_gradient(
 		}
 		dependence_on_theta = (Y0_theta * (X1_theta-X_theta) + Y1_theta * (X_theta-X0_theta)) * inv_angle_delta;
 
+		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-30s %-10.6f\n", "dependence_on_theta: ", dependence_on_theta);
+		#endif
+
 		// Interpolating rotangle values
 		float X0_rotangle, Y0_rotangle;
 		float X1_rotangle, Y1_rotangle;
@@ -1128,7 +1167,13 @@ void gpu_calc_gradient(
 		dependence_on_rotangle = (Y0_rotangle * (X1_rotangle-X_rotangle) + Y1_rotangle * (X_rotangle-X0_rotangle)) * inv_angle_delta;
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("%-30s %-10.8f %-10.8f %-10.8f\n", "grad_axisangle (1,2,3) - after emp. scaling: ", grad_phi, grad_theta, grad_rotangle);
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-30s %-10.6f\n", "dependence_on_rotangle: ", dependence_on_rotangle);
+		#endif
+
+		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-30s %-10.6f %-10.6f %-10.6f\n", "grad_axisangle (1,2,3) - after emp. scaling: ", grad_phi, grad_theta, grad_rotangle);
 		#endif
 
 		// Setting gradient rotation-related genotypes in cube
@@ -1170,9 +1215,9 @@ void gpu_calc_gradient(
 			#if defined (DEBUG_GRAD_TORSION_GENES)
 			printf("%-15s %-10u\n", "rotbond_id: ", rotbond_id);
 			printf("%-15s %-10i\n", "atom1_id: ", atom1_id);
-			printf("%-15s %-10.8f %-10.8f %-10.8f\n", "atom1_coords: ", calc_coords_x[atom1_id], calc_coords_y[atom1_id], calc_coords_z[atom1_id]);
+			printf("%-15s %-10.6f %-10.6f %-10.6f\n", "atom1_coords: ", calc_coords_x[atom1_id], calc_coords_y[atom1_id], calc_coords_z[atom1_id]);
 			printf("%-15s %-10i\n", "atom2_id: ", atom2_id);
-			printf("%-15s %-10.8f %-10.8f %-10.8f\n", "atom2_coords: ", calc_coords_x[atom2_id], calc_coords_y[atom2_id], calc_coords_z[atom2_id]);
+			printf("%-15s %-10.6f %-10.6f %-10.6f\n", "atom2_coords: ", calc_coords_x[atom2_id], calc_coords_y[atom2_id], calc_coords_z[atom2_id]);
 			printf("\n");
 			#endif		
 
@@ -1227,11 +1272,11 @@ void gpu_calc_gradient(
 				printf("\n");
 				printf("%-15s %-10u\n", "rotable_atom_cnt: ", rotable_atom_cnt);
 				printf("%-15s %-10u\n", "atom_id: ", lig_atom_id);
-				printf("%-15s %-10.8f %-10.8f %-10.8f\n", "atom_coords: ", atom_coords.x, atom_coords.y, atom_coords.z);
-				printf("%-15s %-10.8f %-10.8f %-10.8f\n", "r: ", r.x, r.y, r.z);
-				printf("%-15s %-10.8f %-10.8f %-10.8f\n", "unitvec: ", rotation_unitvec.x, rotation_unitvec.y, rotation_unitvec.z);
-				printf("%-15s %-10.8f %-10.8f %-10.8f\n", "atom_force: ", atom_force.x, atom_force.y, atom_force.z);
-				printf("%-15s %-10.8f %-10.8f %-10.8f\n", "torque_tor: ", torque_tor.x, torque_tor.y, torque_tor.z);
+				printf("%-15s %-10.6f %-10.6f %-10.6f\n", "atom_coords: ", atom_coords.x, atom_coords.y, atom_coords.z);
+				printf("%-15s %-10.6f %-10.6f %-10.6f\n", "r: ", r.x, r.y, r.z);
+				printf("%-15s %-10.6f %-10.6f %-10.6f\n", "unitvec: ", rotation_unitvec.x, rotation_unitvec.y, rotation_unitvec.z);
+				printf("%-15s %-10.6f %-10.6f %-10.6f\n", "atom_force: ", atom_force.x, atom_force.y, atom_force.z);
+				printf("%-15s %-10.6f %-10.6f %-10.6f\n", "torque_tor: ", torque_tor.x, torque_tor.y, torque_tor.z);
 				#endif
 
 			}

@@ -1,6 +1,8 @@
 // Gradient-based steepest descent minimizer
 // Alternative to Solis-Wetts
 
+#define DEBUG_ENERGY_KERNEL5
+
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gradient_minimizer(	
 			char   dockpars_num_of_atoms,
@@ -99,9 +101,9 @@ gradient_minimizer(
 		
 		energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
 
-		#if defined (DEBUG_MINIMIZER)
+//		#if defined (DEBUG_MINIMIZER)
 		printf("\nrun_id:  %5u entity_id: %5u  initial_energy: %.7f\n", run_id, entity_id, energy);
-		#endif
+//		#endif
 
 		// Initializing gradient-minimizer counters and flags
     		iteration_cnt  = 0;
@@ -181,6 +183,7 @@ gradient_minimizer(
 	float ligand_center_z = -2.40896296;
 	#endif
 
+#if 0
 	// Defining lower and upper bounds for genotypes
 	__local float lower_bounds_genotype[ACTUAL_GENOTYPE_LENGTH];
 	__local float upper_bounds_genotype[ACTUAL_GENOTYPE_LENGTH];
@@ -206,6 +209,9 @@ gradient_minimizer(
 		#endif
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
+#endif
+
+
 
 	// Calculating maximum possible stepsize (alpha)
 	__local float max_trans_gene, max_rota_gene, max_tors_gene;
@@ -214,6 +220,7 @@ gradient_minimizer(
 
 	// Storing torsion genotypes here
 	__local float torsions_genotype[ACTUAL_GENOTYPE_LENGTH];
+
 
 
 
@@ -263,6 +270,28 @@ gradient_minimizer(
 		genotype[19] = 0.0f;
 		genotype[20] = 0.0f;
 		#endif
+
+		genotype[0] = 28.464;
+		genotype[1] = 25.792762;
+		genotype[2] = 23.740571;
+		genotype[3] = 50.0;
+		genotype[4] = 50.0;
+		genotype[5] = 50.0;
+		genotype[6] = 0.0f;
+		genotype[7] = 0.0f;
+		genotype[8] = 0.0f;
+		genotype[9] = 0.0f;
+		genotype[10] = 0.0f;
+		genotype[11] = 0.0f;
+		genotype[12] = 0.0f;
+		genotype[13] = 0.0f;
+		genotype[14] = 0.0f;
+		genotype[15] = 0.0f;
+		genotype[16] = 0.0f;
+		genotype[17] = 0.0f;
+		genotype[18] = 0.0f;
+		genotype[19] = 0.0f;
+		genotype[20] = 0.0f;
 
 		if (get_local_id(0) == 0) {
 			// Finding maximum of the absolute value 
@@ -401,16 +430,27 @@ gradient_minimizer(
 				);
 		// =============================================================
 
-/*		
+///*		
 		if ((get_group_id(0) == 0) && (get_local_id(0) == 0)) {
+#if 0
 			for(uint i = 0; i < dockpars_num_of_genes; i++) {
 				printf("gradient[%u]=%f \n", i, gradient[i]);
 			}
+			printf("\n");
+#endif
+
+			for(uint i = 0; i < dockpars_num_of_atoms; i++) {
+				if (i == 0) {
+					printf("\n%s\n", "----------------------------------------------------------");
+					printf("%-10s %-10s %-10s %-10s\n", "atom_id", "coords.x", "coords.y", "coords.z");
+				}
+				printf("%-10u %-10.6f %-10.6f %-10.6f\n", i, calc_coords_x[i], calc_coords_y[i], calc_coords_z[i]);
+			}
+			printf("\n");
 		}
-*/
+//*/
 		
 		for(uint i = get_local_id(0); i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {
-
 	     		// Taking step
 			candidate_genotype[i] = genotype[i] - stepsize * gradient[i];	
 
@@ -418,9 +458,12 @@ gradient_minimizer(
 			//printf("(%-3u) %-0.7f %-10.7f %-10.7f %-10.7f\n", i, stepsize, genotype[i], gradient[i], candidate_genotype[i]);
 			#endif
 
+#if 0
 			// Putting genes back within bounds
 			candidate_genotype[i] = fmin(candidate_genotype[i], upper_bounds_genotype[i]);
 			candidate_genotype[i] = fmax(candidate_genotype[i], lower_bounds_genotype[i]);
+
+#endif
 	   	}
 		
 		// Evaluating candidate
@@ -442,7 +485,7 @@ gradient_minimizer(
 				dockpars_coeff_elec,
 				dockpars_qasp,
 				dockpars_coeff_desolv,
-				candidate_genotype, /*genotype,*/ /*use genotype only for reproduce results*/
+				/*candidate_genotype,*/ genotype, /*use genotype only for reproduce results*/
 				&candidate_energy,
 				&run_id,
 				// Some OpenCL compilers don't allow declaring 
@@ -483,13 +526,34 @@ gradient_minimizer(
 				);
 		// =============================================================
 
-		#if defined (DEBUG_ENERGY_KERNEL)
+		#if defined (DEBUG_ENERGY_KERNEL5)
 		if ((get_group_id(0) == 0) && (get_local_id(0) == 0)) {
+			printf("\n");
+			printf("%-10s %-10.6f \n", "intra: ",  partial_intraE[0]);
+			printf("%-10s %-10.6f \n", "grids: ",  partial_interE[0]);
+			printf("%-10s %-10.6f \n", "Energy: ", (partial_intraE[0] + partial_interE[0]));
+
 			for(uint i = 0; i < dockpars_num_of_genes; i++) {
-				printf("genotype[%u]=%f \n", i, genotype[i]);
+				if (i == 0) {
+					printf("\n%s\n", "----------------------------------------------------------");
+					printf("%-10s %-10s %-10s\n", "gene_id", "gene.value", "gene.gradient");
+				}
+				printf("%-10u %-10.6f %-10.6f\n", i, genotype[i], gradient[i]);
 			}
-			printf("partial_interE=%f \n", partial_interE[0]);
-			printf("partial_intraE=%f \n", partial_intraE[0]);
+
+#if 0
+			for(uint i = 0; i < dockpars_num_of_atoms; i++) {
+				printf("atom [%u]: x=%f y=%f z=%f\n", i, calc_coords_x[i], calc_coords_y[i], calc_coords_z[i]);
+			}
+#endif
+			for(uint i = 0; i < dockpars_num_of_atoms; i++) {
+				if (i == 0) {
+					printf("\n%s\n", "----------------------------------------------------------");
+					printf("%-10s %-10s %-10s %-10s\n", "atom_id", "coords.x", "coords.y", "coords.z");
+				}
+				printf("%-10u %-10.6f %-10.6f %-10.6f\n", i, calc_coords_x[i], calc_coords_y[i], calc_coords_z[i]);
+			}
+			printf("\n");
 		}
 		#endif
 
@@ -529,12 +593,13 @@ gradient_minimizer(
 	    		iteration_cnt = iteration_cnt + 1;
 
 			#if defined (DEBUG_MINIMIZER)
-			printf("# minimizer-iters: %-3u, stepsize: %10.7f, E: %10.7f\n", iteration_cnt, stepsize, energy);
+			printf("# minimizer-iters: %-3u, stepsize: %10.6f, E: %10.6f\n", iteration_cnt, stepsize, energy);
 			#endif
-
-			#if defined (DEBUG_ENERGY_KERNEL)
+/*
+			#if defined (DEBUG_ENERGY_KERNEL5)
 			printf("%-18s [%-5s]---{%-5s}   [%-10.7f]---{%-10.7f}\n", "-ENERGY-KERNEL5-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
 			#endif
+*/
 		}
 
   	} while ((iteration_cnt < dockpars_max_num_of_iters) && (stepsize > 1E-8));
@@ -547,7 +612,7 @@ gradient_minimizer(
 		dockpars_energies_next[run_id*dockpars_pop_size+entity_id] = energy;
 
 		#if defined (DEBUG_MINIMIZER)
-		printf("-------> End of grad-min cycle, num of evals: %u, final energy: %.7f\n", iteration_cnt, energy);
+		printf("-------> End of grad-min cycle, num of evals: %u, final energy: %.6f\n", iteration_cnt, energy);
 		#endif
 	}
 

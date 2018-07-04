@@ -20,6 +20,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
+
+//#define DEBUG_ENERGY_KERNEL1
+
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gpu_calc_initpop(	
 			char   dockpars_num_of_atoms,
@@ -155,7 +158,7 @@ gpu_calc_initpop(
 		dockpars_energies_current[get_group_id(0)] = energy;
 		dockpars_evals_of_new_entities[get_group_id(0)] = 1;
 
-		#if defined (DEBUG_ENERGY_KERNEL)
+		#if defined (DEBUG_ENERGY_KERNEL1)
 		printf("%-18s [%-5s]---{%-5s}   [%-10.8f]---{%-10.8f}\n", "-ENERGY-KERNEL1-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
 		#endif
 	}

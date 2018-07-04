@@ -733,9 +733,15 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		ref_ori_angles[3*i+1] =  90.279;
 		ref_ori_angles[3*i+2] = 190.279;
 #else
-		ref_ori_angles[3*i]   = (float) (myrand()*360.0); 	//phi
-		ref_ori_angles[3*i+1] = (float) (myrand()*180.0);	//theta
-		ref_ori_angles[3*i+2] = (float) (myrand()*360.0);	//angle
+		// These specific values for the rotation genes (in axis-angle space)
+		// correspond to a quaternion for NO rotation.
+		ref_ori_angles[3*i]   = 0.0f;
+		ref_ori_angles[3*i+1] = 0.0f;
+		ref_ori_angles[3*i+2] = 0.0f;
+
+		//ref_ori_angles[3*i]   = (float) (myrand()*360.0); 	//phi
+		//ref_ori_angles[3*i+1] = (float) (myrand()*180.0);	//theta
+		//ref_ori_angles[3*i+2] = (float) (myrand()*360.0);	//angle
 #endif
 	}
 
