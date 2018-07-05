@@ -1032,10 +1032,10 @@ void gpu_calc_gradient(
 		target_theta = acos(rotaxis_z);
 
     		if (is_theta_gt_pi == false) {
-		        target_phi   = remainder((atan2( rotaxis_y,  rotaxis_x) + PI_TIMES_2), PI_TIMES_2);
+		        target_phi   = fmod((atan2( rotaxis_y,  rotaxis_x) + PI_TIMES_2), PI_TIMES_2);
 		}
 		else {
-		        target_phi   = remainder((atan2(-rotaxis_y, -rotaxis_x) + PI_TIMES_2), PI_TIMES_2);
+		        target_phi   = fmod((atan2(-rotaxis_y, -rotaxis_x) + PI_TIMES_2), PI_TIMES_2);
 		        target_theta = PI_TIMES_2 - target_theta;
 		}
 
@@ -1064,9 +1064,9 @@ void gpu_calc_gradient(
 		grad_theta    = orientation_scaling * (target_theta    - current_theta);
 		grad_rotangle = orientation_scaling * (target_rotangle - current_rotangle);
 		*/
-		grad_phi      = orientation_scaling * (remainder(target_phi 	 - current_phi 	    + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
-		grad_theta    = orientation_scaling * (remainder(target_theta    - current_theta    + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
-		grad_rotangle = orientation_scaling * (remainder(target_rotangle - current_rotangle + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
+		grad_phi      = orientation_scaling * (fmod(target_phi 	 - current_phi 	    + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
+		grad_theta    = orientation_scaling * (fmod(target_theta    - current_theta    + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
+		grad_rotangle = orientation_scaling * (fmod(target_rotangle - current_rotangle + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
