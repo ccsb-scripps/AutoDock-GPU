@@ -442,6 +442,7 @@ gradient_minimizer(
 			for(uint i = 0; i < dockpars_num_of_atoms; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
+					printf("%s\n", "Coordinates calculated by calcgradient.cl");
 					printf("%-10s %-10s %-10s %-10s\n", "atom_id", "coords.x", "coords.y", "coords.z");
 				}
 				printf("%-10u %-10.6f %-10.6f %-10.6f\n", i, calc_coords_x[i], calc_coords_y[i], calc_coords_z[i]);
@@ -549,6 +550,7 @@ gradient_minimizer(
 			for(uint i = 0; i < dockpars_num_of_atoms; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
+					printf("%s\n", "Coordinates calculated by calcenergy.cl");
 					printf("%-10s %-10s %-10s %-10s\n", "atom_id", "coords.x", "coords.y", "coords.z");
 				}
 				printf("%-10u %-10.6f %-10.6f %-10.6f\n", i, calc_coords_x[i], calc_coords_y[i], calc_coords_z[i]);

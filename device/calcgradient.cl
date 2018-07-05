@@ -262,7 +262,7 @@ void gpu_calc_gradient(
 				rotation_movingvec[1] = rotbonds_moving_vectors_const[3*rotbond_id+1];
 				rotation_movingvec[2] = rotbonds_moving_vectors_const[3*rotbond_id+2];
 
-				float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD;
+				rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD;
 
 				// Performing additionally the first movement which 
 				// is needed only if rotating around rotatable bond
