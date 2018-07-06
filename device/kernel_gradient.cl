@@ -443,9 +443,9 @@ gradient_minimizer(
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
 					printf("%s\n", "Coordinates calculated by calcgradient.cl");
-					printf("%-10s %-10s %-10s %-10s\n", "atom_id", "coords.x", "coords.y", "coords.z");
+					printf("%-12s %-12s %-12s %-12s\n", "atom_id", "coords.x", "coords.y", "coords.z");
 				}
-				printf("%-10u %-10.6f %-10.6f %-10.6f\n", i, calc_coords_x[i], calc_coords_y[i], calc_coords_z[i]);
+				printf("%-12u %-12.6f %-12.6f %-12.6f\n", i, calc_coords_x[i], calc_coords_y[i], calc_coords_z[i]);
 			}
 			printf("\n");
 		}
@@ -537,9 +537,9 @@ gradient_minimizer(
 			for(uint i = 0; i < dockpars_num_of_genes; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
-					printf("%-10s %-10s %-10s\n", "gene_id", "gene.value", "gene.gradient");
+					printf("%-12s %-12s %-12s\n", "gene_id", "gene.value", "gene.gradient");
 				}
-				printf("%-10u %-10.6f %-10.6f\n", i, genotype[i], gradient[i]);
+				printf("%-12u %-12.6f %-12.6f\n", i, genotype[i], gradient[i]);
 			}
 
 #if 0
@@ -551,9 +551,9 @@ gradient_minimizer(
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
 					printf("%s\n", "Coordinates calculated by calcenergy.cl");
-					printf("%-10s %-10s %-10s %-10s\n", "atom_id", "coords.x", "coords.y", "coords.z");
+					printf("%-12s %-12s %-12s %-12s\n", "atom_id", "coords.x", "coords.y", "coords.z");
 				}
-				printf("%-10u %-10.6f %-10.6f %-10.6f\n", i, calc_coords_x[i], calc_coords_y[i], calc_coords_z[i]);
+				printf("%-12u %-12.6f %-12.6f %-12.6f\n", i, calc_coords_x[i], calc_coords_y[i], calc_coords_z[i]);
 			}
 			printf("\n");
 		}
