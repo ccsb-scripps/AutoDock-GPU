@@ -975,6 +975,8 @@ void gpu_calc_gradient(
 		#endif
 
 		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-20s %-10.6f\n", "INFINITESIMAL_RADIAN: ", INFINITESIMAL_RADIAN);
+
 		printf("%-20s %-10.6f %-10.6f %-10.6f %-10.6f\n", "quat_torque (w,x,y,z): ", quat_torque.w, quat_torque.x, quat_torque.y, quat_torque.z);
 		#endif
 

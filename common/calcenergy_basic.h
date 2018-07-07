@@ -77,7 +77,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // Gradient-related defines
 // -------------------------------------------
 
-#define INFINITESIMAL_RADIAN		1E-5
+#define INFINITESIMAL_RADIAN		1E-3
 #define HALF_INFINITESIMAL_RADIAN 	(0.5f * INFINITESIMAL_RADIAN)
 #define INV_INFINITESIMAL_RADIAN	(1/INFINITESIMAL_RADIAN)
 #define COS_HALF_INFINITESIMAL_RADIAN	cos(HALF_INFINITESIMAL_RADIAN)
