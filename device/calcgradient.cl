@@ -1069,7 +1069,7 @@ void gpu_calc_gradient(
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
-		printf("%-30s %-10.6f %-10.6f %-10.6f\n", "target_axisangle (1,2,3) - after mapping: ", target_phi, target_theta, target_rotangle);
+		printf("%-30s %-10.6f %-10.6f %-10.6f\n", "target_axisangle (1,2,3): ", target_phi, target_theta, target_rotangle);
 		#endif
 		
    		// The infinitesimal rotation will produce an infinitesimal displacement
@@ -1098,7 +1098,9 @@ void gpu_calc_gradient(
 
 		#if defined (DEBUG_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
-		printf("%-30s %-10.6f %-10.6f %-10.6f\n", "grad_axisangle (1,2,3) - before emp. scaling: ", grad_phi, grad_theta, grad_rotangle);
+		printf("%-30s \n", "grad_axisangle (1,2,3) - before empirical scaling: ");
+		printf("%-13s %-13s %-13s \n", "grad_phi", "grad_theta", "grad_rotangle");
+		printf("%-13.6f %-13.6f %-13.6f\n", grad_phi, grad_theta, grad_rotangle);
 		#endif
 			
 		// Corrections of derivatives
@@ -1199,16 +1201,17 @@ void gpu_calc_gradient(
 		printf("%-30s %-10.6f\n", "dependence_on_rotangle: ", dependence_on_rotangle);
 		#endif
 
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
-		printf("\n%s\n", "----------------------------------------------------------");
-		printf("%-30s %-10.6f %-10.6f %-10.6f\n", "grad_axisangle (1,2,3) - after emp. scaling: ", grad_phi, grad_theta, grad_rotangle);
-		#endif
-
 		// Setting gradient rotation-related genotypes in cube
 		// Multiplicating by DEG_TO_RAD is to make it uniform to DEG (see torsion gradients)
 		gradient_genotype[3] = native_divide(grad_phi, (dependence_on_theta * dependence_on_rotangle))  * DEG_TO_RAD;
 		gradient_genotype[4] = native_divide(grad_theta, dependence_on_rotangle)			* DEG_TO_RAD; 
 		gradient_genotype[5] = grad_rotangle                                                            * DEG_TO_RAD;
+		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-30s \n", "grad_axisangle (1,2,3) - after empirical scaling: ");
+		printf("%-13s %-13s %-13s \n", "grad_phi", "grad_theta", "grad_rotangle");
+		printf("%-13.6f %-13.6f %-13.6f\n", gradient_genotype[3], gradient_genotype[4], gradient_genotype[5]);
+		#endif
 	}
 
 	// ------------------------------------------
