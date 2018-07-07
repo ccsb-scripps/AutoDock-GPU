@@ -801,9 +801,9 @@ void gpu_calc_gradient(
 		if (atom_cnt == 0) {
 			printf("\n%s\n", "----------------------------------------------------------");
 			printf("%s\n", "Gradients: inter and intra");
-			printf("%-10s %-13s %-13s %-13s %-5s %-13s %-13s %-13s\n", "atom_id", "grad_intER.x", "grad_intER.y", "grad_intER.z", "|", "grad_intRA.x", "grad_intRA.y", "grad_intRA.z");
+			printf("%10s %13s %13s %13s %5s %13s %13s %13s\n", "atom_id", "grad_intER.x", "grad_intER.y", "grad_intER.z", "|", "grad_intRA.x", "grad_intRA.y", "grad_intRA.z");
 		}
-		printf("%-10u %-13.6f %-13.6f %-13.6f %-5s %-13.6f %-13.6f %-13.6f\n", atom_cnt, gradient_inter_x[atom_cnt], gradient_inter_y[atom_cnt], gradient_inter_z[atom_cnt], "|", gradient_intra_x[atom_cnt], gradient_intra_y[atom_cnt], gradient_intra_z[atom_cnt]);
+		printf("%10u %13.6f %13.6f %13.6f %5s %13.6f %13.6f %13.6f\n", atom_cnt, gradient_inter_x[atom_cnt], gradient_inter_y[atom_cnt], gradient_inter_z[atom_cnt], "|", gradient_intra_x[atom_cnt], gradient_intra_y[atom_cnt], gradient_intra_z[atom_cnt]);
 		#endif
 
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)
@@ -819,9 +819,9 @@ void gpu_calc_gradient(
 		if (atom_cnt == 0) {
 			printf("\n%s\n", "----------------------------------------------------------");
 			printf("%s\n", "Gradients: total = inter + intra");
-			printf("%-10s %-13s %-13s %-13s\n", "atom_id", "grad.x", "grad.y", "grad.z");
+			printf("%10s %13s %13s %13s\n", "atom_id", "grad.x", "grad.y", "grad.z");
 		}
-		printf("%-10u %-13.6f %-13.6f %-13.6f \n", atom_cnt, gradient_inter_x[atom_cnt], gradient_inter_y[atom_cnt], gradient_inter_z[atom_cnt]);
+		printf("%10u %13.6f %13.6f %13.6f \n", atom_cnt, gradient_inter_x[atom_cnt], gradient_inter_y[atom_cnt], gradient_inter_z[atom_cnt]);
 		#endif
 	}
 
@@ -921,9 +921,9 @@ void gpu_calc_gradient(
 			if (lig_atom_id == 0) {
 				printf("\n%s\n", "----------------------------------------------------------");
 				printf("%s\n", "Torque: atom-based accumulation of torque");
-				printf("%-10s %-10s %-10s %-10s %-5s %-12s %-12s %-12s %-5s %-11s %-11s %-11s\n", "atom_id", "r.x", "r.y", "r.z", "|", "force.x", "force.y", "force.z", "|", "torque.x", "torque.y", "torque.z");
+				printf("%10s %10s %10s %10s %5s %12s %12s %12s %5s %11s %11s %11s\n", "atom_id", "r.x", "r.y", "r.z", "|", "force.x", "force.y", "force.z", "|", "torque.x", "torque.y", "torque.z");
 			}
-			printf("%-10u %-10.6f %-10.6f %-10.6f %-5s %-12.6f %-12.6f %-12.6f %-5s %-12.6f %-12.6f %-12.6f\n", lig_atom_id, r.x, r.y, r.z, "|", force.x, force.y, force.z, "|", torque_rot.x, torque_rot.y, torque_rot.z);
+			printf("%10u %10.6f %10.6f %10.6f %5s %12.6f %12.6f %12.6f %5s %12.6f %12.6f %12.6f\n", lig_atom_id, r.x, r.y, r.z, "|", force.x, force.y, force.z, "|", torque_rot.x, torque_rot.y, torque_rot.z);
 			//printf("%-10u %-10.6f %-10.6f %-10.6f %-10.6f %-10.6f %-10.6f\n", lig_atom_id, r.x, r.y, r.z, force.x, force.y, force.z);
 			#endif
 
