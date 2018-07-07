@@ -712,10 +712,12 @@ void gpu_calc_gradient(
 		} // if cuttoff2 - internuclear-distance at 20.48A
 
 		// Decomposing "priv_gradient_per_intracontributor" 
-		// into the contribution of each atom of the pair 
-		float subx_div_dist = native_divide(subx, dist);
-		float suby_div_dist = native_divide(suby, dist);
-		float subz_div_dist = native_divide(subz, dist);
+		// into the contribution of each atom of the pair.
+		// Distances in Angstroms of vector that goes from 
+		// "atom1_id"-to-"atom2_id", therefore - subx, - suby, and - subz are used
+		float subx_div_dist = native_divide(-subx, dist);
+		float suby_div_dist = native_divide(-suby, dist);
+		float subz_div_dist = native_divide(-subz, dist);
 
 		float priv_intra_gradient_x = priv_gradient_per_intracontributor * subx_div_dist;
 		float priv_intra_gradient_y = priv_gradient_per_intracontributor * suby_div_dist;
