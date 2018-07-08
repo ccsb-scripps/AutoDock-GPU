@@ -35,8 +35,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // since this determines which reference orientation should be used.
 
 //#define DEBUG_GRAD_TRANSLATION_GENES
-#define DEBUG_GRAD_ROTATION_GENES
-//#define DEBUG_GRAD_TORSION_GENES
+//#define DEBUG_GRAD_ROTATION_GENES
+#define DEBUG_GRAD_TORSION_GENES
 
 
 void map_priv_angle(float* angle)
@@ -1221,17 +1221,20 @@ void gpu_calc_gradient(
 	//----------------------------------
 	// fastergrad
 	//----------------------------------
-/*
+///*
 	if (get_local_id(0) == 2) {
 
 		for (uint rotbond_id = 0;
 			  rotbond_id < dockpars_num_of_genes-6;
 			  rotbond_id ++) {
-*/
+//*/
+
+/*
 
 		for (uint rotbond_id = get_local_id(0);
 			  rotbond_id < dockpars_num_of_genes-6;
 			  rotbond_id +=NUM_OF_THREADS_PER_BLOCK) {
+*/
 	//----------------------------------
 
 			// Querying ids of atoms belonging to the rotatable bond in question
@@ -1244,12 +1247,8 @@ void gpu_calc_gradient(
 			atomRef_coords.z = calc_coords_z[atom1_id];
 
 			#if defined (DEBUG_GRAD_TORSION_GENES)
-			printf("%-15s %-10u\n", "rotbond_id: ", rotbond_id);
-			printf("%-15s %-10i\n", "atom1_id: ", atom1_id);
-			printf("%-15s %-10.6f %-10.6f %-10.6f\n", "atom1_coords: ", calc_coords_x[atom1_id], calc_coords_y[atom1_id], calc_coords_z[atom1_id]);
-			printf("%-15s %-10i\n", "atom2_id: ", atom2_id);
-			printf("%-15s %-10.6f %-10.6f %-10.6f\n", "atom2_coords: ", calc_coords_x[atom2_id], calc_coords_y[atom2_id], calc_coords_z[atom2_id]);
-			printf("\n");
+			printf("\n%s\n", "----------------------------------------------------------");
+			printf("%-5s %3u \n\t %-5s %3i \n\t %-5s %3i\n", "gene: ", (rotbond_id+6), "atom1: ", atom1_id, "atom2: ", atom2_id);
 			#endif		
 
 			float3 rotation_unitvec;
@@ -1262,6 +1261,11 @@ void gpu_calc_gradient(
 			rotation_unitvec.y = calc_coords_y[atom2_id] - calc_coords_y[atom1_id];
 			rotation_unitvec.z = calc_coords_z[atom2_id] - calc_coords_z[atom1_id];
 			rotation_unitvec = fast_normalize(rotation_unitvec);
+
+			#if defined (DEBUG_GRAD_TORSION_GENES)
+			printf("\n");
+			printf("%-15s \n\t %-10.6f %-10.6f %-10.6f\n", "unitvec: ", rotation_unitvec.x, rotation_unitvec.y, rotation_unitvec.z);
+			#endif	
 
 			// Torque of torsions
 			float3 torque_tor;
@@ -1300,14 +1304,16 @@ void gpu_calc_gradient(
 				torque_tor += cross(r, atom_force);
 
 				#if defined (DEBUG_GRAD_TORSION_GENES)
-				printf("\n");
-				printf("%-15s %-10u\n", "rotable_atom_cnt: ", rotable_atom_cnt);
-				printf("%-15s %-10u\n", "atom_id: ", lig_atom_id);
-				printf("%-15s %-10.6f %-10.6f %-10.6f\n", "atom_coords: ", atom_coords.x, atom_coords.y, atom_coords.z);
-				printf("%-15s %-10.6f %-10.6f %-10.6f\n", "r: ", r.x, r.y, r.z);
-				printf("%-15s %-10.6f %-10.6f %-10.6f\n", "unitvec: ", rotation_unitvec.x, rotation_unitvec.y, rotation_unitvec.z);
-				printf("%-15s %-10.6f %-10.6f %-10.6f\n", "atom_force: ", atom_force.x, atom_force.y, atom_force.z);
-				printf("%-15s %-10.6f %-10.6f %-10.6f\n", "torque_tor: ", torque_tor.x, torque_tor.y, torque_tor.z);
+				if (rotable_atom_cnt == 0) {
+					printf("\n %-30s %3i\n", "contributor for gene : ", (rotbond_id+6));
+				}
+				//printf("%-15s %-10u\n", "rotable_atom_cnt: ", rotable_atom_cnt);
+				//printf("%-15s %-10u\n", "atom_id: ", lig_atom_id);
+				printf("\t %-15s %-10.6f %-10.6f %-10.6f \t %-15s %-10.6f %-10.6f %-10.6f\n", "atom_coords: ", atom_coords.x, atom_coords.y, atom_coords.z, "atom_force: ", atom_force.x, atom_force.y, atom_force.z);
+				//printf("%-15s %-10.6f %-10.6f %-10.6f\n", "r: ", r.x, r.y, r.z);
+
+				//printf("%-15s %-10.6f %-10.6f %-10.6f\n", "atom_force: ", atom_force.x, atom_force.y, atom_force.z);
+				//printf("%-15s %-10.6f %-10.6f %-10.6f\n", "torque_tor: ", torque_tor.x, torque_tor.y, torque_tor.z);
 				#endif
 
 			}
@@ -1330,9 +1336,9 @@ void gpu_calc_gradient(
 	//----------------------------------
 	// fastergrad
 	//----------------------------------
-/*
+///*
 	}
-*/
+//*/
 	//----------------------------------
 
 	barrier(CLK_LOCAL_MEM_FENCE);
