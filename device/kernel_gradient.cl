@@ -83,11 +83,11 @@ gradient_minimizer(
 	if (get_local_id(0) == 0)
 	{
 		// Choosing a random entity out of the entire population
-/*
+		/*
 		run_id = get_group_id(0);
 		//entity_id = (uint)(dockpars_pop_size * gpu_randf(dockpars_prng_states));
 		entity_id = 0;
-*/
+		*/
 
 		run_id = get_group_id(0) / dockpars_num_of_lsentities;
 		entity_id = get_group_id(0) % dockpars_num_of_lsentities;
@@ -104,9 +104,9 @@ gradient_minimizer(
 		
 		energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
 
-//		#if defined (DEBUG_MINIMIZER)
+		#if defined (DEBUG_MINIMIZER)
 		printf("\nrun_id:  %5u entity_id: %5u  initial_energy: %.7f\n", run_id, entity_id, energy);
-//		#endif
+		#endif
 
 		// Initializing gradient-minimizer counters and flags
     		iteration_cnt  = 0;
@@ -123,15 +123,15 @@ gradient_minimizer(
 	wait_group_events(1,&ev);
 
   	// -----------------------------------------------------------------------------
-  	// Some OpenCL compilers don't allow declaring 
-	// local variables within non-kernel functions.
-	// These local variables must be declared in a kernel, 
-	// and then passed to non-kernel functions.
 	           
 	// Partial results of the gradient step
 	__local float gradient          [ACTUAL_GENOTYPE_LENGTH];
 	__local float candidate_energy;
 	__local float candidate_genotype[ACTUAL_GENOTYPE_LENGTH];
+
+	// Dummy variable used only for the first gpu_calc_gradient() call.
+	// The corresponding energy for "genotype" is stored in "energy"
+	__local float dummy_energy; 	
 
 	// -------------------------------------------------------------------
 	// Calculate gradients (forces) for intermolecular energy
@@ -148,7 +148,6 @@ gradient_minimizer(
 	__local float gradient_intra_y[MAX_NUM_OF_ATOMS];
 	__local float gradient_intra_z[MAX_NUM_OF_ATOMS];
 
-	// -------------------------------------------------------------------
 	// Ligand-atom position and partial energies
 	__local float calc_coords_x[MAX_NUM_OF_ATOMS];
 	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
@@ -161,6 +160,79 @@ gradient_minimizer(
 	#endif
 
 	// -----------------------------------------------------------------------------
+	// Calculating gradient
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	// =============================================================
+	gpu_calc_gradient(
+			dockpars_rotbondlist_length,
+			dockpars_num_of_atoms,
+			dockpars_gridsize_x,
+			dockpars_gridsize_y,
+			dockpars_gridsize_z,
+								// g1 = gridsize_x
+			dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+			dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
+			dockpars_fgrids,
+			dockpars_num_of_atypes,
+			dockpars_num_of_intraE_contributors,
+			dockpars_grid_spacing,
+			dockpars_coeff_elec,
+			dockpars_qasp,
+			dockpars_coeff_desolv,
+			// Some OpenCL compilers don't allow declaring 
+			// local variables within non-kernel functions.
+			// These local variables must be declared in a kernel, 
+			// and then passed to non-kernel functions.
+			genotype,
+			&dummy_energy,
+			&run_id,
+
+			calc_coords_x,
+			calc_coords_y,
+			calc_coords_z,
+
+			atom_charges_const,
+			atom_types_const,
+			intraE_contributors_const,
+			dockpars_smooth,
+			reqm,
+			reqm_hbond,
+		     	atom1_types_reqm,
+		     	atom2_types_reqm,
+			VWpars_AC_const,
+			VWpars_BD_const,
+			dspars_S_const,
+			dspars_V_const,
+			rotlist_const,
+			ref_coords_x_const,
+			ref_coords_y_const,
+			ref_coords_z_const,
+			rotbonds_moving_vectors_const,
+			rotbonds_unit_vectors_const,
+			ref_orientation_quats_const,
+			rotbonds_const,
+			rotbonds_atoms_const,
+			num_rotating_atoms_per_rotbond_const
+			,
+	     		angle_const,
+	     		dependence_on_theta_const,
+	     		dependence_on_rotangle_const
+			// Gradient-related arguments
+			// Calculate gradients (forces) for intermolecular energy
+			// Derived from autodockdev/maps.py
+			,
+			dockpars_num_of_genes,
+			gradient_inter_x,
+			gradient_inter_y,
+			gradient_inter_z,
+			gradient_intra_x,
+			gradient_intra_y,
+			gradient_intra_z,
+			gradient
+			);
+	// =============================================================
+
 	// Perform gradient-descent iterations
 
 	#if 0
@@ -186,7 +258,8 @@ gradient_minimizer(
 	float ligand_center_z = -2.40896296;
 	#endif
 
-#if 0
+	// No need for defining upper and lower genotype bounds
+	#if 0
 	// Defining lower and upper bounds for genotypes
 	__local float lower_bounds_genotype[ACTUAL_GENOTYPE_LENGTH];
 	__local float upper_bounds_genotype[ACTUAL_GENOTYPE_LENGTH];
@@ -212,25 +285,20 @@ gradient_minimizer(
 		#endif
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
-#endif
-
-
+	#endif
 
 	// Calculating maximum possible stepsize (alpha)
-	__local float max_trans_gene, max_rota_gene, max_tors_gene;
+	__local float max_trans_grad, max_rota_grad, max_tors_grad;
 	__local float max_trans_stepsize, max_rota_stepsize, max_tors_stepsize;
 	__local float max_stepsize;
 
 	// Storing torsion genotypes here
 	__local float torsions_genotype[ACTUAL_GENOTYPE_LENGTH];
 
-
-
-
 	// The termination criteria is based on 
 	// a maximum number of iterations, and
 	// the minimum step size allowed for single-floating point numbers 
-	// (IEEE-754 single float has a precision of about 7 decimal digits)
+	// (IEEE-754 single float has a precision of about 6 decimal digits)
 	do {
 		#if 0
 		// Specific input genotypes for a ligand with no rotatable bonds (1ac8).
@@ -325,30 +393,27 @@ gradient_minimizer(
 		#endif
 
 		if (get_local_id(0) == 0) {
-			// Finding maximum of the absolute value 
-			// for the three translation genes
-			max_trans_gene = fmax(fabs(genotype[0]), fabs(genotype[1]));
-			max_trans_gene = fmax(max_trans_gene, fabs(genotype[2]));
+			// Finding maximum of the absolute value for the three translation gradients
+			max_trans_grad = fmax(fabs(gradient[0]), fabs(gradient[1]));
+			max_trans_grad = fmax(max_trans_grad, fabs(gradient[2]));
 
-			// Note that MAX_DEV_TRANSLATION needs to be 
-			// expressed in grid size first
-			max_trans_stepsize = native_divide(native_divide(MAX_DEV_TRANSLATION, dockpars_grid_spacing), max_trans_gene);
+			// MAX_DEV_TRANSLATION needs to be expressed in grid size first
+			max_trans_stepsize = native_divide(native_divide(MAX_DEV_TRANSLATION, dockpars_grid_spacing), max_trans_grad);
 
-			// Finding maximum of the absolute value 
-			// for the three rotation genes
-			max_rota_gene = fmax(fabs(genotype[3]), fabs(genotype[4]));	//printf("max_rota_gene: %-10.7f\n", max_rota_gene);		
-			max_rota_gene = fmax(max_rota_gene, fabs(genotype[5]));		//printf("max_rota_gene: %-10.7f\n", max_rota_gene);
+			// Finding maximum of the absolute value for the three rotation gradients
+			max_rota_grad = fmax(fabs(gradient[3]), fabs(gradient[4]));	//printf("max_rota_grad: %-10.7f\n", max_rota_grad);		
+			max_rota_grad = fmax(max_rota_grad, fabs(gradient[5]));		//printf("max_rota_grad: %-10.7f\n", max_rota_grad);
 
 			// Note that MAX_DEV_ROTATION
 			// is already expressed within [0, 1]
-			max_rota_stepsize = native_divide(MAX_DEV_ROTATION, max_rota_gene);
+			max_rota_stepsize = native_divide(MAX_DEV_ROTATION, max_rota_grad);
 		}
 
 		// Copying torsions genes
 		for(uint i = get_local_id(0); 
 			 i < dockpars_num_of_genes-6; 
 			 i+= NUM_OF_THREADS_PER_BLOCK) {
-			torsions_genotype[i] = fabs(genotype[i+6]);
+			torsions_genotype[i] = fabs(gradient[i+6]);
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -367,13 +432,12 @@ gradient_minimizer(
 			barrier(CLK_LOCAL_MEM_FENCE);
 		}
 		if (get_local_id(0) == 0) {
-			max_tors_gene = torsions_genotype[get_local_id(0)];
-			max_tors_stepsize = native_divide(MAX_DEV_TORSION, max_tors_gene);
+			max_tors_grad = torsions_genotype[get_local_id(0)];
+			max_tors_stepsize = native_divide(MAX_DEV_TORSION, max_tors_grad);
 		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		
 		if (get_local_id(0) == 0) {
 			// Calculating the maximum stepsize using previous three
 			max_stepsize = fmin(max_trans_stepsize, max_rota_stepsize);
@@ -383,7 +447,7 @@ gradient_minimizer(
 			stepsize = fmin(stepsize, max_stepsize);
 
 			#if defined (DEBUG_MINIMIZER)
-			//printf("max_genes: %-0.7f %-10.7f %-10.7f %-10.7f\n", max_trans_gene, max_rota_gene, max_tors_gene, stepsize);
+			//printf("max_genes: %-0.7f %-10.7f %-10.7f %-10.7f\n", max_trans_grad, max_rota_grad, max_tors_grad, stepsize);
 			//printf("max_steps: %-0.7f %-10.7f %-10.7f %-10.7f\n", max_trans_stepsize, max_rota_stepsize, max_tors_stepsize, max_stepsize);
 			#endif
 		}	
@@ -499,12 +563,12 @@ gradient_minimizer(
 			//printf("(%-3u) %-0.7f %-10.7f %-10.7f %-10.7f\n", i, stepsize, genotype[i], gradient[i], candidate_genotype[i]);
 			#endif
 
-#if 0
+			// No need for defining upper and lower genotype bounds
+			#if 0
 			// Putting genes back within bounds
 			candidate_genotype[i] = fmin(candidate_genotype[i], upper_bounds_genotype[i]);
 			candidate_genotype[i] = fmax(candidate_genotype[i], lower_bounds_genotype[i]);
-
-#endif
+			#endif
 	   	}
 		
 		// Evaluating candidate
@@ -526,7 +590,7 @@ gradient_minimizer(
 				dockpars_coeff_elec,
 				dockpars_qasp,
 				dockpars_coeff_desolv,
-				/*candidate_genotype,*/ genotype, /*WARNING: use genotype ONLY to reproduce results*/
+				/*candidate_genotype,*/ genotype, /*WARNING: use "genotype" ONLY to reproduce results*/
 				&candidate_energy,
 				&run_id,
 				// Some OpenCL compilers don't allow declaring 
