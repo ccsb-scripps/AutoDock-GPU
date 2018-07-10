@@ -2,6 +2,9 @@
 // Alternative to Solis-Wetts
 
 #define DEBUG_ENERGY_KERNEL5
+#define PRINT_ENERGIES
+#define PRINT_GENES_AND_GRADS
+//#define PRINT_ATOMIC_COORDS
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gradient_minimizer(	
@@ -271,6 +274,8 @@ gradient_minimizer(
 		genotype[20] = 0.0f;
 		#endif
 
+		#if 0
+		// 2j5s
 		genotype[0] = 28.464;
 		genotype[1] = 25.792762;
 		genotype[2] = 23.740571;
@@ -292,6 +297,32 @@ gradient_minimizer(
 		genotype[18] = 0.0f;
 		genotype[19] = 0.0f;
 		genotype[20] = 0.0f;
+		#endif
+
+		#if 1
+		// 2brt
+		genotype[0] = 24.093334;
+		genotype[1] = 24.658667;
+		genotype[2] = 24.210667;
+		genotype[3] = 50.0;
+		genotype[4] = 50.0;
+		genotype[5] = 50.0;
+		genotype[6] = 0.0f;
+		genotype[7] = 0.0f;
+		genotype[8] = 0.0f;
+		genotype[9] = 0.0f;
+		genotype[10] = 0.0f;
+		genotype[11] = 0.0f;
+		genotype[12] = 0.0f;
+		genotype[13] = 0.0f;
+		genotype[14] = 0.0f;
+		genotype[15] = 0.0f;
+		genotype[16] = 0.0f;
+		genotype[17] = 0.0f;
+		genotype[18] = 0.0f;
+		genotype[19] = 0.0f;
+		genotype[20] = 0.0f;
+		#endif
 
 		if (get_local_id(0) == 0) {
 			// Finding maximum of the absolute value 
@@ -430,15 +461,22 @@ gradient_minimizer(
 				);
 		// =============================================================
 
-///*		
+		// This could be enabled back for double checking
+		#if 0
+		#if defined (DEBUG_ENERGY_KERNEL5)	
 		if ((get_group_id(0) == 0) && (get_local_id(0) == 0)) {
-#if 0
+		
+			#if defined (PRINT_GENES_AND_GRADS)
 			for(uint i = 0; i < dockpars_num_of_genes; i++) {
-				printf("gradient[%u]=%f \n", i, gradient[i]);
+				if (i == 0) {
+					printf("\n%s\n", "----------------------------------------------------------");
+					printf("%13s %13s %5s %15s %15s\n", "gene_id", "gene.value", "|", "gene.grad", "(autodockdevpy units)");
+				}
+				printf("%13u %13.6f %5s %15.6f %15.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/0.375f):(gradient[i]*180.0f/PI_FLOAT));
 			}
-			printf("\n");
-#endif
+			#endif
 
+			#if defined (PRINT_ATOMIC_COORDS)
 			for(uint i = 0; i < dockpars_num_of_atoms; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
@@ -448,8 +486,10 @@ gradient_minimizer(
 				printf("%12u %12.6f %12.6f %12.6f\n", i, calc_coords_x[i], calc_coords_y[i], calc_coords_z[i]);
 			}
 			printf("\n");
+			#endif
 		}
-//*/
+		#endif
+		#endif
 		
 		for(uint i = get_local_id(0); i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {
 	     		// Taking step
@@ -486,7 +526,7 @@ gradient_minimizer(
 				dockpars_coeff_elec,
 				dockpars_qasp,
 				dockpars_coeff_desolv,
-				/*candidate_genotype,*/ genotype, /*use genotype only for reproduce results*/
+				/*candidate_genotype,*/ genotype, /*WARNING: use genotype ONLY to reproduce results*/
 				&candidate_energy,
 				&run_id,
 				// Some OpenCL compilers don't allow declaring 
@@ -529,24 +569,24 @@ gradient_minimizer(
 
 		#if defined (DEBUG_ENERGY_KERNEL5)
 		if ((get_group_id(0) == 0) && (get_local_id(0) == 0)) {
+			#if defined (PRINT_ENERGIES)
 			printf("\n");
 			printf("%-10s %-10.6f \n", "intra: ",  partial_intraE[0]);
 			printf("%-10s %-10.6f \n", "grids: ",  partial_interE[0]);
 			printf("%-10s %-10.6f \n", "Energy: ", (partial_intraE[0] + partial_interE[0]));
+			#endif
 
+			#if defined (PRINT_GENES_AND_GRADS)
 			for(uint i = 0; i < dockpars_num_of_genes; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
-					printf("%13s %13s %13s\n", "gene_id", "gene.value", "gene.grad");
+					printf("%13s %13s %5s %15s %15s\n", "gene_id", "gene.value", "|", "gene.grad", "(autodockdevpy units)");
 				}
-				printf("%13u %13.6f %13.6f\n", i, genotype[i], gradient[i]);
+				printf("%13u %13.6f %5s %15.6f %15.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/0.375f):(gradient[i]*180.0f/PI_FLOAT));
 			}
+			#endif
 
-#if 0
-			for(uint i = 0; i < dockpars_num_of_atoms; i++) {
-				printf("atom [%u]: x=%f y=%f z=%f\n", i, calc_coords_x[i], calc_coords_y[i], calc_coords_z[i]);
-			}
-#endif
+			#if defined (PRINT_ATOMIC_COORDS)
 			for(uint i = 0; i < dockpars_num_of_atoms; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
@@ -556,6 +596,7 @@ gradient_minimizer(
 				printf("%12u %12.6f %12.6f %12.6f\n", i, calc_coords_x[i], calc_coords_y[i], calc_coords_z[i]);
 			}
 			printf("\n");
+			#endif
 		}
 		#endif
 

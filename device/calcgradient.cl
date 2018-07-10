@@ -34,10 +34,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // whose population includes the current entity (which can be determined with get_group_id(0)), 
 // since this determines which reference orientation should be used.
 
-//#define DEBUG_GRAD_TRANSLATION_GENES
-//#define DEBUG_GRAD_ROTATION_GENES
-#define DEBUG_GRAD_TORSION_GENES
+//#define PRINT_GRAD_TRANSLATION_GENES
+//#define PRINT_GRAD_ROTATION_GENES
+//#define PRINT_GRAD_TORSION_GENES
 
+#define ENABLE_PARALLEL_GRAD_TORSION
 
 void map_priv_angle(float* angle)
 // The GPU device function maps
@@ -797,7 +798,7 @@ void gpu_calc_gradient(
 		gradient_inter_y[atom_cnt] = native_divide(gradient_inter_y[atom_cnt], dockpars_grid_spacing);
 		gradient_inter_z[atom_cnt] = native_divide(gradient_inter_z[atom_cnt], dockpars_grid_spacing);
 
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		if (atom_cnt == 0) {
 			printf("\n%s\n", "----------------------------------------------------------");
 			printf("%s\n", "Gradients: inter and intra");
@@ -815,7 +816,7 @@ void gpu_calc_gradient(
 		//printf("%-15s %-5u %-10.8f %-10.8f %-10.8f\n", "grad_intra", atom_cnt, gradient_intra_x[atom_cnt], gradient_intra_y[atom_cnt], gradient_intra_z[atom_cnt]);
 		//printf("%-15s %-5u %-10.8f %-10.8f %-10.8f\n", "calc_coords", atom_cnt, calc_coords_x[atom_cnt], calc_coords_y[atom_cnt], calc_coords_z[atom_cnt]);
 
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		if (atom_cnt == 0) {
 			printf("\n%s\n", "----------------------------------------------------------");
 			printf("%s\n", "Gradients: total = inter + intra");
@@ -851,7 +852,8 @@ void gpu_calc_gradient(
 		gradient_genotype[1] *= dockpars_grid_spacing;
 		gradient_genotype[2] *= dockpars_grid_spacing;
 
-		#if defined (DEBUG_GRAD_TRANSLATION_GENES)
+		#if defined (PRINT_GRAD_TRANSLATION_GENES)
+		printf("\n%s\n", "----------------------------------------------------------");
 		printf("gradient_x:%f\n", gradient_genotype [0]);
 		printf("gradient_y:%f\n", gradient_genotype [1]);
 		printf("gradient_z:%f\n", gradient_genotype [2]);
@@ -877,7 +879,7 @@ void gpu_calc_gradient(
 		torque_rot.y = 0.0f;
 		torque_rot.z = 0.0f;
 
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-20s %-10.6f %-10.6f %-10.6f\n", "initial torque: ", torque_rot.x, torque_rot.y, torque_rot.z);
 		#endif
@@ -909,7 +911,7 @@ void gpu_calc_gradient(
 
 			torque_rot += cross(r, force);
 
-			#if defined (DEBUG_GRAD_ROTATION_GENES)
+			#if defined (PRINT_GRAD_ROTATION_GENES)
 #if 0
 			printf("%-20s %-10u\n", "contrib. of atom-id: ", lig_atom_id);
 			printf("%-20s %-10.5f %-10.5f %-10.5f\n", "r             : ", r.x, r.y, r.z);
@@ -933,7 +935,7 @@ void gpu_calc_gradient(
 
 
 
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-20s %-10.6f %-10.6f %-10.6f\n", "final torque: ", torque_rot.x, torque_rot.y, torque_rot.z);
 		#endif
@@ -942,7 +944,7 @@ void gpu_calc_gradient(
 		// genes[3:7] = rotation.axisangle_to_q(torque, rad)
 		float torque_length = fast_length(torque_rot);
 		
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-20s %-10.6f\n", "torque length: ", torque_length);
 		#endif
@@ -967,7 +969,7 @@ void gpu_calc_gradient(
 		quat_torque.y = fast_normalize(torque_rot).y * SIN_HALF_INFINITESIMAL_RADIAN;
 		quat_torque.z = fast_normalize(torque_rot).z * SIN_HALF_INFINITESIMAL_RADIAN;
 
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		#if 0		
 		printf("fast_normalize(torque_rot).x:%-.6f\n", fast_normalize(torque_rot).x);
 		printf("fast_normalize(torque_rot).y:%-.6f\n", fast_normalize(torque_rot).y);
@@ -1001,7 +1003,7 @@ void gpu_calc_gradient(
 
 		bool is_theta_gt_pi = (current_theta > PI_FLOAT) ? true: false;
 
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-30s %-10.6f %-10.6f %-10.6f\n", "current_axisangle (1,2,3): ", current_phi, current_theta, current_rotangle);
 		#endif		
@@ -1022,7 +1024,7 @@ void gpu_calc_gradient(
 		current_q.y = rotaxis_y * native_sin(ang);
 		current_q.z = rotaxis_z * native_sin(ang);
 
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-30s %-10.6f %-10.6f %-10.6f %-10.6f\n", "current_q (w,x,y,z): ", current_q.w, current_q.x, current_q.y, current_q.z);
 		#endif
@@ -1037,7 +1039,7 @@ void gpu_calc_gradient(
 		target_q.x = quat_torque.w*current_q.x + quat_torque.x*current_q.w + quat_torque.y*current_q.z - quat_torque.z*current_q.y;// x
 		target_q.y = quat_torque.w*current_q.y + quat_torque.y*current_q.w + quat_torque.z*current_q.x - quat_torque.x*current_q.z;// y
 		target_q.z = quat_torque.w*current_q.z + quat_torque.z*current_q.w + quat_torque.x*current_q.y - quat_torque.y*current_q.x;// z
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-30s %-10.6f %-10.6f %-10.6f %-10.6f\n", "target_q (w,x,y,z): ", target_q.w, target_q.x, target_q.y, target_q.z);
 		#endif
@@ -1067,7 +1069,7 @@ void gpu_calc_gradient(
 		        target_theta = PI_TIMES_2 - target_theta;
 		}
 
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-30s %-10.6f %-10.6f %-10.6f\n", "target_axisangle (1,2,3): ", target_phi, target_theta, target_rotangle);
 		#endif
@@ -1080,7 +1082,7 @@ void gpu_calc_gradient(
 		//float shoemake_scaling = native_divide(torque_length, INFINITESIMAL_RADIAN/*infinitesimal_radian*/);
 		float orientation_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
 
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-30s %-10.6f\n", "orientation_scaling: ", orientation_scaling);
 		#endif
@@ -1096,7 +1098,7 @@ void gpu_calc_gradient(
 		grad_theta    = orientation_scaling * (fmod(target_theta    - current_theta    + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
 		grad_rotangle = orientation_scaling * (fmod(target_rotangle - current_rotangle + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
 
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-30s \n", "grad_axisangle (1,2,3) - before empirical scaling: ");
 		printf("%-13s %-13s %-13s \n", "grad_phi", "grad_theta", "grad_rotangle");
@@ -1167,7 +1169,7 @@ void gpu_calc_gradient(
 		}
 		dependence_on_theta = (Y0_theta * (X1_theta-X_theta) + Y1_theta * (X_theta-X0_theta)) * inv_angle_delta;
 
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-30s %-10.6f\n", "dependence_on_theta: ", dependence_on_theta);
 		#endif
@@ -1196,7 +1198,7 @@ void gpu_calc_gradient(
 		}
 		dependence_on_rotangle = (Y0_rotangle * (X1_rotangle-X_rotangle) + Y1_rotangle * (X_rotangle-X0_rotangle)) * inv_angle_delta;
 
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-30s %-10.6f\n", "dependence_on_rotangle: ", dependence_on_rotangle);
 		#endif
@@ -1206,7 +1208,7 @@ void gpu_calc_gradient(
 		gradient_genotype[3] = native_divide(grad_phi, (dependence_on_theta * dependence_on_rotangle))  * DEG_TO_RAD;
 		gradient_genotype[4] = native_divide(grad_theta, dependence_on_rotangle)			* DEG_TO_RAD; 
 		gradient_genotype[5] = grad_rotangle                                                            * DEG_TO_RAD;
-		#if defined (DEBUG_GRAD_ROTATION_GENES)
+		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-30s \n", "grad_axisangle (1,2,3) - after empirical scaling: ");
 		printf("%-13s %-13s %-13s \n", "grad_phi", "grad_theta", "grad_rotangle");
@@ -1218,24 +1220,23 @@ void gpu_calc_gradient(
 	// Obtaining torsion-related gradients
 	// ------------------------------------------
 
-	//----------------------------------
-	// fastergrad
-	//----------------------------------
-///*
+	#if defined (ENABLE_PARALLEL_GRAD_TORSION)
+	for (uint rotbond_id = get_local_id(0);
+		  rotbond_id < dockpars_num_of_genes-6;
+		  rotbond_id +=NUM_OF_THREADS_PER_BLOCK) {
+
+		#if defined (PRINT_GRAD_TORSION_GENES)
+		if (rotbond_id == 0) {
+			printf("\n%s\n", "NOTE: torsion gradients are calculated by many work-items");
+		}
+		#endif
+	#else
 	if (get_local_id(0) == 2) {
 
 		for (uint rotbond_id = 0;
 			  rotbond_id < dockpars_num_of_genes-6;
 			  rotbond_id ++) {
-//*/
-
-/*
-
-		for (uint rotbond_id = get_local_id(0);
-			  rotbond_id < dockpars_num_of_genes-6;
-			  rotbond_id +=NUM_OF_THREADS_PER_BLOCK) {
-*/
-	//----------------------------------
+	#endif
 
 			// Querying ids of atoms belonging to the rotatable bond in question
 			int atom1_id = rotbonds_const[2*rotbond_id];
@@ -1246,7 +1247,7 @@ void gpu_calc_gradient(
 			atomRef_coords.y = calc_coords_y[atom1_id];
 			atomRef_coords.z = calc_coords_z[atom1_id];
 
-			#if defined (DEBUG_GRAD_TORSION_GENES)
+			#if defined (PRINT_GRAD_TORSION_GENES)
 			printf("\n%s\n", "----------------------------------------------------------");
 			printf("%-5s %3u \n\t %-5s %3i \n\t %-5s %3i\n", "gene: ", (rotbond_id+6), "atom1: ", atom1_id, "atom2: ", atom2_id);
 			#endif		
@@ -1262,7 +1263,7 @@ void gpu_calc_gradient(
 			rotation_unitvec.z = calc_coords_z[atom2_id] - calc_coords_z[atom1_id];
 			rotation_unitvec = fast_normalize(rotation_unitvec);
 
-			#if defined (DEBUG_GRAD_TORSION_GENES)
+			#if defined (PRINT_GRAD_TORSION_GENES)
 			printf("\n");
 			printf("%-15s \n\t %-10.6f %-10.6f %-10.6f\n", "unitvec: ", rotation_unitvec.x, rotation_unitvec.y, rotation_unitvec.z);
 			#endif	
@@ -1303,7 +1304,7 @@ void gpu_calc_gradient(
 
 				torque_tor += cross(r, atom_force);
 
-				#if defined (DEBUG_GRAD_TORSION_GENES)
+				#if defined (PRINT_GRAD_TORSION_GENES)
 				if (rotable_atom_cnt == 0) {
 					printf("\n %-30s %3i\n", "contributor for gene : ", (rotbond_id+6));
 				}
@@ -1317,7 +1318,7 @@ void gpu_calc_gradient(
 				#endif
 
 			}
-			#if defined (DEBUG_GRAD_TORSION_GENES)
+			#if defined (PRINT_GRAD_TORSION_GENES)
 			printf("\n");
 			#endif
 
@@ -1327,18 +1328,17 @@ void gpu_calc_gradient(
 			// Assignment of gene-based gradient
 			gradient_genotype[rotbond_id+6] = torque_on_axis * DEG_TO_RAD /*(M_PI / 180.0f)*/;
 
-			#if defined (DEBUG_GRAD_TORSION_GENES)
+			#if defined (PRINT_GRAD_TORSION_GENES)
 			printf("gradient_torsion [%u] :%f\n", rotbond_id+6, gradient_genotype [rotbond_id+6]);
 			#endif
 			
 		} // End of iterations over rotatable bonds
 
-	//----------------------------------
-	// fastergrad
-	//----------------------------------
-///*
+	#if defined (ENABLE_PARALLEL_GRAD_TORSION)
+	
+	#else
 	}
-//*/
+	#endif
 	//----------------------------------
 
 	barrier(CLK_LOCAL_MEM_FENCE);
