@@ -84,11 +84,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define SIN_HALF_INFINITESIMAL_RADIAN	sin(HALF_INFINITESIMAL_RADIAN)
 
 
-// Enable printf statements for debugging
-// the gradient-based minimizer
-//#define DEBUG_MINIMIZER
-
-
 /*
 #define TRANGENE_ALPHA 1E-3
 #define ROTAGENE_ALPHA 1E-8
