@@ -9,6 +9,8 @@
 #define DEBUG_MINIMIZER
 	#define PRINT_MINIMIZER_ENERGY_EVOLUTION
 
+#define DEBUG_INITIAL_2BRT
+
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gradient_minimizer(	
 			char   dockpars_num_of_atoms,
@@ -114,6 +116,10 @@ gradient_minimizer(
 		// Initializing gradient-minimizer counters and flags
     		iteration_cnt  = 0;
 		stepsize       = STEP_START;
+
+		#if defined (DEBUG_MINIMIZER) || defined (PRINT_MINIMIZER_ENERGY_EVOLUTION)
+		printf("\ninitial stepsize: %.6f", stepsize);
+		#endif
 	}
 
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -160,6 +166,32 @@ gradient_minimizer(
 	#if defined (DEBUG_ENERGY_KERNEL)
 	__local float partial_interE[NUM_OF_THREADS_PER_BLOCK];
 	__local float partial_intraE[NUM_OF_THREADS_PER_BLOCK];
+	#endif
+
+	// Enable this for start debugging from a defined genotype
+	#if defined (DEBUG_INITIAL_2BRT)
+	// 2brt
+	genotype[0] = 24.093334;
+	genotype[1] = 24.658667;
+	genotype[2] = 24.210667;
+	genotype[3] = 50.0;
+	genotype[4] = 50.0;
+	genotype[5] = 50.0;
+	genotype[6] = 0.0f;
+	genotype[7] = 0.0f;
+	genotype[8] = 0.0f;
+	genotype[9] = 0.0f;
+	genotype[10] = 0.0f;
+	genotype[11] = 0.0f;
+	genotype[12] = 0.0f;
+	genotype[13] = 0.0f;
+	genotype[14] = 0.0f;
+	genotype[15] = 0.0f;
+	genotype[16] = 0.0f;
+	genotype[17] = 0.0f;
+	genotype[18] = 0.0f;
+	genotype[19] = 0.0f;
+	genotype[20] = 0.0f;
 	#endif
 
 	// -----------------------------------------------------------------------------
@@ -235,6 +267,76 @@ gradient_minimizer(
 			gradient
 			);
 	// =============================================================
+
+	#if defined (DEBUG_INITIAL_2BRT)
+
+	// Evaluating candidate
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	// =============================================================
+	gpu_calc_energy(dockpars_rotbondlist_length,
+			dockpars_num_of_atoms,
+			dockpars_gridsize_x,
+			dockpars_gridsize_y,
+			dockpars_gridsize_z,
+							    	// g1 = gridsize_x
+			dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+			dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
+			dockpars_fgrids,
+			dockpars_num_of_atypes,
+			dockpars_num_of_intraE_contributors,
+			dockpars_grid_spacing,
+			dockpars_coeff_elec,
+			dockpars_qasp,
+			dockpars_coeff_desolv,
+			/*candidate_genotype,*/ genotype, /*WARNING: here "genotype" is used to calculate the energy of the manually specified genotype*/
+			&energy,
+			&run_id,
+			// Some OpenCL compilers don't allow declaring 
+			// local variables within non-kernel functions.
+			// These local variables must be declared in a kernel, 
+			// and then passed to non-kernel functions.
+			calc_coords_x,
+			calc_coords_y,
+			calc_coords_z,
+			partial_energies,
+			#if defined (DEBUG_ENERGY_KERNEL)
+			partial_interE,
+			partial_intraE,
+			#endif
+
+			atom_charges_const,
+			atom_types_const,
+			intraE_contributors_const,
+#if 0
+			true,
+#endif
+			dockpars_smooth,
+			reqm,
+			reqm_hbond,
+	     	        atom1_types_reqm,
+	     	        atom2_types_reqm,
+			VWpars_AC_const,
+			VWpars_BD_const,
+			dspars_S_const,
+			dspars_V_const,
+			rotlist_const,
+			ref_coords_x_const,
+			ref_coords_y_const,
+			ref_coords_z_const,
+			rotbonds_moving_vectors_const,
+			rotbonds_unit_vectors_const,
+			ref_orientation_quats_const
+			);
+	// =============================================================
+
+	if (get_local_id(0) == 0)
+	{
+		printf("\ninitial_energy: %.6f\n", energy);
+		printf("\ninitial stepsize: %.6f", stepsize);
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	#endif
 
 	// Perform gradient-descent iterations
 
@@ -474,6 +576,7 @@ gradient_minimizer(
 			printf("%20s %10.6f\n", "max_tors_stepsize: " , max_tors_stepsize);
 
 			printf("\n");
+			printf("%20s %10.6f\n\n", "max_stepsize: ", max_stepsize);
 			printf("%20s %10.6f\n\n", "stepsize: ", stepsize);
 			#endif
 			#endif
