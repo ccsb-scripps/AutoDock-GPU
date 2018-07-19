@@ -556,6 +556,10 @@ gradient_minimizer(
 
 			#if 1
 			#if defined (DEBUG_MINIMIZER)
+
+
+			// Enable it back if intermmediate details are needed
+			#if 1
 			for(uint i = 0; i < dockpars_num_of_genes; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
@@ -564,11 +568,15 @@ gradient_minimizer(
 				}
 				printf("%13u %13.6f %5s %15.6f %18.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/0.375f):(gradient[i]*180.0f/PI_FLOAT));
 			}
+			#endif
 
+			// Enable it back if intermmediate details are needed
+			# if 1			
 			printf("\n");
 			printf("%20s %10.6f\n", "max_trans_grad: ", max_trans_grad);
 			printf("%20s %10.6f\n", "max_rota_grad: ", max_rota_grad);
 			printf("%20s %10.6f\n", "max_tors_grad: ", max_tors_grad);
+			#endif
 
 			printf("\n");
 			printf("%20s %10.6f\n", "max_trans_stepsize: ", max_trans_stepsize);
