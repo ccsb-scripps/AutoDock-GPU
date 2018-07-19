@@ -893,6 +893,7 @@ gradient_minimizer(
 			printf("%-18s [%-5s]---{%-5s}   [%-10.7f]---{%-10.7f}\n", "-ENERGY-KERNEL5-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
 			#endif
 		}
+		barrier(CLK_LOCAL_MEM_FENCE);
 
   	} while ((iteration_cnt < dockpars_max_num_of_iters) && (stepsize > 1E-8));
 
