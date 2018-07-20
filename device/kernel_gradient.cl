@@ -6,9 +6,10 @@
 	//#define PRINT_GENES_AND_GRADS
 	//#define PRINT_ATOMIC_COORDS
 
-#define DEBUG_MINIMIZER
+//#define DEBUG_MINIMIZER
 	#define PRINT_MINIMIZER_ENERGY_EVOLUTION
 
+// Enable this for debugging SD from a defined initial genotype
 #define DEBUG_INITIAL_2BRT
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
@@ -73,6 +74,9 @@ gradient_minimizer(
 //subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
 	// -----------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------
+
 	// Determining entity, and its run, energy, and genotype
 	__local int   entity_id;
 	__local int   run_id;
@@ -109,16 +113,19 @@ gradient_minimizer(
 		
 		energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
 
-		#if defined (DEBUG_MINIMIZER) || defined (PRINT_MINIMIZER_ENERGY_EVOLUTION)
-		printf("\nrun_id:  %5u entity_id: %5u  initial_energy: %.6f\n", run_id, entity_id, energy);
-		#endif
-
 		// Initializing gradient-minimizer counters and flags
     		iteration_cnt  = 0;
 		stepsize       = STEP_START;
 
 		#if defined (DEBUG_MINIMIZER) || defined (PRINT_MINIMIZER_ENERGY_EVOLUTION)
-		printf("\ninitial stepsize: %.6f", stepsize);
+		printf("\n");
+		printf("-------> Start of SD minimization cycle\n");
+		printf("%20s %6u\n", "run_id: ", run_id);
+		printf("%20s %6u\n", "entity_id: ", entity_id);
+		printf("\n");
+		printf("%20s \n", "LGA genotype: ");
+		printf("%20s %.6f\n", "initial energy: ", energy);
+		printf("%20s %.6f\n", "initial stepsize: ", stepsize);
 		#endif
 	}
 
@@ -132,6 +139,8 @@ gradient_minimizer(
 	wait_group_events(1,&ev);
 
   	// -----------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------
 	           
 	// Partial results of the gradient step
 	__local float gradient          [ACTUAL_GENOTYPE_LENGTH];
@@ -168,7 +177,7 @@ gradient_minimizer(
 	__local float partial_intraE[NUM_OF_THREADS_PER_BLOCK];
 	#endif
 
-	// Enable this for start debugging from a defined genotype
+	// Enable this for debugging SD from a defined initial genotype
 	#if defined (DEBUG_INITIAL_2BRT)
 	// 2brt
 	genotype[0] = 24.093334;
@@ -192,83 +201,6 @@ gradient_minimizer(
 	genotype[18] = 0.0f;
 	genotype[19] = 0.0f;
 	genotype[20] = 0.0f;
-	#endif
-
-	// -----------------------------------------------------------------------------
-	// Calculating gradient
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	// =============================================================
-	gpu_calc_gradient(
-			dockpars_rotbondlist_length,
-			dockpars_num_of_atoms,
-			dockpars_gridsize_x,
-			dockpars_gridsize_y,
-			dockpars_gridsize_z,
-								// g1 = gridsize_x
-			dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
-			dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
-			dockpars_fgrids,
-			dockpars_num_of_atypes,
-			dockpars_num_of_intraE_contributors,
-			dockpars_grid_spacing,
-			dockpars_coeff_elec,
-			dockpars_qasp,
-			dockpars_coeff_desolv,
-			// Some OpenCL compilers don't allow declaring 
-			// local variables within non-kernel functions.
-			// These local variables must be declared in a kernel, 
-			// and then passed to non-kernel functions.
-			genotype,
-			&dummy_energy,
-			&run_id,
-
-			calc_coords_x,
-			calc_coords_y,
-			calc_coords_z,
-
-			atom_charges_const,
-			atom_types_const,
-			intraE_contributors_const,
-			dockpars_smooth,
-			reqm,
-			reqm_hbond,
-		     	atom1_types_reqm,
-		     	atom2_types_reqm,
-			VWpars_AC_const,
-			VWpars_BD_const,
-			dspars_S_const,
-			dspars_V_const,
-			rotlist_const,
-			ref_coords_x_const,
-			ref_coords_y_const,
-			ref_coords_z_const,
-			rotbonds_moving_vectors_const,
-			rotbonds_unit_vectors_const,
-			ref_orientation_quats_const,
-			rotbonds_const,
-			rotbonds_atoms_const,
-			num_rotating_atoms_per_rotbond_const
-			,
-	     		angle_const,
-	     		dependence_on_theta_const,
-	     		dependence_on_rotangle_const
-			// Gradient-related arguments
-			// Calculate gradients (forces) for intermolecular energy
-			// Derived from autodockdev/maps.py
-			,
-			dockpars_num_of_genes,
-			gradient_inter_x,
-			gradient_inter_y,
-			gradient_inter_z,
-			gradient_intra_x,
-			gradient_intra_y,
-			gradient_intra_z,
-			gradient
-			);
-	// =============================================================
-
-	#if defined (DEBUG_INITIAL_2BRT)
 
 	// Evaluating candidate
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -289,7 +221,7 @@ gradient_minimizer(
 			dockpars_coeff_elec,
 			dockpars_qasp,
 			dockpars_coeff_desolv,
-			/*candidate_genotype,*/ genotype, /*WARNING: here "genotype" is used to calculate the energy of the manually specified genotype*/
+			genotype, /*WARNING: here "genotype" is used to calculate the energy of the manually specified genotype*/
 			&energy,
 			&run_id,
 			// Some OpenCL compilers don't allow declaring 
@@ -330,10 +262,15 @@ gradient_minimizer(
 			);
 	// =============================================================
 
+	// WARNING: hardcoded has priority over LGA genotype.
+	// That means, if DEBUG_INITIAL_2BRT is defined, then
+	// LGA genotype is not used (only for debugging purposes)
 	if (get_local_id(0) == 0)
 	{
-		printf("\ninitial_energy: %.6f\n", energy);
-		printf("\ninitial stepsize: %.6f", stepsize);
+		printf("\n");
+		printf("%20s \n", "hardcoded genotype: ");
+		printf("%20s %.6f\n", "initial energy: ", energy);
+		printf("%20s %.6f\n\n", "initial stepsize: ", stepsize);		
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	#endif
@@ -361,35 +298,6 @@ gradient_minimizer(
 	float ligand_center_x = 52.22740741;
 	float ligand_center_y = 15.51751852;
 	float ligand_center_z = -2.40896296;
-	#endif
-
-	// No need for defining upper and lower genotype bounds
-	#if 0
-	// Defining lower and upper bounds for genotypes
-	__local float lower_bounds_genotype[ACTUAL_GENOTYPE_LENGTH];
-	__local float upper_bounds_genotype[ACTUAL_GENOTYPE_LENGTH];
-
-	for (uint gene_counter = get_local_id(0);
-	          gene_counter < dockpars_num_of_genes;
-	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-		// Translation genes ranges are within the gridbox
-		if (gene_counter <= 2) {
-			lower_bounds_genotype [gene_counter] = 0.0f;
-			upper_bounds_genotype [gene_counter] = (gene_counter == 0) ? dockpars_gridsize_x: 
-							       (gene_counter == 1) ? dockpars_gridsize_y: 
-										     dockpars_gridsize_z;
-		// Orientation and torsion genes range between [0, 360]
-		// See auxiliary_genetic.cl/map_angle()
-		} else {
-			lower_bounds_genotype [gene_counter] = 0.0f;
-			upper_bounds_genotype [gene_counter] = 360.0f;
-		}
-
-		#if defined (DEBUG_MINIMIZER)
-		//printf("(%-3u) %-0.7f %-10.7f %-10.7f %-10.7f\n", gene_counter, stepsize, genotype[gene_counter], lower_bounds_genotype[gene_counter], upper_bounds_genotype[gene_counter]);
-		#endif
-	}
-	barrier(CLK_LOCAL_MEM_FENCE);
 	#endif
 
 	// Calculating maximum possible stepsize (alpha)
@@ -495,6 +403,19 @@ gradient_minimizer(
 		genotype[18] = 0.0f;
 		genotype[19] = 0.0f;
 		genotype[20] = 0.0f;
+		#endif
+
+		// Printing number of stepest-descent iterations
+		#if defined (DEBUG_MINIMIZER) 
+		if (get_local_id(0) == 0) {
+			printf("%s\n", "----------------------------------------------------------");	
+		}
+		#endif
+		
+		#if defined (DEBUG_MINIMIZER) || defined (PRINT_MINIMIZER_ENERGY_EVOLUTION)
+		if (get_local_id(0) == 0) {
+			printf("%-15s %-3u ", "# SD iteration: ", iteration_cnt);
+		}
 		#endif
 
 		// Calculating gradient
@@ -629,6 +550,7 @@ gradient_minimizer(
 		for (uint i=(dockpars_num_of_genes-6)/2; i>=1; i/=2){
 			if (get_local_id(0) < i) {
 
+			// This could be enabled back for details
 			#if 0
 			#if defined (DEBUG_MINIMIZER)
 			printf("---====--- %u %u %10.10f %-0.10f\n", i, get_local_id(0), torsions_gradient[get_local_id(0)], torsions_gradient[get_local_id(0) + i]);
@@ -645,7 +567,6 @@ gradient_minimizer(
 			max_tors_grad = torsions_gradient[get_local_id(0)];
 			max_tors_stepsize = native_divide(MAX_DEV_TORSION, max_tors_grad);
 		}
-
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		if (get_local_id(0) == 0) {
@@ -655,61 +576,47 @@ gradient_minimizer(
 
 			// Capping the stepsize
 			stepsize = fmin(stepsize, max_stepsize);
-
-			#if 1
-			#if defined (DEBUG_MINIMIZER)
-
-			// Enable it back if intermmediate details are needed
-			#if 1
-			for(uint i = 0; i < dockpars_num_of_genes; i++) {
-				if (i == 0) {
-					printf("\n%s\n", "----------------------------------------------------------");
-					printf("\n%s\n", "Before calculating gradients:");
-					printf("%13s %13s %5s %15s %20s\n", "gene_id", "gene", "|", "grad", " grad (devpy units)");
-				}
-				printf("%13u %13.6f %5s %15.6f %18.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/0.375f):(gradient[i]*180.0f/PI_FLOAT));
-			}
-			#endif
-
-			// Enable it back if intermmediate details are needed
-			# if 1			
-			printf("\n");
-			printf("%20s %10.6f\n", "max_trans_grad: ", max_trans_grad);
-			printf("%20s %10.6f\n", "max_rota_grad: ", max_rota_grad);
-			printf("%20s %10.6f\n", "max_tors_grad: ", max_tors_grad);
-			#endif
-
-			printf("\n");
-			printf("%20s %10.6f\n", "max_trans_stepsize: ", max_trans_stepsize);
-			printf("%20s %10.6f\n", "max_rota_stepsize: " , max_rota_stepsize);
-			printf("%20s %10.6f\n", "max_tors_stepsize: " , max_tors_stepsize);
-
-			printf("\n");
-			printf("%20s %10.6f\n\n", "max_stepsize: ", max_stepsize);
-			printf("%20s %10.6f\n\n", "stepsize: ", stepsize);
-			#endif
-			#endif
 		}
+		barrier(CLK_LOCAL_MEM_FENCE);
 		
 		for(uint i = get_local_id(0); i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {
 	     		// Taking step
 			candidate_genotype[i] = genotype[i] - stepsize * gradient[i];	
 
 			#if defined (DEBUG_MINIMIZER)
-			//printf("(%-3u) %-0.7f %-10.7f %-10.7f %-10.7f\n", i, stepsize, genotype[i], gradient[i], candidate_genotype[i]);
-
 			if (i == 0) {
 				printf("\n%s\n", "After calculating gradients:");
-				printf("%13s %13s %5s %15s %5s %20s\n", "gene_id", "gene", "|", "grad", "|", "cand_gene");
+				printf("%13s %13s %5s %15s %5s %20s\n", "gene_id", "gene", "|", "grad", "|", "cand.gene");
 			}
 			printf("%13u %13.6f %5s %15.6f %5s %18.6f\n", i, genotype[i], "|", gradient[i], "|", candidate_genotype[i]);
-			#endif
 
-			// No need for defining upper and lower genotype bounds
-			#if 0
-			// Putting genes back within bounds
-			candidate_genotype[i] = fmin(candidate_genotype[i], upper_bounds_genotype[i]);
-			candidate_genotype[i] = fmax(candidate_genotype[i], lower_bounds_genotype[i]);
+			if (i == 0) {
+				// This could be enabled back for double checking
+				#if 0
+				for(uint i = 0; i < dockpars_num_of_genes; i++) {
+					if (i == 0) {
+						printf("\n%s\n", "----------------------------------------------------------");
+						printf("\n%s\n", "After calculating gradients:");
+						printf("%13s %13s %5s %15s %20s\n", "gene_id", "gene", "|", "grad", " grad (devpy units)");
+					}
+					printf("%13u %13.6f %5s %15.6f %18.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/0.375f):(gradient[i]*180.0f/PI_FLOAT));
+				}
+				#endif
+
+				printf("\n");
+				printf("%20s %10.6f\n", "max_trans_grad: ", max_trans_grad);
+				printf("%20s %10.6f\n", "max_rota_grad: ", max_rota_grad);
+				printf("%20s %10.6f\n", "max_tors_grad: ", max_tors_grad);
+
+				printf("\n");
+				printf("%20s %10.6f\n", "max_trans_stepsize: ", max_trans_stepsize);
+				printf("%20s %10.6f\n", "max_rota_stepsize: " , max_rota_stepsize);
+				printf("%20s %10.6f\n", "max_tors_stepsize: " , max_tors_stepsize);
+
+				printf("\n");
+				printf("%20s %10.6f\n", "max_stepsize: ", max_stepsize);
+				printf("%20s %10.6f\n", "stepsize: ", stepsize);
+			}
 			#endif
 	   	}
 		
@@ -804,14 +711,15 @@ gradient_minimizer(
 			printf("\n");
 			#endif
 		}
+		barrier(CLK_LOCAL_MEM_FENCE);
 		#endif
 
 		#if defined (DEBUG_MINIMIZER)
-		barrier(CLK_LOCAL_MEM_FENCE);
 		if (get_local_id(0) == 0) {
 			printf("\n");
-			printf("%-20s %-13.6f\n", "Old energy: ", energy);
-			printf("%-20s %-13.6f\n", "New energy: ", candidate_energy);
+			printf("%s\n", "After calculating energies:");
+			printf("%13s %5s %15s\n", "energy", "|", "cand.energy");
+			printf("%13.6f %5s %15.6f\n", energy, "|", candidate_energy);
 			printf("\n");
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -829,29 +737,22 @@ gradient_minimizer(
 				//printf("(%-3u) %-15.7f %-10.7f %-10.7f %-10.7f\n", i, stepsize, genotype[i], gradient[i], candidate_genotype[i]);
 
 				if (i == 0) {
-					printf("\n%s\n", "Energy improved! ... then update genotype and energy:");
+					printf("%s\n", "Energy IMPROVED! ... then update genotype:");
 					printf("%13s %13s %5s %15s\n", "gene_id", "old.gene", "|", "new.gene");
 				}
 				printf("%13u %13.6f %5s %15.6f\n", i, genotype[i], "|", candidate_genotype[i]);
 
+				#endif
 				if (i == 0) {
-					printf("\n");
-					printf("%13s %5s %15s\n", "old.energy", "|", "new.energy");
-					printf("%13.6f %5s %15.6f\n", energy, "|", candidate_energy);
-				}	
-				#endif				
-
-				if (i == 0) {
-				
 					#if defined (DEBUG_MINIMIZER)
-					printf("\n%s\n", "Energy improved! ... then increase step_size:");
+					printf("\n%s\n", "Energy IMPROVED! ... then increase stepsize and update energy:");
 					#endif
-
-					// Updating energy
-					energy = candidate_energy;
 
 					// Increase stepsize
 					stepsize *= STEP_INCREASE;
+
+					// Updating energy
+					energy = candidate_energy;
 				}
 
 				// Updating genotype
@@ -861,7 +762,7 @@ gradient_minimizer(
 		else { 
 			#if defined (DEBUG_MINIMIZER)
 			if (get_local_id(0) == 0) {
-				printf("\n%s\n", "NO Energy improvement! ... then decrease stepsize:");
+				printf("%s\n", "NO energy improvement! ... then decrease stepsize:");
 			}
 			#endif		
 
@@ -869,22 +770,14 @@ gradient_minimizer(
 				stepsize *= STEP_DECREASE;
 			}
 		}
-
 		barrier(CLK_LOCAL_MEM_FENCE);
-
-		#if defined (DEBUG_MINIMIZER)
-		if (get_local_id(0) == 0) {
-			printf("\n");
-			printf("%20s %10.6f\n\n", "stepsize: ", stepsize);
-		}
-		#endif
 
 		// Updating number of stepest-descent iterations (energy evaluations)
 		if (get_local_id(0) == 0) {
 	    		iteration_cnt = iteration_cnt + 1;
 
 			#if defined (DEBUG_MINIMIZER) || defined (PRINT_MINIMIZER_ENERGY_EVOLUTION)
-			printf("# sd-iters: %-3u, stepsize: %10.10f, E: %10.6f\n", iteration_cnt, stepsize, energy);
+			printf("%20s %10.10f %20s %10.6f\n", "new.stepsize: ", stepsize, "new.energy: ", energy);
 			#endif
 
 			#if defined (DEBUG_ENERGY_KERNEL5)
@@ -894,13 +787,8 @@ gradient_minimizer(
 		barrier(CLK_LOCAL_MEM_FENCE);
 
   	} while ((iteration_cnt < dockpars_max_num_of_iters) && (stepsize > 1E-8));
-
-	#if defined (DEBUG_MINIMIZER) || defined (PRINT_MINIMIZER_ENERGY_EVOLUTION)
-	if (get_local_id(0) == 0) {
-		printf("Termination criteria: ( #sd-iters < %-3u ) && ( stepsize > %10.10f )\n", dockpars_max_num_of_iters, 1E-8);
-	}
-	#endif
-
+	// -----------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
 
   	// Updating eval counter and energy
@@ -909,7 +797,9 @@ gradient_minimizer(
 		dockpars_energies_next[run_id*dockpars_pop_size+entity_id] = energy;
 
 		#if defined (DEBUG_MINIMIZER) || defined (PRINT_MINIMIZER_ENERGY_EVOLUTION)
-		printf("-------> End of grad-min cycle, num of evals: %u, final energy: %.6f\n", iteration_cnt, energy);
+		printf("\n");
+		printf("Termination criteria: ( stepsize <= %10.10f ) OR ( #sd-iters >= %-3u )\n", 1E-8, dockpars_max_num_of_iters);
+		printf("-------> End of SD minimization cycle, num of energy evals: %u, final energy: %.6f\n", iteration_cnt, energy);
 		#endif
 	}
 
