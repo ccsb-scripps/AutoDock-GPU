@@ -497,99 +497,6 @@ gradient_minimizer(
 		genotype[20] = 0.0f;
 		#endif
 
-		if (get_local_id(0) == 0) {
-			// Finding maximum of the absolute value for the three translation gradients
-			max_trans_grad = fmax(fabs(gradient[0]), fabs(gradient[1]));
-			max_trans_grad = fmax(max_trans_grad, fabs(gradient[2]));
-
-			// MAX_DEV_TRANSLATION needs to be expressed in grid size first
-			max_trans_stepsize = native_divide(native_divide(MAX_DEV_TRANSLATION, dockpars_grid_spacing), max_trans_grad);
-
-			// Finding maximum of the absolute value for the three rotation gradients
-			max_rota_grad = fmax(fabs(gradient[3]), fabs(gradient[4]));	
-			max_rota_grad = fmax(max_rota_grad, fabs(gradient[5]));	
-
-			// Note that MAX_DEV_ROTATION
-			// is already expressed within [0, 1]
-			max_rota_stepsize = native_divide(MAX_DEV_ROTATION, max_rota_grad);
-		}
-
-		// Copying torsions genes
-		for(uint i = get_local_id(0); 
-			 i < dockpars_num_of_genes-6; 
-			 i+= NUM_OF_THREADS_PER_BLOCK) {
-			torsions_gradient[i] = fabs(gradient[i+6]);
-		}
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-		// Calculating maximum absolute torsional gene
-		// https://stackoverflow.com/questions/36465581/opencl-find-max-in-array
-		for (uint i=(dockpars_num_of_genes-6)/2; i>=1; i/=2){
-			if (get_local_id(0) < i) {
-
-			#if 0
-			#if defined (DEBUG_MINIMIZER)
-			printf("---====--- %u %u %10.10f %-0.10f\n", i, get_local_id(0), torsions_gradient[get_local_id(0)], torsions_gradient[get_local_id(0) + i]);
-			#endif
-			#endif
-
-				if (torsions_gradient[get_local_id(0)] < torsions_gradient[get_local_id(0) + i]) {
-					torsions_gradient[get_local_id(0)] = torsions_gradient[get_local_id(0) + i];
-				}
-			}
-			barrier(CLK_LOCAL_MEM_FENCE);
-		}
-		if (get_local_id(0) == 0) {
-			max_tors_grad = torsions_gradient[get_local_id(0)];
-			max_tors_stepsize = native_divide(MAX_DEV_TORSION, max_tors_grad);
-		}
-
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-		if (get_local_id(0) == 0) {
-			// Calculating the maximum stepsize using previous three
-			max_stepsize = fmin(max_trans_stepsize, max_rota_stepsize);
-			max_stepsize = fmin(max_stepsize, max_tors_stepsize);
-
-			// Capping the stepsize
-			stepsize = fmin(stepsize, max_stepsize);
-
-			#if 1
-			#if defined (DEBUG_MINIMIZER)
-
-
-			// Enable it back if intermmediate details are needed
-			#if 1
-			for(uint i = 0; i < dockpars_num_of_genes; i++) {
-				if (i == 0) {
-					printf("\n%s\n", "----------------------------------------------------------");
-					printf("\n%s\n", "Before calculating gradients:");
-					printf("%13s %13s %5s %15s %20s\n", "gene_id", "gene", "|", "grad", " grad (devpy units)");
-				}
-				printf("%13u %13.6f %5s %15.6f %18.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/0.375f):(gradient[i]*180.0f/PI_FLOAT));
-			}
-			#endif
-
-			// Enable it back if intermmediate details are needed
-			# if 1			
-			printf("\n");
-			printf("%20s %10.6f\n", "max_trans_grad: ", max_trans_grad);
-			printf("%20s %10.6f\n", "max_rota_grad: ", max_rota_grad);
-			printf("%20s %10.6f\n", "max_tors_grad: ", max_tors_grad);
-			#endif
-
-			printf("\n");
-			printf("%20s %10.6f\n", "max_trans_stepsize: ", max_trans_stepsize);
-			printf("%20s %10.6f\n", "max_rota_stepsize: " , max_rota_stepsize);
-			printf("%20s %10.6f\n", "max_tors_stepsize: " , max_tors_stepsize);
-
-			printf("\n");
-			printf("%20s %10.6f\n\n", "max_stepsize: ", max_stepsize);
-			printf("%20s %10.6f\n\n", "stepsize: ", stepsize);
-			#endif
-			#endif
-		}	
-
 		// Calculating gradient
 		barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -692,6 +599,97 @@ gradient_minimizer(
 		}
 		#endif
 		#endif
+
+		if (get_local_id(0) == 0) {
+			// Finding maximum of the absolute value for the three translation gradients
+			max_trans_grad = fmax(fabs(gradient[0]), fabs(gradient[1]));
+			max_trans_grad = fmax(max_trans_grad, fabs(gradient[2]));
+
+			// MAX_DEV_TRANSLATION needs to be expressed in grid size first
+			max_trans_stepsize = native_divide(native_divide(MAX_DEV_TRANSLATION, dockpars_grid_spacing), max_trans_grad);
+
+			// Finding maximum of the absolute value for the three rotation gradients
+			max_rota_grad = fmax(fabs(gradient[3]), fabs(gradient[4]));	
+			max_rota_grad = fmax(max_rota_grad, fabs(gradient[5]));	
+
+			// Note that MAX_DEV_ROTATION is already expressed approprietly
+			max_rota_stepsize = native_divide(MAX_DEV_ROTATION, max_rota_grad);
+		}
+
+		// Copying torsions genes
+		for(uint i = get_local_id(0); 
+			 i < dockpars_num_of_genes-6; 
+			 i+= NUM_OF_THREADS_PER_BLOCK) {
+			torsions_gradient[i] = fabs(gradient[i+6]);
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		// Calculating maximum absolute torsional gene
+		// https://stackoverflow.com/questions/36465581/opencl-find-max-in-array
+		for (uint i=(dockpars_num_of_genes-6)/2; i>=1; i/=2){
+			if (get_local_id(0) < i) {
+
+			#if 0
+			#if defined (DEBUG_MINIMIZER)
+			printf("---====--- %u %u %10.10f %-0.10f\n", i, get_local_id(0), torsions_gradient[get_local_id(0)], torsions_gradient[get_local_id(0) + i]);
+			#endif
+			#endif
+
+				if (torsions_gradient[get_local_id(0)] < torsions_gradient[get_local_id(0) + i]) {
+					torsions_gradient[get_local_id(0)] = torsions_gradient[get_local_id(0) + i];
+				}
+			}
+			barrier(CLK_LOCAL_MEM_FENCE);
+		}
+		if (get_local_id(0) == 0) {
+			max_tors_grad = torsions_gradient[get_local_id(0)];
+			max_tors_stepsize = native_divide(MAX_DEV_TORSION, max_tors_grad);
+		}
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		if (get_local_id(0) == 0) {
+			// Calculating the maximum stepsize using previous three
+			max_stepsize = fmin(max_trans_stepsize, max_rota_stepsize);
+			max_stepsize = fmin(max_stepsize, max_tors_stepsize);
+
+			// Capping the stepsize
+			stepsize = fmin(stepsize, max_stepsize);
+
+			#if 1
+			#if defined (DEBUG_MINIMIZER)
+
+			// Enable it back if intermmediate details are needed
+			#if 1
+			for(uint i = 0; i < dockpars_num_of_genes; i++) {
+				if (i == 0) {
+					printf("\n%s\n", "----------------------------------------------------------");
+					printf("\n%s\n", "Before calculating gradients:");
+					printf("%13s %13s %5s %15s %20s\n", "gene_id", "gene", "|", "grad", " grad (devpy units)");
+				}
+				printf("%13u %13.6f %5s %15.6f %18.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/0.375f):(gradient[i]*180.0f/PI_FLOAT));
+			}
+			#endif
+
+			// Enable it back if intermmediate details are needed
+			# if 1			
+			printf("\n");
+			printf("%20s %10.6f\n", "max_trans_grad: ", max_trans_grad);
+			printf("%20s %10.6f\n", "max_rota_grad: ", max_rota_grad);
+			printf("%20s %10.6f\n", "max_tors_grad: ", max_tors_grad);
+			#endif
+
+			printf("\n");
+			printf("%20s %10.6f\n", "max_trans_stepsize: ", max_trans_stepsize);
+			printf("%20s %10.6f\n", "max_rota_stepsize: " , max_rota_stepsize);
+			printf("%20s %10.6f\n", "max_tors_stepsize: " , max_tors_stepsize);
+
+			printf("\n");
+			printf("%20s %10.6f\n\n", "max_stepsize: ", max_stepsize);
+			printf("%20s %10.6f\n\n", "stepsize: ", stepsize);
+			#endif
+			#endif
+		}
 		
 		for(uint i = get_local_id(0); i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {
 	     		// Taking step
