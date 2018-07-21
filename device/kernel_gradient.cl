@@ -6,6 +6,9 @@
 	//#define PRINT_GENES_AND_GRADS
 	//#define PRINT_ATOMIC_COORDS
 
+// Enable DEBUG_MINIMIZER for a seeing a detailed SD evolution
+// If only PRINT_MINIMIZER_ENERGY_EVOLUTION is enabled,
+// then a only a simplified SD evolution will be shown
 //#define DEBUG_MINIMIZER
 	#define PRINT_MINIMIZER_ENERGY_EVOLUTION
 
