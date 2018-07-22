@@ -450,10 +450,11 @@ filled with clock() */
 
 		// The number of entities that undergo any gradient-based minimization,
 		// by default, it is the same as the number of entities that undergo the Solis-Wets minimizer
-		//blocksPerGridForEachGradMinimizerEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
+		blocksPerGridForEachGradMinimizerEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
 
-		// For testing: only one entity per reach run, undergoes gradient minimization
-		blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
+		// Enable only for debugging.
+		// Only one entity per reach run, undergoes gradient minimization
+		//blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
 	}
 	
 	printf("Local-search chosen method is: %s\n", (dockpars.lsearch_rate == 0.0f)? "GA" :

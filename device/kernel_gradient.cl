@@ -10,10 +10,10 @@
 // If only PRINT_MINIMIZER_ENERGY_EVOLUTION is enabled,
 // then a only a simplified SD evolution will be shown
 //#define DEBUG_MINIMIZER
-	#define PRINT_MINIMIZER_ENERGY_EVOLUTION
+//	#define PRINT_MINIMIZER_ENERGY_EVOLUTION
 
 // Enable this for debugging SD from a defined initial genotype
-#define DEBUG_INITIAL_2BRT
+//#define DEBUG_INITIAL_2BRT
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gradient_minimizer(	
@@ -224,7 +224,7 @@ gradient_minimizer(
 			dockpars_coeff_elec,
 			dockpars_qasp,
 			dockpars_coeff_desolv,
-			genotype, /*WARNING: here "genotype" is used to calculate the energy of the manually specified genotype*/
+			genotype, /*WARNING: calculating the energy of the hardcoded genotype*/
 			&energy,
 			&run_id,
 			// Some OpenCL compilers don't allow declaring 
