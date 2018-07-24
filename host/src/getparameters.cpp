@@ -301,15 +301,15 @@ void get_commandpars(const int* argc,
 
 			if (strcmp(temp, "sw") == 0) {
 				strcpy(mypars->ls_method, temp);
-				mypars->max_num_of_iters = 300;
+				//mypars->max_num_of_iters = 300;
 			}
 			else if (strcmp(temp, "sd") == 0) {
 				strcpy(mypars->ls_method, temp);
-				mypars->max_num_of_iters = 30;
+				//mypars->max_num_of_iters = 30;
 			}
 			else if (strcmp(temp, "fire") == 0) {
 				strcpy(mypars->ls_method, temp);
-				mypars->max_num_of_iters = 30;
+				//mypars->max_num_of_iters = 30;
 			}
 			else {
 				printf("Warning: value of -lsmet argument ignored. Value must be a valid string: \"sw\", \"sd\", \"fire\".\n");
