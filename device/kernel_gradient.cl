@@ -150,10 +150,6 @@ gradient_minimizer(
 	__local float candidate_energy;
 	__local float candidate_genotype[ACTUAL_GENOTYPE_LENGTH];
 
-	// Dummy variable used only for the first gpu_calc_gradient() call.
-	// The corresponding energy for "genotype" is stored in "energy"
-	__local float dummy_energy; 	
-
 	// -------------------------------------------------------------------
 	// Calculate gradients (forces) for intermolecular energy
 	// Derived from autodockdev/maps.py
