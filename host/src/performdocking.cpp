@@ -672,6 +672,12 @@ filled with clock() */
 		// End of Kernel3
 	}
 
+	// -------- Replacing with memory maps! ------------
+	#if defined (MAPPED_COPY)
+	unmemMap(command_queue,mem_gpu_evals_of_runs,map_cpu_evals_of_runs);
+	#endif
+	// -------- Replacing with memory maps! ------------
+
 	// Kernel2
 	//#ifdef DOCK_DEBUG
 	//	printf("Start Kernel2 ... ");fflush(stdout);
@@ -741,13 +747,13 @@ filled with clock() */
 #endif
 	} // End of while-loop
 
-
+/*
 	// -------- Replacing with memory maps! ------------
 #if defined (MAPPED_COPY)
 	unmemMap(command_queue,mem_gpu_evals_of_runs,map_cpu_evals_of_runs);
 #endif
 	// -------- Replacing with memory maps! ------------
-
+*/
 
 	clock_stop_docking = clock();
 
