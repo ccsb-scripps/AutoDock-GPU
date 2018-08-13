@@ -157,8 +157,10 @@ perform_LS(	char   dockpars_num_of_atoms,
 		evaluation_cnt = 0;
 	}
 
+	#if defined (ASYNC_COPY)
 	// Asynchronous copy should be finished by here
 	wait_group_events(1, &ev);
+	#endif
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
