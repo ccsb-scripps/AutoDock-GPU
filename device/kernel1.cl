@@ -72,7 +72,7 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
            __constant float* rotbonds_unit_vectors_const,
            __constant float* ref_orientation_quats_const
 ){
-	__local float  genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
+	__local float  genotype[ACTUAL_GENOTYPE_LENGTH];
 	__local float  energy;
 	__local int    run_id;
 
@@ -85,7 +85,7 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 
 	event_t ev = async_work_group_copy(genotype,
 			                   dockpars_conformations_current + GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0),
-			                   GENOTYPE_LENGTH_IN_GLOBMEM, 0);
+			                   ACTUAL_GENOTYPE_LENGTH, 0);
 
 	wait_group_events(1,&ev);
 
