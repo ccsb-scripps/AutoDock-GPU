@@ -84,7 +84,7 @@ gpu_calc_initpop(
 	// Copying genotype from global memory
 	event_t ev = async_work_group_copy(genotype,
 			                   dockpars_conformations_current + GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0),
-			                   GENOTYPE_LENGTH_IN_GLOBMEM, 0);
+			                   ACTUAL_GENOTYPE_LENGTH, 0);
 
 	// Determining run-ID
 	if (get_local_id(0) == 0) {
