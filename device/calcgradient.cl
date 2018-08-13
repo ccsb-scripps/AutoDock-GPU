@@ -709,7 +709,7 @@ void gpu_calc_gradient(
 									       (dspars_S_const[atom1_typeid] + dockpars_qasp*fabs(atom_charges_const[atom1_id])) * dspars_V_const[atom2_typeid] +
 								               (dspars_S_const[atom2_typeid] + dockpars_qasp*fabs(atom_charges_const[atom2_id])) * dspars_V_const[atom1_typeid]
 									      ) *
-						               			dockpars_coeff_desolv * -0.07716049382716049 * atomic_distance * native_exp(-0.038580246913580245*native_powr(atomic_distance, 2));
+						               			dockpars_coeff_desolv * /*-0.07716049382716049*/ -0.077160f * atomic_distance * native_exp(/*-0.038580246913580245*/ -0.038580f *native_powr(atomic_distance, 2));
 		} // if cuttoff2 - internuclear-distance at 20.48A
 
 		// Decomposing "priv_gradient_per_intracontributor" 
