@@ -132,16 +132,17 @@ perform_LS(	char   dockpars_num_of_atoms,
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-#if defined (ASYNC_COPY)
+	#if defined (ASYNC_COPY)
   	event_t ev = async_work_group_copy(offspring_genotype,
 					   dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
                         	           dockpars_num_of_genes,0);
-#else
+
+	#else
 	for (gene_counter=get_local_id(0);
 	     gene_counter<dockpars_num_of_genes;
 	     gene_counter+=NUM_OF_THREADS_PER_BLOCK)
 		   offspring_genotype[gene_counter] = dockpars_conformations_next[(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter];
-#endif
+	#endif
 
 	for (gene_counter=get_local_id(0);
 	     gene_counter<dockpars_num_of_genes;
@@ -157,7 +158,7 @@ perform_LS(	char   dockpars_num_of_atoms,
 	}
 
 	// Asynchronous copy should be finished by here
-	wait_group_events(1,&ev);
+	wait_group_events(1, &ev);
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -397,14 +398,18 @@ perform_LS(	char   dockpars_num_of_atoms,
 	//updating old offspring in population
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-#if defined (ASYNC_COPY)
-  async_work_group_copy(dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
-                        offspring_genotype,
-                        dockpars_num_of_genes,0);
-#else
+	#if defined (ASYNC_COPY)
+  	event_t ev2 = async_work_group_copy(dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
+                             		    offspring_genotype,
+                        		    dockpars_num_of_genes,0);
+
+	// Asynchronous copy should be finished by here
+	wait_group_events(1, &ev2);
+
+	#else
 	for (gene_counter=get_local_id(0);
 	     gene_counter<dockpars_num_of_genes;
-       gene_counter+=NUM_OF_THREADS_PER_BLOCK)
-		   dockpars_conformations_next[(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter] = offspring_genotype[gene_counter];
-#endif
+       	     gene_counter+=NUM_OF_THREADS_PER_BLOCK)
+		dockpars_conformations_next[(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter] = offspring_genotype[gene_counter];
+	#endif
 }

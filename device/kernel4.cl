@@ -209,19 +209,20 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
 		}
 		else	//no crossover
 		{
-#if defined (ASYNC_COPY)
+			#if defined (ASYNC_COPY)
 			event_t ev = async_work_group_copy(offspring_genotype,
 					     		   dockpars_conformations_current+(run_id*dockpars_pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM,
 					     		   dockpars_num_of_genes,0);
 
 			// Asynchronous copy should be finished by here
-			wait_group_events(1,&ev);
-#else
+			wait_group_events(1, &ev);
+			
+			#else
 			for (gene_counter=get_local_id(0);
 			     gene_counter<dockpars_num_of_genes;
 			     gene_counter+=NUM_OF_THREADS_PER_BLOCK)
 				   offspring_genotype[gene_counter] = dockpars_conformations_current[(run_id*dockpars_pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter];
-#endif
+			#endif
 		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -302,15 +303,19 @@ gpu_gen_and_eval_newpops(char   dockpars_num_of_atoms,
 		}
 
 		//copying new offspring to next generation
-#if defined (ASYNC_COPY)
-		async_work_group_copy(dockpars_conformations_next + GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0),
-				      offspring_genotype,
-				      dockpars_num_of_genes,0);
-#else
+		#if defined (ASYNC_COPY)
+		event_t ev2 = async_work_group_copy(dockpars_conformations_next + GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0),
+				                    offspring_genotype,
+				                    dockpars_num_of_genes, 0);
+	
+		// Asynchronous copy should be finished by here
+		wait_group_events(1, &ev2);
+
+		#else
 		for (gene_counter=get_local_id(0);
 		     gene_counter<dockpars_num_of_genes;
 		     gene_counter+=NUM_OF_THREADS_PER_BLOCK)
 			   dockpars_conformations_next[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+gene_counter] = offspring_genotype[gene_counter];
-#endif
+		#endif
   }
 }
