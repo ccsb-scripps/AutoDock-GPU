@@ -40,44 +40,29 @@ gpu_sum_evals(/*unsigned long pop_size,*/
 //The number of blocks which should be started equals to num_of_runs,
 //since each block performs the summation for one run.
 {
-  int entity_counter;
-  int sum_evals;
-  __local int partsum_evals[NUM_OF_THREADS_PER_BLOCK];
+	int entity_counter;
+  	int sum_evals;
+  	__local int partsum_evals[NUM_OF_THREADS_PER_BLOCK];
 
-  partsum_evals[get_local_id(0)] = 0;
+  	partsum_evals[get_local_id(0)] = 0;
 
-#if defined (ASYNC_COPY)
-  __local int local_evals_of_new_entities[MAX_POPSIZE];	// defined in defines.h
+  	for (entity_counter=get_local_id(0);
+       	     entity_counter<pop_size;
+             entity_counter+=NUM_OF_THREADS_PER_BLOCK) {
+  		partsum_evals[get_local_id(0)] += dockpars_evals_of_new_entities[get_group_id(0)*pop_size+entity_counter];
+  	}
 
-  event_t ev = async_work_group_copy(local_evals_of_new_entities,
-                        	     dockpars_evals_of_new_entities+get_group_id(0)*pop_size,
-                                     pop_size,0);
-  
-  // Asynchronous copy should be finished by here
-  wait_group_events(1,&ev);
+  	barrier(CLK_LOCAL_MEM_FENCE);
 
-  for (entity_counter=get_local_id(0);
-	     entity_counter<pop_size;
-	     entity_counter+=NUM_OF_THREADS_PER_BLOCK)
-       partsum_evals[get_local_id(0)] += local_evals_of_new_entities[entity_counter];
+  	if (get_local_id(0) == 0) {
+  		sum_evals = partsum_evals[0];
 
-#else
-  for (entity_counter=get_local_id(0);
-	     entity_counter<pop_size;
-	     entity_counter+=NUM_OF_THREADS_PER_BLOCK)
-       partsum_evals[get_local_id(0)] += dockpars_evals_of_new_entities[get_group_id(0)*pop_size+entity_counter];
-#endif
+    		for (entity_counter=1;
+	     	     entity_counter<NUM_OF_THREADS_PER_BLOCK;
+	     	     entity_counter++) {
+			sum_evals += partsum_evals[entity_counter];
+    		}
 
-  barrier(CLK_LOCAL_MEM_FENCE);
-
-  if (get_local_id(0) == 0) {
-    sum_evals = partsum_evals[0];
-    for (entity_counter=1;
-	       entity_counter<NUM_OF_THREADS_PER_BLOCK;
-	       entity_counter++) {
-		     sum_evals += partsum_evals[entity_counter];
-    }
-
-    evals_of_runs[get_group_id(0)] += sum_evals;
-  }
+  		evals_of_runs[get_group_id(0)] += sum_evals;
+  	}
 }
