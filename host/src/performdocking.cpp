@@ -469,10 +469,12 @@ filled with clock() */
 	printf("dockpars.rotbondlist_length:%u\n", dockpars.rotbondlist_length);
 	*/
 
+	#if 0
 	// Experimental TSRI gradient-based minimizer kernel argument
 	// Setup here (temporarily?) the gradient and associated parameters.
 	// This should be ultimately configurable by the user as program exec. flags.
 	Gradientparameters gradientpars;
+	#endif
 
 	//----------------------------------
 	// fastergrad

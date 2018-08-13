@@ -52,6 +52,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define ELAPSEDSECS(stop,start) ((float) stop-start)/((float) CLOCKS_PER_SEC)
 
+#if 0
 // Experimental TSRI gradient-based minimizer kernel argument
 // Setup here (temporarily?) the gradient-based minimizer and associated parameters.
 // This should be ultimately configurable by the user as program exec. flags.
@@ -64,6 +65,7 @@ typedef struct {
 	float conformation_min_perturbation [ACTUAL_GENOTYPE_LENGTH];
 	*/
 } Gradientparameters;
+#endif
 
 int docking_with_gpu(const Gridinfo* 	mygrid,
          	     /*const*/ float* 	cpu_floatgrids,
