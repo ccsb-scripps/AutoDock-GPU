@@ -42,11 +42,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define MAX_NUM_OF_ATOMS 	256
 #define MAX_NUM_OF_ATYPES 	14
 #define MAX_NUM_OF_ROTBONDS 	32
-#define MAX_INTRAE_CONTRIBUTORS 8192 // Ideally =MAX_NUM_OF_ATOMS * MAX_NUM_OF_ATOMS, 
-				     // but too large for __local in gradient calculation.
-				     // If calculated as #rotbons * #atoms, then = 32 * 256 = 8192.
-				     // If implementing an array of MAX_INTRAE_CONTRIBUTORS size, 
-				     // then error CL_OUT_OF_RESOURCES.
+#define MAX_INTRAE_CONTRIBUTORS (MAX_NUM_OF_ATOMS * MAX_NUM_OF_ATOMS)
 #define MAX_NUM_OF_ROTATIONS 	(MAX_NUM_OF_ATOMS * MAX_NUM_OF_ROTBONDS)
 #define MAX_POPSIZE 		2048
 #define MAX_NUM_OF_RUNS 	1000
