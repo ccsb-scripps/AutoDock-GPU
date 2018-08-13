@@ -40,20 +40,10 @@ gpu_sum_evals(
 
 	partsum_evals[get_local_id(0)] = 0;
 
-	// Maximum size defined in ../common/defines.h
-	__local int local_evals_of_new_entities[MAX_POPSIZE];
-
-	event_t ev =async_work_group_copy(local_evals_of_new_entities,
-                              		  dockpars_evals_of_new_entities+get_group_id(0)*pop_size,
-                                          pop_size, 0);
-
-	// Asynchronous copy should be finished by here
-	wait_group_events(1,&ev);
-
   	for (entity_counter = get_local_id(0);
 	     entity_counter < pop_size;
 	     entity_counter+= NUM_OF_THREADS_PER_BLOCK) {
-		partsum_evals[get_local_id(0)] += local_evals_of_new_entities[entity_counter];
+		partsum_evals[get_local_id(0)] += dockpars_evals_of_new_entities[get_group_id(0)*pop_size + entity_counter];
 	}
 
 	barrier(CLK_LOCAL_MEM_FENCE);
