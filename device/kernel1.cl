@@ -92,7 +92,7 @@ gpu_calc_initpop(
 	}
 
 	// Asynchronous copy should be finished by here
-	wait_group_events(1,&ev);
+	wait_group_events(1, &ev);
 
 	// Evaluating initial genotypes
 	barrier(CLK_LOCAL_MEM_FENCE);

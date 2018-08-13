@@ -219,7 +219,7 @@ gpu_gen_and_eval_newpops(
 					                   dockpars_num_of_genes, 0);
 
 			// Asynchronous copy should be finished by here
-			wait_group_events(1,&ev);
+			wait_group_events(1, &ev);
 		} // End of crossover
 
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -316,8 +316,11 @@ gpu_gen_and_eval_newpops(
 		}
 
 		// Copying new offspring to next generation
-		async_work_group_copy(dockpars_conformations_next + GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0),
-				      offspring_genotype,
-				      dockpars_num_of_genes, 0);
+		event_t ev2 = async_work_group_copy(dockpars_conformations_next + GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0),
+				                    offspring_genotype,
+				                    dockpars_num_of_genes, 0);
+
+		// Asynchronous copy should be finished by here
+		wait_group_events(1, &ev2);
   }
 }

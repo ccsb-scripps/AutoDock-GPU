@@ -123,7 +123,7 @@ gradient_minFire(
                               		   dockpars_num_of_genes, 0);
 
 	// Asynchronous copy should be finished by here
-	wait_group_events(1,&ev);
+	wait_group_events(1, &ev);
 
   	// -----------------------------------------------------------------------------
   	// Some OpenCL compilers don't allow declaring 
@@ -685,7 +685,10 @@ gradient_minFire(
 	// Updating old offspring in population
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	async_work_group_copy(dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
-			      genotype,
-			      dockpars_num_of_genes, 0);
+	event_t ev2 = async_work_group_copy(dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
+			                    genotype,
+			                    dockpars_num_of_genes, 0);
+
+	// Asynchronous copy should be finished by here
+	wait_group_events(1, &ev2);
 }
