@@ -259,7 +259,10 @@ void get_commandpars(const int* argc,
 			arg_recognized = 1;
 			sscanf(argv [i+1], "%f", &tempfloat);
 
+			/*
 			if ((tempfloat >= 0.0) && (tempfloat < 100.0))
+			*/
+			if ((tempfloat >= 0.0) && (tempfloat <= 100.0))
 				mypars->lsearch_rate = tempfloat;
 			else
 				printf("Warning: value of -lrat argument ignored. Value must be a float between 0 and 100.\n");
