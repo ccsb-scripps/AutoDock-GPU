@@ -345,8 +345,8 @@ filled with clock() */
 	cl_mem mem_gpu_evals_of_runs;
 	cl_mem mem_dockpars_prng_states;
 
-	mallocBufferObject(context,CL_MEM_READ_ONLY,size_floatgrids,         				&mem_dockpars_fgrids);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,size_populations,        				&mem_dockpars_conformations_current);
+	mallocBufferObject(context,CL_MEM_READ_ONLY,size_floatgrids,         			&mem_dockpars_fgrids);
+	mallocBufferObject(context,CL_MEM_READ_WRITE,size_populations,        			&mem_dockpars_conformations_current);
 	mallocBufferObject(context,CL_MEM_READ_WRITE,size_energies,           			&mem_dockpars_energies_current);
 	mallocBufferObject(context,CL_MEM_READ_WRITE,size_populations,        			&mem_dockpars_conformations_next);
 	mallocBufferObject(context,CL_MEM_READ_WRITE,size_energies,    	      			&mem_dockpars_energies_next);
