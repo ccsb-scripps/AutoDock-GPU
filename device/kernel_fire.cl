@@ -16,56 +16,45 @@
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gradient_minFire(	
-			char   dockpars_num_of_atoms,
-			char   dockpars_num_of_atypes,
-			int    dockpars_num_of_intraE_contributors,
-			char   dockpars_gridsize_x,
-			char   dockpars_gridsize_y,
-			char   dockpars_gridsize_z,
+			    char   dockpars_num_of_atoms,
+			    char   dockpars_num_of_atypes,
+			    int    dockpars_num_of_intraE_contributors,
+			    char   dockpars_gridsize_x,
+			    char   dockpars_gridsize_y,
+			    char   dockpars_gridsize_z,
 							    		// g1 = gridsize_x
-			uint   dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
-			uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
-			float  dockpars_grid_spacing,
-	 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
-			int    dockpars_rotbondlist_length,
-			float  dockpars_coeff_elec,
-			float  dockpars_coeff_desolv,
-	  __global      float* restrict dockpars_conformations_next,
-	  __global      float* restrict dockpars_energies_next,
-  	  __global 	int*   restrict dockpars_evals_of_new_entities,
-	  __global      uint*  restrict dockpars_prng_states,
-			int    dockpars_pop_size,
-			int    dockpars_num_of_genes,
-			float  dockpars_lsearch_rate,
-			uint   dockpars_num_of_lsentities,
-			uint   dockpars_max_num_of_iters,
-			float  dockpars_qasp,
-	     __constant float* atom_charges_const,
-    	     __constant char*  atom_types_const,
-	     __constant char*  intraE_contributors_const,
-                        float  dockpars_smooth,
- 	     __constant float* reqm,
-	     __constant float* reqm_hbond,
-	     __constant uint*  atom1_types_reqm,
-	     __constant uint*  atom2_types_reqm,
-    	     __constant float* VWpars_AC_const,
-    	     __constant float* VWpars_BD_const,
-             __constant float* dspars_S_const,
-             __constant float* dspars_V_const,
-             __constant int*   rotlist_const,
-    	     __constant float* ref_coords_x_const,
-    	     __constant float* ref_coords_y_const,
-             __constant float* ref_coords_z_const,
-    	     __constant float* rotbonds_moving_vectors_const,
-             __constant float* rotbonds_unit_vectors_const,
-             __constant float* ref_orientation_quats_const,
-	     __constant int*   rotbonds_const,
-	     __constant int*   rotbonds_atoms_const,
-	     __constant int*   num_rotating_atoms_per_rotbond_const
+			    uint   dockpars_gridsize_x_times_y, 	// g2 = gridsize_x * gridsize_y
+			    uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
+			    float  dockpars_grid_spacing,
+	 __global const     float* restrict dockpars_fgrids, 		// This is too large to be allocated in __constant 
+			    int    dockpars_rotbondlist_length,
+			    float  dockpars_coeff_elec,
+			    float  dockpars_coeff_desolv,
+	  __global          float* restrict dockpars_conformations_next,
+	  __global          float* restrict dockpars_energies_next,
+  	  __global 	    int*   restrict dockpars_evals_of_new_entities,
+	  __global          uint*  restrict dockpars_prng_states,
+			    int    dockpars_pop_size,
+			    int    dockpars_num_of_genes,
+			    float  dockpars_lsearch_rate,
+			    uint   dockpars_num_of_lsentities,
+			    uint   dockpars_max_num_of_iters,
+			    float  dockpars_qasp,
+			    float  dockpars_smooth,
+
+	  __constant        kernelconstant_interintra* 	 kerconst_interintra,
+	  __global const    kernelconstant_intracontrib* kerconst_intracontrib,
+	  __constant        kernelconstant_intra*	 kerconst_intra,
+	  __constant        kernelconstant_rotlist*   	 kerconst_rotlist,
+	  __constant        kernelconstant_conform*	 kerconst_conform
 			,
-	     __constant float* angle_const,
-	     __constant float* dependence_on_theta_const,
-	     __constant float* dependence_on_rotangle_const
+	  __constant int*   	  rotbonds_const,
+	  __global   const int*   rotbonds_atoms_const,
+	  __constant int*   	  num_rotating_atoms_per_rotbond_const
+			,
+	  __global   const float* angle_const,
+	  __constant       float* dependence_on_theta_const,
+	  __constant       float* dependence_on_rotangle_const
 )
 //The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
 //The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
@@ -233,6 +222,8 @@ gradient_minFire(
 			dockpars_coeff_elec,
 			dockpars_qasp,
 			dockpars_coeff_desolv,
+			dockpars_smooth,
+
 			// Some OpenCL compilers don't allow declaring 
 			// local variables within non-kernel functions.
 			// These local variables must be declared in a kernel, 
@@ -245,25 +236,12 @@ gradient_minFire(
 			calc_coords_y,
 			calc_coords_z,
 
-		        atom_charges_const,
-			atom_types_const,
-			intraE_contributors_const,
-			dockpars_smooth,
-			reqm,
-			reqm_hbond,
-	     	        atom1_types_reqm,
-	     	        atom2_types_reqm,
-			VWpars_AC_const,
-			VWpars_BD_const,
-			dspars_S_const,
-			dspars_V_const,
-			rotlist_const,
-			ref_coords_x_const,
-			ref_coords_y_const,
-			ref_coords_z_const,
-			rotbonds_moving_vectors_const,
-			rotbonds_unit_vectors_const,
-			ref_orientation_quats_const,
+			kerconst_interintra,
+			kerconst_intracontrib,
+			kerconst_intra,
+			kerconst_rotlist,
+			kerconst_conform
+			,
 			rotbonds_const,
 			rotbonds_atoms_const,
 			num_rotating_atoms_per_rotbond_const
@@ -513,6 +491,8 @@ gradient_minFire(
 				dockpars_coeff_elec,
 				dockpars_qasp,
 				dockpars_coeff_desolv,
+				dockpars_smooth,
+
 				// Some OpenCL compilers don't allow declaring 
 				// local variables within non-kernel functions.
 				// These local variables must be declared in a kernel, 
@@ -525,25 +505,12 @@ gradient_minFire(
 				calc_coords_y,
 				calc_coords_z,
 
-			        atom_charges_const,
-				atom_types_const,
-				intraE_contributors_const,
-				dockpars_smooth,
-				reqm,
-				reqm_hbond,
-		     	        atom1_types_reqm,
-		     	        atom2_types_reqm,
-				VWpars_AC_const,
-				VWpars_BD_const,
-				dspars_S_const,
-				dspars_V_const,
-				rotlist_const,
-				ref_coords_x_const,
-				ref_coords_y_const,
-				ref_coords_z_const,
-				rotbonds_moving_vectors_const,
-				rotbonds_unit_vectors_const,
-				ref_orientation_quats_const,
+				kerconst_interintra,
+				kerconst_intracontrib,
+				kerconst_intra,
+				kerconst_rotlist,
+				kerconst_conform
+				,
 				rotbonds_const,
 				rotbonds_atoms_const,
 				num_rotating_atoms_per_rotbond_const
@@ -593,6 +560,8 @@ gradient_minFire(
 				dockpars_coeff_elec,
 				dockpars_qasp,
 				dockpars_coeff_desolv,
+				dockpars_smooth,
+
 				genotype,
 				&energy,
 				&run_id,
@@ -608,29 +577,14 @@ gradient_minFire(
 				partial_interE,
 				partial_intraE,
 				#endif
-
-				atom_charges_const,
-				atom_types_const,
-				intraE_contributors_const,
 #if 0
 				true,
 #endif
-				dockpars_smooth,
-				reqm,
-				reqm_hbond,
-		     	        atom1_types_reqm,
-		     	        atom2_types_reqm,
-				VWpars_AC_const,
-				VWpars_BD_const,
-				dspars_S_const,
-				dspars_V_const,
-				rotlist_const,
-				ref_coords_x_const,
-				ref_coords_y_const,
-				ref_coords_z_const,
-				rotbonds_moving_vectors_const,
-				rotbonds_unit_vectors_const,
-				ref_orientation_quats_const
+				kerconst_interintra,
+				kerconst_intracontrib,
+				kerconst_intra,
+				kerconst_rotlist,
+				kerconst_conform
 				);
 		// =============================================================
 

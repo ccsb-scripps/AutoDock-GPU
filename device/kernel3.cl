@@ -52,25 +52,13 @@ perform_LS(
 			uint   dockpars_cons_limit,
 			uint   dockpars_max_num_of_iters,
 			float  dockpars_qasp,
-	     __constant float* atom_charges_const,
-             __constant char*  atom_types_const,
-	     __constant char*  intraE_contributors_const,
-                     	float  dockpars_smooth,
-	     __constant float* reqm,
-	     __constant float* reqm_hbond,
-	     __constant uint*  atom1_types_reqm,
-	     __constant uint*  atom2_types_reqm,
-             __constant float* VWpars_AC_const,
-             __constant float* VWpars_BD_const,
-             __constant float* dspars_S_const,
-             __constant float* dspars_V_const,
-             __constant int*   rotlist_const,
-             __constant float* ref_coords_x_const,
-             __constant float* ref_coords_y_const,
-             __constant float* ref_coords_z_const,
-             __constant float* rotbonds_moving_vectors_const,
-             __constant float* rotbonds_unit_vectors_const,
-             __constant float* ref_orientation_quats_const
+			float  dockpars_smooth,
+
+	 __constant     kernelconstant_interintra* 	kerconst_interintra,
+	 __global const kernelconstant_intracontrib*  	kerconst_intracontrib,
+	 __constant     kernelconstant_intra*		kerconst_intra,
+	 __constant     kernelconstant_rotlist*   	kerconst_rotlist,
+	 __constant     kernelconstant_conform*		kerconst_conform
 )
 //The GPU global function performs local search on the pre-defined entities of conformations_next.
 //The number of blocks which should be started equals to num_of_lsentities*num_of_runs.
@@ -203,6 +191,8 @@ perform_LS(
 				dockpars_coeff_elec,
 				dockpars_qasp,
 				dockpars_coeff_desolv,
+				dockpars_smooth,
+
 				genotype_candidate,
 				&candidate_energy,
 				&run_id,
@@ -218,29 +208,14 @@ perform_LS(
 				partial_interE,
 				partial_intraE,
 				#endif
-
-				atom_charges_const,
-				atom_types_const,
-				intraE_contributors_const,
 #if 0
 				false,
 #endif
-				dockpars_smooth,
-				reqm,
-				reqm_hbond,
-		     	        atom1_types_reqm,
-		     	        atom2_types_reqm,
-				VWpars_AC_const,
-				VWpars_BD_const,
-				dspars_S_const,
-				dspars_V_const,
-				rotlist_const,
-				ref_coords_x_const,
-				ref_coords_y_const,
-				ref_coords_z_const,
-				rotbonds_moving_vectors_const,
-				rotbonds_unit_vectors_const,
-				ref_orientation_quats_const
+			   	kerconst_interintra,
+			   	kerconst_intracontrib,
+			   	kerconst_intra,
+			   	kerconst_rotlist,
+			   	kerconst_conform
 				);
 		// =================================================================
 
@@ -308,6 +283,8 @@ perform_LS(
 					dockpars_coeff_elec,
 				        dockpars_qasp,
 					dockpars_coeff_desolv,
+					dockpars_smooth,
+
 					genotype_candidate,
 					&candidate_energy,
 					&run_id,
@@ -323,29 +300,14 @@ perform_LS(
 					partial_interE,
 					partial_intraE,
 					#endif
-
-					atom_charges_const,
-					atom_types_const,
-					intraE_contributors_const,
 #if 0
 					false,
 #endif
-					dockpars_smooth,
-					reqm,
-					reqm_hbond,
-	     			        atom1_types_reqm,
-			     	        atom2_types_reqm,
-					VWpars_AC_const,
-					VWpars_BD_const,
-					dspars_S_const,
-					dspars_V_const,
-					rotlist_const,
-					ref_coords_x_const,
-					ref_coords_y_const,
-					ref_coords_z_const,
-					rotbonds_moving_vectors_const,
-					rotbonds_unit_vectors_const,
-					ref_orientation_quats_const
+				   	kerconst_interintra,
+				   	kerconst_intracontrib,
+				   	kerconst_intra,
+				   	kerconst_rotlist,
+				   	kerconst_conform
 					);
 			// =================================================================
 

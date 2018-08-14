@@ -24,10 +24,23 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "calcenergy.h"
 
+/*
 int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
                                  Dockpars*       mypars,
                                  float*          cpu_ref_ori_angles,
                                  kernelconstant* KerConst)
+*/
+
+int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
+				 Dockpars*   	   		mypars,
+				 float*      	   		cpu_ref_ori_angles,
+				 kernelconstant_interintra*	KerConst_interintra,
+				 kernelconstant_intracontrib*	KerConst_intracontrib,
+				 kernelconstant_intra*		KerConst_intra,
+				 kernelconstant_rotlist*	KerConst_rotlist,
+				 kernelconstant_conform*	KerConst_conform,
+				 kernelconstant_grads*          KerConst_grads)
+
 //The function fills the constant memory field of the GPU (ADM FPGA)
 //defined above (erased from here) and used during GPU docking,
 //based on the parameters which describe the ligand,
@@ -320,6 +333,8 @@ int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
 	}
 
 	int m;
+
+	/*
 	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst->atom_charges_const[m] = atom_charges[m]; }
 	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst->atom_types_const[m]   = atom_types[m]; }
 	for (m=0;m<3*MAX_INTRAE_CONTRIBUTORS;m++){ KerConst->intraE_contributors_const[m]   = intraE_contributors[m]; }
@@ -338,12 +353,37 @@ int prepare_const_fields_for_gpu(Liganddata*     myligand_reference,
 	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst->rotbonds_moving_vectors_const[m]= rotbonds_moving_vectors[m]; }
 	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst->rotbonds_unit_vectors_const[m]  = rotbonds_unit_vectors[m]; }
 	for (m=0;m<4*MAX_NUM_OF_RUNS;m++)    { KerConst->ref_orientation_quats_const[m]  = ref_orientation_quats[m]; }
+	*/
+
+	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst_interintra->atom_charges_const[m] = atom_charges[m]; }
+	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst_interintra->atom_types_const[m]   = atom_types[m];   }
+
+	for (m=0;m<3*MAX_INTRAE_CONTRIBUTORS;m++){ KerConst_intracontrib->intraE_contributors_const[m] = intraE_contributors[m]; }
+
+	for (m=0;m<ATYPE_NUM;m++)				{ KerConst_intra->reqm_const[m] 	    = reqm[m]; }
+	for (m=0;m<ATYPE_NUM;m++)				{ KerConst_intra->reqm_hbond_const[m] 	    = reqm_hbond[m]; }
+	for (m=0;m<ATYPE_NUM;m++)				{ KerConst_intra->atom1_types_reqm_const[m] = atom1_types_reqm[m]; }
+	for (m=0;m<ATYPE_NUM;m++)				{ KerConst_intra->atom2_types_reqm_const[m] = atom2_types_reqm[m]; }
+	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++)	{ KerConst_intra->VWpars_AC_const[m]        = VWpars_AC[m]; }
+	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++)	{ KerConst_intra->VWpars_BD_const[m]        = VWpars_BD[m]; }
+	for (m=0;m<MAX_NUM_OF_ATYPES;m++)		   	{ KerConst_intra->dspars_S_const[m]         = dspars_S[m]; }
+	for (m=0;m<MAX_NUM_OF_ATYPES;m++)		   	{ KerConst_intra->dspars_V_const[m]         = dspars_V[m]; }
+
+	for (m=0;m<MAX_NUM_OF_ROTATIONS;m++) { KerConst_rotlist->rotlist_const[m]  = rotlist[m]; }
+
+	for (m=0;m<MAX_NUM_OF_ATOMS;m++)     { KerConst_conform->ref_coords_x_const[m]		 = ref_coords_x[m]; }
+	for (m=0;m<MAX_NUM_OF_ATOMS;m++)     { KerConst_conform->ref_coords_y_const[m]		 = ref_coords_y[m]; }
+	for (m=0;m<MAX_NUM_OF_ATOMS;m++)     { KerConst_conform->ref_coords_z_const[m]		 = ref_coords_z[m]; }
+	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst_conform->rotbonds_moving_vectors_const[m]= rotbonds_moving_vectors[m]; }
+	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst_conform->rotbonds_unit_vectors_const[m]  = rotbonds_unit_vectors[m]; }
+	for (m=0;m<4*MAX_NUM_OF_RUNS;m++)    { KerConst_conform->ref_orientation_quats_const[m]  = ref_orientation_quats[m]; }
+
 	// Added for calculating torsion-related gradients.
 	// Passing list of rotbond-atoms ids to the GPU.
 	// Contains the same information as processligand.h/Liganddata->rotbonds
-	for (m=0;m<2*MAX_NUM_OF_ROTBONDS;m++) { KerConst->rotbonds[m] = rotbonds[m]; }
-	for (m=0;m<MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS;m++) { KerConst->rotbonds_atoms[m] = rotbonds_atoms[m]; }
-	for (m=0;m<MAX_NUM_OF_ROTBONDS;m++) { KerConst->num_rotating_atoms_per_rotbond[m] = num_rotating_atoms_per_rotbond[m]; }
+	for (m=0;m<2*MAX_NUM_OF_ROTBONDS;m++) 			{ KerConst_grads->rotbonds[m] 			    = rotbonds[m]; }
+	for (m=0;m<MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS;m++) 	{ KerConst_grads->rotbonds_atoms[m]                 = rotbonds_atoms[m]; }
+	for (m=0;m<MAX_NUM_OF_ROTBONDS;m++) 			{ KerConst_grads->num_rotating_atoms_per_rotbond[m] = num_rotating_atoms_per_rotbond[m]; }
 	return 0;
 }
 
