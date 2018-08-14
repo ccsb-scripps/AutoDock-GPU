@@ -29,7 +29,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "processgrid.h"
 #include "miscellaneous.h"
 
+/*
+// Moved to defines.h
 #define ATYPE_NUM 22
+*/
 
 typedef struct
 //Struct which contains ligand information. The fields contain the following information:

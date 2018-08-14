@@ -85,6 +85,7 @@ typedef struct
 // ----------------------------------------------------------------------
 
 // Constant struct
+/*
 typedef struct
 {
        float atom_charges_const[MAX_NUM_OF_ATOMS];
@@ -106,17 +107,68 @@ typedef struct
        float rotbonds_unit_vectors_const  [3*MAX_NUM_OF_ROTBONDS];
        float ref_orientation_quats_const  [4*MAX_NUM_OF_RUNS];
 } kernelconstant;
+*/
 
+typedef struct
+{
+       float atom_charges_const[MAX_NUM_OF_ATOMS];
+       char  atom_types_const  [MAX_NUM_OF_ATOMS];
+} kernelconstant_interintra;
+
+typedef struct
+{
+       char  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
+} kernelconstant_intracontrib;
+
+typedef struct
+{
+       float reqm_const [ATYPE_NUM];
+       float reqm_hbond_const [ATYPE_NUM];
+       unsigned int  atom1_types_reqm_const [ATYPE_NUM];
+       unsigned int  atom2_types_reqm_const [ATYPE_NUM];
+       float VWpars_AC_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
+       float VWpars_BD_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
+       float dspars_S_const    [MAX_NUM_OF_ATYPES];
+       float dspars_V_const    [MAX_NUM_OF_ATYPES];
+} kernelconstant_intra;
+
+typedef struct
+{
+       int   rotlist_const     [MAX_NUM_OF_ROTATIONS];
+} kernelconstant_rotlist;
+
+typedef struct
+{
+       float ref_coords_x_const[MAX_NUM_OF_ATOMS];
+       float ref_coords_y_const[MAX_NUM_OF_ATOMS];
+       float ref_coords_z_const[MAX_NUM_OF_ATOMS];
+       float rotbonds_moving_vectors_const[3*MAX_NUM_OF_ROTBONDS];
+       float rotbonds_unit_vectors_const  [3*MAX_NUM_OF_ROTBONDS];
+       float ref_orientation_quats_const  [4*MAX_NUM_OF_RUNS];
+} kernelconstant_conform;
+
+/*
 int prepare_const_fields_for_gpu(Liganddata* 	   myligand_reference,
-				 												 Dockpars*   	   mypars,
-				 											 	 float*      	   cpu_ref_ori_angles,
-				 											 	 kernelconstant* KerConst);
+				 Dockpars*   	   mypars,
+				 float*      	   cpu_ref_ori_angles,
+				 kernelconstant* 	KerConst);
+
+*/
+
+int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
+				 Dockpars*   	   		mypars,
+				 float*      	   		cpu_ref_ori_angles,
+				 kernelconstant_interintra*	KerConst_interintra,
+				 kernelconstant_intracontrib*	KerConst_intracontrib,
+				 kernelconstant_intra*		KerConst_intra,
+				 kernelconstant_rotlist*	KerConst_rotlist,
+				 kernelconstant_conform*	KerConst_conform);
 
 void make_reqrot_ordering(char number_of_req_rotations[MAX_NUM_OF_ATOMS],
-			  								  char atom_id_of_numrots[MAX_NUM_OF_ATOMS],
-		          						int  num_of_atoms);
+			  char atom_id_of_numrots[MAX_NUM_OF_ATOMS],
+		          int  num_of_atoms);
 
 int gen_rotlist(Liganddata* myligand,
-								int         rotlist[MAX_NUM_OF_ROTATIONS]);
+		int         rotlist[MAX_NUM_OF_ROTATIONS]);
 
 #endif /* CALCENERGY_H_ */

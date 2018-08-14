@@ -51,26 +51,13 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 
 			int    dockpars_pop_size,
 			float  dockpars_qasp,
+                        float  dockpars_smooth,
 
-	   __constant float* atom_charges_const,
-           __constant char*  atom_types_const,
-	   __constant char*  intraE_contributors_const,
-                      float  dockpars_smooth,
-	   __constant float* reqm,
-	   __constant float* reqm_hbond,
-           __constant uint*  atom1_types_reqm,
-           __constant uint*  atom2_types_reqm,
-           __constant float* VWpars_AC_const,
-           __constant float* VWpars_BD_const,
-           __constant float* dspars_S_const,
-           __constant float* dspars_V_const,
-           __constant int*   rotlist_const,
-           __constant float* ref_coords_x_const,
-           __constant float* ref_coords_y_const,
-           __constant float* ref_coords_z_const,
-           __constant float* rotbonds_moving_vectors_const,
-           __constant float* rotbonds_unit_vectors_const,
-           __constant float* ref_orientation_quats_const
+		   __constant     kernelconstant_interintra* 		kerconst_interintra,
+		   __global const kernelconstant_intracontrib*  	kerconst_intracontrib,
+		   __constant     kernelconstant_intra*			kerconst_intra,
+		   __constant     kernelconstant_rotlist*   		kerconst_rotlist,
+		   __constant     kernelconstant_conform*		kerconst_conform
 ){
 	__local float  genotype[ACTUAL_GENOTYPE_LENGTH];
 	__local float  energy;
@@ -86,8 +73,6 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 	event_t ev = async_work_group_copy(genotype,
 			                   dockpars_conformations_current + GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0),
 			                   ACTUAL_GENOTYPE_LENGTH, 0);
-
-	wait_group_events(1,&ev);
 
 	//determining run ID
 	if (get_local_id(0) == 0) {
@@ -113,6 +98,8 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 			dockpars_coeff_elec,
 			dockpars_qasp,
 			dockpars_coeff_desolv,
+			dockpars_smooth,
+
 			genotype,
 			&energy,
 			&run_id,
@@ -123,25 +110,11 @@ gpu_calc_initpop(	char   dockpars_num_of_atoms,
 			calc_coords_z,
 			partial_energies,
 
-	                atom_charges_const,
-		        atom_types_const,
-			intraE_contributors_const,
-			dockpars_smooth,
-			reqm,
-			reqm_hbond,
-	     	        atom1_types_reqm,
-	     	        atom2_types_reqm,
-			VWpars_AC_const,
-			VWpars_BD_const,
-			dspars_S_const,
-			dspars_V_const,
-			rotlist_const,
-			ref_coords_x_const,
-			ref_coords_y_const,
-			ref_coords_z_const,
-			rotbonds_moving_vectors_const,
-			rotbonds_unit_vectors_const,
-			ref_orientation_quats_const);
+	   		kerconst_interintra,
+	   		kerconst_intracontrib,
+	   		kerconst_intra,
+           		kerconst_rotlist,
+           		kerconst_conform);
 	// =============================================================
 
 	if (get_local_id(0) == 0) {
