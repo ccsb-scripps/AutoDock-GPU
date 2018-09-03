@@ -695,5 +695,5 @@ if (get_local_id (0) == 0) {
 #include "kernel4.cl"
 #include "kernel3.cl"
 #include "calcgradient.cl"
-#include "kernel_gradient.cl"
+#include "kernel_sd.cl"
 #include "kernel_fire.cl"

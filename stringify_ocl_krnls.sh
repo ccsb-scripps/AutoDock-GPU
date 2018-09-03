@@ -19,7 +19,7 @@ IN_KERNELa=$KERNEL_DIR/"auxiliary_genetic.cl"
 IN_KERNEL3=$KERNEL_DIR/"kernel3.cl"
 IN_KERNEL4=$KERNEL_DIR/"kernel4.cl"
 IN_KERNELb=$KERNEL_DIR/"calcgradient.cl"
-IN_KERNEL5=$KERNEL_DIR/"kernel_gradient.cl"
+IN_KERNEL5=$KERNEL_DIR/"kernel_sd.cl"
 IN_KERNEL6=$KERNEL_DIR/"kernel_fire.cl"
 
 echo " "

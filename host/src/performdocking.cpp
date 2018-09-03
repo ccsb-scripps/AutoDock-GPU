@@ -44,7 +44,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define KRNL3 K3
 #define KRNL4 K4
 #define KRNL5 K5
-#define KRNL5 K6
+#define KRNL6 K6
 #endif
 
 #define INC " -I " KRNL_FOLDER " -I " KRNL_COMMON

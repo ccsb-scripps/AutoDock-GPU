@@ -16,7 +16,7 @@
 //#define DEBUG_INITIAL_2BRT
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
-gradient_minimizer(	
+gradient_minSD(	
 			    char   dockpars_num_of_atoms,
 			    char   dockpars_num_of_atypes,
 			    int    dockpars_num_of_intraE_contributors,

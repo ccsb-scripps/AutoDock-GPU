@@ -50,7 +50,7 @@ K1_NAME="gpu_calc_initpop"
 K2_NAME="gpu_sum_evals"
 K3_NAME="perform_LS"
 K4_NAME="gpu_gen_and_eval_newpops"
-K5_NAME="gradient_minimizer"
+K5_NAME="gradient_minSD"
 K6_NAME="gradient_minFire"
 K_NAMES=-DK1=$(K1_NAME) -DK2=$(K2_NAME) -DK3=$(K3_NAME) -DK4=$(K4_NAME) -DK5=$(K5_NAME) -DK6=$(K6_NAME)
 # Kernel flags
