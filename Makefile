@@ -52,7 +52,8 @@ K3_NAME="perform_LS"
 K4_NAME="gpu_gen_and_eval_newpops"
 K5_NAME="gradient_minSD"
 K6_NAME="gradient_minFire"
-K_NAMES=-DK1=$(K1_NAME) -DK2=$(K2_NAME) -DK3=$(K3_NAME) -DK4=$(K4_NAME) -DK5=$(K5_NAME) -DK6=$(K6_NAME)
+K7_NAME="gradient_minAD"
+K_NAMES=-DK1=$(K1_NAME) -DK2=$(K2_NAME) -DK3=$(K3_NAME) -DK4=$(K4_NAME) -DK5=$(K5_NAME) -DK6=$(K6_NAME) -DK7=$(K7_NAME)
 # Kernel flags
 KFLAGS=-DKRNL_SOURCE=$(KRNL_DIR)/$(KRNL_MAIN) -DKRNL_DIRECTORY=$(KRNL_DIR) -DKCMN_DIRECTORY=$(KCMN_DIR) $(K_NAMES)
 
@@ -206,7 +207,7 @@ PDB      := 3ce3
 NRUN     := 100
 POPSIZE  := 150
 TESTNAME := test
-TESTLS   := sw
+TESTLS   := ad
 
 
 test: odock

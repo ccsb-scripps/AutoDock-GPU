@@ -34,6 +34,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define KRNL4 STRINGIZE(K4)
 #define KRNL5 STRINGIZE(K5)
 #define KRNL6 STRINGIZE(K6)
+#define KRNL7 STRINGIZE(K7)
 
 #else
 #define KRNL_FILE KRNL_SOURCE
@@ -45,6 +46,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define KRNL4 K4
 #define KRNL5 K5
 #define KRNL6 K6
+#define KRNL7 K7
 #endif
 
 #define INC " -I " KRNL_FOLDER " -I " KRNL_COMMON
@@ -154,6 +156,9 @@ filled with clock() */
 	cl_kernel kernel6; const char *name_k6 = KRNL6;
 	size_t kernel6_gxsize, kernel6_lxsize;
 
+	cl_kernel kernel7; const char *name_k7 = KRNL7;
+	size_t kernel7_gxsize, kernel7_lxsize;
+
 	cl_uint platformCount;
 	cl_uint deviceCount;
 
@@ -181,6 +186,7 @@ filled with clock() */
 	if (ImportSource(filename, name_k4, device_id, context, options_program, &kernel4) != 0) return 1;
 	if (ImportSource(filename, name_k5, device_id, context, options_program, &kernel5) != 0) return 1;
 	if (ImportSource(filename, name_k6, device_id, context, options_program, &kernel6) != 0) return 1;
+	if (ImportSource(filename, name_k7, device_id, context, options_program, &kernel7) != 0) return 1;
 #else
 	if (ImportSourceToProgram(calcenergy_ocl, device_id, context, &program, options_program) != 0) return 1;
 #endif
@@ -192,6 +198,7 @@ filled with clock() */
 	if (createKernel(device_id, &program, name_k4, &kernel4) != 0) return 1;
 	if (createKernel(device_id, &program, name_k5, &kernel5) != 0) return 1;
 	if (createKernel(device_id, &program, name_k6, &kernel6) != 0) return 1;
+	if (createKernel(device_id, &program, name_k7, &kernel7) != 0) return 1;
 
 // End of OpenCL Host Setup
 // =======================================================================
@@ -528,9 +535,10 @@ filled with clock() */
 	
 	printf("Local-search chosen method is: %s\n", (dockpars.lsearch_rate == 0.0f)? "GA" :
 						      (
-						      (strcmp(mypars->ls_method, "sw")   == 0)?"Solis-Wets":
-						      (strcmp(mypars->ls_method, "sd")   == 0)?"Steepest descent": 
-						      (strcmp(mypars->ls_method, "fire") == 0)?"Fire": "Unknown")
+						      (strcmp(mypars->ls_method, "sw")   == 0)?"Solis-Wets (SW)":
+						      (strcmp(mypars->ls_method, "sd")   == 0)?"Steepest-Descent (SD)": 
+						      (strcmp(mypars->ls_method, "fire") == 0)?"Fire":
+						      (strcmp(mypars->ls_method, "ad") == 0)?"Ada-Delta (AD)": "Unknown")
 						      );
 
 	/*
@@ -698,7 +706,7 @@ filled with clock() */
 			kernel3_gxsize = blocksPerGridForEachLSEntity * threadsPerBlock;
 			kernel3_lxsize = threadsPerBlock;
   			#ifdef DOCK_DEBUG
-	  		printf("%-25s %10s %8u %10s %4u\n", "K_LOCAL_SEARCH: ", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
+	  		printf("%-25s %10s %8u %10s %4u\n", "K_SOLIS_WETS: ", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
   			#endif
 			// End of Kernel3
 		} else if (strcmp(mypars->ls_method, "sd") == 0) {
@@ -744,7 +752,7 @@ filled with clock() */
   			kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
   			kernel5_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MINIMIZER: ", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
+			printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MIN_SD: ", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel5
 		} else if (strcmp(mypars->ls_method, "fire") == 0) {
@@ -789,9 +797,54 @@ filled with clock() */
   			kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
   			kernel6_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MINFIRE: ", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
+			printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MIN_FIRE: ", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel6
+		} else if (strcmp(mypars->ls_method, "ad") == 0) {
+			// Kernel6
+  			setKernelArg(kernel7,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
+  			setKernelArg(kernel7,1, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
+  			setKernelArg(kernel7,2, sizeof(dockpars.num_of_intraE_contributors),     &dockpars.num_of_intraE_contributors);
+  			setKernelArg(kernel7,3, sizeof(dockpars.gridsize_x),                     &dockpars.gridsize_x);
+  			setKernelArg(kernel7,4, sizeof(dockpars.gridsize_y),                     &dockpars.gridsize_y);
+  			setKernelArg(kernel7,5, sizeof(dockpars.gridsize_z),                     &dockpars.gridsize_z);
+  			setKernelArg(kernel7,6, sizeof(g2),                    		   	 &g2);
+  			setKernelArg(kernel7,7, sizeof(g3),                    		   	 &g3);
+  			setKernelArg(kernel7,8, sizeof(dockpars.grid_spacing),                   &dockpars.grid_spacing);
+  			setKernelArg(kernel7,9, sizeof(mem_dockpars_fgrids),                     &mem_dockpars_fgrids);
+  			setKernelArg(kernel7,10,sizeof(dockpars.rotbondlist_length),             &dockpars.rotbondlist_length);
+  			setKernelArg(kernel7,11,sizeof(dockpars.coeff_elec),                     &dockpars.coeff_elec);
+  			setKernelArg(kernel7,12,sizeof(dockpars.coeff_desolv),                   &dockpars.coeff_desolv);
+  			setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_next),         &mem_dockpars_conformations_next);
+  			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_next),              &mem_dockpars_energies_next);
+  			setKernelArg(kernel7,15,sizeof(mem_dockpars_evals_of_new_entities),      &mem_dockpars_evals_of_new_entities);
+  			setKernelArg(kernel7,16,sizeof(mem_dockpars_prng_states),                &mem_dockpars_prng_states);
+  			setKernelArg(kernel7,17,sizeof(dockpars.pop_size),                       &dockpars.pop_size);
+  			setKernelArg(kernel7,18,sizeof(dockpars.num_of_genes),                   &dockpars.num_of_genes);
+  			setKernelArg(kernel7,19,sizeof(dockpars.lsearch_rate),                   &dockpars.lsearch_rate);
+  			setKernelArg(kernel7,20,sizeof(dockpars.num_of_lsentities),              &dockpars.num_of_lsentities);
+  			setKernelArg(kernel7,21,sizeof(dockpars.max_num_of_iters),               &dockpars.max_num_of_iters);
+  			setKernelArg(kernel7,22,sizeof(dockpars.qasp),                           &dockpars.qasp);
+  			setKernelArg(kernel7,23,sizeof(dockpars.smooth),                         &dockpars.smooth);
+
+	  		setKernelArg(kernel7,24,sizeof(mem_interintra_const),                 	 &mem_interintra_const);
+		  	setKernelArg(kernel7,25,sizeof(mem_intracontrib_const),          	 &mem_intracontrib_const);
+	  		setKernelArg(kernel7,26,sizeof(mem_intra_const),                         &mem_intra_const);
+	  		setKernelArg(kernel7,27,sizeof(mem_rotlist_const),                       &mem_rotlist_const);
+	  		setKernelArg(kernel7,28,sizeof(mem_conform_const),                 	 &mem_conform_const);
+
+  			setKernelArg(kernel7,29,sizeof(mem_rotbonds_const),         		 &mem_rotbonds_const);
+  			setKernelArg(kernel7,30,sizeof(mem_rotbonds_atoms_const),   		 &mem_rotbonds_atoms_const);
+  			setKernelArg(kernel7,31,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
+  			setKernelArg(kernel7,32,sizeof(mem_angle_const),			 &mem_angle_const);
+  			setKernelArg(kernel7,33,sizeof(mem_dependence_on_theta_const),		 &mem_dependence_on_theta_const);
+  			setKernelArg(kernel7,34,sizeof(mem_dependence_on_rotangle_const),	 &mem_dependence_on_rotangle_const);
+  			kernel7_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
+  			kernel7_lxsize = threadsPerBlock;
+			#ifdef DOCK_DEBUG
+			printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MIN_AD: ", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
+			#endif
+			// End of Kernel7
 		}
 	} // End if (dockpars.lsearch_rate != 0.0f)
 
@@ -872,7 +925,7 @@ filled with clock() */
 		if (strcmp(mypars->ls_method, "sw") == 0) {
 			// Kernel3
 			#ifdef DOCK_DEBUG
-				printf("%-25s", "K_LOCAL_SEARCH: ");fflush(stdout);
+				printf("%-25s", "K_SOLIS_WETS: ");fflush(stdout);
 			#endif
 				runKernel1D(command_queue,kernel3,kernel3_gxsize,kernel3_lxsize,&time_start_kernel,&time_end_kernel);
 			#ifdef DOCK_DEBUG
@@ -883,7 +936,7 @@ filled with clock() */
 		} else if (strcmp(mypars->ls_method, "sd") == 0) {
 			// Kernel5
 			#ifdef DOCK_DEBUG
-				printf("%-25s", "K_GRAD_MINIMIZER: ");fflush(stdout);
+				printf("%-25s", "K_GRAD_MIN_SD: ");fflush(stdout);
 			#endif
 				runKernel1D(command_queue,kernel5,kernel5_gxsize,kernel5_lxsize,&time_start_kernel,&time_end_kernel);
 			#ifdef DOCK_DEBUG
@@ -894,13 +947,24 @@ filled with clock() */
 		} else if (strcmp(mypars->ls_method, "fire") == 0) {
 			// Kernel6
 			#ifdef DOCK_DEBUG
-				printf("%-25s", "K_GRAD_MINFIRE: ");fflush(stdout);
+				printf("%-25s", "K_GRAD_MIN_FIRE: ");fflush(stdout);
 			#endif
 				runKernel1D(command_queue,kernel6,kernel6_gxsize,kernel6_lxsize,&time_start_kernel,&time_end_kernel);
 			#ifdef DOCK_DEBUG
 				printf("%15s" ," ... Finished\n");fflush(stdout);
 			#endif
 			// End of Kernel6
+
+		} else if (strcmp(mypars->ls_method, "ad") == 0) {
+			// Kernel7
+			#ifdef DOCK_DEBUG
+				printf("%-25s", "K_GRAD_MIN_AD: ");fflush(stdout);
+			#endif
+				runKernel1D(command_queue,kernel7,kernel7_gxsize,kernel7_lxsize,&time_start_kernel,&time_end_kernel);
+			#ifdef DOCK_DEBUG
+				printf("%15s" ," ... Finished\n");fflush(stdout);
+			#endif
+			// End of Kernel7
 		}
 	} // End if (dockpars.lsearch_rate != 0.0f)
 
@@ -965,6 +1029,10 @@ filled with clock() */
 						// Kernel 6
 			     			setKernelArg(kernel6,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
 			      			setKernelArg(kernel6,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
+				} else if (strcmp(mypars->ls_method, "ad") == 0) {
+						// Kernel 7
+			     			setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
+			      			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
 				}
 			} // End if (dockpars.lsearch_rate != 0.0f)
 		}
@@ -988,6 +1056,10 @@ filled with clock() */
 					// Kernel 6
 					setKernelArg(kernel6,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
 		      			setKernelArg(kernel6,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
+				} else if (strcmp(mypars->ls_method, "ad") == 0) {
+					// Kernel 7
+					setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
+		      			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
 				}
 			} // End if (dockpars.lsearch_rate != 0.0f)
 		}
@@ -1123,6 +1195,7 @@ filled with clock() */
 	clReleaseKernel(kernel4);
 	clReleaseKernel(kernel5);
 	clReleaseKernel(kernel6);
+	clReleaseKernel(kernel7);
 
 	clReleaseProgram(program);
 

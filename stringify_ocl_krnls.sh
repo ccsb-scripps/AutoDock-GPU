@@ -21,6 +21,7 @@ IN_KERNEL4=$KERNEL_DIR/"kernel4.cl"
 IN_KERNELb=$KERNEL_DIR/"calcgradient.cl"
 IN_KERNEL5=$KERNEL_DIR/"kernel_sd.cl"
 IN_KERNEL6=$KERNEL_DIR/"kernel_fire.cl"
+IN_KERNEL7=$KERNEL_DIR/"kernel_ad.cl"
 
 echo " "
 echo "Stringified input kernel-files: "
@@ -33,6 +34,7 @@ echo $IN_KERNEL4
 echo $IN_KERNELb
 echo $IN_KERNEL5
 echo $IN_KERNEL6
+echo $IN_KERNEL7
 
 # output file
 OUT=host/inc/stringify.h
@@ -61,6 +63,7 @@ sed 's/\\/\\\\/g;s/"/\\"/g;s/^/"/;s/$/\\n"/' $IN_KERNEL4 >> $TMP
 sed 's/\\/\\\\/g;s/"/\\"/g;s/^/"/;s/$/\\n"/' $IN_KERNELb >> $TMP
 sed 's/\\/\\\\/g;s/"/\\"/g;s/^/"/;s/$/\\n"/' $IN_KERNEL5 >> $TMP
 sed 's/\\/\\\\/g;s/"/\\"/g;s/^/"/;s/$/\\n"/' $IN_KERNEL6 >> $TMP
+sed 's/\\/\\\\/g;s/"/\\"/g;s/^/"/;s/$/\\n"/' $IN_KERNEL7 >> $TMP
 echo ";" >>$TMP
 
 echo "#endif // End of STRINGIFY_H" >>$TMP

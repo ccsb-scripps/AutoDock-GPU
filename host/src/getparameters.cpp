@@ -293,6 +293,8 @@ void get_commandpars(const int* argc,
 		//Argument: local search method: 
 		// "sw": Solis-Wetts
 		// "sd": Steepest-Descent
+		// "fire": FIRE
+		// "ad": Ada-Delta
 		// "bfgs": Broyden-Fletcher-Goldfarb-Shanno (to be implemented)
 		if (strcmp("-lsmet", argv [i]) == 0)
 		{
@@ -314,8 +316,12 @@ void get_commandpars(const int* argc,
 				strcpy(mypars->ls_method, temp);
 				//mypars->max_num_of_iters = 30;
 			}
+			else if (strcmp(temp, "ad") == 0) {
+				strcpy(mypars->ls_method, temp);
+				//mypars->max_num_of_iters = 30;
+			}
 			else {
-				printf("Warning: value of -lsmet argument ignored. Value must be a valid string: \"sw\", \"sd\", \"fire\".\n");
+				printf("Warning: value of -lsmet argument ignored. Value must be a valid string: \"sw\", \"sd\", \"fire\", \"ad\".\n");
 			}
 		}
 
