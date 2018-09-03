@@ -167,29 +167,30 @@ gradient_minSD(
 
 	// Enable this for debugging SD from a defined initial genotype
 	#if defined (DEBUG_INITIAL_2BRT)
-	// 2brt
-	genotype[0] = 24.093334;
-	genotype[1] = 24.658667;
-	genotype[2] = 24.210667;
-	genotype[3] = 50.0;
-	genotype[4] = 50.0;
-	genotype[5] = 50.0;
-	genotype[6] = 0.0f;
-	genotype[7] = 0.0f;
-	genotype[8] = 0.0f;
-	genotype[9] = 0.0f;
-	genotype[10] = 0.0f;
-	genotype[11] = 0.0f;
-	genotype[12] = 0.0f;
-	genotype[13] = 0.0f;
-	genotype[14] = 0.0f;
-	genotype[15] = 0.0f;
-	genotype[16] = 0.0f;
-	genotype[17] = 0.0f;
-	genotype[18] = 0.0f;
-	genotype[19] = 0.0f;
-	genotype[20] = 0.0f;
-
+	if (get_local_id(0) == 0) {
+		// 2brt
+		genotype[0] = 24.093334;
+		genotype[1] = 24.658667;
+		genotype[2] = 24.210667;
+		genotype[3] = 50.0;
+		genotype[4] = 50.0;
+		genotype[5] = 50.0;
+		genotype[6] = 0.0f;
+		genotype[7] = 0.0f;
+		genotype[8] = 0.0f;
+		genotype[9] = 0.0f;
+		genotype[10] = 0.0f;
+		genotype[11] = 0.0f;
+		genotype[12] = 0.0f;
+		genotype[13] = 0.0f;
+		genotype[14] = 0.0f;
+		genotype[15] = 0.0f;
+		genotype[16] = 0.0f;
+		genotype[17] = 0.0f;
+		genotype[18] = 0.0f;
+		genotype[19] = 0.0f;
+		genotype[20] = 0.0f;
+	}
 	// Evaluating candidate
 	barrier(CLK_LOCAL_MEM_FENCE);
 

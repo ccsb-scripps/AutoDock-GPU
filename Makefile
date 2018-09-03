@@ -207,7 +207,7 @@ PDB      := 3ce3
 NRUN     := 100
 POPSIZE  := 150
 TESTNAME := test
-TESTLS   := ad
+TESTLS   := sw
 
 
 test: odock
