@@ -11,6 +11,8 @@
 #define RHO		0.9f
 #define EPSILON 	1e-6
 
+// Enabling "DEBUG_ENERGY_ADADELTA" requires
+// manually enabling "DEBUG_ENERGY_KERNEL" in calcenergy.cl
 //#define DEBUG_ENERGY_ADADELTA
 	//#define PRINT_ADADELTA_ENERGIES
 	//#define PRINT_ADADELTA_GENES_AND_GRADS
