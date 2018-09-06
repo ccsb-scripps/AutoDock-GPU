@@ -577,7 +577,7 @@ if (get_local_id (0) == 0) {
 
 			#if defined (DEBUG_ENERGY_KERNEL)
 			partial_intraE[get_local_id(0)] += native_divide (
-		                                                     dockpars_coeff_elec * kerconst_interintra->kerconst_interintra->atom_charges_const[atom1_id] * kerconst_interintra->atom_charges_const[atom2_id],
+		                                                     dockpars_coeff_elec * kerconst_interintra->atom_charges_const[atom1_id] * kerconst_interintra->atom_charges_const[atom2_id],
 		                                                     atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
 		                                                     );
 			#endif
