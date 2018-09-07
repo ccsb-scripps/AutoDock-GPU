@@ -8,8 +8,10 @@
 // "epsilon":  to better condition the square root
 
 // Adadelta parameters (TODO: to be moved to header file?)
-#define RHO		0.9f
-#define EPSILON 	1e-6
+//#define RHO		0.9f
+//#define EPSILON 	1e-6
+#define RHO		0.8f
+#define EPSILON 	1e-2
 
 // Enabling "DEBUG_ENERGY_ADADELTA" requires
 // manually enabling "DEBUG_ENERGY_KERNEL" in calcenergy.cl
@@ -17,12 +19,13 @@
 	//#define PRINT_ADADELTA_ENERGIES
 	//#define PRINT_ADADELTA_GENES_AND_GRADS
 	//#define PRINT_ADADELTA_ATOMIC_COORDS
+	//#define DEBUG_SQDELTA_ADADELTA
 
 // Enable DEBUG_ADADELTA_MINIMIZER for a seeing a detailed ADADELTA evolution
 // If only PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION is enabled,
 // then a only a simplified ADADELTA evolution will be shown
 //#define DEBUG_ADADELTA_MINIMIZER
-//	#define PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION
+	//#define PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION
 
 // Enable this for debugging ADADELTA from a defined initial genotype
 //#define DEBUG_ADADELTA_INITIAL_2BRT
@@ -202,6 +205,62 @@ gradient_minAD(
 		genotype[18] = 0.0f;
 		genotype[19] = 0.0f;
 		genotype[20] = 0.0f;
+	}
+	// Evaluating candidate
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	// =============================================================
+	gpu_calc_energy(dockpars_rotbondlist_length,
+			dockpars_num_of_atoms,
+			dockpars_gridsize_x,
+			dockpars_gridsize_y,
+			dockpars_gridsize_z,
+							    	// g1 = gridsize_x
+			dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+			dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
+			dockpars_fgrids,
+			dockpars_num_of_atypes,
+			dockpars_num_of_intraE_contributors,
+			dockpars_grid_spacing,
+			dockpars_coeff_elec,
+			dockpars_qasp,
+			dockpars_coeff_desolv,
+			dockpars_smooth,
+
+			genotype, /*WARNING: calculating the energy of the hardcoded genotype*/
+			&energy,
+			&run_id,
+			// Some OpenCL compilers don't allow declaring 
+			// local variables within non-kernel functions.
+			// These local variables must be declared in a kernel, 
+			// and then passed to non-kernel functions.
+			calc_coords_x,
+			calc_coords_y,
+			calc_coords_z,
+			partial_energies,
+			#if defined (DEBUG_ENERGY_KERNEL)
+			partial_interE,
+			partial_intraE,
+			#endif
+#if 0
+			true,
+#endif
+			kerconst_interintra,
+			kerconst_intracontrib,
+			kerconst_intra,
+			kerconst_rotlist,
+			kerconst_conform			
+			);
+	// =============================================================
+
+	// WARNING: hardcoded has priority over LGA genotype.
+	// That means, if DEBUG_INITIAL_2BRT is defined, then
+	// LGA genotype is not used (only for debugging purposes)
+	if (get_local_id(0) == 0)
+	{
+		printf("\n");
+		printf("%20s \n", "hardcoded genotype: ");
+		printf("%20s %.6f\n", "initial energy: ", energy);		
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	#endif
@@ -436,7 +495,7 @@ gradient_minAD(
 
 				#if defined (DEBUG_ADADELTA_MINIMIZER)
 				if (i == 0) {
-					printf("%s\n", "Energy IMPROVED! ... then update genotype:");
+					printf("\n%s\n", "Energy IMPROVED! ... then update genotype:");
 					printf("%13s %13s %13s\n", "gene_id", "old.gene", "new.gene");
 				}
 				printf("%13u %13.6f %13.6f\n", i, best_genotype[i], genotype[i]);
@@ -445,6 +504,7 @@ gradient_minAD(
 				if (i == 0) {
 					#if defined (DEBUG_ADADELTA_MINIMIZER)
 					printf("\n%s\n", "Energy IMPROVED! ... then update energy:");
+					printf("%20s %10.6f\n", "new.energy: ", energy);
 					#endif
 
 					// Updating energy
@@ -486,6 +546,32 @@ gradient_minAD(
 			genotype[i] = genotype[i] + delta[i];
 	   	}
 		barrier(CLK_LOCAL_MEM_FENCE);
+
+
+
+
+
+
+
+		#if defined (DEBUG_SQDELTA_ADADELTA)
+		if (/*(get_group_id(0) == 0) &&*/ (get_local_id(0) == 0)) {
+			for(uint i = 0; i < dockpars_num_of_genes; i++) {
+				if (i == 0) {
+					printf("\n%s\n", "----------------------------------------------------------");
+					printf("%13s %20s %15s %15s %15s\n", "gene", "sq_grad", "delta", "sq_delta", "new.genotype");
+				}
+				printf("%13u %20.6f %15.6f %15.6f %15.6f\n", i, square_gradient[i], delta[i], square_delta[i], genotype[i]);
+			}
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+		#endif
+
+
+
+
+
+
+
 
 		// Updating number of ADADELTA iterations (energy evaluations)
 		if (get_local_id(0) == 0) {
