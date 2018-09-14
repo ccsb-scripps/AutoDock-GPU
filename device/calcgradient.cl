@@ -40,6 +40,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define ENABLE_PARALLEL_GRAD_TORSION
 
+// The following is a scaling of gradients.
+// Initially all genotypes and gradients
+// were expressed in grid-units (translations)
+// and sexagesimal degrees (rotation and torsion angles).
+// Expressing them using angstroms / radians
+// might help gradient-based minimizers.
+// This conversion is applied to final gradients.
+#define CONVERT_INTO_ANGSTROM_RADIAN
+
+// Scaling factor to multiply the gradients of 
+// the genes expressed in degrees (all genes except the first three) 
+// (GRID-SPACING * GRID-SPACING) / (DEG_TO_RAD * DEG_TO_RAD) = 461.644
+#define SCFACTOR_ANGSTROM_RADIAN ((0.375 * 0.375)/(DEG_TO_RAD * DEG_TO_RAD))
+
 void map_priv_angle(float* angle)
 // The GPU device function maps
 // the input parameter to the interval 0...360
@@ -1332,4 +1346,16 @@ void gpu_calc_gradient(
 	//----------------------------------
 
 	barrier(CLK_LOCAL_MEM_FENCE);
+
+	#if defined (CONVERT_INTO_ANGSTROM_RADIAN)
+	for (uint gene_cnt = get_local_id(0);
+		  gene_cnt < dockpars_num_of_genes;
+		  gene_cnt+= NUM_OF_THREADS_PER_BLOCK) {
+
+		if (gene_cnt > 2) {
+			gradient_genotype[gene_cnt] *= SCFACTOR_ANGSTROM_RADIAN;
+		}
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	#endif
 }
