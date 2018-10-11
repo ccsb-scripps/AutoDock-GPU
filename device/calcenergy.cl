@@ -23,7 +23,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 //#define DEBUG_ENERGY_KERNEL
 
+// No needed to be included as all kernel sources are stringified
+#if 0
 #include "calcenergy_basic.h"
+#endif
 
 typedef struct
 {
@@ -689,6 +692,8 @@ if (get_local_id (0) == 0) {
 
 }
 
+// No needed to be included as all kernel sources are stringified
+#if 0
 #include "kernel1.cl"
 #include "kernel2.cl"
 #include "auxiliary_genetic.cl"
@@ -698,3 +703,6 @@ if (get_local_id (0) == 0) {
 #include "kernel_sd.cl"
 #include "kernel_fire.cl"
 #include "kernel_ad.cl"
+#include "calcEnerGrad.cl"
+#endif
+
