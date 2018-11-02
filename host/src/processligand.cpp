@@ -781,11 +781,8 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 		if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))		//if new atom, looking for open rotatable bonds
 		{
 			for (i=0; i<branch_counter; i++)	//for all branches found until now
-				if (branches [i][2] == 0)	//in this case the rotatable bond is not open yet (this atom hasn't
-					branches [i][2] = 1;	//to be rotated, but the next has to), so let's make it open
-				else
-					if (branches [i][2] == 1)	//if it is open, the atom has to be rotated
-						atom_rotbonds_temp [atom_counter][i] = 1;	//modifying atom_rotbonds_temp
+				if (branches [i][2] == 1)	//if it is open, the atom has to be rotated
+					atom_rotbonds_temp [atom_counter][i] = 1;	//modifying atom_rotbonds_temp
 					/*else it is 2, so it is closed, so nothing to be done...*/
 
 			myligand->atom_rigid_structures [atom_counter] = current_rigid_struct_id;	//using the id of the current rigid structure
@@ -814,9 +811,9 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			fscanf(fp, "%d", &(branches [branch_counter][1]));
 			(branches [branch_counter][0])--;	//atom IDs start from 0 instead of 1
 			(branches [branch_counter][1])--;
-			branches [branch_counter][2] = 0;	//0 indicates, that the next atom that will be found in the file
-												//hasn't to be rotated around this bond (it is the bond's atom),
-												//so the branch is not open yet
+
+			branches [branch_counter][2] = 1;	// 1 means the branch is open, atoms will be rotated
+
 			branch_counter++;
 
 			reserved_highest_rigid_struct_id++;		//next ID is reserved
