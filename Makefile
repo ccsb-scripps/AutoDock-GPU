@@ -191,12 +191,25 @@ check-env-gpu:
 
 check-env-all: check-env-dev check-env-cpu check-env-gpu
 
+# ------------------------------------------------------
+# Priting out its git version hash
+
+GIT_VERSION := $(shell git describe --abbrev=7 --dirty --always --tags)
+
+CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
+
+# ------------------------------------------------------
+
 stringify:
 	./stringify_ocl_krnls.sh
 
 odock: check-env-all stringify $(SRC)
-	g++ $(SRC) $(CFLAGS) -lOpenCL -o$(BIN_DIR)/$(TARGET) $(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
-
+	g++ \
+	$(SRC) \
+	$(CFLAGS) \
+	-lOpenCL \
+	-o$(BIN_DIR)/$(TARGET) \
+	$(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
 
 # Example
 # 1ac8: for testing gradients of translation and rotation genes
@@ -209,9 +222,15 @@ POPSIZE  := 150
 TESTNAME := test
 TESTLS   := sw
 
-
 test: odock
-	$(BIN_DIR)/$(TARGET) -ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld -lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt -nrun $(NRUN) -psize $(POPSIZE) -resnam $(TESTNAME) -gfpop 0 -lsmet $(TESTLS)
+	$(BIN_DIR)/$(TARGET) \
+	-ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld \
+	-lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt \
+	-nrun $(NRUN) \
+	-psize $(POPSIZE) \
+	-resnam $(TESTNAME) \
+	-gfpop 0 \
+	-lsmet $(TESTLS)
 
 ASTEX_PDB := 2bsm
 ASTEX_NRUN:= 10
@@ -220,8 +239,14 @@ ASTEX_TESTNAME := test_astex
 ASTEX_LS := sw
 
 astex: odock
-	$(BIN_DIR)/$(TARGET) -ffile ./input_tsri/search-set-astex/$(ASTEX_PDB)/protein.maps.fld -lfile ./input_tsri/search-set-astex/$(ASTEX_PDB)/flex-xray.pdbqt -nrun $(ASTEX_NRUN) -psize $(ASTEX_POPSIZE) -resnam $(ASTEX_TESTNAME) -gfpop 1 -lsmet $(ASTEX_LS)
-
+	$(BIN_DIR)/$(TARGET) \
+	-ffile ./input_tsri/search-set-astex/$(ASTEX_PDB)/protein.maps.fld \
+	-lfile ./input_tsri/search-set-astex/$(ASTEX_PDB)/flex-xray.pdbqt \
+	-nrun $(ASTEX_NRUN) \
+	-psize $(ASTEX_POPSIZE) \
+	-resnam $(ASTEX_TESTNAME) \
+	-gfpop 1 \
+	-lsmet $(ASTEX_LS)
 
 #	$(BIN_DIR)/$(TARGET) -ffile ./input_tsri/search-set-astex/$(ASTEX_PDB)/protein.maps.fld -lfile ./input_tsri/search-set-astex/$(ASTEX_PDB)/flex-xray.pdbqt -nrun $(ASTEX_NRUN) -psize $(ASTEX_POPSIZE) -resnam $(ASTEX_TESTNAME) -gfpop 1 | tee ./input_tsri/search-set-astex/intrapairs/$(ASTEX_PDB)_intrapair.txt
 
