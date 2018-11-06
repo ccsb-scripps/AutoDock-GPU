@@ -707,9 +707,9 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 	int atom_counter;
 	int branch_counter;
 	int endbranch_counter;
-	int branches [32][3];
+	int branches [MAX_NUM_OF_ROTBONDS][3];
 	int i,j,k;
-	char atom_rotbonds_temp [256][32];
+	char atom_rotbonds_temp [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ROTBONDS];
 	int current_rigid_struct_id, reserved_highest_rigid_struct_id;
 
 	atom_counter = 0;
@@ -757,7 +757,7 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 	//filling atom_rotbonds_temp with 0s
 	for (i=0; i<myligand->num_of_atoms; i++)
 	{
-		for (j=0; j<16; j++)
+		for (j=0; j<MAX_NUM_OF_ROTBONDS; j++)
 			atom_rotbonds_temp [i][j] = 0;
 	}
 
