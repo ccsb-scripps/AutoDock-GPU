@@ -54,10 +54,8 @@ void arrange_result(float* final_population, float* energies, const int pop_size
 void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* mypars, const Gridinfo* mygrid, const int* argc, char** argv)
 //The function writes basic information (such as docking parameters) to the file whose file pointer is the first parameter of the function.
 {
-
 	char temp_filename [128];
 	int i;
-
 
 	fprintf(fp, "***********************************\n");
 	fprintf(fp, "**      OCLADOCK REPORT FILE     **\n");
@@ -110,7 +108,6 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 		fprintf(fp, "%s ", argv [i]);
 	fprintf(fp, "\n\n\n");
 
-
 	//Writing out receptor parameters
 
 	fprintf(fp, "        RECEPTOR PARAMETERS        \n");
@@ -121,7 +118,6 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 	fprintf(fp, "Grid size (x, y, z):                       %lf, %lf, %lfA\n", mygrid->size_xyz_angstr [0], mygrid->size_xyz_angstr [1], mygrid->size_xyz_angstr [2]);
 	fprintf(fp, "Grid spacing:                              %lfA\n", mygrid->spacing);
 	fprintf(fp, "\n\n");
-
 
 	//Writing out ligand parameters
 
@@ -141,16 +137,13 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 	fprintf(fp, "Number of rotation cycles:                 %d\n", ligand_ref->num_of_rotcyc);
 
 	fprintf(fp, "\n\n");
-
 }
 
 void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars* mypars, const Gridinfo* mygrid, const int* argc, char** argv)
 //The function writes basic information (such as docking parameters) to the file whose file pointer is the first parameter of the function.
 {
-
 	char temp_filename [128];
 	int i;
-
 
 	fprintf(fp, "**********************************************************\n");
 	fprintf(fp, "**      OCLADOCK AUTODOCKTOOLS-COMPATIBLE DLG FILE      **\n");
@@ -194,7 +187,6 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	for (i=0; i<*argc; i++)
 		fprintf(fp, "%s ", argv [i]);
 	fprintf(fp, "\n\n\n");
-
 
 	//Writing out receptor parameters
 
@@ -257,13 +249,10 @@ void make_resfiles(float* final_population, float* energies, const Liganddata* l
 
 	int pop_size = mypars->pop_size;
 
-
 	sprintf(temp_filename, "final_population_run%d.txt", run_cnt+1);
 
 	if (mypars->gen_finalpop != 0)	//if final population files are not required, no file will be opened.
 	{
-
-
 		fp = fopen(temp_filename, "w");
 
 		write_basic_info(fp, ligand_ref, mypars, mygrid, argc, argv);	//Write basic information about docking and molecule parameters to file
@@ -273,7 +262,6 @@ void make_resfiles(float* final_population, float* energies, const Liganddata* l
 		fprintf(fp, "Number of energy evaluations performed:    %ld\n", evals_performed);
 		fprintf(fp, "Number of generations used:                %ld\n", generations_used);
 		fprintf(fp, "\n\n");
-
 	}
 
 	//Writing out state of final population
@@ -307,7 +295,7 @@ void make_resfiles(float* final_population, float* energies, const Liganddata* l
 			#endif
 			accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp, debug);
 
-		move_ligand(&temp_docked, mygrid->origo_real_xyz);				//moving it according to grid location
+		move_ligand(&temp_docked, mygrid->origo_real_xyz);					//moving it according to grid location
 		entity_rmsds [i] = calc_rmsd(ligand_from_pdb, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original pdb file
 
 		//copying best result to output parameter

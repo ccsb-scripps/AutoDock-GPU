@@ -39,7 +39,6 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 	//char* filename = basename(ts1);
 
 	#ifndef _WIN32
-	// OCLADock
 	char* ts1 = strdup(fldfilename);
 	mygrid->grid_file_path = dirname(ts1);
 	#else
@@ -168,7 +167,6 @@ int get_gridvalues_f(const Gridinfo* mygrid, float** fgrids)
 		strcat(tempstr, "/");
 		strcat(tempstr, mygrid->receptor_name);
 		
-		// OCLADock
 		//strcpy(tempstr, mygrid->receptor_name);
 		//-------------------------------------
 		strcat(tempstr, ".");

@@ -21,7 +21,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
-
 #include "getparameters.h"
 
 int get_filenames_and_ADcoeffs(const int* argc,
@@ -229,7 +228,6 @@ void get_commandpars(const int* argc,
 			else
 				printf("Warning: value of -dang argument ignored. Value must be a float between 0 and 180.\n");
 		}
-
 
 		//Argument: mutation rate. Must be a float between 0 and 100.
 		//Means the rate of mutations (cca) in percent.
@@ -576,7 +574,6 @@ void get_commandpars(const int* argc,
 		}
 		if (arg_recognized != 1)
 			printf("Warning: unknown argument '%s'.\n", argv [i]);
-
 	}
 
 	//validating some settings

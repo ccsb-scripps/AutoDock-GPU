@@ -123,21 +123,6 @@ void vec_point2line(const double point [], const double line_pointA [], const do
 		vec [i] = proj_of_point [i] - point [i];
 }
 
-// -------------------------------------------------------------------
-// L30nardoSV
-// Replacing rotation genes: from spherical space to Shoemake space
-// gene [0:2]: translation -> kept as original x, y, z
-// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
-// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
-
-// Shoemake ranges:
-// u1: [0, 1]
-// u2: [0: 2PI] or [0: 360]
-
-// Random generator in the host is changed:
-// LCG (original, myrand()) -> CPP std (rand())
-// -------------------------------------------------------------------
-
 void rotate(double point [], const double movvec [], const double normvec [], const double* angle, int debug)
 //The function rotates the point given by the first parameter around an axis
 //which is parallel to vector normvec and which
@@ -169,10 +154,9 @@ void rotate(double point [], const double movvec [], const double normvec [], co
 	//q^-1 = quater_w-i*quater_x-j*quater_y-k*quater_z
 	//and * is the quaternion multiplication defined as follows:
 	//(a1+i*b1+j*c1+k*d1)*(a2+i*b2+j*c2+k*d2) = (a1a2-b1b2-c1c2-d1d2)+
-	//										  	i*(a1b2+a2b1+c1d2-c2d1)+
-	//											j*(a1c2+a2c1+b2d1-b1d2)+
-	//											k*(a1d2+a2d1+b1c2-b2c1)
-	//
+	//i*(a1b2+a2b1+c1d2-c2d1)+
+	//j*(a1c2+a2c1+b2d1-b1d2)+
+	//k*(a1d2+a2d1+b1c2-b2c1)
 
 	anglediv2 = (*angle)/2/180*PI;
 	cos_anglediv2 = cos(anglediv2);
@@ -252,6 +236,19 @@ void rotate(double point [], const double movvec [], const double normvec [], co
 }
 
 #if 0
+// -------------------------------------------------------------------
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
 void rotate_shoemake(double point [], 
 		    const double movvec [], 
 		    const double shoemake [],
@@ -293,10 +290,9 @@ void rotate_shoemake(double point [],
 	//q^-1 = quater_w-i*quater_x-j*quater_y-k*quater_z
 	//and * is the quaternion multiplication defined as follows:
 	//(a1+i*b1+j*c1+k*d1)*(a2+i*b2+j*c2+k*d2) = (a1a2-b1b2-c1c2-d1d2)+
-	//										  	i*(a1b2+a2b1+c1d2-c2d1)+
-	//											j*(a1c2+a2c1+b2d1-b1d2)+
-	//											k*(a1d2+a2d1+b1c2-b2c1)
-	//
+	//i*(a1b2+a2b1+c1d2-c2d1)+
+	//j*(a1c2+a2c1+b2d1-b1d2)+
+	//k*(a1d2+a2d1+b1c2-b2c1)
 
 /*
 	anglediv2 = (*angle)/2/180*PI;
@@ -388,25 +384,6 @@ void rotate_shoemake(double point [],
 }
 #endif
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 double angle_of_vectors(const double vector1 [], const double vector2 [])
 //The function's inputs are two position vectors (whose starting point is the origo).
 //The function returns the angle between them.
@@ -489,7 +466,6 @@ void print_binary_string(unsigned long long to_print)
 }
 
 #ifndef _WIN32
-// OCLADock
 // This was disabled for Windows
 int stricmp(const char* str1, const char* str2)
 //The function compares the two input strings and
@@ -526,8 +502,6 @@ int stricmp(const char* str1, const char* str2)
 	return isdifferent;
 }
 #endif
-
-
 
 unsigned int genseed(unsigned int init)
 //The function generates random numbers with a linear congruential generator,
