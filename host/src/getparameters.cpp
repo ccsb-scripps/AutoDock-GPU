@@ -172,7 +172,9 @@ void get_commandpars(const int* argc,
 	mypars->gen_best            = 0;
 	strcpy(mypars->resname, "docking");
 	mypars->qasp 		    = 0.01097f;
-	mypars->rmsd_tolerance      = 2.0;		//2 Angström
+	mypars->rmsd_tolerance      = 2.0;			//2 Angström	
+	strcpy(mypars->xrayligandfile, mypars->ligandfile);	// By default xray-ligand file is the same as the randomized input ligand
+	mypars->given_xrayligandfile      = false;		// That is, not given (explicitly by the user)
 	// ------------------------------------------
 
 	//overwriting values which were defined as a command line argument
@@ -574,9 +576,20 @@ void get_commandpars(const int* argc,
 			else
 				printf("Warning: value of -rmstol argument ignored. Value must be a double greater than 0.\n");
 		}
+
+		// ----------------------------------
+		//Argument: ligand xray pdbqt file name
+		if (strcmp("-xraylfile", argv[i]) == 0)
+		{
+			arg_recognized = 1;
+			strcpy(mypars->xrayligandfile, argv[i+1]);
+			mypars->given_xrayligandfile = true;
+			printf("Info: using -xraylfile value as X-ray ligand.");
+		}
+		// ----------------------------------
+
 		if (arg_recognized != 1)
 			printf("Warning: unknown argument '%s'.\n", argv [i]);
-
 	}
 
 	//validating some settings

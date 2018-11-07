@@ -90,6 +90,17 @@ int main(int argc, char* argv[])
 	//------------------------------------------------------------
 	get_commandpars(&argc, argv, &(mygrid.spacing), &mypars);
 
+	Liganddata myxrayligand;
+	Gridinfo   mydummygrid;
+	// if -lxrayfile provided, then read xray ligand data
+	if (mypars.given_xrayligandfile == true) {
+			if (init_liganddata(mypars.xrayligandfile, &myxrayligand, &mydummygrid) != 0)
+				return 1;
+
+			if (get_liganddata(mypars.xrayligandfile, &myxrayligand, mypars.coeffs.AD4_coeff_vdW, mypars.coeffs.AD4_coeff_hb) != 0)
+				return 1;
+	}
+
 	//------------------------------------------------------------
 	// Calculating energies of reference ligand if required
 	//------------------------------------------------------------
@@ -111,7 +122,7 @@ int main(int argc, char* argv[])
 	//------------------------------------------------------------
 	// Starting Docking
 	//------------------------------------------------------------
-	if (docking_with_gpu(&mygrid, floatgrids, &mypars, &myligand_init, &argc, argv, clock_start_program) != 0)
+	if (docking_with_gpu(&mygrid, floatgrids, &mypars, &myligand_init, &myxrayligand, &argc, argv, clock_start_program) != 0)
 		return 1;
 
 	free(floatgrids);

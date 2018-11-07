@@ -67,6 +67,8 @@ typedef struct
 		char  gen_pdbs;
 		char  fldfile [128];
 		char  ligandfile [128];
+		char  xrayligandfile [128];
+		bool  given_xrayligandfile;
 		float ref_ori_angles [3];
 	unsigned long num_of_runs;
 		char  reflig_en_reqired;
