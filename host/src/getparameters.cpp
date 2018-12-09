@@ -615,6 +615,11 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 
 	int pop_size = mypars->pop_size;
 
+    float u1, u2, u3; // to generate random quaternion
+    float qw, qx, qy, qz; // random quaternion
+    float x, y, z, s; // convert quaternion to angles
+    float phi, theta, rotangle;
+
 	//initial population
 	gen_pop = 0;
 
@@ -655,29 +660,68 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 	//Generating initial population
 	if (gen_pop == 1)
 	{
-		for (entity_id=0; entity_id<pop_size*mypars->num_of_runs; entity_id++)
-			for (gene_id=0; gene_id<3; gene_id++)
+		for (entity_id=0; entity_id<pop_size*mypars->num_of_runs; entity_id++) {
+			for (gene_id=0; gene_id<3; gene_id++) {
 #if defined (REPRO)
 				init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 30.1186;
 #else
 				init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = (float) myrand()*(mygrid->size_xyz_angstr[gene_id]);
 #endif			
+            }
 
-		for (entity_id=0; entity_id<pop_size*mypars->num_of_runs; entity_id++)
-			for (gene_id=3; gene_id<MAX_NUM_OF_ROTBONDS+6; gene_id++)
-				if (gene_id == 4)
-#if defined (REPRO)
-					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 26.0555;
-#else
-					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = myrand()*180;
-#endif
-					
-				else
+            // generate random quaternion
+            u1 = (float) myrand();
+            u2 = (float) myrand();
+            u3 = (float) myrand();
+            qw = sqrt(1.0 - u1) * sin(PI_TIMES_2 * u2);
+            qx = sqrt(1.0 - u1) * cos(PI_TIMES_2 * u2);
+            qy = sqrt(      u1) * sin(PI_TIMES_2 * u3);
+            qz = sqrt(      u1) * cos(PI_TIMES_2 * u3);
+
+            ///// box muller
+            ///u1 = (float) myrand();
+            ///u1 = (float) myrand();
+            ///u1 = (float) myrand();
+            
+            // convert to angle representation
+            rotangle = 2.0 * acos(qw);
+            s = sqrt(1.0 - (qw * qw));
+            if (s < 0.001){ // rotangle too small
+                x = qx;
+                y = qy;
+                z = qz;
+            } else {
+                x = qx / s;
+                y = qy / s;
+                z = qz / s;
+            }
+            
+            theta = acos(z);
+            phi = atan2(y, x);
+
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = phi / DEG_TO_RAD;
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = theta / DEG_TO_RAD;
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = rotangle / DEG_TO_RAD;
+
+			//printf("angles = %8.2f, %8.2f, %8.2f\n", phi / DEG_TO_RAD, theta / DEG_TO_RAD, rotangle/DEG_TO_RAD);
+            
+            /*
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = (float) myrand() * 360.0;
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = (float) myrand() * 360.0;
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = (float) myrand() * 360.0;
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = (float) myrand() * 360;
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = (float) myrand() * 180;
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = (float) myrand() * 360;
+            */
+
+			for (gene_id=6; gene_id<MAX_NUM_OF_ROTBONDS+6; gene_id++) {
 #if defined (REPRO)
 					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 22.0452;
 #else
 					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = myrand()*360;
 #endif
+            }
+        }
 
 		//generating reference orientation angles
 #if defined (REPRO)
@@ -750,11 +794,12 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		//ref_ori_angles[3*i+2] = 0.0f;
 
 		// Enable for release.
-		ref_ori_angles[3*i]   = (float) (myrand()*360.0); 	//phi
-		ref_ori_angles[3*i+1] = (float) (myrand()*180.0);	//theta
-		ref_ori_angles[3*i+2] = (float) (myrand()*360.0);	//angle
+		ref_ori_angles[3*i]   = 0.0; //(float) (myrand()*360.0); 	//phi
+		ref_ori_angles[3*i+1] = 0.0; //(float) (myrand()*180.0);	//theta
+		ref_ori_angles[3*i+2] = 0.0; //float) (myrand()*360.0);	//angle
 #endif
 	}
+
 
 #if 0
 	for (i=0; i<mypars->num_of_runs; i++)

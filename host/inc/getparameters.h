@@ -33,6 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "processligand.h"
 #include "processgrid.h"
 #include "miscellaneous.h"
+#include "calcenergy_basic.h"
 
 typedef struct
 {
