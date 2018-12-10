@@ -678,11 +678,6 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
             qy = sqrt(      u1) * sin(PI_TIMES_2 * u3);
             qz = sqrt(      u1) * cos(PI_TIMES_2 * u3);
 
-            ///// box muller
-            ///u1 = (float) myrand();
-            ///u1 = (float) myrand();
-            ///u1 = (float) myrand();
-            
             // convert to angle representation
             rotangle = 2.0 * acos(qw);
             s = sqrt(1.0 - (qw * qw));
@@ -729,9 +724,13 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		mypars->ref_ori_angles[1] = 190.279;
 		mypars->ref_ori_angles[2] = 190.279;
 #else
-		mypars->ref_ori_angles[0] = (float) floor(myrand()*360*100)/100.0;
-		mypars->ref_ori_angles[1] = (float) floor(myrand()*/*360*/180*100)/100.0;
-		mypars->ref_ori_angles[2] = (float) floor(myrand()*360*100)/100.0;
+		// mypars->ref_ori_angles[0] = (float) floor(myrand()*360*100)/100.0;
+		// mypars->ref_ori_angles[1] = (float) floor(myrand()*/*360*/180*100)/100.0;
+		// mypars->ref_ori_angles[2] = (float) floor(myrand()*360*100)/100.0;
+
+		// mypars->ref_ori_angles[0] = 0.0;
+		// mypars->ref_ori_angles[1] = 0.0;
+		// mypars->ref_ori_angles[2] = 0.0;
 #endif
 
 		//Writing first initial population to initpop.txt
@@ -789,14 +788,46 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		// Enable only for debugging.
 		// These specific values of rotational genes (in axis-angle space)
 		// correspond to a quaternion for NO rotation.
-		//ref_ori_angles[3*i]   = 0.0f;
-		//ref_ori_angles[3*i+1] = 0.0f;
-		//ref_ori_angles[3*i+2] = 0.0f;
+
+		// ref_ori_angles[3*i]   = 0.0f;
+		// ref_ori_angles[3*i+1] = 0.0f;
+		// ref_ori_angles[3*i+2] = 0.0f;
 
 		// Enable for release.
-		ref_ori_angles[3*i]   = 0.0; //(float) (myrand()*360.0); 	//phi
-		ref_ori_angles[3*i+1] = 0.0; //(float) (myrand()*180.0);	//theta
-		ref_ori_angles[3*i+2] = 0.0; //float) (myrand()*360.0);	//angle
+		// ref_ori_angles[3*i]   = (float) (myrand()*360.0); 	//phi
+		// ref_ori_angles[3*i+1] = (float) (myrand()*180.0);	//theta
+		// ref_ori_angles[3*i+2] = (float) (myrand()*360.0);	//angle
+
+        // uniform distr.
+        // generate random quaternion
+        u1 = (float) myrand();
+        u2 = (float) myrand();
+        u3 = (float) myrand();
+        qw = sqrt(1.0 - u1) * sin(PI_TIMES_2 * u2);
+        qx = sqrt(1.0 - u1) * cos(PI_TIMES_2 * u2);
+        qy = sqrt(      u1) * sin(PI_TIMES_2 * u3);
+        qz = sqrt(      u1) * cos(PI_TIMES_2 * u3);
+
+        // convert to angle representation
+        rotangle = 2.0 * acos(qw);
+        s = sqrt(1.0 - (qw * qw));
+        if (s < 0.001){ // rotangle too small
+            x = qx;
+            y = qy;
+            z = qz;
+        } else {
+            x = qx / s;
+            y = qy / s;
+            z = qz / s;
+        }
+        
+        theta = acos(z);
+        phi = atan2(y, x);
+
+		ref_ori_angles[3*i]   = phi / DEG_TO_RAD;
+		ref_ori_angles[3*i+1] = theta / DEG_TO_RAD;
+		ref_ori_angles[3*i+2] = rotangle / DEG_TO_RAD;
+        
 #endif
 	}
 
