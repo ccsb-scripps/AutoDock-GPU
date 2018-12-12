@@ -45,6 +45,8 @@ int main(int argc, char* argv[])
 	Liganddata myligand_init;
 	Dockpars   mypars;
 	float*     floatgrids;
+	FILE*      fp;
+	char report_file_name [256];
 
 	clock_t clock_start_program, clock_stop_program;
 	clock_start_program = clock();
@@ -127,6 +129,13 @@ int main(int argc, char* argv[])
 	num_usec    = time_end.tv_usec - time_start.tv_usec;
 	elapsed_sec = num_sec + (num_usec/1000000);
 	printf("Program run time %.3f sec \n\n", elapsed_sec);
+
+    // Append time information to .dlg file
+	strcpy(report_file_name, mypars.resname);
+	strcat(report_file_name, ".dlg");
+	fp = fopen(report_file_name, "a");
+	fprintf(fp, "\n\n\nProgram run time %.3f sec\n", elapsed_sec);
+	fclose(fp);
 	//// ------------------------
 #endif
 	return 0;

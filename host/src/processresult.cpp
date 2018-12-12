@@ -151,6 +151,7 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	char temp_filename [128];
 	int i;
 
+	fprintf(fp, "OCLADock version: %s\n\n", VERSION);
 
 	fprintf(fp, "**********************************************************\n");
 	fprintf(fp, "**      OCLADOCK AUTODOCKTOOLS-COMPATIBLE DLG FILE      **\n");
