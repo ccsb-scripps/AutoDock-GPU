@@ -167,7 +167,7 @@ void get_commandpars(const int* argc,
 	mypars->reflig_en_reqired   = 0;
 				    // char unbound_model
 				    // AD4_free_energy_coeffs coeffs
-	mypars->handle_symmetry     = 0;
+	mypars->handle_symmetry     = 1;
 	mypars->gen_finalpop        = 0;
 	mypars->gen_best            = 0;
 	strcpy(mypars->resname, "docking");
