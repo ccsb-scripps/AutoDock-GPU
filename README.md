@@ -98,6 +98,7 @@ By default the output log file is written in the current working folder. Example
 | -lsrat   | Local-search rate                | 6 (%)         |
 | -trat    | Tournament rate                  | 60 (%)        |
 | -resnam  | Name for docking output log      | _"docking"_   |
+| -hsym    | Handle symmetry in RMSD calc.    | 1             |
 
 For a complete list of available arguments and their default values, check: [getparameters.cpp](host/src/getparameters.cpp).
 

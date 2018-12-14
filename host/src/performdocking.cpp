@@ -93,13 +93,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "stringify.h"
 #include "correct_grad_axisangle.h"
 
-int docking_with_gpu(const Gridinfo*   mygrid,
-	         /*const*/ float*      cpu_floatgrids,
-                           Dockpars*   mypars,
-		     const Liganddata* myligand_init,
-		     const int*        argc,
-		           char**      argv,
-		           clock_t     clock_start_program)
+int docking_with_gpu(const Gridinfo*  	 	mygrid,
+	         /*const*/ float*      		cpu_floatgrids,
+                           Dockpars*   		mypars,
+		     const Liganddata* 		myligand_init,
+		     const Liganddata* 		myxrayligand,
+		     const int*        		argc,
+		           char**      		argv,
+		           clock_t     		clock_start_program)
 /* The function performs the docking algorithm and generates the corresponding result files.
 parameter mygrid:
 		describes the grid
@@ -113,6 +114,9 @@ parameter mypars:
 parameter myligand_init:
 		describes the ligands
 		filled with get_liganddata()
+parameter myxrayligand:
+		describes the xray ligand
+		filled with get_xrayliganddata()
 parameters argc and argv:
 		are the corresponding command line arguments parameter clock_start_program:
 		contains the state of the clock tick counter at the beginning of the program
@@ -1116,8 +1120,10 @@ filled with clock() */
 		arrange_result(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_energies+run_cnt*mypars->pop_size, mypars->pop_size);
 
 		make_resfiles(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, 
-			      cpu_energies+run_cnt*mypars->pop_size, &myligand_reference,
-			      myligand_init, 
+			      cpu_energies+run_cnt*mypars->pop_size, 
+			      &myligand_reference,
+			      myligand_init,
+			      myxrayligand, 
 			      mypars, 
 			      cpu_evals_of_runs[run_cnt], 
 			      generation_cnt, 
