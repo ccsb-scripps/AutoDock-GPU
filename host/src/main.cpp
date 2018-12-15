@@ -125,6 +125,8 @@ int main(int argc, char* argv[])
 	// Starting Docking
 	//------------------------------------------------------------
 
+	printf("\nOCLADock version: %s\n", VERSION);
+
 	if (docking_with_gpu(&mygrid, floatgrids, &mypars, &myligand_init, &myxrayligand, &argc, argv, clock_start_program) != 0)
 		return 1;
 
