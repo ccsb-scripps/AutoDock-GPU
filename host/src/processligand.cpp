@@ -81,7 +81,11 @@ int init_liganddata(const char* ligfilename,
 
 			if (new_type == 1)	//if new type, copying string...
 			{
-				if (num_of_atypes >= 14)	//checking if atom type number doesn't exceed 14
+				//checking if atom type number doesn't exceed 14
+				#if 0
+				if (num_of_atypes >= 14)
+				#endif
+				if (num_of_atypes >= MAX_NUM_OF_ATYPES)
 				{
 					printf("Error: too many types of ligand atoms!\n");
 					return 1;
