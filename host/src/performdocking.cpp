@@ -1095,7 +1095,7 @@ filled with clock() */
 	printf("\n\n");
 
 	// ===============================================================================
-	// OCLADock modification
+	// Modification based on:
 	// http://www.cc.gatech.edu/~vetter/keeneland/tutorial-2012-02-20/08-opencl.pdf
 	// ===============================================================================
 

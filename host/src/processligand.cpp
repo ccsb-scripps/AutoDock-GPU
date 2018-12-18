@@ -1253,7 +1253,6 @@ void change_conform_f(Liganddata* myligand,
 	refori_angle = cpu_ref_ori_angles[2];
 
 // +++++++++++++++++++++++++++++++++++++++
-// OCLADock
 //printf("cpu_ref_ori_angles [0]: %f, cpu_ref_ori_angles [1]: %f, %f\n",cpu_ref_ori_angles [0],cpu_ref_ori_angles [1],PI);
 //printf("refori_unitvec [0]:%f, refori_unitvec [1]:%f, refori_unitvec [2]:%f\n",refori_unitvec [0],refori_unitvec [1],refori_unitvec [2]);
 // +++++++++++++++++++++++++++++++++++++++
@@ -1367,7 +1366,6 @@ void change_conform_f(Liganddata* myligand,
 	refori_shoemake [2] = (cpu_ref_ori_angles [2])*(2*PI);
 
 // +++++++++++++++++++++++++++++++++++++++
-// OCLADock
 //printf("cpu_ref_ori_angles [0]: %f, cpu_ref_ori_angles [1]: %f, %f\n",cpu_ref_ori_angles [0],cpu_ref_ori_angles [1],PI);
 //printf("refori_unitvec [0]:%f, refori_unitvec [1]:%f, refori_unitvec [2]:%f\n",refori_unitvec [0],refori_unitvec [1],refori_unitvec [2]);
 // +++++++++++++++++++++++++++++++++++++++
@@ -1835,7 +1833,7 @@ void calc_interE_peratom_f(const Gridinfo* mygrid,
 	//return interE;
 }
 
-// OCLADock original host "calc_intraE_f" function
+// Original host "calc_intraE_f" function
 #if 0
 float calc_intraE_f(const Liganddata* myligand,
 		    float dcutoff,
@@ -1960,8 +1958,7 @@ float calc_intraE_f(const Liganddata* myligand,
 }
 #endif
 
-// OCLADock host "calc_intraE_f" function
-// corrected after smoothing was added
+// Corrected host "calc_intraE_f" function after smoothing was added
 float calc_intraE_f(const Liganddata* myligand,
 		          float       dcutoff,
 		          float       smooth,

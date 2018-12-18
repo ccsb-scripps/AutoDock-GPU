@@ -32,7 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <math.h>
 
 #ifndef _WIN32
-// OCLADock
+
 #include <libgen.h>
 
 // libgen.h contains basename() and dir() from a fullpath name
@@ -54,7 +54,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 typedef struct
 //Struct which can contain all the important informations which derives from .gpf and .xyz files.
 {
-// OCLADock
+
 #ifndef _WIN32
 	char*  grid_file_path;	  // Added to store the full path of the grid file
 #else
