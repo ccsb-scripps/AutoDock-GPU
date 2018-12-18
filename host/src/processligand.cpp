@@ -1217,20 +1217,6 @@ void calc_q_tables_f(const Liganddata* myligand,
 
 }
 
-// -------------------------------------------------------------------
-// L30nardoSV
-// Replacing rotation genes: from spherical space to Shoemake space
-// gene [0:2]: translation -> kept as original x, y, z
-// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
-// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
-
-// Shoemake ranges:
-// u1: [0, 1]
-// u2: [0: 2PI] or [0: 360]
-
-// Random generator in the host is changed:
-// LCG (original, myrand()) -> CPP std (rand())
-// -------------------------------------------------------------------
 #if 1
 void change_conform_f(Liganddata* myligand,
 		      const float genotype_f [],
@@ -1320,6 +1306,19 @@ void change_conform_f(Liganddata* myligand,
 #endif // End of original change_conform_f()
 
 #if 0
+// -------------------------------------------------------------------
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
 void change_conform_f(Liganddata* myligand,
 		      const float genotype_f [],
 		      float* cpu_ref_ori_angles,

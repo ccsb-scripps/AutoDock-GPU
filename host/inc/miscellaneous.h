@@ -66,8 +66,10 @@ double distance(const double [], const double []);
 
 void vec_point2line(const double [], const double [], const double [], double []);
 
+void rotate(double [], const double [], const double [], const double*, int);
+
+#if 0
 // -------------------------------------------------------------------
-// L30nardoSV
 // Replacing rotation genes: from spherical space to Shoemake space
 // gene [0:2]: translation -> kept as original x, y, z
 // gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
@@ -80,10 +82,8 @@ void vec_point2line(const double [], const double [], const double [], double []
 // Random generator in the host is changed:
 // LCG (original, myrand()) -> CPP std (rand())
 // -------------------------------------------------------------------
-
-void rotate(double [], const double [], const double [], const double*, int);
-
 void rotate_shoemake(double [], const double [], const double [], int);
+#endif
 
 double angle_of_vectors(const double [], const double []);
 
