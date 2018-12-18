@@ -298,8 +298,6 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 	// "atom_rotbonds": array that contains the rotatable bonds - atoms assignment.
 	// If the element atom_rotbonds[atom index][rotatable bond index] is equal to 1,
 	// it means,that the atom must be rotated if the bond rotates. A 0 means the opposite.
-
-
 	for (i=0; i<MAX_NUM_OF_ROTBONDS; i++)
 	{
 		num_rotating_atoms_per_rotbond [i] = 0;
