@@ -883,8 +883,10 @@ filled with clock() */
 #endif
 	// -------- Replacing with memory maps! ------------
 
-
+	#if 0
 	generation_cnt = 1;
+	#endif
+	generation_cnt = 0;
 
 
 	// -------- Replacing with memory maps! ------------
@@ -1013,34 +1015,7 @@ filled with clock() */
 		// Kernel args exchange regions they point to
 		// But never two args point to the same region of dev memory
 		// NO ALIASING -> use restrict in Kernel
-		if (generation_cnt % 2 == 0) {
-			// Kernel 4
-			setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
-			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
-      			setKernelArg(kernel4,15,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
-			setKernelArg(kernel4,16,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
-
-			if (dockpars.lsearch_rate != 0.0f) {
-				if (strcmp(mypars->ls_method, "sw") == 0) {
-						// Kernel 3
-			     			setKernelArg(kernel3,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
-			      			setKernelArg(kernel3,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
-				} else if (strcmp(mypars->ls_method, "sd") == 0) {
-						// Kernel 5
-			     			setKernelArg(kernel5,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
-			      			setKernelArg(kernel5,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
-				} else if (strcmp(mypars->ls_method, "fire") == 0) {
-						// Kernel 6
-			     			setKernelArg(kernel6,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
-			      			setKernelArg(kernel6,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
-				} else if (strcmp(mypars->ls_method, "ad") == 0) {
-						// Kernel 7
-			     			setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
-			      			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
-				}
-			} // End if (dockpars.lsearch_rate != 0.0f)
-		}
-		else { // In this configuration, the program starts
+		if (generation_cnt % 2 == 0) { // In this configuration the program starts with generation_cnt = 0
 			// Kernel 4
 			setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
 			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
@@ -1064,6 +1039,33 @@ filled with clock() */
 					// Kernel 7
 					setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
 		      			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
+				}
+			} // End if (dockpars.lsearch_rate != 0.0f)
+		}
+		else {  // Program switches pointers the first time when generation_cnt becomes 1 (as it starts from 0)
+			// Kernel 4
+			setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
+			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
+      			setKernelArg(kernel4,15,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
+			setKernelArg(kernel4,16,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
+
+			if (dockpars.lsearch_rate != 0.0f) {
+				if (strcmp(mypars->ls_method, "sw") == 0) {
+						// Kernel 3
+			     			setKernelArg(kernel3,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
+			      			setKernelArg(kernel3,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
+				} else if (strcmp(mypars->ls_method, "sd") == 0) {
+						// Kernel 5
+			     			setKernelArg(kernel5,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
+			      			setKernelArg(kernel5,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
+				} else if (strcmp(mypars->ls_method, "fire") == 0) {
+						// Kernel 6
+			     			setKernelArg(kernel6,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
+			      			setKernelArg(kernel6,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
+				} else if (strcmp(mypars->ls_method, "ad") == 0) {
+						// Kernel 7
+			     			setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
+			      			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
 				}
 			} // End if (dockpars.lsearch_rate != 0.0f)
 		}
@@ -1261,7 +1263,7 @@ double check_progress(int* evals_of_runs, int generation_cnt, int max_num_of_eva
 	evals_progress = total_evals/((double) num_of_runs)/max_num_of_evals*100.0;
 
 	//calculating progress according to number of generations
-	gens_progress = ((double) generation_cnt)/((double) max_num_of_gens)*100.0;
+	gens_progress = ((double) generation_cnt)/((double) max_num_of_gens)*100.0; //std::cout<< "gens_progress: " << gens_progress <<std::endl;
 
 	if (evals_progress > gens_progress)
 		return evals_progress;

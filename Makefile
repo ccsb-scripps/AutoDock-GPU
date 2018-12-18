@@ -218,6 +218,7 @@ odock: check-env-all stringify $(SRC)
 
 PDB      := 3ce3
 NRUN     := 100
+NGEN     := 27000
 POPSIZE  := 150
 TESTNAME := test
 TESTLS   := sw
@@ -227,6 +228,7 @@ test: odock
 	-ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld \
 	-lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt \
 	-nrun $(NRUN) \
+	-ngen $(NGEN) \
 	-psize $(POPSIZE) \
 	-resnam $(TESTNAME) \
 	-gfpop 0 \
