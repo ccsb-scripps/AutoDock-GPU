@@ -1106,7 +1106,7 @@ filled with clock() */
 		memcopyBufferObjectFromDevice(command_queue,cpu_final_populations,mem_dockpars_conformations_current,size_populations);
 		memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_current,size_energies);
 	}
-	if (generation_cnt % 2 == 1) { 
+	else { 
 		memcopyBufferObjectFromDevice(command_queue,cpu_final_populations,mem_dockpars_conformations_next,size_populations);
 		memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_next,size_energies);
 	}
