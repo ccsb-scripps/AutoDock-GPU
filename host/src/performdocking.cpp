@@ -72,15 +72,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #endif
 
 
-#define KGDB_AMD 		" -g -O0 "
-#define KGDB_INTEL	" -g -s " KRNL_FILE
-
+#define KGDB_GPU	" -g -O0 "
+#define KGDB_CPU	" -g "
+// Might work in some (Intelq) devices " -g -s " KRNL_FILE
 
 #if defined (DOCK_DEBUG)
 	#if defined (CPU_DEVICE)
-		#define KGDB KGDB_INTEL
+		#define KGDB KGDB_CPU
 	#elif defined (GPU_DEVICE)
-		#define KGDB KGDB_AMD
+		#define KGDB KGDB_GPU
 	#endif
 #else
 	#define KGDB " "
