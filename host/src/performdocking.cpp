@@ -72,8 +72,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #endif
 
 
-#define KGDB_GPU	" -g -O0 "
-#define KGDB_CPU	" -g "
+#define KGDB_GPU	" -g -O0 -Werror -cl-opt-disable "
+#define KGDB_CPU	" -g3 -Werror -cl-opt-disable "
 // Might work in some (Intel) devices " -g -s " KRNL_FILE
 
 #if defined (DOCK_DEBUG)
