@@ -54,7 +54,7 @@ int getPlatforms(cl_platform_id** platform_id, cl_uint* platformCount){
 #ifdef PLATFORM_ATTRIBUTES_DISPLAY
   err = getPlatformAttributes (local_platform_id, local_platformCount);
   if (err != CL_SUCCESS){
-	printf("Error: getPlatformAttributes(): %d\n",err);
+	printf("Error: getPlatformAttributes() \n");
 	fflush(stdout);
  	return EXIT_FAILURE;
   }

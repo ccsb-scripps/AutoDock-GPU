@@ -61,7 +61,7 @@ int createContext(
 #ifdef CONTEXT_INFO_DISPLAY
   err = getContextInfo(local_context);
   if (err!=CL_SUCCESS){
-	printf("Error: getContextInfo(): %d\n",err);
+	printf("Error: getContextInfo() \n");
 	fflush(stdout);
         return EXIT_FAILURE;
   }

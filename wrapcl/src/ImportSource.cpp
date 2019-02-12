@@ -88,7 +88,7 @@ int ImportSourceToProgram(const char*    filename,
 #ifdef PROGRAM_INFO_DISPLAY
 	err = getProgramInfo(*program);
 	if (err != CL_SUCCESS){
-		printf("Error: getProgramInfo() %d\n", err);
+		printf("Error: getProgramInfo() \n");
 		fflush(stdout);
 		return EXIT_FAILURE;
 	}
@@ -131,7 +131,7 @@ int ImportSourceToProgram(const char*    filename,
 #ifdef PROGRAM_BUILD_INFO_DISPLAY
 	err = getprogramBuildInfo(*program, device_id[0]);
 	if (err != CL_SUCCESS){
-		printf("Error: getprogramBuildInfo() %d\n", err);
+		printf("Error: getprogramBuildInfo() \n");
 		fflush(stdout);
 		return EXIT_FAILURE;
 	}
