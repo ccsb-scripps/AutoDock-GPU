@@ -90,9 +90,9 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 			mygrid->size_xyz[2] = gpoints_even[2] + 1;
 
 			//If the grid is too big, send message and change the value of truncated_size_xyz
-			if ((mygrid->size_xyz [0] > 128) || (mygrid->size_xyz [1] > 128) || (mygrid->size_xyz [2] > 128))
+			if ((mygrid->size_xyz [0] > MAX_NUM_GRIDPOINTS) || (mygrid->size_xyz [1] > MAX_NUM_GRIDPOINTS) || (mygrid->size_xyz [2] > MAX_NUM_GRIDPOINTS))
 			{
-				printf("Error: each dimension of the grid must be below 128.\n");
+				printf("Error: each dimension of the grid must be below %i.\n", MAX_NUM_GRIDPOINTS);
 				return 1;
 			}
 		}
