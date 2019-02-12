@@ -1077,14 +1077,6 @@ filled with clock() */
 #endif
 	} // End of while-loop
 
-/*
-	// -------- Replacing with memory maps! ------------
-#if defined (MAPPED_COPY)
-	unmemMap(command_queue,mem_gpu_evals_of_runs,map_cpu_evals_of_runs);
-#endif
-	// -------- Replacing with memory maps! ------------
-*/
-
 	clock_stop_docking = clock();
 
 	//update progress bar (bar length is 50)mem_num_of_rotatingatoms_per_rotbond_const
@@ -1224,9 +1216,6 @@ filled with clock() */
 	free(cpu_result_ligands);
 	free(cpu_prng_seeds);
 	free(cpu_evals_of_runs);
-  // -------- Replacing with memory maps! ------------
-  //free(map_cpu_evals_of_runs);
-	// -------- Replacing with memory maps! ------------
 	free(cpu_ref_ori_angles);
 
 	return 0;
