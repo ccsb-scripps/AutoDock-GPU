@@ -98,8 +98,10 @@ else
 endif
 
 # ------------------------------------------------------
-# Configuration (Host)
-# Valid values: RELEASE, DEBUG
+# Configuration
+# FDEBUG (full) : enables debugging on both host + device
+# LDEBUG (light): enables debugging on host
+# RELEASE
 CONFIG=RELEASE
 
 OCL_DEBUG_BASIC=-DPLATFORM_ATTRIBUTES_DISPLAY\
@@ -116,7 +118,9 @@ OCL_DEBUG_ALL=$(OCL_DEBUG_BASIC) \
 	      -DKERNEL_WORK_GROUP_INFO_DISPLAY \
 	      -DBUFFER_OBJECT_INFO_DISPLAY
 
-ifeq ($(CONFIG),DEBUG)
+ifeq ($(CONFIG),FDEBUG)
+	OPT =-O0 -g3 -Wall $(OCL_DEBUG_ALL) -DDOCK_DEBUG
+else ifeq ($(CONFIG),LDEBUG)
 	OPT =-O0 -g3 -Wall $(OCL_DEBUG_BASIC)
 else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
@@ -125,17 +129,8 @@ else
 endif
 
 # ------------------------------------------------------
-# Host and Device Debug
-DOCK_DEBUG=NO
-
 # Reproduce results (remove randomness)
 REPRO=NO
-
-ifeq ($(DOCK_DEBUG),YES)
-	DD =-DDOCK_DEBUG
-else
-	DD =
-endif
 
 ifeq ($(REPRO),YES)
 	REP =-DREPRO
