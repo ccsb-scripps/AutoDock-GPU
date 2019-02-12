@@ -1,5 +1,5 @@
 // Gradient-based steepest descent minimizer
-// Alternative to Solis-Wetts
+// Alternative to Solis-Wets
 
 //#define DEBUG_ENERGY_KERNEL5
 	//#define PRINT_ENERGIES

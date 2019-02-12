@@ -145,10 +145,10 @@ void get_commandpars(const int* argc,
 	mypars->lsearch_rate 	    = 6;		// 6%
 				    // unsigned long num_of_ls
 
-	strcpy(mypars->ls_method, "sw");		// "sw": Solis-Wetts, 
-							// "sd": Steepest-Descent",
-							// "fire": FIRE", https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
-							// "bfgs": Broyden-Fletcher-Goldfarb-Shanno (to be implemented)
+	strcpy(mypars->ls_method, "sw");		// "sw": Solis-Wets, 
+							// "sd": Steepest-Descent
+							// "fire": FIRE, https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
+							// "ad": ADADELTA, https://arxiv.org/abs/1212.5701
 	mypars->smooth              = 0.5f;
 	mypars->tournament_rate     = 60;		// 60%
 	mypars->rho_lower_bound     = 0.01;		// 0.01
@@ -291,11 +291,10 @@ void get_commandpars(const int* argc,
 		}
 
 		//Argument: local search method: 
-		// "sw": Solis-Wetts
+		// "sw": Solis-Wets
 		// "sd": Steepest-Descent
 		// "fire": FIRE
-		// "ad": Ada-Delta
-		// "bfgs": Broyden-Fletcher-Goldfarb-Shanno (to be implemented)
+		// "ad": ADADELTA
 		if (strcmp("-lsmet", argv [i]) == 0)
 		{
 			arg_recognized = 1;

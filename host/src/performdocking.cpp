@@ -539,10 +539,10 @@ filled with clock() */
 	
 	printf("Local-search chosen method is: %s\n", (dockpars.lsearch_rate == 0.0f)? "GA" :
 						      (
-						      (strcmp(mypars->ls_method, "sw")   == 0)?"Solis-Wets (SW)":
-						      (strcmp(mypars->ls_method, "sd")   == 0)?"Steepest-Descent (SD)": 
-						      (strcmp(mypars->ls_method, "fire") == 0)?"Fire":
-						      (strcmp(mypars->ls_method, "ad") == 0)?"Ada-Delta (AD)": "Unknown")
+						      (strcmp(mypars->ls_method, "sw")   == 0)?"Solis-Wets (sw)":
+						      (strcmp(mypars->ls_method, "sd")   == 0)?"Steepest-Descent (sd)": 
+						      (strcmp(mypars->ls_method, "fire") == 0)?"FIRE (fire)":
+						      (strcmp(mypars->ls_method, "ad") == 0)?"ADADELTA (ad)": "Unknown")
 						      );
 
 	/*
