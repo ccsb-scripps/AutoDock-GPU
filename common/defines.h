@@ -48,7 +48,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define MAX_NUM_OF_ROTATIONS 	(MAX_NUM_OF_ATOMS * MAX_NUM_OF_ROTBONDS)
 #define MAX_POPSIZE 		2048
 #define MAX_NUM_OF_RUNS 	1000
-#define MAX_NUM_GRIDPOINTS      128
+#define MAX_NUM_GRIDPOINTS      256
 
 // Must be bigger than MAX_NUM_OF_ROTBONDS+6
 #define GENOTYPE_LENGTH_IN_GLOBMEM 64
