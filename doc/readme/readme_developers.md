@@ -360,15 +360,14 @@ After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;w
 
 ## All available options
 ```zsh
-make DEVICE=<TYPE> NUMWI=<NWI> CONFIG=<CFG> DOCK_DEBUG=<Y/N> REPRO=<Y/N>
+make DEVICE=<TYPE> NUMWI=<NWI> CONFIG=<CFG> REPRO=<Y/N>
 ```
-| Argument    | Description                           | Possible values                 |
-|-------------|---------------------------------------|---------------------------------|
-| DEVICE      | OpenCL device type                    | `<TYPE>`: CPU, GPU              |
-| NUMWI       | Number of work items per work group   | `<NWI>` : 16, 32, 64, 128, 256  |
-| CONFIG      | Host configuration                    | `<CFG>` : DEBUG, RELEASE        |
-| DOCK_DEBUG  | Enable debug info for host & device   | `<Y/N>` : YES, NO               |
-| REPRO       | Reproduce results (remove randomness) | `<Y/N>` : YES, NO               |
+| Argument    | Description                           | Possible values                                         |
+|-------------|---------------------------------------|---------------------------------------------------------|
+| DEVICE      | OpenCL device type                    | `<TYPE>`: CPU, GPU                                      |
+| NUMWI       | Number of work items per work group   | `<NWI>` : 16, 32, 64, 128, 256				|
+| CONFIG      | Host configuration                    | `<CFG>` : RELEASE, LDEBUG (_light_), FDEBUG (_full_)    |
+| REPRO       | Reproduce results (remove randomness) | `<Y/N>` : YES, NO                                       |
 
 ## Configuration file
 Check the configurations in the project's [Makefile](../Makefile).
