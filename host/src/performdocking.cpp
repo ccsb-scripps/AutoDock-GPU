@@ -611,7 +611,7 @@ filled with clock() */
 	kernel1_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
 	kernel1_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "Kernel1: ", "gSize: ", kernel1_gxsize, "lSize: ", kernel1_lxsize); fflush(stdout);
+	printf("%-25s %10s %8u %10s %4u\n", "K_INIT", "gSize: ", kernel1_gxsize, "lSize: ", kernel1_lxsize); fflush(stdout);
 #endif
 	// End of Kernel1
 
@@ -622,7 +622,7 @@ filled with clock() */
   	kernel2_gxsize = blocksPerGridForEachRun * threadsPerBlock;
   	kernel2_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "Kernel2: ", "gSize: ", kernel2_gxsize, "lSize: ",  kernel2_lxsize); fflush(stdout);
+	printf("%-25s %10s %8u %10s %4u\n", "K_EVAL", "gSize: ", kernel2_gxsize, "lSize: ",  kernel2_lxsize); fflush(stdout);
 #endif
 	// End of Kernel2
 
@@ -664,7 +664,7 @@ filled with clock() */
   	kernel4_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
   	kernel4_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "K_GENETIC_GENERATION: ", "gSize: ",  kernel4_gxsize, "lSize: ", kernel4_lxsize); fflush(stdout);
+	printf("%-25s %10s %8u %10s %4u\n", "K_GA_GENERATION", "gSize: ",  kernel4_gxsize, "lSize: ", kernel4_lxsize); fflush(stdout);
 #endif
 	// End of Kernel4
 
@@ -710,7 +710,7 @@ filled with clock() */
 			kernel3_gxsize = blocksPerGridForEachLSEntity * threadsPerBlock;
 			kernel3_lxsize = threadsPerBlock;
   			#ifdef DOCK_DEBUG
-	  		printf("%-25s %10s %8u %10s %4u\n", "K_SOLIS_WETS: ", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
+	  		printf("%-25s %10s %8u %10s %4u\n", "K_LS_SOLISWETS", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
   			#endif
 			// End of Kernel3
 		} else if (strcmp(mypars->ls_method, "sd") == 0) {
@@ -756,7 +756,7 @@ filled with clock() */
   			kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
   			kernel5_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MIN_SD: ", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
+			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_SDESCENT", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel5
 		} else if (strcmp(mypars->ls_method, "fire") == 0) {
@@ -801,7 +801,7 @@ filled with clock() */
   			kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
   			kernel6_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MIN_FIRE: ", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
+			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_FIRE", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel6
 		} else if (strcmp(mypars->ls_method, "ad") == 0) {
@@ -846,7 +846,7 @@ filled with clock() */
   			kernel7_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
   			kernel7_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_GRAD_MIN_AD: ", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
+			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_ADADELTA", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel7
 		}
@@ -854,21 +854,22 @@ filled with clock() */
 
 	// Kernel1
 	#ifdef DOCK_DEBUG
-		printf("Start Kernel1 ... ");fflush(stdout);
+		printf("\nExecution starts:\n\n");
+		printf("%-25s", "\tK_INIT");fflush(stdout);
 	#endif
 	runKernel1D(command_queue,kernel1,kernel1_gxsize,kernel1_lxsize,&time_start_kernel,&time_end_kernel);
 	#ifdef DOCK_DEBUG
-		printf(" ... Finish Kernel1\n");fflush(stdout);
+		printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 	// End of Kernel1
 
 	// Kernel2
 	#ifdef DOCK_DEBUG
-		printf("Start Kernel2 ... ");fflush(stdout);
+		printf("%-25s", "\tK_EVAL");fflush(stdout);
 	#endif
 	runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
 	#ifdef DOCK_DEBUG
-		printf(" ... Finish Kernel2\n");fflush(stdout);
+		printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 	// End of Kernel2
 	// ===============================================================================
@@ -900,7 +901,7 @@ filled with clock() */
 	{
 #ifdef DOCK_DEBUG
     ite_cnt++;
-    printf("\nIteration # %u\n", ite_cnt);
+    printf("\nLGA iteration # %u\n", ite_cnt);
     fflush(stdout);
 #endif
 
@@ -919,7 +920,7 @@ filled with clock() */
 
 	// Kernel4
 	#ifdef DOCK_DEBUG
-		printf("%-25s", "K_GENETIC_GENERATION: ");fflush(stdout);
+		printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 	#endif
 		runKernel1D(command_queue,kernel4,kernel4_gxsize,kernel4_lxsize,&time_start_kernel,&time_end_kernel);
 	#ifdef DOCK_DEBUG
@@ -931,7 +932,7 @@ filled with clock() */
 		if (strcmp(mypars->ls_method, "sw") == 0) {
 			// Kernel3
 			#ifdef DOCK_DEBUG
-				printf("%-25s", "K_SOLIS_WETS: ");fflush(stdout);
+				printf("%-25s", "\tK_LS_SOLISWETS");fflush(stdout);
 			#endif
 				runKernel1D(command_queue,kernel3,kernel3_gxsize,kernel3_lxsize,&time_start_kernel,&time_end_kernel);
 			#ifdef DOCK_DEBUG
@@ -942,7 +943,7 @@ filled with clock() */
 		} else if (strcmp(mypars->ls_method, "sd") == 0) {
 			// Kernel5
 			#ifdef DOCK_DEBUG
-				printf("%-25s", "K_GRAD_MIN_SD: ");fflush(stdout);
+				printf("%-25s", "\tK_LS_GRAD_SDESCENT");fflush(stdout);
 			#endif
 				runKernel1D(command_queue,kernel5,kernel5_gxsize,kernel5_lxsize,&time_start_kernel,&time_end_kernel);
 			#ifdef DOCK_DEBUG
@@ -953,7 +954,7 @@ filled with clock() */
 		} else if (strcmp(mypars->ls_method, "fire") == 0) {
 			// Kernel6
 			#ifdef DOCK_DEBUG
-				printf("%-25s", "K_GRAD_MIN_FIRE: ");fflush(stdout);
+				printf("%-25s", "\tK_LS_GRAD_FIRE");fflush(stdout);
 			#endif
 				runKernel1D(command_queue,kernel6,kernel6_gxsize,kernel6_lxsize,&time_start_kernel,&time_end_kernel);
 			#ifdef DOCK_DEBUG
@@ -964,7 +965,7 @@ filled with clock() */
 		} else if (strcmp(mypars->ls_method, "ad") == 0) {
 			// Kernel7
 			#ifdef DOCK_DEBUG
-				printf("%-25s", "K_GRAD_MIN_AD: ");fflush(stdout);
+				printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
 			#endif
 				runKernel1D(command_queue,kernel7,kernel7_gxsize,kernel7_lxsize,&time_start_kernel,&time_end_kernel);
 			#ifdef DOCK_DEBUG
@@ -982,11 +983,11 @@ filled with clock() */
 
 	// Kernel2
 	#ifdef DOCK_DEBUG
-		printf("Start Kernel2 ... ");fflush(stdout);
+		printf("%-25s", "\tK_EVAL");fflush(stdout);
 	#endif
 		runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
 	#ifdef DOCK_DEBUG
-		printf(" ... Finish Kernel2\n");fflush(stdout);
+		printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 	// End of Kernel2
 		// ===============================================================================
@@ -1072,7 +1073,7 @@ filled with clock() */
 		// ----------------------------------------------------------------------
 
 #ifdef DOCK_DEBUG
-        printf("Progress %.3f %%\n", progress);
+        printf("\tProgress %.3f %%\n", progress);
         fflush(stdout);
 #endif
 	} // End of while-loop
