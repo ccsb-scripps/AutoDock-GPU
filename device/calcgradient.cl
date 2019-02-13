@@ -381,12 +381,12 @@ void gpu_calc_gradient(
 		else
 		{
 			// Getting coordinates
-			int x_low  = (int)floor(x); 
-			int y_low  = (int)floor(y); 
-			int z_low  = (int)floor(z);
-			int x_high = (int)ceil(x); 
-			int y_high = (int)ceil(y); 
-			int z_high = (int)ceil(z);
+			uint x_low  = (uint)floor(x); 
+			uint y_low  = (uint)floor(y); 
+			uint z_low  = (uint)floor(z);
+			uint x_high = (uint)ceil(x); 
+			uint y_high = (uint)ceil(y); 
+			uint z_high = (uint)ceil(z);
 			float dx = x - x_low; 
 			float dy = y - y_low; 
 			float dz = z - z_low;
