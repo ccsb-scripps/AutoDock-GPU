@@ -279,6 +279,10 @@ gradient_minAD(
 	// Initializing best energy
 	if (get_local_id(0) == 0) {
 		best_energy = INFINITY;
+
+                for (uint i = 0; i < dockpars_num_of_genes; i++) {
+                        best_genotype [i] = genotype [i];
+                }
 	}
 
 	// Initializing vectors
