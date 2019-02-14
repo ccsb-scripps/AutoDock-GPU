@@ -603,6 +603,14 @@ gradient_minAD(
 				printf("%s\n", "NO energy improvement!");
 			}
 			#endif
+
+			#if defined (PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION)
+			if (get_local_id(0) == 0) {
+				// Only added for correct printing
+				// "energies" values are only consumed in the other if-else branch
+				energy = best_energy;
+			}
+			#endif
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
