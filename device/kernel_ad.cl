@@ -568,6 +568,13 @@ gradient_minAD(
 		barrier(CLK_LOCAL_MEM_FENCE);
 		#endif
 
+// Original block works as expectd only on GPUs.
+// Alternative code works correctly on both CPUs and GPUs.
+// Problem in original block: 
+// Energy values were computed correctly on the both device types (GPU and CPU),
+// however incorrect energy values were recalculated on host.
+// The alternative code was taken from FIRE kernel implementation.
+#if 0
 		// If this energy is the best so far, save the genotype
 		if (energy < best_energy){
 			
@@ -613,6 +620,19 @@ gradient_minAD(
 			#endif
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
+#else
+		if (get_local_id(0) == 0) {
+
+			if (energy <  best_energy) {
+				best_energy = energy;
+
+				for(uint i = 0; i < dockpars_num_of_genes; i++) { 
+					best_genotype[i] = genotype[i];
+				}
+			}
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+#endif
 
 		for(uint i = get_local_id(0); 
 			 i < dockpars_num_of_genes; 
