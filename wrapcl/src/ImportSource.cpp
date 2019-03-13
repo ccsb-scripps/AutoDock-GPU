@@ -56,10 +56,10 @@ int convertToString2(const char *filename, std::string& s)
 }
 
 int ImportSourceToProgram(const char*    filename,
-		 	  cl_device_id*  device_id,
-		 	  cl_context	 context,
-		 	  cl_program*	 program,
-		 	  const char*    options)
+	 		  cl_device_id*  device_id,
+  		   	  cl_context	 context,
+			  cl_program*	 program,
+	 		  const char*    options)
 {
 	cl_int err;
 
@@ -76,6 +76,7 @@ int ImportSourceToProgram(const char*    filename,
 	// OCLADock
 	size_t sourceSize[] = { strlen(source) };
 
+
 	*program = clCreateProgramWithSource(context, 1, &source, sourceSize, &err);
 		
 	if ((!*program) || (err != CL_SUCCESS)){
@@ -87,7 +88,7 @@ int ImportSourceToProgram(const char*    filename,
 #ifdef PROGRAM_INFO_DISPLAY
 	err = getProgramInfo(*program);
 	if (err != CL_SUCCESS){
-		printf("Error: getProgramInfo() %d\n", err);
+		printf("Error: getProgramInfo() \n");
 		fflush(stdout);
 		return EXIT_FAILURE;
 	}
@@ -130,7 +131,7 @@ int ImportSourceToProgram(const char*    filename,
 #ifdef PROGRAM_BUILD_INFO_DISPLAY
 	err = getprogramBuildInfo(*program, device_id[0]);
 	if (err != CL_SUCCESS){
-		printf("Error: getprogramBuildInfo() %d\n", err);
+		printf("Error: getprogramBuildInfo() \n");
 		fflush(stdout);
 		return EXIT_FAILURE;
 	}

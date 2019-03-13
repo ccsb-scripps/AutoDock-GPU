@@ -77,7 +77,7 @@ int createCommandQueue(cl_context 	 context,
 #ifdef CMD_QUEUE_INFO_DISPLAY
   err = getCommandQueueInfo(local_cmd_queue);
   if (err!=CL_SUCCESS){
-	printf("Error: getCommandQueueInfo(): %d\n",err);
+	printf("Error: getCommandQueueInfo() \n");
 	fflush(stdout);
 	return EXIT_FAILURE;
   }

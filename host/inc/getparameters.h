@@ -33,6 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "processligand.h"
 #include "processgrid.h"
 #include "miscellaneous.h"
+#include "calcenergy_basic.h"
 
 typedef struct
 {
@@ -55,6 +56,7 @@ typedef struct
 		float lsearch_rate;
 		float smooth;
 	unsigned long num_of_ls;
+		char  ls_method[128];
 		float tournament_rate;
 		float rho_lower_bound;
 		float base_dmov_mul_sqrt3;
@@ -66,6 +68,8 @@ typedef struct
 		char  gen_pdbs;
 		char  fldfile [128];
 		char  ligandfile [128];
+		char  xrayligandfile [128];
+		bool  given_xrayligandfile;
 		float ref_ori_angles [3];
 	unsigned long num_of_runs;
 		char  reflig_en_reqired;

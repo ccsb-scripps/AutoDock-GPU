@@ -30,7 +30,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "miscellaneous.h"
 
 /*
-// Moved to defines.h
 #define ATYPE_NUM 22
 */
 
@@ -96,13 +95,18 @@ typedef struct
 	char 	bonds [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
 	char 	intraE_contributors [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
 
+	// -------------------------------------------
+	// Smoothed pairwise potentials
+	// -------------------------------------------
 	// Sizes are hardcoded, ATYPE_NUM=22 float elements as in
 	// https://git.esa.informatik.tu-darmstadt.de/docking/ocladock/blob/master/host/src/processligand.cpp#L456
 	// See "User Guide AutoDock 4.2" (page 34)
 	double  reqm [ATYPE_NUM];
 	double  reqm_hbond [ATYPE_NUM];
+
 	unsigned int  atom1_types_reqm [ATYPE_NUM];
 	unsigned int  atom2_types_reqm [ATYPE_NUM];
+	// -------------------------------------------
 
 	double 	VWpars_A [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];
 	double	VWpars_B [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];
@@ -198,6 +202,7 @@ void calc_interE_peratom_f(const Gridinfo* 	mygrid,
 			   float 		peratom_elec [MAX_NUM_OF_ATOMS],
 			   int 			debug);
 
+
 #if 0
 float calc_intraE_f(const Liganddata* 	myligand,
 		    float 		dcutoff,
@@ -210,7 +215,7 @@ float calc_intraE_f(const Liganddata* 	myligand,
 
 float calc_intraE_f(const Liganddata* 	myligand,
 		    float 		dcutoff,
-		    float               smooth,
+		    float 		smooth,
 		    char 		ignore_desolv,
 		    const float 	scaled_AD4_coeff_elec,
 		    const float 	AD4_coeff_desolv,

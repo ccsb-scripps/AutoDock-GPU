@@ -52,13 +52,29 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define ELAPSEDSECS(stop,start) ((float) stop-start)/((float) CLOCKS_PER_SEC)
 
-int docking_with_gpu(const Gridinfo* 	mygrid,
-         	     /*const*/ float* 	cpu_floatgrids,
-		           Dockpars*	mypars,
-		     const Liganddata* 	myligand_init,
-		     const int* 	argc,
-		     char**		argv,
-		           clock_t 	clock_start_program);
+#if 0
+// Experimental TSRI gradient-based minimizer kernel argument
+// Setup here (temporarily?) the gradient-based minimizer and associated parameters.
+// This should be ultimately configurable by the user as program exec. flags.
+
+typedef struct {
+	unsigned int max_num_of_iters;
+	/*
+	unsigned int max_num_of_consec_fails;
+	float alpha;
+	float conformation_min_perturbation [ACTUAL_GENOTYPE_LENGTH];
+	*/
+} Gradientparameters;
+#endif
+
+int docking_with_gpu(const Gridinfo* 		mygrid,
+         	     /*const*/ float* 		cpu_floatgrids,
+		           Dockpars*		mypars,
+		     const Liganddata* 	 	myligand_init,
+		     const Liganddata* 		myxrayligand,
+		     const int* 		argc,
+		     char**			argv,
+		           clock_t 		clock_start_program);
 
 double check_progress(int* evals_of_runs,
 		      int generation_cnt,

@@ -1,0 +1,96 @@
+REMARK  15 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C10_4807  and  N1_4860 
+REMARK       I    between atoms: C9_4806  and  N2_4862 
+REMARK    2  A    between atoms: C10_4807  and  C11_4809 
+REMARK    3  A    between atoms: C23_4836  and  O6_4857 
+REMARK    4  A    between atoms: C18_4823  and  P1_4864 
+REMARK    5  A    between atoms: C22_4835  and  C23_4836 
+REMARK    6  A    between atoms: C24_4838  and  A25_4841 
+REMARK    7  A    between atoms: C9_4806  and  C10_4807 
+REMARK    8  A    between atoms: C18_4823  and  C19_4825 
+REMARK    9  A    between atoms: C2_4792  and  A3_4795 
+REMARK   10  A    between atoms: C11_4809  and  A12_4812 
+REMARK   11  A    between atoms: C1_4791  and  O2_4853 
+REMARK   12  A    between atoms: O6_4857  and  P1_4864 
+REMARK   13  A    between atoms: C2_4792  and  O2_4853 
+REMARK   14  A    between atoms: C23_4836  and  C24_4838 
+REMARK   15  A    between atoms: C18_4823  and  N2_4862 
+REMARK       I    between atoms: C1_4791  and  N1_4860 
+REMARK RMS_REF  0.7600
+ROOT
+ATOM      1  C9  PA7     1      50.610  19.375  37.906  1.00 15.40     0.241 C 
+ATOM      2  O3  PA7     1      51.534  19.622  38.612  1.00 15.93    -0.271 OA
+ATOM      3  N2  PA7     1      50.277  18.073  37.665  1.00 26.44    -0.343 N 
+ATOM      4  H2  PA7     1      49.471  17.870  37.108  1.00  0.00     0.163 HD
+ENDROOT
+BRANCH   1   5
+ATOM      5  C10 PA7     1      49.708  20.370  37.308  1.00 22.84     0.183 C 
+BRANCH   5   6
+ATOM      6  C11 PA7     1      50.192  21.192  36.070  1.00 22.05     0.073 C 
+BRANCH   6   7
+ATOM      7  A12 PA7     1      49.131  21.637  35.191  1.00 20.27    -0.056 A 
+ATOM      8  A13 PA7     1      48.645  22.899  35.272  1.00 16.29     0.007 A 
+ATOM      9  A14 PA7     1      48.595  20.777  34.297  1.00 39.56     0.007 A 
+ATOM     10  A15 PA7     1      47.640  23.296  34.460  1.00 17.03     0.001 A 
+ATOM     11  A17 PA7     1      47.106  22.432  33.570  1.00 20.16     0.000 A 
+ATOM     12  A16 PA7     1      47.578  21.168  33.495  1.00 20.47     0.001 A 
+ENDBRANCH   6   7
+ENDBRANCH   5   6
+BRANCH   5  13
+ATOM     13  N1  PA7     1      49.297  21.447  38.152  1.00 29.73    -0.323 N 
+ATOM     14  C1  PA7     1      48.548  21.331  39.288  1.00 30.13     0.361 C 
+ATOM     15  H1  PA7     1      49.685  22.344  37.952  1.00  0.00     0.165 HD
+ATOM     16  O1  PA7     1      48.349  22.260  40.047  1.00 19.37    -0.238 OA
+BRANCH  14  17
+ATOM     17  O2  PA7     1      47.979  20.164  39.499  1.00  5.20    -0.299 OA
+BRANCH  17  18
+ATOM     18  C2  PA7     1      46.582  20.032  39.633  1.00  8.58     0.219 C 
+BRANCH  18  19
+ATOM     19  A3  PA7     1      45.973  18.725  39.634  1.00 29.14    -0.034 A 
+ATOM     20  A4  PA7     1      45.323  18.276  38.537  1.00 14.72     0.009 A 
+ATOM     21  A5  PA7     1      46.023  17.942  40.733  1.00 13.61     0.009 A 
+ATOM     22  A6  PA7     1      44.736  17.060  38.527  1.00 37.87     0.001 A 
+ATOM     23  A8  PA7     1      44.763  16.296  39.637  1.00 19.27     0.000 A 
+ATOM     24  A7  PA7     1      45.399  16.740  40.742  1.00 15.64     0.001 A 
+ENDBRANCH  18  19
+ENDBRANCH  17  18
+ENDBRANCH  14  17
+ENDBRANCH   5  13
+ENDBRANCH   1   5
+BRANCH   3  25
+ATOM     25  C18 PA7     1      50.934  17.038  38.404  1.00 16.32     0.208 C 
+BRANCH  25  26
+ATOM     26  C19 PA7     1      49.831  16.437  39.444  1.00 24.30     0.013 C 
+ATOM     27  C20 PA7     1      48.587  16.004  38.692  1.00 28.35     0.012 C 
+ATOM     28  C21 PA7     1      49.491  17.614  40.393  1.00 19.01     0.012 C 
+ENDBRANCH  25  26
+BRANCH  25  29
+ATOM     29  P1  PA7     1      51.605  15.999  37.182  1.00 31.22     0.274 P 
+ATOM     30  O4  PA7     1      52.726  16.866  36.433  1.00 32.18    -0.645 OA
+ATOM     31  O5  PA7     1      52.067  14.733  37.909  1.00 27.32    -0.645 OA
+BRANCH  29  32
+ATOM     32  O6  PA7     1      50.372  15.515  36.156  1.00 18.03    -0.294 OA
+BRANCH  32  33
+ATOM     33  C23 PA7     1      50.821  14.913  34.925  1.00 19.45     0.237 C 
+BRANCH  33  34
+ATOM     34  C22 PA7     1      51.311  15.899  33.957  1.00 13.21     0.204 C 
+ATOM     35  O7  PA7     1      50.614  16.864  33.976  1.00 39.87    -0.646 OA
+ATOM     36  O8  PA7     1      52.377  15.852  33.198  1.00 26.74    -0.646 OA
+ENDBRANCH  33  34
+BRANCH  33  37
+ATOM     37  C24 PA7     1      49.766  14.088  34.192  1.00  6.65     0.082 C 
+BRANCH  37  38
+ATOM     38  A25 PA7     1      50.128  13.347  33.023  1.00 33.94    -0.055 A 
+ATOM     39  A26 PA7     1      50.876  12.229  33.127  1.00 32.82     0.007 A 
+ATOM     40  A27 PA7     1      49.735  13.786  31.808  1.00  2.00     0.007 A 
+ATOM     41  A28 PA7     1      51.214  11.540  32.015  1.00 14.53     0.001 A 
+ATOM     42  A30 PA7     1      50.829  11.984  30.799  1.00  3.04     0.000 A 
+ATOM     43  A29 PA7     1      50.088  13.108  30.697  1.00 23.06     0.001 A 
+ENDBRANCH  37  38
+ENDBRANCH  33  37
+ENDBRANCH  32  33
+ENDBRANCH  29  32
+ENDBRANCH  25  29
+ENDBRANCH   3  25
+TORSDOF 17

@@ -91,8 +91,8 @@ typedef struct
        float atom_charges_const[MAX_NUM_OF_ATOMS];
        char  atom_types_const  [MAX_NUM_OF_ATOMS];
        char  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
-       float reqm_const [ATYPE_NUM];
-       float reqm_hbond_const [ATYPE_NUM];
+       float reqm_const        [ATYPE_NUM];
+       float reqm_hbond_const  [ATYPE_NUM];
        unsigned int  atom1_types_reqm_const [ATYPE_NUM];
        unsigned int  atom2_types_reqm_const [ATYPE_NUM];
        float VWpars_AC_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
@@ -106,6 +106,18 @@ typedef struct
        float rotbonds_moving_vectors_const[3*MAX_NUM_OF_ROTBONDS];
        float rotbonds_unit_vectors_const  [3*MAX_NUM_OF_ROTBONDS];
        float ref_orientation_quats_const  [4*MAX_NUM_OF_RUNS];
+	// Added for calculating torsion-related gradients.
+	// Passing list of rotbond-atoms ids to the GPU.
+	// Contains the same information as processligand.h/Liganddata->rotbonds 
+       int   rotbonds [2*MAX_NUM_OF_ROTBONDS];	
+
+	// Contains the same information as processligand.h/Liganddata->atom_rotbonds
+	// "atom_rotbonds": array that contains the rotatable bonds - atoms assignment.
+	// If the element atom_rotbonds[atom index][rotatable bond index] is equal to 1,
+	// it means,that the atom must be rotated if the bond rotates. A 0 means the opposite.
+       int  rotbonds_atoms [MAX_NUM_OF_ATOMS * MAX_NUM_OF_ROTBONDS];
+
+       int  num_rotating_atoms_per_rotbond [MAX_NUM_OF_ROTBONDS];
 } kernelconstant;
 */
 
@@ -147,12 +159,26 @@ typedef struct
        float ref_orientation_quats_const  [4*MAX_NUM_OF_RUNS];
 } kernelconstant_conform;
 
+typedef struct
+{
+	// Added for calculating torsion-related gradients.
+	// Passing list of rotbond-atoms ids to the GPU.
+	// Contains the same information as processligand.h/Liganddata->rotbonds 
+       int   rotbonds [2*MAX_NUM_OF_ROTBONDS];	
+
+	// Contains the same information as processligand.h/Liganddata->atom_rotbonds
+	// "atom_rotbonds": array that contains the rotatable bonds - atoms assignment.
+	// If the element atom_rotbonds[atom index][rotatable bond index] is equal to 1,
+	// it means,that the atom must be rotated if the bond rotates. A 0 means the opposite.
+       int  rotbonds_atoms [MAX_NUM_OF_ATOMS * MAX_NUM_OF_ROTBONDS];
+       int  num_rotating_atoms_per_rotbond [MAX_NUM_OF_ROTBONDS];
+} kernelconstant_grads;
+
 /*
 int prepare_const_fields_for_gpu(Liganddata* 	   myligand_reference,
 				 Dockpars*   	   mypars,
 				 float*      	   cpu_ref_ori_angles,
-				 kernelconstant* 	KerConst);
-
+				 kernelconstant* KerConst);
 */
 
 int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
@@ -162,7 +188,8 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 				 kernelconstant_intracontrib*	KerConst_intracontrib,
 				 kernelconstant_intra*		KerConst_intra,
 				 kernelconstant_rotlist*	KerConst_rotlist,
-				 kernelconstant_conform*	KerConst_conform);
+				 kernelconstant_conform*	KerConst_conform,
+				 kernelconstant_grads*          KerConst_grads);
 
 void make_reqrot_ordering(char number_of_req_rotations[MAX_NUM_OF_ATOMS],
 			  char atom_id_of_numrots[MAX_NUM_OF_ATOMS],

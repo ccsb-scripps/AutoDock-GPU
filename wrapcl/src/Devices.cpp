@@ -91,7 +91,7 @@ int getDevices(cl_platform_id   platform_id, cl_uint  platformCount,
 #ifdef DEVICE_ATTRIBUTES_DISPLAY
     err = getDeviceAttributes(local_device_id, local_deviceCount);
     if (err != CL_SUCCESS){
-	printf("Error: getDeviceAttributes(): %d\n",err);
+	printf("Error: getDeviceAttributes() \n");
 	fflush(stdout);
 	return EXIT_FAILURE;
     }

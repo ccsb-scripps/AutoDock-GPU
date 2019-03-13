@@ -50,7 +50,10 @@ K1_NAME="gpu_calc_initpop"
 K2_NAME="gpu_sum_evals"
 K3_NAME="perform_LS"
 K4_NAME="gpu_gen_and_eval_newpops"
-K_NAMES=-DK1=$(K1_NAME) -DK2=$(K2_NAME) -DK3=$(K3_NAME) -DK4=$(K4_NAME)
+K5_NAME="gradient_minSD"
+K6_NAME="gradient_minFire"
+K7_NAME="gradient_minAD"
+K_NAMES=-DK1=$(K1_NAME) -DK2=$(K2_NAME) -DK3=$(K3_NAME) -DK4=$(K4_NAME) -DK5=$(K5_NAME) -DK6=$(K6_NAME) -DK7=$(K7_NAME)
 # Kernel flags
 KFLAGS=-DKRNL_SOURCE=$(KRNL_DIR)/$(KRNL_MAIN) -DKRNL_DIRECTORY=$(KRNL_DIR) -DKCMN_DIRECTORY=$(KCMN_DIR) $(K_NAMES)
 
@@ -95,8 +98,10 @@ else
 endif
 
 # ------------------------------------------------------
-# Configuration (Host)
-# Valid values: RELEASE, DEBUG
+# Configuration
+# FDEBUG (full) : enables debugging on both host + device
+# LDEBUG (light): enables debugging on host
+# RELEASE
 CONFIG=RELEASE
 
 OCL_DEBUG_BASIC=-DPLATFORM_ATTRIBUTES_DISPLAY\
@@ -113,7 +118,9 @@ OCL_DEBUG_ALL=$(OCL_DEBUG_BASIC) \
 	      -DKERNEL_WORK_GROUP_INFO_DISPLAY \
 	      -DBUFFER_OBJECT_INFO_DISPLAY
 
-ifeq ($(CONFIG),DEBUG)
+ifeq ($(CONFIG),FDEBUG)
+	OPT =-O0 -g3 -Wall $(OCL_DEBUG_ALL) -DDOCK_DEBUG
+else ifeq ($(CONFIG),LDEBUG)
 	OPT =-O0 -g3 -Wall $(OCL_DEBUG_BASIC)
 else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
@@ -122,17 +129,8 @@ else
 endif
 
 # ------------------------------------------------------
-# Host and Device Debug
-DOCK_DEBUG=NO
-
 # Reproduce results (remove randomness)
 REPRO=NO
-
-ifeq ($(DOCK_DEBUG),YES)
-	DD =-DDOCK_DEBUG
-else
-	DD =
-endif
 
 ifeq ($(REPRO),YES)
 	REP =-DREPRO
@@ -188,11 +186,66 @@ check-env-gpu:
 
 check-env-all: check-env-dev check-env-cpu check-env-gpu
 
+# ------------------------------------------------------
+# Priting out its git version hash
+
+GIT_VERSION := $(shell git describe --abbrev=40 --dirty --always --tags)
+
+CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
+
+# ------------------------------------------------------
+
 stringify:
 	./stringify_ocl_krnls.sh
 
 odock: check-env-all stringify $(SRC)
-	g++ $(SRC) $(CFLAGS) -lOpenCL -o$(BIN_DIR)/$(TARGET) $(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
+	g++ \
+	$(SRC) \
+	$(CFLAGS) \
+	-lOpenCL \
+	-o$(BIN_DIR)/$(TARGET) \
+	$(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
+
+# Example
+# 1ac8: for testing gradients of translation and rotation genes
+# 7cpa: for testing gradients of torsion genes (15 torsions) 
+# 3tmn: for testing gradients of torsion genes (1 torsion)
+
+PDB      := 3ce3
+NRUN     := 100
+NGEN     := 27000
+POPSIZE  := 150
+TESTNAME := test
+TESTLS   := sw
+
+test: odock
+	$(BIN_DIR)/$(TARGET) \
+	-ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld \
+	-lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt \
+	-nrun $(NRUN) \
+	-ngen $(NGEN) \
+	-psize $(POPSIZE) \
+	-resnam $(TESTNAME) \
+	-gfpop 0 \
+	-lsmet $(TESTLS)
+
+ASTEX_PDB := 2bsm
+ASTEX_NRUN:= 10
+ASTEX_POPSIZE := 10
+ASTEX_TESTNAME := test_astex
+ASTEX_LS := sw
+
+astex: odock
+	$(BIN_DIR)/$(TARGET) \
+	-ffile ./input_tsri/search-set-astex/$(ASTEX_PDB)/protein.maps.fld \
+	-lfile ./input_tsri/search-set-astex/$(ASTEX_PDB)/flex-xray.pdbqt \
+	-nrun $(ASTEX_NRUN) \
+	-psize $(ASTEX_POPSIZE) \
+	-resnam $(ASTEX_TESTNAME) \
+	-gfpop 1 \
+	-lsmet $(ASTEX_LS)
+
+#	$(BIN_DIR)/$(TARGET) -ffile ./input_tsri/search-set-astex/$(ASTEX_PDB)/protein.maps.fld -lfile ./input_tsri/search-set-astex/$(ASTEX_PDB)/flex-xray.pdbqt -nrun $(ASTEX_NRUN) -psize $(ASTEX_POPSIZE) -resnam $(ASTEX_TESTNAME) -gfpop 1 | tee ./input_tsri/search-set-astex/intrapairs/$(ASTEX_PDB)_intrapair.txt
 
 PDB      := 3ce3
 NRUN     := 100

@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "Kernels.h"
 
+
 int createKernel( cl_device_id*  device_id,
 		  cl_program*	 program,
 		  const char*    kernel_name,
@@ -43,7 +44,7 @@ int createKernel( cl_device_id*  device_id,
 #ifdef KERNEL_INFO_DISPLAY
 	err = getKernelInfo(*kernel);
 	if (err != CL_SUCCESS){
-		printf("Error: getKernelInfo() %d\n", kernel_name, err);
+		printf("Error: getKernelInfo() %s\n", kernel_name);
 		fflush(stdout);
 		return EXIT_FAILURE;
 	}
@@ -52,7 +53,7 @@ int createKernel( cl_device_id*  device_id,
 #ifdef KERNEL_WORK_GROUP_INFO_DISPLAY
 	err = getKernelWorkGroupInfo(*kernel, device_id[0]);
 	if (err != CL_SUCCESS){
-		printf("Error: getKernelWorkGroupInfo() %d\n", kernel_name, err);
+		printf("Error: getKernelWorkGroupInfo() %s\n", kernel_name);
 		fflush(stdout);
 		return EXIT_FAILURE;
 	}
@@ -77,6 +78,7 @@ int getKernelInfo(cl_kernel kernel){
   // Query Function name
   printf("\n-----------------------------------------------------------------------\n");
   err = clGetKernelInfo(kernel,CL_KERNEL_FUNCTION_NAME,0,NULL,&sizeParam);
+
   if (err != CL_SUCCESS){
 	printf("Error: clGetKernelInfo() %d\n",err);
 	fflush(stdout);

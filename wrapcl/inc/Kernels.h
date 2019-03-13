@@ -29,10 +29,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
   //#include <CL/opencl.h>
   #include "commonMacros.h"
 
+
 int createKernel(cl_device_id*   device_id,
 		 cl_program*	 program,
 		 const char*     kernel_name,
 		 cl_kernel*	 kernel);
+
 
 /*
 

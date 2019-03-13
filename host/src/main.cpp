@@ -45,6 +45,8 @@ int main(int argc, char* argv[])
 	Liganddata myligand_init;
 	Dockpars   mypars;
 	float*     floatgrids;
+	FILE*      fp;
+	char report_file_name [256];
 
 	clock_t clock_start_program, clock_stop_program;
 	clock_start_program = clock();
@@ -90,6 +92,17 @@ int main(int argc, char* argv[])
 	//------------------------------------------------------------
 	get_commandpars(&argc, argv, &(mygrid.spacing), &mypars);
 
+	Liganddata myxrayligand;
+	Gridinfo   mydummygrid;
+	// if -lxrayfile provided, then read xray ligand data
+	if (mypars.given_xrayligandfile == true) {
+			if (init_liganddata(mypars.xrayligandfile, &myxrayligand, &mydummygrid) != 0)
+				return 1;
+
+			if (get_liganddata(mypars.xrayligandfile, &myxrayligand, mypars.coeffs.AD4_coeff_vdW, mypars.coeffs.AD4_coeff_hb) != 0)
+				return 1;
+	}
+
 	//------------------------------------------------------------
 	// Calculating energies of reference ligand if required
 	//------------------------------------------------------------
@@ -111,7 +124,10 @@ int main(int argc, char* argv[])
 	//------------------------------------------------------------
 	// Starting Docking
 	//------------------------------------------------------------
-	if (docking_with_gpu(&mygrid, floatgrids, &mypars, &myligand_init, &argc, argv, clock_start_program) != 0)
+
+	printf("\nOCLADock version: %s\n", VERSION);
+
+	if (docking_with_gpu(&mygrid, floatgrids, &mypars, &myligand_init, &myxrayligand, &argc, argv, clock_start_program) != 0)
 		return 1;
 
 	free(floatgrids);
@@ -124,6 +140,13 @@ int main(int argc, char* argv[])
 	num_usec    = time_end.tv_usec - time_start.tv_usec;
 	elapsed_sec = num_sec + (num_usec/1000000);
 	printf("Program run time %.3f sec \n\n", elapsed_sec);
+
+    // Append time information to .dlg file
+	strcpy(report_file_name, mypars.resname);
+	strcat(report_file_name, ".dlg");
+	fp = fopen(report_file_name, "a");
+	fprintf(fp, "\n\n\nProgram run time %.3f sec\n", elapsed_sec);
+	fclose(fp);
 	//// ------------------------
 #endif
 	return 0;

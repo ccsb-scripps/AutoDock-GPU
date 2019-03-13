@@ -54,10 +54,8 @@ void arrange_result(float* final_population, float* energies, const int pop_size
 void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* mypars, const Gridinfo* mygrid, const int* argc, char** argv)
 //The function writes basic information (such as docking parameters) to the file whose file pointer is the first parameter of the function.
 {
-
 	char temp_filename [128];
 	int i;
-
 
 	fprintf(fp, "***********************************\n");
 	fprintf(fp, "**      OCLADOCK REPORT FILE     **\n");
@@ -78,14 +76,14 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 	fprintf(fp, "Tournament selection probability limit:    %lf%%\n", (double) mypars->tournament_rate);
 	fprintf(fp, "Rate of mutation:                          %lf%%\n", (double) mypars->mutation_rate);
 	fprintf(fp, "Maximal allowed delta movement:            +/- %lfA\n", (double) mypars->abs_max_dmov*mygrid->spacing);
-	fprintf(fp, "Maximal allowed delta angle:               +/- %lf°\n\n", (double) mypars->abs_max_dang);
+	fprintf(fp, "Maximal allowed delta angle:               +/- %lf\n\n", (double) mypars->abs_max_dang);
 
 	fprintf(fp, "Rate of local search:                      %lf%%\n", mypars->lsearch_rate);
 
 	fprintf(fp, "Maximal number of local search iterations: %ld\n", mypars->max_num_of_iters);
 	fprintf(fp, "Rho lower bound:                           %lf\n", (double) mypars->rho_lower_bound);
 	fprintf(fp, "Spread of local search delta movement:     %lfA\n", (double) mypars->base_dmov_mul_sqrt3*mygrid->spacing/sqrt(3.0));
-	fprintf(fp, "Spread of local search delta angle:        %lf°\n", (double) mypars->base_dang_mul_sqrt3/sqrt(3.0));
+	fprintf(fp, "Spread of local search delta angle:        %lf\n", (double) mypars->base_dang_mul_sqrt3/sqrt(3.0));
 	fprintf(fp, "Limit of consecutive successes/failures:   %ld\n\n", mypars->cons_limit);
 
 	fprintf(fp, "Unbound model:                             ");
@@ -110,7 +108,6 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 		fprintf(fp, "%s ", argv [i]);
 	fprintf(fp, "\n\n\n");
 
-
 	//Writing out receptor parameters
 
 	fprintf(fp, "        RECEPTOR PARAMETERS        \n");
@@ -121,7 +118,6 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 	fprintf(fp, "Grid size (x, y, z):                       %lf, %lf, %lfA\n", mygrid->size_xyz_angstr [0], mygrid->size_xyz_angstr [1], mygrid->size_xyz_angstr [2]);
 	fprintf(fp, "Grid spacing:                              %lfA\n", mygrid->spacing);
 	fprintf(fp, "\n\n");
-
 
 	//Writing out ligand parameters
 
@@ -141,16 +137,15 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 	fprintf(fp, "Number of rotation cycles:                 %d\n", ligand_ref->num_of_rotcyc);
 
 	fprintf(fp, "\n\n");
-
 }
 
 void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars* mypars, const Gridinfo* mygrid, const int* argc, char** argv)
 //The function writes basic information (such as docking parameters) to the file whose file pointer is the first parameter of the function.
 {
-
 	char temp_filename [128];
 	int i;
 
+	fprintf(fp, "OCLADock version: %s\n\n", VERSION);
 
 	fprintf(fp, "**********************************************************\n");
 	fprintf(fp, "**      OCLADOCK AUTODOCKTOOLS-COMPATIBLE DLG FILE      **\n");
@@ -172,14 +167,14 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	fprintf(fp, "Tournament selection probability limit:    %lf%%\n", (double) mypars->tournament_rate);
 	fprintf(fp, "Rate of mutation:                          %lf%%\n", (double) mypars->mutation_rate);
 	fprintf(fp, "Maximal allowed delta movement:            +/- %lfA\n", (double) mypars->abs_max_dmov*mygrid->spacing);
-	fprintf(fp, "Maximal allowed delta angle:               +/- %lf°\n\n", (double) mypars->abs_max_dang);
+	fprintf(fp, "Maximal allowed delta angle:               +/- %lf\n\n", (double) mypars->abs_max_dang);
 
 	fprintf(fp, "Rate of local search:                      %lf%%\n", mypars->lsearch_rate);
 
 	fprintf(fp, "Maximal number of local search iterations: %ld\n", mypars->max_num_of_iters);
 	fprintf(fp, "Rho lower bound:                           %lf\n", (double) mypars->rho_lower_bound);
 	fprintf(fp, "Spread of local search delta movement:     %lfA\n", (double) mypars->base_dmov_mul_sqrt3*mygrid->spacing/sqrt(3.0));
-	fprintf(fp, "Spread of local search delta angle:        %lf°\n", (double) mypars->base_dang_mul_sqrt3/sqrt(3.0));
+	fprintf(fp, "Spread of local search delta angle:        %lf\n", (double) mypars->base_dang_mul_sqrt3/sqrt(3.0));
 	fprintf(fp, "Limit of consecutive successes/failures:   %ld\n\n", mypars->cons_limit);
 
 		fprintf(fp, "Handle symmetry during clustering:         ");
@@ -194,7 +189,6 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	for (i=0; i<*argc; i++)
 		fprintf(fp, "%s ", argv [i]);
 	fprintf(fp, "\n\n\n");
-
 
 	//Writing out receptor parameters
 
@@ -231,9 +225,22 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	fprintf(fp, "DPF> move %s\n\n\n", mypars->ligandfile);
 }
 
-void make_resfiles(float* final_population, float* energies, const Liganddata* ligand_ref,
-				   const Liganddata* ligand_from_pdb, const Dockpars* mypars, int evals_performed, int generations_used, const Gridinfo* mygrid, const float* grids,
-				   float* cpu_ref_ori_angles, const int* argc, char** argv, int debug, int run_cnt, Ligandresult* best_result)
+void make_resfiles(float* final_population, 
+		   float* energies, 
+		   const Liganddata* ligand_ref,
+		   const Liganddata* ligand_from_pdb,
+		   const Liganddata* ligand_xray,
+		   const Dockpars* mypars, 
+		         int evals_performed, 
+			 int generations_used, 
+		   const Gridinfo* mygrid, 
+		   const float* grids,
+		   float* cpu_ref_ori_angles, 
+		   const int* argc, 
+		   char** argv, 
+		   int debug, 
+		   int run_cnt, 
+		   Ligandresult* best_result)
 //The function writes out final_population generated by get_result
 //as well as different parameters about the docking, the receptor and the ligand to a file called fdock_report.txt in a
 //readable and understandable format. The ligand_from_pdb parametere must be the Liganddata which includes the original
@@ -257,13 +264,10 @@ void make_resfiles(float* final_population, float* energies, const Liganddata* l
 
 	int pop_size = mypars->pop_size;
 
-
 	sprintf(temp_filename, "final_population_run%d.txt", run_cnt+1);
 
 	if (mypars->gen_finalpop != 0)	//if final population files are not required, no file will be opened.
 	{
-
-
 		fp = fopen(temp_filename, "w");
 
 		write_basic_info(fp, ligand_ref, mypars, mygrid, argc, argv);	//Write basic information about docking and molecule parameters to file
@@ -273,7 +277,6 @@ void make_resfiles(float* final_population, float* energies, const Liganddata* l
 		fprintf(fp, "Number of energy evaluations performed:    %ld\n", evals_performed);
 		fprintf(fp, "Number of generations used:                %ld\n", generations_used);
 		fprintf(fp, "\n\n");
-
 	}
 
 	//Writing out state of final population
@@ -307,9 +310,13 @@ void make_resfiles(float* final_population, float* energies, const Liganddata* l
 			#endif
 			accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp, debug);
 
-
 		move_ligand(&temp_docked, mygrid->origo_real_xyz);				//moving it according to grid location
-		entity_rmsds [i] = calc_rmsd(ligand_from_pdb, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original pdb file
+		if (mypars->given_xrayligandfile == true) {
+			entity_rmsds [i] = calc_rmsd(ligand_xray, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original xray file
+		}
+		else {
+			entity_rmsds [i] = calc_rmsd(ligand_from_pdb, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original pdb file
+		}
 
 		//copying best result to output parameter
 		if (i == 0)		//assuming this is the best one (final_population is arranged), however,
@@ -344,9 +351,9 @@ void make_resfiles(float* final_population, float* energies, const Liganddata* l
 		fprintf(fp, "     STATE OF FINAL POPULATION     \n");
 		fprintf(fp, "===================================\n\n");
 
-		fprintf(fp, " Entity |      dx [A]      |      dy [A]      |      dz [A]      |     phi [°]      |    theta [°]     | alpha_genrot [°] |");
+		fprintf(fp, " Entity |      dx [A]      |      dy [A]      |      dz [A]      |     phi []      |    theta []     | alpha_genrot [] |");
 		for (i=0; i<ligand_from_pdb->num_of_rotbonds; i++)
-			fprintf(fp, " alpha_rotb%2d [°] |", i);
+			fprintf(fp, " alpha_rotb%2d [] |", i);
 		fprintf(fp, " intramolecular energy | intermolecular energy | total energy calculated by CPU / calculated by GPU / difference | RMSD [A] | \n");
 
 		fprintf(fp, "--------+------------------+------------------+------------------+------------------+------------------+------------------+");

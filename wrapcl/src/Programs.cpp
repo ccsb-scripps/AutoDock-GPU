@@ -146,7 +146,9 @@ int getProgramInfo(cl_program program){
 
   // ----------------------------------------------------------------------------
   // Query Size of each program's binary buffer (i.e. for each device)
-
+  // Commented out as binaries are not used in this program
+  // https://www.khronos.org/registry/OpenCL/sdk/1.0/docs/man/xhtml/clGetProgramInfo.html
+/*
   err = clGetProgramInfo(program,CL_PROGRAM_BINARY_SIZES,0,NULL,&sizeParam);
   if (err != CL_SUCCESS){
 	printf("Error: clGetProgramInfo() %d\n",err);
@@ -168,7 +170,7 @@ int getProgramInfo(cl_program program){
   }
 
   free(program_bin_size);
-
+*/
   // ----------------------------------------------------------------------------
 /*
   // REQUIRES REVISION

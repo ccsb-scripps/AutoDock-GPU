@@ -1,0 +1,47 @@
+outlev 0                             # diagnostic output level
+parameter_file AD4.1_bound.dat       # force field default parameter file
+
+intelec                              # calculate internal electrostatics
+seed pid time                        # seeds for random generator
+ligand_types A C  N  SA              # atoms types in ligand
+fld 1ac8_rec.maps.fld                # grid_data_file
+map 1ac8_rec.A.map                   # atom-specific affinity map
+map 1ac8_rec.C.map                   # atom-specific affinity map
+map 1ac8_rec.N.map                   # atom-specific affinity map
+map 1ac8_rec.SA.map                  # atom-specific affinity map
+elecmap 1ac8_rec.e.map                   # electrostatics map
+desolvmap 1ac8_rec.d.map                   # desolvation map
+move 1ac8_lig.pdbqt                  # small molecule
+about 31.7958 93.7439 47.6999        # small molecule center
+tran0 random                         # initial coordinates/A or random
+quat0 random                         # initial quaternion
+ndihe 0                              # number of active torsions
+dihe0 random                         # initial dihedrals (relative) or random
+tstep 2.0                            # translation step/A
+qstep 50.0                           # quaternion step/deg
+dstep 50.0                           # torsion step/deg
+torsdof 0                            # torsional degrees of freedom and coefficient
+unbound 0.0                          # free energy of ligand's unbound state 
+rmstol 0.5                           # cluster_tolerance/A
+extnrg 1000.0                        # external grid energy
+e0max 0.0 10000                      # max initial energy; max number of retries
+ga_pop_size 150                      # number of individuals in population
+ga_num_evals 25000000                  # maximum number of energy evaluations  
+ga_num_generations 27000             # maximum number of generations
+ga_elitism 1                         # number of top individuals to survive to next generation
+ga_mutation_rate 0.02                # rate of gene mutation
+ga_crossover_rate 0.8                # rate of crossover
+ga_window_size 10                    # 
+ga_cauchy_alpha 0.0                  # Alpha parameter of Cauchy distribution
+ga_cauchy_beta 1.0                   # Beta parameter Cauchy distribution
+set_ga                               # set the above parameters for GA or LGA
+sw_max_its 300                       # iterations of Solis & Wets local search
+sw_max_succ 4                        # consecutive successes before changing rho
+sw_max_fail 4                        # consecutive failures before changing rho
+sw_rho 1.0                           # size of local search space to sample
+sw_lb_rho 0.01                       # lower bound on rho
+ls_search_freq 0.06                  # probability of performing local search on individual
+set_sw1                              # set the above Solis & Wets parameters
+unbound 0.0                          # compute extended ligand energy
+ga_run 100                            # do this many hybrid GA-LS runs
+analysis                             # perform a ranked cluster analysis

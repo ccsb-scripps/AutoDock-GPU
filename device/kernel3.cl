@@ -23,53 +23,42 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
-perform_LS(	char   dockpars_num_of_atoms,
-		char   dockpars_num_of_atypes,
-		int    dockpars_num_of_intraE_contributors,
-		char   dockpars_gridsize_x,
-		char   dockpars_gridsize_y,
-		char   dockpars_gridsize_z,
-		float  dockpars_grid_spacing,
+perform_LS(		
+			char   dockpars_num_of_atoms,
+			char   dockpars_num_of_atypes,
+			int    dockpars_num_of_intraE_contributors,
+			char   dockpars_gridsize_x,
+			char   dockpars_gridsize_y,
+			char   dockpars_gridsize_z,
+							    		// g1 = gridsize_x
+  			uint   dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+			uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
+			float  dockpars_grid_spacing,
+         __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
+	        	int    dockpars_rotbondlist_length,
+			float  dockpars_coeff_elec,
+			float  dockpars_coeff_desolv,
+  	 __global       float* restrict dockpars_conformations_next,
+  	 __global 	float* restrict dockpars_energies_next,
+  	 __global 	int*   restrict dockpars_evals_of_new_entities,
+  	 __global 	uint*  restrict dockpars_prng_states,
+			int    dockpars_pop_size,
+			int    dockpars_num_of_genes,
+			float  dockpars_lsearch_rate,
+			uint   dockpars_num_of_lsentities,
+			float  dockpars_rho_lower_bound,
+			float  dockpars_base_dmov_mul_sqrt3,
+			float  dockpars_base_dang_mul_sqrt3,
+			uint   dockpars_cons_limit,
+			uint   dockpars_max_num_of_iters,
+			float  dockpars_qasp,
+			float  dockpars_smooth,
 
-		#if defined (RESTRICT_ARGS)
-  __global const float* restrict dockpars_fgrids, // cannot be allocated in __constant (too large)
-		#else
-  __global const float* dockpars_fgrids,          // cannot be allocated in __constant (too large)
-		#endif
-
-	        int    dockpars_rotbondlist_length,
-		float  dockpars_coeff_elec,
-		float  dockpars_coeff_desolv,
-
-		#if defined (RESTRICT_ARGS)
-  __global float* restrict dockpars_conformations_next,
-  __global float* restrict dockpars_energies_next,
-  __global int*   restrict dockpars_evals_of_new_entities,
-  __global unsigned int* restrict dockpars_prng_states,
-		#else
-  __global float* dockpars_conformations_next,
-  __global float* dockpars_energies_next,
-  __global int*   dockpars_evals_of_new_entities,
-  __global unsigned int* dockpars_prng_states,
-		#endif
-
-		int    dockpars_pop_size,
-		int    dockpars_num_of_genes,
-		float  dockpars_lsearch_rate,
-		unsigned int dockpars_num_of_lsentities,
-		float  dockpars_rho_lower_bound,
-		float  dockpars_base_dmov_mul_sqrt3,
-		float  dockpars_base_dang_mul_sqrt3,
-		unsigned int dockpars_cons_limit,
-		unsigned int dockpars_max_num_of_iters,
-		float  dockpars_qasp,
-                float  dockpars_smooth,
-	
-   __constant     kernelconstant_interintra* 		kerconst_interintra,
-   __global const kernelconstant_intracontrib*  	kerconst_intracontrib,
-   __constant     kernelconstant_intra*			kerconst_intra,
-   __constant     kernelconstant_rotlist*   		kerconst_rotlist,
-   __constant     kernelconstant_conform*		kerconst_conform
+	 __constant     kernelconstant_interintra* 	kerconst_interintra,
+	 __global const kernelconstant_intracontrib*  	kerconst_intracontrib,
+	 __constant     kernelconstant_intra*		kerconst_intra,
+	 __constant     kernelconstant_rotlist*   	kerconst_rotlist,
+	 __constant     kernelconstant_conform*		kerconst_conform
 )
 //The GPU global function performs local search on the pre-defined entities of conformations_next.
 //The number of blocks which should be started equals to num_of_lsentities*num_of_runs.
@@ -79,6 +68,10 @@ perform_LS(	char   dockpars_num_of_atoms,
 //it is always tested according to the ls probability, and if it not to be
 //subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
+	// Some OpenCL compilers don't allow declaring 
+	// local variables within non-kernel functions.
+	// These local variables must be declared in a kernel, 
+	// and then passed to non-kernel functions.
 	__local float genotype_candidate[ACTUAL_GENOTYPE_LENGTH];
 	__local float genotype_deviate  [ACTUAL_GENOTYPE_LENGTH];
 	__local float genotype_bias     [ACTUAL_GENOTYPE_LENGTH];
@@ -95,46 +88,47 @@ perform_LS(	char   dockpars_num_of_atoms,
 	__local int entity_id;
 	__local float offspring_energy;
 
-        // Some OpenCL compilers don't allow local var outside kernels
-        // so this local vars are passed from a kernel
 	__local float calc_coords_x[MAX_NUM_OF_ATOMS];
 	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
 	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
 
-	//determining run ID and entity ID, initializing
+	#if defined (DEBUG_ENERGY_KERNEL)
+	__local float partial_interE [NUM_OF_THREADS_PER_BLOCK];
+	__local float partial_intraE [NUM_OF_THREADS_PER_BLOCK];
+	#endif
+
+	// Determining run ID and entity ID
+	// Initializing offspring genotype
 	if (get_local_id(0) == 0)
 	{
 		run_id = get_group_id(0) / dockpars_num_of_lsentities;
 		entity_id = get_group_id(0) % dockpars_num_of_lsentities;
 
-		//since entity 0 is the best one due to elitism, should be subjected to random selection
-		if (entity_id == 0)
-			if (100.0f*gpu_randf(dockpars_prng_states) > dockpars_lsearch_rate)
-				entity_id = dockpars_num_of_lsentities;	//if entity 0 is not selected according to LS rate,
-									//choosing an other entity
+		// Since entity 0 is the best one due to elitism,
+		// it should be subjected to random selection
+		if (entity_id == 0) {
+			// If entity 0 is not selected according to LS-rate,
+			// choosing an other entity
+			if (100.0f*gpu_randf(dockpars_prng_states) > dockpars_lsearch_rate) {
+				entity_id = dockpars_num_of_lsentities;					
+			}
+		}
 
 		offspring_energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
 	}
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	#if defined (ASYNC_COPY)
   	event_t ev = async_work_group_copy(offspring_genotype,
-					   dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
-                        	           dockpars_num_of_genes,0);
+			      		   dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
+                              		   dockpars_num_of_genes, 0);
 
-	#else
-	for (gene_counter=get_local_id(0);
-	     gene_counter<dockpars_num_of_genes;
-	     gene_counter+=NUM_OF_THREADS_PER_BLOCK)
-		   offspring_genotype[gene_counter] = dockpars_conformations_next[(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter];
-	#endif
-
-	for (gene_counter=get_local_id(0);
-	     gene_counter<dockpars_num_of_genes;
-	     gene_counter += NUM_OF_THREADS_PER_BLOCK)
+	for (gene_counter = get_local_id(0);
+	     gene_counter < dockpars_num_of_genes;
+	     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 		   genotype_bias[gene_counter] = 0.0f;
+	}
 
 	if (get_local_id(0) == 0) {
 		rho = 1.0f;
@@ -144,35 +138,41 @@ perform_LS(	char   dockpars_num_of_atoms,
 		evaluation_cnt = 0;
 	}
 
-	#if defined (ASYNC_COPY)
+
 	// Asynchronous copy should be finished by here
 	wait_group_events(1, &ev);
-	#endif
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	while ((iteration_cnt < dockpars_max_num_of_iters) && (rho > dockpars_rho_lower_bound))
 	{
-		//new random deviate
-		for (gene_counter=get_local_id(0);
-		     gene_counter<dockpars_num_of_genes;
-		     gene_counter += NUM_OF_THREADS_PER_BLOCK)
+		// New random deviate
+		for (gene_counter = get_local_id(0);
+		     gene_counter < dockpars_num_of_genes;
+		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
 			genotype_deviate[gene_counter] = rho*(2*gpu_randf(dockpars_prng_states)-1);
 
-			if (gene_counter < 3)
+			// Translation genes
+			if (gene_counter < 3) {
 				genotype_deviate[gene_counter] *= dockpars_base_dmov_mul_sqrt3;
-			else
+			}
+			// Orientation and torsion genes
+			else {
 				genotype_deviate[gene_counter] *= dockpars_base_dang_mul_sqrt3;
+			}
 		}
 
-		//generating new genotype candidate
-		for (gene_counter=get_local_id(0);
-		     gene_counter<dockpars_num_of_genes;
-		     gene_counter += NUM_OF_THREADS_PER_BLOCK)
-			   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] + genotype_deviate[gene_counter] + genotype_bias[gene_counter];
+		// Generating new genotype candidate
+		for (gene_counter = get_local_id(0);
+		     gene_counter < dockpars_num_of_genes;
+		     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
+			   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] + 
+							      genotype_deviate[gene_counter]   + 
+							      genotype_bias[gene_counter];
+		}
 
-		//evaluating candidate
+		// Evaluating candidate
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// ==================================================================
@@ -181,6 +181,9 @@ perform_LS(	char   dockpars_num_of_atoms,
 				dockpars_gridsize_x,
 				dockpars_gridsize_y,
 				dockpars_gridsize_z,
+								    	// g1 = gridsize_x
+				dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+				dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 				dockpars_fgrids,
 				dockpars_num_of_atypes,
 				dockpars_num_of_intraE_contributors,
@@ -193,41 +196,54 @@ perform_LS(	char   dockpars_num_of_atoms,
 				genotype_candidate,
 				&candidate_energy,
 				&run_id,
-				// Some OpenCL compilers don't allow local var outside kernels
-				// so this local vars are passed from a kernel
+				// Some OpenCL compilers don't allow declaring 
+				// local variables within non-kernel functions.
+				// These local variables must be declared in a kernel, 
+				// and then passed to non-kernel functions.
 				calc_coords_x,
 				calc_coords_y,
 				calc_coords_z,
 				partial_energies,
-				
-		   		kerconst_interintra,
-		   		kerconst_intracontrib,
-		   		kerconst_intra,
-        	   		kerconst_rotlist,
-        	   		kerconst_conform);
+				#if defined (DEBUG_ENERGY_KERNEL)
+				partial_interE,
+				partial_intraE,
+				#endif
+#if 0
+				false,
+#endif
+			   	kerconst_interintra,
+			   	kerconst_intracontrib,
+			   	kerconst_intra,
+			   	kerconst_rotlist,
+			   	kerconst_conform
+				);
 		// =================================================================
 
-		if (get_local_id(0) == 0)
+		if (get_local_id(0) == 0) {
 			evaluation_cnt++;
+
+			#if defined (DEBUG_ENERGY_KERNEL)
+			printf("%-18s [%-5s]---{%-5s}   [%-10.8f]---{%-10.8f}\n", "-ENERGY-KERNEL3-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
+			#endif
+		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (candidate_energy < offspring_energy)	//if candidate is better, success
+		if (candidate_energy < offspring_energy)	// If candidate is better, success
 		{
-			for (gene_counter=get_local_id(0);
-			     gene_counter<dockpars_num_of_genes;
-			     gene_counter += NUM_OF_THREADS_PER_BLOCK)
+			for (gene_counter = get_local_id(0);
+			     gene_counter < dockpars_num_of_genes;
+			     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 			{
-				//updating offspring_genotype
+				// Updating offspring_genotype
 				offspring_genotype[gene_counter] = genotype_candidate[gene_counter];
 
-				//updating genotype_bias
+				// Updating genotype_bias
 				genotype_bias[gene_counter] = 0.6f*genotype_bias[gene_counter] + 0.4f*genotype_deviate[gene_counter];
 			}
 
-			//thread 0 will overwrite the shared variables
-			//used in the previous if condition,
-			//all threads have to be after if
+			// Work-item 0 will overwrite the shared variables
+			// used in the previous if condition
 			barrier(CLK_LOCAL_MEM_FENCE);
 
 			if (get_local_id(0) == 0)
@@ -237,15 +253,18 @@ perform_LS(	char   dockpars_num_of_atoms,
 				cons_fail = 0;
 			}
 		}
-		else	//if candidate is worser, check the opposite direction
+		else	// If candidate is worser, check the opposite direction
 		{
-			//generating the other genotype candidate
-			for (gene_counter=get_local_id(0);
-			     gene_counter<dockpars_num_of_genes;
-			     gene_counter += NUM_OF_THREADS_PER_BLOCK)
-				   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] - genotype_deviate[gene_counter] - genotype_bias[gene_counter];
+			// Generating the other genotype candidate
+			for (gene_counter = get_local_id(0);
+			     gene_counter < dockpars_num_of_genes;
+			     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
+				   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] - 
+								      genotype_deviate[gene_counter] - 
+								      genotype_bias[gene_counter];
+			}
 
-			//evaluating candidate
+			// Evaluating candidate
 			barrier(CLK_LOCAL_MEM_FENCE);
 
 			// =================================================================
@@ -254,6 +273,9 @@ perform_LS(	char   dockpars_num_of_atoms,
 					dockpars_gridsize_x,
 					dockpars_gridsize_y,
 					dockpars_gridsize_z,
+									    	// g1 = gridsize_x
+					dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+					dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 					dockpars_fgrids,
 					dockpars_num_of_atypes,
 					dockpars_num_of_intraE_contributors,
@@ -266,41 +288,54 @@ perform_LS(	char   dockpars_num_of_atoms,
 					genotype_candidate,
 					&candidate_energy,
 					&run_id,
-		                        // Some OpenCL compilers don't allow local var outside kernels
-					// so this local vars are passed from a kernel
+					// Some OpenCL compilers don't allow declaring 
+					// local variables within non-kernel functions.
+					// These local variables must be declared in a kernel, 
+					// and then passed to non-kernel functions.
 					calc_coords_x,
 					calc_coords_y,
 					calc_coords_z,
 					partial_energies,
-					
-			   		kerconst_interintra,
-			   		kerconst_intracontrib,
-			   		kerconst_intra,
-	        	   		kerconst_rotlist,
-	        	   		kerconst_conform);
+					#if defined (DEBUG_ENERGY_KERNEL)
+					partial_interE,
+					partial_intraE,
+					#endif
+#if 0
+					false,
+#endif
+				   	kerconst_interintra,
+				   	kerconst_intracontrib,
+				   	kerconst_intra,
+				   	kerconst_rotlist,
+				   	kerconst_conform
+					);
 			// =================================================================
 
-			if (get_local_id(0) == 0)
+			if (get_local_id(0) == 0) {
 				evaluation_cnt++;
+
+				#if defined (DEBUG_ENERGY_KERNEL)
+				printf("%-18s [%-5s]---{%-5s}   [%-10.8f]---{%-10.8f}\n", "-ENERGY-KERNEL3-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
+				#endif
+			}
 
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-			if (candidate_energy < offspring_energy)//if candidate is better, success
+			if (candidate_energy < offspring_energy) // If candidate is better, success
 			{
-				for (gene_counter=get_local_id(0);
-				     gene_counter<dockpars_num_of_genes;
-			       gene_counter += NUM_OF_THREADS_PER_BLOCK)
+				for (gene_counter = get_local_id(0);
+				     gene_counter < dockpars_num_of_genes;
+			       	     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 				{
-					//updating offspring_genotype
+					// Updating offspring_genotype
 					offspring_genotype[gene_counter] = genotype_candidate[gene_counter];
 
-					//updating genotype_bias
+					// Updating genotype_bias
 					genotype_bias[gene_counter] = 0.6f*genotype_bias[gene_counter] - 0.4f*genotype_deviate[gene_counter];
 				}
 
-				//thread 0 will overwrite the shared variables
-				//used in the previous if condition,
-				//all threads have to be after if
+				// Work-item 0 will overwrite the shared variables
+				// used in the previous if condition
 				barrier(CLK_LOCAL_MEM_FENCE);
 
 				if (get_local_id(0) == 0)
@@ -310,12 +345,12 @@ perform_LS(	char   dockpars_num_of_atoms,
 					cons_fail = 0;
 				}
 			}
-			else	//failure in both directions
+			else	// Failure in both directions
 			{
-				for (gene_counter=get_local_id(0);
-				     gene_counter<dockpars_num_of_genes;
-				     gene_counter += NUM_OF_THREADS_PER_BLOCK)
-					   //updating genotype_bias
+				for (gene_counter = get_local_id(0);
+				     gene_counter < dockpars_num_of_genes;
+				     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+					   // Updating genotype_bias
 					   genotype_bias[gene_counter] = 0.5f*genotype_bias[gene_counter];
 
 				if (get_local_id(0) == 0)
@@ -326,7 +361,7 @@ perform_LS(	char   dockpars_num_of_atoms,
 			}
 		}
 
-		//changing rho if needed
+		// Changing rho if needed
 		if (get_local_id(0) == 0)
 		{
 			iteration_cnt++;
@@ -346,35 +381,28 @@ perform_LS(	char   dockpars_num_of_atoms,
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
 
-	//updating eval counter and energy
-	if (get_local_id(0) == 0)
-	{
+	// Updating eval counter and energy
+	if (get_local_id(0) == 0) {
 		dockpars_evals_of_new_entities[run_id*dockpars_pop_size+entity_id] += evaluation_cnt;
 		dockpars_energies_next[run_id*dockpars_pop_size+entity_id] = offspring_energy;
 	}
 
-	//mapping angles
-	for (gene_counter=get_local_id(0);
-	     gene_counter<dockpars_num_of_genes;
-	     gene_counter+=NUM_OF_THREADS_PER_BLOCK)
-		   if (gene_counter >=  3)
+	// Mapping torsion angles
+	for (gene_counter = get_local_id(0);
+	     gene_counter < dockpars_num_of_genes;
+	     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
+		   if (gene_counter >= 3) {
 			    map_angle(&(offspring_genotype[gene_counter]));
+		   }
+	}
 
-	//updating old offspring in population
+	// Updating old offspring in population
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	#if defined (ASYNC_COPY)
   	event_t ev2 = async_work_group_copy(dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
-                             		    offspring_genotype,
-                        		    dockpars_num_of_genes,0);
+        	                            offspring_genotype,
+        	                            dockpars_num_of_genes,0);
 
 	// Asynchronous copy should be finished by here
 	wait_group_events(1, &ev2);
-
-	#else
-	for (gene_counter=get_local_id(0);
-	     gene_counter<dockpars_num_of_genes;
-       	     gene_counter+=NUM_OF_THREADS_PER_BLOCK)
-		dockpars_conformations_next[(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter] = offspring_genotype[gene_counter];
-	#endif
 }

@@ -46,9 +46,9 @@ int convertToString2(const char *filename, std::string& s);
 
 */
 int ImportSourceToProgram(const char*    filename,
-		 	  cl_device_id*  device_id,
-		 	  cl_context     context,
-		 	  cl_program*    program,
-		 	  const char*    options);
+			  cl_device_id*  device_id,
+			  cl_context     context,
+			  cl_program*  	 program,
+			  const char*    options);
 
 #endif /* IMPORT_SOURCE_H */

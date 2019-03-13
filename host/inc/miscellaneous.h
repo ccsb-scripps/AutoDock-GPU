@@ -68,6 +68,23 @@ void vec_point2line(const double [], const double [], const double [], double []
 
 void rotate(double [], const double [], const double [], const double*, int);
 
+#if 0
+// -------------------------------------------------------------------
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+void rotate_shoemake(double [], const double [], const double [], int);
+#endif
+
 double angle_of_vectors(const double [], const double []);
 
 void vec_crossprod(const double [], const double [], double []);

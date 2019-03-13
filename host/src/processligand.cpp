@@ -36,7 +36,10 @@ int init_liganddata(const char* ligfilename,
 {
 	FILE* fp;
 	int num_of_atypes, i, new_type;
+	#if 0
 	char atom_types [14][3];
+	#endif
+	char atom_types [MAX_NUM_OF_ATYPES][3];
 	char tempstr [256];
 
 	fp = fopen(ligfilename, "rb"); // fp = fopen(ligfilename, "r");
@@ -78,7 +81,11 @@ int init_liganddata(const char* ligfilename,
 
 			if (new_type == 1)	//if new type, copying string...
 			{
-				if (num_of_atypes >= 14)	//checking if atom type number doesn't exceed 14
+				//checking if atom type number doesn't exceed 14
+				#if 0
+				if (num_of_atypes >= 14)
+				#endif
+				if (num_of_atypes >= MAX_NUM_OF_ATYPES)
 				{
 					printf("Error: too many types of ligand atoms!\n");
 					return 1;
@@ -144,8 +151,12 @@ void get_intraE_contributors(Liganddata* myligand)
 {
 
 	int  atom_id1, atom_id2, atom_id3, rotb_id1, rotb_id2;
+	#if 0
 	char atom_neighbours [256];
 	char atom_neighbours_temp [256];
+	#endif
+	char atom_neighbours [MAX_NUM_OF_ATOMS];
+	char atom_neighbours_temp [MAX_NUM_OF_ATOMS];
 	int  atom_id_a, atom_id_b, structure_id_A, structure_id_B;
 	int  atom_id_a2, atom_id_b2;
 
@@ -301,15 +312,38 @@ int get_bonds(Liganddata* myligand)
 //which can be calculated from the atom_idxyzq field, so this field must contain valid data
 //when calling this function.
 {
+	#if 0
 	char atom_names [16][3];
+	#endif
+	char atom_names [ATYPE_GETBONDS][3];
 
 	//atom type indexes which refer to the atom type's bond type (length range)
+	#if 0
 	char bondtype_id [16] = {0, 0, 3,
 				 1, 2, 4,
 				 4, 5, 6,
 				 4, 4, 4,
 				 4, 4, 4,
 				 4};
+	#endif
+	char bondtype_id [ATYPE_GETBONDS] = {
+					     0, // "C"
+					     0, // "A"
+					     3, // "Hx"
+				 	     1, // "Nx"
+					     2, // "Ox"
+					     4, // "F"
+				 	     4, // "MG"
+					     5, // "P"
+					     6, // "Sx"
+				 	     4, // "CL"
+					     4, // "CA"
+                                             4, // "MN"
+				 	     4, // "FE"
+					     4, // "ZN"
+					     4, // "BR"
+				 	     4  // "I"
+					    };
 
 	double mindist[7][7];
 	double maxdist[7][7];
@@ -323,16 +357,16 @@ int get_bonds(Liganddata* myligand)
 	int atom_nameid1, atom_nameid2;
 	int bondtype_id1, bondtype_id2;
 
-	strcpy(atom_names[0], "C");
-	strcpy(atom_names[1], "A");
-	strcpy(atom_names[2], "Hx");
-	strcpy(atom_names[3], "Nx");
-	strcpy(atom_names[4], "Ox");
-	strcpy(atom_names[5], "F");
-	strcpy(atom_names[6], "MG");
-	strcpy(atom_names[7], "P");
-	strcpy(atom_names[8], "Sx");
-	strcpy(atom_names[9], "CL");
+	strcpy(atom_names[0],  "C");
+	strcpy(atom_names[1],  "A");
+	strcpy(atom_names[2],  "Hx");
+	strcpy(atom_names[3],  "Nx");
+	strcpy(atom_names[4],  "Ox");
+	strcpy(atom_names[5],  "F");
+	strcpy(atom_names[6],  "MG");
+	strcpy(atom_names[7],  "P");
+	strcpy(atom_names[8],  "Sx");
+	strcpy(atom_names[9],  "CL");
 	strcpy(atom_names[10], "CA");
 	strcpy(atom_names[11], "MN");
 	strcpy(atom_names[12], "FE");
@@ -392,11 +426,18 @@ int get_bonds(Liganddata* myligand)
     		temp_point2[2] = myligand->atom_idxyzq[atom_id2][3];
     		temp_dist = distance(temp_point1, temp_point2);
 
+		# if 0
     		atom_nameid1 = 16;
     		atom_nameid2 = 16;
+		#endif
+		atom_nameid1 = ATYPE_GETBONDS;
+    		atom_nameid2 = ATYPE_GETBONDS;
 
     		//identifying atom types
+		#if 0
     		for (i=0; i<16; i++)
+		#endif
+		for (i=0; i<ATYPE_GETBONDS; i++)
     		{
     			atom_typeid1 = myligand->atom_idxyzq[atom_id1][0];
     			if (atom_names[i][1] == 'x')
@@ -406,51 +447,56 @@ int get_bonds(Liganddata* myligand)
     			}
     			else
     			{
-					// OCLADock
-    					if (stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
-					//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
+    				if (stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
+				//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
     					atom_nameid1 = i;
     			}
     		}
-  			for (i=0; i<16; i++)
-  			{
-  				atom_typeid2 = myligand->atom_idxyzq[atom_id2][0];
- 				if (atom_names[i][1] == 'x')
- 				{
+
+		#if 0
+  		for (i=0; i<16; i++)
+		#endif
+		for (i=0; i<ATYPE_GETBONDS; i++)
+  		{
+  			atom_typeid2 = myligand->atom_idxyzq[atom_id2][0];
+ 			if (atom_names[i][1] == 'x')
+ 			{
     				if (atom_names[i][0] == toupper(myligand->atom_types[atom_typeid2][0]))
     					atom_nameid2 = i;
     			}
     			else
     			{
-					// OCLADock
-    					if (stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
-					//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
+    				if (stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
+				//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
     					atom_nameid2 = i;
     			}
-  			}
+  		}
 
+		#if 0
     		if ((atom_nameid1 == 16) || (atom_nameid2 == 16))
+		#endif
+		if ((atom_nameid1 == ATYPE_GETBONDS) || (atom_nameid2 == ATYPE_GETBONDS))
     		{
     			printf("Error: Ligand includes atom with unknown type: %s!\n", myligand->atom_types[atom_typeid1]);
     			return 1;
     		}
 
-    		bondtype_id1 = bondtype_id[atom_nameid1];
-    		bondtype_id2 = bondtype_id[atom_nameid2];
+		bondtype_id1 = bondtype_id[atom_nameid1];
+		bondtype_id2 = bondtype_id[atom_nameid2];
 
-    		if (((temp_dist >= mindist [bondtype_id1][bondtype_id2]) && (temp_dist <= maxdist [bondtype_id1][bondtype_id2])) || (atom_id1 == atom_id2))
-    		{
-    			myligand->bonds [atom_id1][atom_id2] = 1;
-    			myligand->bonds [atom_id2][atom_id1] = 1;
-    		}
-    		else
-    		{
-       			myligand->bonds [atom_id1][atom_id2] = 0;
-        		myligand->bonds [atom_id2][atom_id1] = 0;
-    		}
-
+		if (((temp_dist >= mindist [bondtype_id1][bondtype_id2]) && (temp_dist <= maxdist [bondtype_id1][bondtype_id2])) || (atom_id1 == atom_id2))
+		{
+			myligand->bonds [atom_id1][atom_id2] = 1;
+			myligand->bonds [atom_id2][atom_id1] = 1;
+		}
+		else
+		{
+			myligand->bonds [atom_id1][atom_id2] = 0;
+			myligand->bonds [atom_id2][atom_id1] = 0;
+		}
     	}
-    return 0;
+
+	return 0;
 }
 
 int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD4_coeff_hb)
@@ -462,61 +508,72 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 	char atom_names [ATYPE_NUM][3];
 
 	//Sum of vdW radii of two like atoms (A)
-	double reqm [ATYPE_NUM] = {2.00, 2.00, 2.00, 4.00, 4.00,
-							   3.50, 3.50, 3.50, 3.20, 3.20,
-							   3.09, 1.30, 4.20, 4.00, 4.00,
-							   4.09, 1.98, 1.30, 1.30, 1.48,
-							   4.33, 4.72};
+	double reqm [ATYPE_NUM] = {
+				   2.00, 2.00, 2.00, 4.00, 4.00,
+				   3.50, 3.50, 3.50, 3.20, 3.20,
+				   3.09, 1.30, 4.20, 4.00, 4.00,
+				   4.09, 1.98, 1.30, 1.30, 1.48,
+				   4.33, 4.72
+				  };
 
 	//cdW well depth (kcal/mol)
-	double eps [ATYPE_NUM] = {0.020, 0.020, 0.020, 0.150, 0.150,
-						      0.160, 0.160, 0.160, 0.200, 0.200,
-						      0.080, 0.875, 0.200, 0.200, 0.200,
-						      0.276, 0.550, 0.875, 0.010, 0.550,
-						      0.389, 0.550};
+	double eps [ATYPE_NUM] = {
+				  0.020, 0.020, 0.020, 0.150, 0.150,
+				  0.160, 0.160, 0.160, 0.200, 0.200,
+				  0.080, 0.875, 0.200, 0.200, 0.200,
+				  0.276, 0.550, 0.875, 0.010, 0.550,
+				  0.389, 0.550
+				 };
 
 	//Sum of vdW radii of two like atoms (A) in case of hydrogen bond
-	double reqm_hbond [ATYPE_NUM] = {0.0, 0.0, 0.0, 0.0, 0.0,
-								     0.0, 1.9, 1.9, 1.9, 1.9,
-								     0.0, 0.0, 0.0, 2.5, 0.0,
-								     0.0, 0.0, 0.0, 0.0, 0.0,
-								     0.0, 0.0};
+	double reqm_hbond [ATYPE_NUM] = {
+					 0.0, 0.0, 0.0, 0.0, 0.0,
+					 0.0, 1.9, 1.9, 1.9, 1.9,
+				         0.0, 0.0, 0.0, 2.5, 0.0,
+					 0.0, 0.0, 0.0, 0.0, 0.0,
+					 0.0, 0.0
+					};
 
 	//cdW well depth (kcal/mol) in case of hydrogen bond
-	double eps_hbond [ATYPE_NUM] = {0.0, 1.0, 1.0, 0.0, 0.0, 	//HD and HS value is 1 so that it is not necessary to decide which atom_typeid
-								    0.0, 5.0, 5.0, 5.0, 5.0, 	//corresponds to the hydrogen when reading eps_hbond...
-								    0.0, 0.0, 0.0, 1.0, 0.0,
-								    0.0, 0.0, 0.0, 0.0, 0.0,
-								    0.0, 0.0};
+	double eps_hbond [ATYPE_NUM] = {
+					0.0, 1.0, 1.0, 0.0, 0.0, //HD and HS value is 1 so that it is not necessary to decide which atom_typeid
+  				        0.0, 5.0, 5.0, 5.0, 5.0, //corresponds to the hydrogen when reading eps_hbond...
+					0.0, 0.0, 0.0, 1.0, 0.0,
+					0.0, 0.0, 0.0, 0.0, 0.0,
+					0.0, 0.0
+				       };
 
 	//volume of atoms
-	double volume [ATYPE_NUM] = {0.0000,  0.0000,  0.0000,  33.5103, 33.5103,
-								 22.4493, 22.4493, 22.4493, 17.1573, 17.1573,
-								 15.4480, 1.5600,  38.7924, 33.5103, 33.5103,
-								 35.8235, 2.7700,  2.1400,  1.8400,  1.7000,
-								 42.5661, 55.0585};
+	double volume [ATYPE_NUM] = {
+				     0.0000,  0.0000,  0.0000,  33.5103, 33.5103,
+				     22.4493, 22.4493, 22.4493, 17.1573, 17.1573,
+				     15.4480, 1.5600,  38.7924, 33.5103, 33.5103,
+				     35.8235, 2.7700,  2.1400,  1.8400,  1.7000,
+				     42.5661, 55.0585
+ 				    };
 
 	//atomic solvation parameters
-	double solpar [ATYPE_NUM] = {0.00051,  0.00051,  0.00051,  -0.00143, -0.00052,
-								 -0.00162, -0.00162, -0.00162, -0.00251, -0.00251,
-								 -0.00110, -0.00110, -0.00110, -0.00214, -0.00214,
-								 -0.00110, -0.00110, -0.00110, -0.00110, -0.00110,
-								 -0.00110, -0.00110};
-
+	double solpar [ATYPE_NUM] = {
+				      0.00051,  0.00051,  0.00051, -0.00143, -0.00052,
+				     -0.00162, -0.00162, -0.00162, -0.00251, -0.00251,
+				     -0.00110, -0.00110, -0.00110, -0.00214, -0.00214,
+				     -0.00110, -0.00110, -0.00110, -0.00110, -0.00110,
+				     -0.00110, -0.00110
+				    };
 
 	int atom_typeid1, atom_typeid2, VWid_atype1, VWid_atype2, i;
 	double eps12, reqm12;
 
-	strcpy(atom_names [0], "H");
-	strcpy(atom_names [1], "HD");
-	strcpy(atom_names [2], "HS");
-	strcpy(atom_names [3], "C");
-	strcpy(atom_names [4], "A");
-	strcpy(atom_names [5], "N");
-	strcpy(atom_names [6], "NA");
-	strcpy(atom_names [7], "NS");
-	strcpy(atom_names [8], "OA");
-	strcpy(atom_names [9], "OS");
+	strcpy(atom_names [0],  "H");
+	strcpy(atom_names [1],  "HD");
+	strcpy(atom_names [2],  "HS");
+	strcpy(atom_names [3],  "C");
+	strcpy(atom_names [4],  "A");
+	strcpy(atom_names [5],  "N");
+	strcpy(atom_names [6],  "NA");
+	strcpy(atom_names [7],  "NS");
+	strcpy(atom_names [8],  "OA");
+	strcpy(atom_names [9],  "OS");
 	strcpy(atom_names [10], "F");
 	strcpy(atom_names [11], "MG");
 	strcpy(atom_names [12], "P");
@@ -537,29 +594,29 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 			VWid_atype2 = ATYPE_NUM;
 
 			//identifying atom types
-			for (i=0; i<ATYPE_NUM; i++)
-/*
-				// OCLADock
-				if (stricmp(atom_names [i], myligand->atom_types [atom_typeid1]) == 0)
+			for (i=0; i<ATYPE_NUM; i++) {
+				/*
+				if (stricmp(atom_names [i], myligand->atom_types [atom_typeid1]) == 0) 
 				//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
 					VWid_atype1 = i;
-*/
+				*/
 				if (stricmp(atom_names [i], myligand->atom_types [atom_typeid1]) == 0) {
 					VWid_atype1 = i;
 					myligand->atom1_types_reqm [atom_typeid1] = VWid_atype1;
 				}
+			}
 
-			for (i=0; i<ATYPE_NUM; i++)
-/*
-				// OCLADock
+			for (i=0; i<ATYPE_NUM; i++) {
+				/*
 				if (stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
 				//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
 					VWid_atype2 = i;
-*/
+				*/
 				if (stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0) {
 					VWid_atype2 = i;
 					myligand->atom2_types_reqm [atom_typeid2] = VWid_atype2;
 				}
+			}
 
 			if (VWid_atype1 == ATYPE_NUM)
 			{
@@ -577,7 +634,7 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 			if (is_H_bond(myligand->atom_types [atom_typeid1], myligand->atom_types [atom_typeid2]) != 0)
 			{
 				eps12 = AD4_coeff_hb * eps_hbond [VWid_atype1] * eps_hbond [VWid_atype2];	//The hydrogen's eps is 1, doesn't change the value...
-				reqm12 = reqm_hbond [VWid_atype1] + reqm_hbond [VWid_atype2];		//The hydrogen's is 0, doesn't change the value...
+				reqm12 = reqm_hbond [VWid_atype1] + reqm_hbond [VWid_atype2];			//The hydrogen's is 0, doesn't change the value...
 				myligand->VWpars_C [atom_typeid1][atom_typeid2] = 5*eps12*pow(reqm12, 12);
 				myligand->VWpars_D [atom_typeid1][atom_typeid2] = 6*eps12*pow(reqm12, 10);
 				myligand->VWpars_A [atom_typeid1][atom_typeid2] = 0;
@@ -591,6 +648,21 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 				myligand->VWpars_B [atom_typeid1][atom_typeid2] = 2*eps12*pow(reqm12, 6);
 				myligand->VWpars_C [atom_typeid1][atom_typeid2] = 0;
 				myligand->VWpars_D [atom_typeid1][atom_typeid2] = 0;
+
+				/*
+				// ----------------------------------
+				// Smoothing test
+				eps12 = AD4_coeff_vdW * sqrt(eps [3]*eps [8]);	//weighting with coefficient for van der Waals term
+				reqm12 = 0.5*(reqm [3]+reqm [8]);
+				
+				printf("epsii (C): %f\n", eps [3]);
+				printf("epsii (OA): %f\n", eps [8]);
+				printf("epsij: %f\n", eps12);
+				printf("rij: %f\n", reqm12);
+				printf("C12=%f\n", eps12*pow(reqm12, 12));
+				printf("C6=%f\n", 2*eps12*pow(reqm12, 6));
+				// ----------------------------------
+				*/
 			}
 		}
 
@@ -605,7 +677,6 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 
 		//identifying atom type
 		for (i=0; i<ATYPE_NUM; i++)
-			// OCLADock
 			if (stricmp(atom_names [i], myligand->atom_types [atom_typeid1]) == 0)
 			//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
 				VWid_atype1 = i;
@@ -685,9 +756,9 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 	int atom_counter;
 	int branch_counter;
 	int endbranch_counter;
-	int branches [32][3];
+	int branches [MAX_NUM_OF_ROTBONDS][3];
 	int i,j,k;
-	char atom_rotbonds_temp [256][32];
+	char atom_rotbonds_temp [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ROTBONDS];
 	int current_rigid_struct_id, reserved_highest_rigid_struct_id;
 
 	atom_counter = 0;
@@ -735,7 +806,7 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 	//filling atom_rotbonds_temp with 0s
 	for (i=0; i<myligand->num_of_atoms; i++)
 	{
-		for (j=0; j<16; j++)
+		for (j=0; j<MAX_NUM_OF_ROTBONDS; j++)
 			atom_rotbonds_temp [i][j] = 0;
 	}
 
@@ -759,24 +830,13 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 		if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))		//if new atom, looking for open rotatable bonds
 		{
 			for (i=0; i<branch_counter; i++)	//for all branches found until now
-				if (branches [i][2] == 0)	//in this case the rotatable bond is not open yet (this atom hasn't
-					branches [i][2] = 1;	//to be rotated, but the next has to), so let's make it open
-				else
-					if (branches [i][2] == 1)	//if it is open, the atom has to be rotated
-						atom_rotbonds_temp [atom_counter][i] = 1;	//modifying atom_rotbonds_temp
+				if (branches [i][2] == 1)	//if it is open, the atom has to be rotated
+					atom_rotbonds_temp [atom_counter][i] = 1;	//modifying atom_rotbonds_temp
 					/*else it is 2, so it is closed, so nothing to be done...*/
 
 			myligand->atom_rigid_structures [atom_counter] = current_rigid_struct_id;	//using the id of the current rigid structure
 
 			atom_counter++;
-#if 0
-			// include last atom
-			if (atom_counter == myligand->num_of_atoms) {
-				for (i=0; i<branch_counter; i++)	//for all branches found until now
-					if (branches [i][2] == 1)	//if it is open, the atom has to be rotated
-						atom_rotbonds_temp [atom_counter][i] = 1;	//modifying atom_rotbonds_temp
-			}
-#endif
 		}
 
 		if (strcmp(tempstr, "BRANCH") == 0)	//if new branch, stroing atom indexes into branches [][]
@@ -792,9 +852,9 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			fscanf(fp, "%d", &(branches [branch_counter][1]));
 			(branches [branch_counter][0])--;	//atom IDs start from 0 instead of 1
 			(branches [branch_counter][1])--;
-			branches [branch_counter][2] = 0;	//0 indicates, that the next atom that will be found in the file
-												//hasn't to be rotated around this bond (it is the bond's atom),
-												//so the branch is not open yet
+
+			branches [branch_counter][2] = 1;	// 1 means the branch is open, atoms will be rotated
+
 			branch_counter++;
 
 			reserved_highest_rigid_struct_id++;		//next ID is reserved
@@ -807,27 +867,7 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			fscanf(fp, "%d", &(myligand->rotbonds [endbranch_counter][1])); //of endbranches
 			(myligand->rotbonds [endbranch_counter][0])--;
 			(myligand->rotbonds [endbranch_counter][1])--;
-#if 0
-			// include last atom before ENDBRANCH
-			//if (atom_counter == myligand->num_of_atoms) {
-				for (i=0; i<branch_counter; i++)	//for all branches found until now
-					if (branches [i][2] == 1)	//if it is open, the atom has to be rotated
-						atom_rotbonds_temp [atom_counter][i] = 1;	//modifying atom_rotbonds_temp
 
-			// ---------------------------
-			/*
-			// print torsions
-			printf("%s", "\n");
-			for (int a=0;a<atom_counter+2;a++) {
-				printf("%-3u: ", a);
-				for (i=0;i<branch_counter;i++) {
-					printf("%u", atom_rotbonds_temp[a][i]);
-				}
-				printf("%s", "\n");
-			}
-			*/
-			// ---------------------------
-#endif
 			for (i=0; i<branch_counter; i++)	//the branch have to be closed
 				if ((branches [i][0] == myligand->rotbonds [endbranch_counter][0]) &&
 				    (branches [i][1] == myligand->rotbonds [endbranch_counter][1]))
@@ -835,11 +875,6 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			endbranch_counter++;
 
 			current_rigid_struct_id--;	//probably unnecessary since there is a new branch after every endbranch...
-
-
-
-
-
 		}
 	}
 
@@ -1059,14 +1094,14 @@ int is_H_bond(const char* atype1, const char* atype2)
 //otherwise it returns 0.
 {
 	if  (	//H-bond
-		(((strcmp(atype1, "HD") == 0) || (strcmp(atype1, "HS") == 0))	&&		//HD or HS
+		(((strcmp(atype1, "HD") == 0) || (strcmp(atype1, "HS") == 0)) && //HD or HS
 		( (strcmp(atype2, "NA") == 0) ||
 		  (strcmp(atype2, "NS") == 0) ||
 		  (strcmp(atype2, "OA") == 0) ||
 		  (strcmp(atype2, "OS") == 0) ||
 		  (strcmp(atype2, "SA") == 0) ))		//NA NS OA OS or SA
 		||
-		(((strcmp(atype2, "HD") == 0) || (strcmp(atype2, "HS") == 0))	&&		//HD or HS
+		(((strcmp(atype2, "HD") == 0) || (strcmp(atype2, "HS") == 0)) && //HD or HS
 		( (strcmp(atype1, "NA") == 0) ||
 		  (strcmp(atype1, "NS") == 0) ||
 		  (strcmp(atype1, "OA") == 0) ||
@@ -1105,13 +1140,13 @@ void print_ref_lig_energies_f(Liganddata myligand,
 }
 #endif
 
-void print_ref_lig_energies_f(Liganddata myligand,
-			      const float smooth,
-			      Gridinfo mygrid,
+void print_ref_lig_energies_f(Liganddata   myligand,
+			      const float  smooth,
+			      Gridinfo     mygrid,
 			      const float* fgrids,
-			      const float scaled_AD4_coeff_elec,
-			      const float AD4_coeff_desolv,
-			      const float qasp)
+			      const float  scaled_AD4_coeff_elec,
+			      const float  AD4_coeff_desolv,
+			      const float  qasp)
 //The function calculates the energies of the ligand given in the first parameter,
 //and prints them to the screen.
 {
@@ -1159,12 +1194,14 @@ void calc_distdep_tables_f(float r_6_table [],
 		r_epsr_table [i] = (float) scaled_AD4_coeff_elec/(dist*calc_ddd_Mehler_Solmajer(dist));
 		desolv_table [i] = AD4_coeff_desolv*expf(-1*dist*dist/(2*sigma*sigma));
 	}
-
 }
 
 void calc_q_tables_f(const Liganddata* myligand,
 		     float qasp,
+		     #if 0
 		     float q1q2[][256],
+		     #endif
+		     float q1q2[][MAX_NUM_OF_ATOMS],
 		     float qasp_mul_absq [])
 //The function calculates q1*q2 and qasp*abs(q) values
 //based on the myligand parameter.
@@ -1180,10 +1217,11 @@ void calc_q_tables_f(const Liganddata* myligand,
 
 }
 
+#if 1
 void change_conform_f(Liganddata* myligand,
 		      const float genotype_f [],
-		      float* cpu_ref_ori_angles,
-		      int debug)
+		      float*      cpu_ref_ori_angles,
+		      int         debug)
 //The function changes the conformation of myligand according to
 //the genotype given by the second parameter.
 {
@@ -1215,7 +1253,6 @@ void change_conform_f(Liganddata* myligand,
 	refori_angle = cpu_ref_ori_angles[2];
 
 // +++++++++++++++++++++++++++++++++++++++
-// OCLADock
 //printf("cpu_ref_ori_angles [0]: %f, cpu_ref_ori_angles [1]: %f, %f\n",cpu_ref_ori_angles [0],cpu_ref_ori_angles [1],PI);
 //printf("refori_unitvec [0]:%f, refori_unitvec [1]:%f, refori_unitvec [2]:%f\n",refori_unitvec [0],refori_unitvec [1],refori_unitvec [2]);
 // +++++++++++++++++++++++++++++++++++++++
@@ -1224,15 +1261,15 @@ void change_conform_f(Liganddata* myligand,
 	move_ligand(myligand, movvec_to_origo);
 
 
-	for (atom_id=0; atom_id < myligand->num_of_atoms; atom_id++)						//for each atom of the ligand
+	for (atom_id=0; atom_id < myligand->num_of_atoms; atom_id++)	//for each atom of the ligand
 	{
 		if (debug == 1)
 			printf("\n\n\nROTATING atom %d ", atom_id);
 
-		if (myligand->num_of_rotbonds != 0)											//if the ligand has rotatable bonds
+		if (myligand->num_of_rotbonds != 0)			//if the ligand has rotatable bonds
 		{
 			for (rotbond_id=0; rotbond_id < myligand->num_of_rotbonds; rotbond_id++)	//for each rotatable bond
-				if (myligand->atom_rotbonds[atom_id][rotbond_id] != 0)				//if the atom has to be rotated around this bond
+				if (myligand->atom_rotbonds[atom_id][rotbond_id] != 0)			//if the atom has to be rotated around this bond
 				{
 					if (debug == 1)
 						printf("around rotatable bond %d\n", rotbond_id);
@@ -1265,6 +1302,120 @@ void change_conform_f(Liganddata* myligand,
 			printf("Moved point (final values) (x,y,z): %lf, %lf, %lf\n", myligand->atom_idxyzq [atom_id][1], myligand->atom_idxyzq [atom_id][2], myligand->atom_idxyzq [atom_id][3]);
 
 }
+#endif // End of original change_conform_f()
+
+#if 0
+// -------------------------------------------------------------------
+// Replacing rotation genes: from spherical space to Shoemake space
+// gene [0:2]: translation -> kept as original x, y, z
+// gene [3:5]: rotation    -> transformed into Shoemake (u1: adimensional, u2&u3: sexagesimal)
+// gene [6:N]: torsions	   -> kept as original angles	(all in sexagesimal)
+
+// Shoemake ranges:
+// u1: [0, 1]
+// u2: [0: 2PI] or [0: 360]
+
+// Random generator in the host is changed:
+// LCG (original, myrand()) -> CPP std (rand())
+// -------------------------------------------------------------------
+void change_conform_f(Liganddata* myligand,
+		      const float genotype_f [],
+		      float* cpu_ref_ori_angles,
+		      int debug)
+//The function changes the conformation of myligand according to
+//the genotype given by the second parameter.
+{
+	double genrot_movvec [3] = {0, 0, 0};
+
+	double shoemake [3] = {0, 0, 0};
+
+// Replaced by shoemake [3]
+/*
+	double genrot_unitvec [3];
+*/
+
+	double movvec_to_origo [3];
+/*
+	double phi, theta;
+*/
+	int atom_id, rotbond_id, i;
+	double genotype [40];
+
+	double refori_shoemake [3];
+
+// Replaced by refori_shoemake [3]
+/*
+	double refori_unitvec [3];
+*/
+
+
+/*
+	double refori_angle;
+*/
+
+
+	for (i=0; i<40; i++)
+		genotype [i] = genotype_f [i];
+
+	shoemake [0] = (genotype [3]);
+	shoemake [1] = (genotype [4])*(2*PI);
+	shoemake [2] = (genotype [5])*(2*PI);
+
+	refori_shoemake [0] = (cpu_ref_ori_angles [0]);
+	refori_shoemake [1] = (cpu_ref_ori_angles [1])*(2*PI);
+	refori_shoemake [2] = (cpu_ref_ori_angles [2])*(2*PI);
+
+// +++++++++++++++++++++++++++++++++++++++
+//printf("cpu_ref_ori_angles [0]: %f, cpu_ref_ori_angles [1]: %f, %f\n",cpu_ref_ori_angles [0],cpu_ref_ori_angles [1],PI);
+//printf("refori_unitvec [0]:%f, refori_unitvec [1]:%f, refori_unitvec [2]:%f\n",refori_unitvec [0],refori_unitvec [1],refori_unitvec [2]);
+// +++++++++++++++++++++++++++++++++++++++
+
+	get_movvec_to_origo(myligand, movvec_to_origo);	//moving ligand to origo
+	move_ligand(myligand, movvec_to_origo);
+
+
+	for (atom_id=0; atom_id < myligand->num_of_atoms; atom_id++)						//for each atom of the ligand
+	{
+		if (debug == 1)
+			printf("\n\n\nROTATING atom %d ", atom_id);
+
+		if (myligand->num_of_rotbonds != 0)											//if the ligand has rotatable bonds
+		{
+			for (rotbond_id=0; rotbond_id < myligand->num_of_rotbonds; rotbond_id++)	//for each rotatable bond
+				if (myligand->atom_rotbonds[atom_id][rotbond_id] != 0)				//if the atom has to be rotated around this bond
+				{
+					if (debug == 1)
+						printf("around rotatable bond %d\n", rotbond_id);
+
+					rotate(&(myligand->atom_idxyzq[atom_id][1]),
+					       myligand->rotbonds_moving_vectors[rotbond_id],
+					       myligand->rotbonds_unit_vectors[rotbond_id],
+					       &(genotype [6+rotbond_id]), /*debug*/0);	//rotating
+				}
+		}
+
+		if (debug == 1)
+			printf("according to general rotation\n");
+
+		rotate_shoemake(&(myligand->atom_idxyzq[atom_id][1]),
+	  		        genrot_movvec,
+		       		refori_shoemake,
+		       		debug);		//rotating to reference oritentation
+
+		rotate_shoemake(&(myligand->atom_idxyzq[atom_id][1]),
+			       genrot_movvec,
+			       shoemake,
+			       debug);		//general rotation
+	}
+
+	move_ligand(myligand, genotype);
+
+	if (debug == 1)
+		for (atom_id=0; atom_id < myligand->num_of_atoms; atom_id++)
+			printf("Moved point (final values) (x,y,z): %lf, %lf, %lf\n", myligand->atom_idxyzq [atom_id][1], myligand->atom_idxyzq [atom_id][2], myligand->atom_idxyzq [atom_id][3]);
+
+}
+#endif
 
 float calc_interE_f(const Gridinfo*   mygrid,
 		    const Liganddata* myligand,
@@ -1476,11 +1627,11 @@ float calc_interE_f(const Gridinfo*   mygrid,
 void calc_interE_peratom_f(const Gridinfo* mygrid,
 	                   const Liganddata* myligand,
 			   const float* fgrids,
-			   float outofgrid_tolerance,
+			   float  outofgrid_tolerance,
 			   float* elecE,
-			   float peratom_vdw [MAX_NUM_OF_ATOMS],
-			   float peratom_elec [MAX_NUM_OF_ATOMS],
-			   int debug)
+			   float  peratom_vdw [MAX_NUM_OF_ATOMS],
+			   float  peratom_elec [MAX_NUM_OF_ATOMS],
+			   int    debug)
 //
 {
 	//float interE;
@@ -1682,7 +1833,7 @@ void calc_interE_peratom_f(const Gridinfo* mygrid,
 	//return interE;
 }
 
-// OCLADock original host "calc_intraE_f" function
+// Original host "calc_intraE_f" function
 #if 0
 float calc_intraE_f(const Liganddata* myligand,
 		    float dcutoff,
@@ -1807,9 +1958,7 @@ float calc_intraE_f(const Liganddata* myligand,
 }
 #endif
 
-
-// OCLADock host "calc_intraE_f" function
-// corrected after smoothing was added
+// Corrected host "calc_intraE_f" function after smoothing was added
 float calc_intraE_f(const Liganddata* myligand,
 		          float       dcutoff,
 		          float       smooth,
@@ -1846,8 +1995,12 @@ float calc_intraE_f(const Liganddata* myligand,
 	//The following arrays will contain the q1*q2 and qasp*abs(q) values for the ligand which is the input parameter when this
 	//function is called first time (it is supposed that the energy must always be calculated for this ligand only, that is, there
 	//is only one ligand during the run of the program...)
+	#if 0
 	static float q1q2 [256][256];
 	static float qasp_mul_absq [256];
+	#endif
+	static float q1q2 [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
+	static float qasp_mul_absq [MAX_NUM_OF_ATOMS];
 
 	//when first call, calculating tables
 	if (first_call == 1)
@@ -1960,7 +2113,6 @@ float calc_intraE_f(const Liganddata* myligand,
 					vW += vdW1 - vdW2;
 				}
 
-
 				if (dist < 20.48)
 				{
 					s1 = (myligand->solpar [type_id1] + qasp_mul_absq [atom_id1]);
@@ -1971,6 +2123,7 @@ float calc_intraE_f(const Liganddata* myligand,
 					if (debug == 1)
 						printf(" %lf, electrostatic = %lf, desolv = %lf\n", (vdW1 - vdW2), q1q2[atom_id1][atom_id2] * r_epsr_table [distance_id],
 							   (s1*v2 + s2*v1) * desolv_table [distance_id]);
+
 
 					el += q1q2[atom_id1][atom_id2] * r_epsr_table [distance_id];
 					desolv += (s1*v2 + s2*v1) * desolv_table [distance_id];
@@ -1986,3 +2139,4 @@ float calc_intraE_f(const Liganddata* myligand,
 	else
 		return (vW + el);
 }
+

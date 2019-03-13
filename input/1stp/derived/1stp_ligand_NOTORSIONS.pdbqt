@@ -1,0 +1,29 @@
+
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C11_1  and  C10_4 
+REMARK    2  A    between atoms: C10_4  and  C9_5 
+REMARK    3  A    between atoms: C9_5  and  C8_6 
+REMARK    4  A    between atoms: C8_6  and  C7_7 
+REMARK    5  A    between atoms: C7_7  and  C2_8 
+ROOT
+HETATM    1  C11 BTN A 300       9.051   4.576 -14.459  1.00 21.57     0.172 C 
+HETATM    2  O11 BTN A 300       8.147   5.373 -14.172  1.00 21.65    -0.648 OA
+HETATM    3  O12 BTN A 300       8.697   3.498 -15.132  1.00 22.67    -0.648 OA
+HETATM    4  C10 BTN A 300      10.321   4.413 -13.702  1.00 20.77     0.113 C 
+HETATM    5  C9  BTN A 300      10.215   3.247 -12.658  1.00 20.09     0.010 C 
+HETATM    6  C8  BTN A 300      11.487   2.972 -11.964  1.00 19.24     0.002 C 
+HETATM    7  C7  BTN A 300      11.627   1.558 -11.402  1.00 18.33     0.017 C 
+HETATM    8  C2  BTN A 300      10.923   1.086 -10.195  1.00 17.74     0.072 C 
+HETATM    9  S1  BTN A 300      10.884   2.103  -8.662  1.00 16.59    -0.160 SA
+HETATM   10  C6  BTN A 300      10.299   0.620  -7.760  1.00 17.06     0.101 C 
+HETATM   11  C5  BTN A 300      11.142  -0.543  -8.274  1.00 17.47     0.119 A 
+HETATM   12  N1  BTN A 300      12.443  -0.631  -7.613  1.00 17.73    -0.336 N 
+HETATM   13  C4  BTN A 300      11.513  -0.265  -9.727  1.00 17.65     0.123 A 
+HETATM   14  C3  BTN A 300      13.467  -0.443  -8.453  1.00 17.95     0.316 A 
+HETATM   15  H1  BTN A 300      12.558  -0.816  -6.617  1.00  0.00     0.164 HD
+HETATM   16  O3  BTN A 300      14.692  -0.446  -8.205  1.00 17.93    -0.247 OA
+HETATM   17  N2  BTN A 300      12.974  -0.237  -9.695  1.00 17.92    -0.335 N 
+HETATM   18  H2  BTN A 300      13.556  -0.080 -10.517  1.00  0.00     0.164 HD
+ENDROOT
+TORSDOF 0
+
