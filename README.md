@@ -7,8 +7,8 @@ AutoDock-GPU: AutoDock for GPUs using OpenCL
 
 * OpenCL-accelerated version of AutoDock4.2.6. It leverages the embarrasingly parallelism of its LGA by processing ligand-receptor poses in parallel over multiple compute units.
 * Besides the legacy Solis-Wets local search method, AutoDock-GPU adds newly implemented local-search methods based on gradients of the scoring function. One of these methods, ADADELTA, has proven to increase significantly the docking quality in terms of RMSDs and scores.
-* It targets platforms based on GPU as well as multicore CPU accelerators
-* Observed speedups of up to 4x (quad-core CPU) and 56x (GPU) over the original serial AutoDock 4.2 (Solis-Wets) on CPU
+* It targets platforms based on GPU as well as multicore CPU accelerators.
+* Observed speedups of up to 4x (quad-core CPU) and 56x (GPU) over the original serial AutoDock 4.2 (Solis-Wets) on CPU.
 
 # Setup
 
