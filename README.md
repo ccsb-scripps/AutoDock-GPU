@@ -82,8 +82,4 @@ For a complete list of available arguments and their default values, check [getp
 
 # Documentation
 
-For more details, go to the project [Wiki](https://github.com/ccsb-scripps/AutoDock-GPU/wiki).
-
-# License
-
-This project is licensed under the GNU GPLv2 - see the [LICENSE](LICENSE) file for details.
+Visit the project [Wiki](https://github.com/ccsb-scripps/AutoDock-GPU/wiki).
