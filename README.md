@@ -61,7 +61,10 @@ After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;w
 
 ## Example
 ```zsh
-./bin/ocladock_gpu_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10
+./bin/ocladock_gpu_64wi \
+-ffile ./input/1stp/derived/1stp_protein.maps.fld \
+-lfile ./input/1stp/derived/1stp_ligand.pdbqt \
+-nrun 10
 ```
 By default the output log file is written in the current working folder. Examples of output logs can be found under [examples/output](examples/output/).
 
@@ -83,12 +86,9 @@ By default the output log file is written in the current working folder. Example
 
 For a complete list of available arguments and their default values, check: [getparameters.cpp](host/src/getparameters.cpp).
 
-## Images
-Prebuilt images are provided for [Linux](prebuilt/linux) and [Windows](prebuilt/windows).
-
 # Documentation
 
-For more details, go to the [Wiki](https://github.com/ccsb-scripps/AutoDock-GPU/wiki).
+For more details, go to the project [Wiki](https://github.com/ccsb-scripps/AutoDock-GPU/wiki).
 
 # License
 
