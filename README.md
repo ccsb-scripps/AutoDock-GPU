@@ -1,19 +1,14 @@
-OCLADock - OpenCL Accelerated Molecular Docking
-===============================================
+AutoDock-GPU: Accelerated Implementation of AutoDock for GPUs using OpenCL
+==========================================================================
 
 <img src="logo.png" width="200">
 
 # Features
 
 * OpenCL-accelerated version of AutoDock 4.2 running a Lamarckian Genetic Algorithm (LGA)
-* It leverages the LGA paralelism, as entities of multiple docking runs are computed simultaneously
-* It targets platforms based on multi-core CPU and GPU accelerators
+* It leverages the LGA paralelism, as individuals of multiple docking runs are computed simultaneously
+* It targets platforms based on GPU as well as multicore CPU accelerators
 * Observed speedups of up to 4x (quad-core CPU) and 56x (GPU) over the original serial AutoDock 4.2 on CPU
-
-# Easy Download
-
-If you are not familiar with GitLab, the easiest way to download all of OCLADock (source code, prebuilt-binaries for Linux and Windows, sample input data) is to
-use the Download icon (close to the top right of this webpage, just above the list of files) and use a familiar archive format (e.g., .zip) to fetch everything at once.
 
 # Setup
 ## Requirements
@@ -21,14 +16,12 @@ use the Download icon (close to the top right of this webpage, just above the li
 | Architecture | Operating system                        |
 |:------------:|:---------------------------------------:|
 | Intel x86_64 | CentOS 6.7 & 6.8 / Ubuntu 14.04 & 16.04 |
-| Intel x86_64 | Windows 7                               |
 
 ## Prerequisites
 
 | Operating system | CPU                          | GPU                           |
 |:----------------:|:----------------------------:|:-----------------------------:|
 | Linux            | Intel SDK for OpenCL v1.2    | AMD APP SDK v3.0 / CUDA v8.0  |
-| Windows          | Intel SDK for OpenCL 2016 R3 | AMD APP SDK v3.0              |
 
 Other environments/configurations likely work as well, but are untested.
 
