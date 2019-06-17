@@ -1,7 +1,7 @@
 AutoDock-GPU: Accelerated Implementation of AutoDock for GPUs using OpenCL
 ==========================================================================
 
-<img src="logo.png" width="200">
+<img src=".png" width="200">
 
 # Features
 
@@ -25,16 +25,9 @@ AutoDock-GPU: Accelerated Implementation of AutoDock for GPUs using OpenCL
 
 Other environments/configurations likely work as well, but are untested.
 
-# Ready-to-run Executables
-
-We provide ready-to-run executables for [Linux](prebuilt/linux) and [Windows](prebuilt/windows). 
-These executables have been compiled with a fixed number of work-items (**_wi_**, basically the degree of parallel processing done). If you are not sure, 
-you should start with the versions using 16 work-items on a quad-core CPU and 64 work-items for a GPU. These values gave the 
-best performance on our target platforms. The best values for your CPU or GPU might be different.
-
 # Compilation
 
-You only need to do this if you want to target our sources to a different system or modify the code. This can be configured in the [Makefile](Makefile).
+You only need to do this if you want to target our sources to a different system or modify the code.
 
 ## Compilation on Linux
 ```zsh
@@ -53,11 +46,6 @@ After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;w
 |:-------------------:|:----------------------:|:------------------------------:|
 | **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`                   |
 | **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`, `128`, `256` |
-
-
-## Compilation on Windows
-
-A Microsoft Visual Studio 2013 solution for two configurations **_ocladock-cpu-deb_** and **_ocladock-gpu-deb_** can be found in the [win](win/) folder.
 
 # Usage
 
@@ -100,11 +88,7 @@ Prebuilt images are provided for [Linux](prebuilt/linux) and [Windows](prebuilt/
 
 # Documentation
 
-For more details, go to the [Documentation](doc/readme/home.md).
-
-# Bibliographic information for citing OCLADock
-
-Leonardo Solis-Vasquez and Andreas Koch. 2017. A Performance and Energy Evaluation of OpenCL-accelerated Molecular Docking. In Proceedings of the 5th International Workshop on OpenCL (IWOCL 2017). ACM, New York, NY, USA, Article 3, 11 pages. DOI: https://doi.org/10.1145/3078155.3078167
+For more details, go to the [Wiki](https://github.com/ccsb-scripps/AutoDock-GPU/wiki).
 
 # License
 
