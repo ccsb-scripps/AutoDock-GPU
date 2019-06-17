@@ -16,11 +16,9 @@ AutoDock-GPU: AutoDock for GPUs using OpenCL
 |:----------------------------------------:|:----------------------------:|:-----------------------------------:|
 |CentOS 6.7 & 6.8 / Ubuntu 14.04 & 16.04   | Intel SDK for OpenCL 2017    | AMD APP SDK v3.0 / CUDA v8.0 & v9.0 |
 
-Other environments / configurations likely work as well, but are untested.
+Other environments or configurations likely work as well, but are untested.
 
 # Compilation
-
-You only need to do this if you want to target our sources to a different system or modify the code.
 
 ```zsh
 make DEVICE=<TYPE> NUMWI=<NWI>
@@ -43,7 +41,10 @@ After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;w
 
 ## Basic command
 ```zsh
-./bin/ocladock_<type>_<N>wi -ffile <protein>.maps.fld -lfile <ligand>.pdbqt -nrun <nruns>
+./bin/ocladock_<type>_<N>wi \
+-ffile <protein>.maps.fld \
+-lfile <ligand>.pdbqt \
+-nrun <nruns>
 ```
 
 | Mandatory options | Description   | Value                     |
@@ -62,21 +63,22 @@ By default the output log file is written in the current working folder. Example
 
 ## Supported arguments
 
-| Argument | Description                      | Default value |
-|:---------|:---------------------------------|--------------:|
-| -nrun    | # Docking runs                   | 1             |
-| -nev     | # Score evaluations (max.)       | 2500000       |
-| -ngen    | # Generations (max.)             | 27000         |
-| -lsit    | # Local-search iterations (max.) | 300           |
-| -psize   | Population size                  | 150           |
-| -mrat    | Mutation rate                    | 2 (%)         |
-| -crat    | Crossover rate                   | 80 (%)        |
-| -lsrat   | Local-search rate                | 6 (%)         |
-| -trat    | Tournament rate                  | 60 (%)        |
-| -resnam  | Name for docking output log      | _"docking"_   |
-| -hsym    | Handle symmetry in RMSD calc.    | 1             |
+| Argument | Description                                  | Default value   |
+|:---------|:---------------------------------------------|----------------:|
+| -nrun    | # LGA runs                                   | 1               |
+| -nev     | # Score evaluations (max.) per LGA run       | 2500000         |
+| -ngen    | # Generations (max.) per LGA run             | 27000           |
+| -lsmet   | Local-search method                          | sw (Solis-Wets) |
+| -lsit    | # Local-search iterations (max.)             | 300             |
+| -psize   | Population size                              | 150             |
+| -mrat    | Mutation rate                                | 2 (%)           |
+| -crat    | Crossover rate                               | 80 (%)          |
+| -lsrat   | Local-search rate                            | 6 (%)           |
+| -trat    | Tournament (selection) rate                  | 60 (%)          |
+| -resnam  | Name for docking output log                  | _"docking"_     |
+| -hsym    | Handle symmetry in RMSD calc.                | 1               |
 
-For a complete list of available arguments and their default values, check: [getparameters.cpp](host/src/getparameters.cpp).
+For a complete list of available arguments and their default values, check [getparameters.cpp](host/src/getparameters.cpp).
 
 # Documentation
 
