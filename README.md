@@ -30,7 +30,7 @@ make DEVICE=<TYPE> NUMWI=<NWI>
 | `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`, `128`, `256` |
 
 
-After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
+After successful compilation, the host binary **autodock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
 
 | Binary-name portion | Description            | Values                         |
 |:-------------------:|:----------------------:|:------------------------------:|
@@ -41,7 +41,7 @@ After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;w
 
 ## Basic command
 ```zsh
-./bin/ocladock_<type>_<N>wi \
+./bin/autodock_<type>_<N>wi \
 -ffile <protein>.maps.fld \
 -lfile <ligand>.pdbqt \
 -nrun <nruns>
@@ -54,7 +54,7 @@ After successful compilation, the host binary **ocladock_&lt;type&gt;_&lt;N&gt;w
 
 ## Example
 ```zsh
-./bin/ocladock_gpu_64wi \
+./bin/autodock_gpu_64wi \
 -ffile ./input/1stp/derived/1stp_protein.maps.fld \
 -lfile ./input/1stp/derived/1stp_ligand.pdbqt \
 -nrun 10

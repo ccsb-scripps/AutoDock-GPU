@@ -1,4 +1,4 @@
-# OCLADock specific files
+# AutoDock-GPU specific files
 initpop.txt
 *.dlg
 *.xml

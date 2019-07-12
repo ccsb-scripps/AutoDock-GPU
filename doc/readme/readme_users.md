@@ -37,7 +37,7 @@ For more details, go to the [developers section](readme_developers.md#to-keep-in
 
 ## Basic
 ```zsh
-./bin/ocladock_<type>_<N>wi -ffile <protein>.maps.fld -lfile <ligand>.pdbqt -nrun <nruns>
+./bin/autodock_<type>_<N>wi -ffile <protein>.maps.fld -lfile <ligand>.pdbqt -nrun <nruns>
 ```
 | Mandatory options | Description   | Value                     |
 |:-----------------:|:-------------:|:-------------------------:|
@@ -46,7 +46,7 @@ For more details, go to the [developers section](readme_developers.md#to-keep-in
 
 ## Example
 ```zsh
-./bin/ocladock_gpu_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10
+./bin/autodock_gpu_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10
 
 Kernel source file:                      ./device/calcenergy.cl                  
 Kernel compilation flags:                 -I ./device -I ./common -DN64WI        

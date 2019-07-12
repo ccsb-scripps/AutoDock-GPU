@@ -1,5 +1,5 @@
 #!/bin/bash
-# Remove license preamble from all OCLADock source and header files
+# Remove license preamble from all AutoDock-GPU source and header files
 # if license preamble is present
 
 # Reference
@@ -33,21 +33,21 @@ WRAPCL_SOURCE_DIR="./wrapcl/src"
 WRAPCL_SOURCES="$WRAPCL_SOURCE_DIR/*.cpp"
 
 # full list of source files
-#OCLADOCK_SOURCE="$KRNL_HEADER_DIR/*.h $KRNL_SOURCE_DIR/*.cl $HOST_HEADER_DIR/*.h $HOST_SOURCE_DIR/*.cpp"
+#AUTODOCKGPU_SOURCE="$KRNL_HEADER_DIR/*.h $KRNL_SOURCE_DIR/*.cl $HOST_HEADER_DIR/*.h $HOST_SOURCE_DIR/*.cpp"
 
-OCLADOCK_SOURCE="$KRNL_HEADERS $KRNL_SOURCES $HOST_HEADERS $HOST_SOURCES $WRAPCL_HEADERS $WRAPCL_SOURCES"
+AUTODOCKGPU_SOURCE="$KRNL_HEADERS $KRNL_SOURCES $HOST_HEADERS $HOST_SOURCES $WRAPCL_HEADERS $WRAPCL_SOURCES"
 
 # Print variables
 #echo $KRNL_HEADER_DIR/*.h
 #echo $KRNL_SOURCE_DIR/*.cl
 #echo $HOST_HEADER_DIR/*.h
 #echo $HOST_SOURCE_DIR/*.cpp
-#echo $OCLADOCK_SOURCE
+#echo $AUTODOCKGPU_SOURCE
 
 # Remove license-preamble
 # Excluding sources that do not have it, and
 # excluding the automatically-generated ./host/inc/stringify.h
-for f in $OCLADOCK_SOURCE; do
+for f in $AUTODOCKGPU_SOURCE; do
 	if [ "$f" != "$HOST_HEADER_DIR/stringify.h" ]; then
 
 		if (grep -q "Copyright (C)" $f); then
@@ -335,21 +335,21 @@ HOST_SOURCE_DIR="./host/src"
 HOST_SOURCES="$HOST_SOURCE_DIR/*.cpp"
 
 # full list of source files
-#OCLADOCK_SOURCE="$KRNL_HEADER_DIR/*.h $KRNL_SOURCE_DIR/*.cl $HOST_HEADER_DIR/*.h $HOST_SOURCE_DIR/*.cpp"
+#AUTODOCKGPU_SOURCE="$KRNL_HEADER_DIR/*.h $KRNL_SOURCE_DIR/*.cl $HOST_HEADER_DIR/*.h $HOST_SOURCE_DIR/*.cpp"
 
-OCLADOCK_SOURCE="$KRNL_HEADERS $KRNL_SOURCES $HOST_HEADERS $HOST_SOURCES"
+AUTODOCKGPU_SOURCE="$KRNL_HEADERS $KRNL_SOURCES $HOST_HEADERS $HOST_SOURCES"
 
 # Print variables
 #echo $KRNL_HEADER_DIR/*.h
 #echo $KRNL_SOURCE_DIR/*.cl
 #echo $HOST_HEADER_DIR/*.h
 #echo $HOST_SOURCE_DIR/*.cpp
-#echo $OCLADOCK_SOURCE
+#echo $AUTODOCKGPU_SOURCE
 
 # Add license-preamble
 # Excluding sources that already have it, and
 # excluding the automatically-generated ./host/inc/stringify.h
-for f in $OCLADOCK_SOURCE; do
+for f in $AUTODOCKGPU_SOURCE; do
 	if [ "$f" != "$HOST_HEADER_DIR/stringify.h" ]; then
 
 		if (grep -q "Copyright (C)" $f); then

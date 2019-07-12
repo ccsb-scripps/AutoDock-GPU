@@ -1,25 +1,3 @@
-/*
-
-OCLADock, an OpenCL implementation of AutoDock 4.2 running a Lamarckian Genetic Algorithm
-Copyright (C) 2017 TU Darmstadt, Embedded Systems and Applications Group, Germany. All rights reserved.
-
-AutoDock is a Trade Mark of the Scripps Research Institute.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-*/
 
 /*
 #include "calcenergy_basic.h"
@@ -434,7 +412,7 @@ void gpu_calc_gradient(
 
 			// -------------------------------------------------------------------
 			// Deltas dx, dy, dz are already normalized 
-			// (by host/src/getparameters.cpp) in OCLaDock.
+			// (by host/src/getparameters.cpp) in AutoDock-GPU.
 			// The correspondance between vertices in xyz axes is:
 			// 0, 1, 2, 3, 4, 5, 6, 7  and  000, 100, 010, 001, 101, 110, 011, 111
 			// -------------------------------------------------------------------
@@ -851,7 +829,7 @@ void gpu_calc_gradient(
 		// Scaling gradient for translational genes as 
 		// their corresponding gradients were calculated in the space 
 		// where these genes are in Angstrom,
-		// but OCLaDock translational genes are within in grids
+		// but AutoDock-GPU translational genes are within in grids
 		gradient_genotype[0] *= dockpars_grid_spacing;
 		gradient_genotype[1] *= dockpars_grid_spacing;
 		gradient_genotype[2] *= dockpars_grid_spacing;

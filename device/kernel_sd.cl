@@ -291,7 +291,7 @@ gradient_minSD(
 	do {
 		#if 0
 		// Specific input genotypes for a ligand with no rotatable bonds (1ac8).
-		// Translation genes must be expressed in grids in OCLADock (genotype [0|1|2]).
+		// Translation genes must be expressed in grids in AutoDock-GPU (genotype [0|1|2]).
 		// However, for testing purposes, 
 		// we start using translation values in real space (Angstrom): {31.79575, 93.743875, 47.699875}
 		// Rotation genes are expresed in the Shoemake space: genotype [3|4|5]
