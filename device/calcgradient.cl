@@ -1173,8 +1173,8 @@ void gpu_calc_gradient(
 			Y0_theta = dependence_on_theta_const[index_theta];
 			X1_theta = angle_const[index_theta+1];
 			Y1_theta = dependence_on_theta_const[index_theta+1];
+			dependence_on_theta = (Y0_theta * (X1_theta-X_theta) + Y1_theta * (X_theta-X0_theta)) * inv_angle_delta;
 		}
-		dependence_on_theta = (Y0_theta * (X1_theta-X_theta) + Y1_theta * (X_theta-X0_theta)) * inv_angle_delta;
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -1202,8 +1202,8 @@ void gpu_calc_gradient(
 			Y0_rotangle = dependence_on_rotangle_const[index_rotangle];
 			X1_rotangle = angle_const[index_rotangle+1];
 			Y1_rotangle = dependence_on_rotangle_const[index_rotangle+1];
+			dependence_on_rotangle = (Y0_rotangle * (X1_rotangle-X_rotangle) + Y1_rotangle * (X_rotangle-X0_rotangle)) * inv_angle_delta;
 		}
-		dependence_on_rotangle = (Y0_rotangle * (X1_rotangle-X_rotangle) + Y1_rotangle * (X_rotangle-X0_rotangle)) * inv_angle_delta;
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
