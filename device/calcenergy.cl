@@ -44,8 +44,7 @@ typedef struct
 
 typedef struct
 {
-       float reqm_const [ATYPE_NUM];
-       float reqm_hbond_const [ATYPE_NUM];
+       float reqm_const [2*ATYPE_NUM]; // 1st ATYPE_NUM entries = vdW, 2nd ATYPE_NUM entries = hbond
        unsigned int  atom1_types_reqm_const [ATYPE_NUM];
        unsigned int  atom2_types_reqm_const [ATYPE_NUM];
        float VWpars_AC_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
@@ -61,13 +60,30 @@ typedef struct
 
 typedef struct
 {
-       float ref_coords_x_const[MAX_NUM_OF_ATOMS];
-       float ref_coords_y_const[MAX_NUM_OF_ATOMS];
-       float ref_coords_z_const[MAX_NUM_OF_ATOMS];
+       float ref_coords_const[3*MAX_NUM_OF_ATOMS];
        float rotbonds_moving_vectors_const[3*MAX_NUM_OF_ROTBONDS];
        float rotbonds_unit_vectors_const  [3*MAX_NUM_OF_ROTBONDS];
        float ref_orientation_quats_const  [4*MAX_NUM_OF_RUNS];
 } kernelconstant_conform;
+
+inline float4 quaternion_multiply(float4 a, float4 b)
+{
+	float4 result = { a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y, // x
+			  a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x, // y
+			  a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w, // z
+			  a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z }; // w
+	return result;
+}
+
+inline float4 quaternion_rotate(float4 v, float4 rot)
+{
+	float4 result;
+	
+	float4 z=cross(rot,v) * 2.0f;
+	result = v + z*rot.w + cross(rot,z);
+	
+	return result;
+}
 
 // All related pragmas are in defines.h (accesible by host and device code)
 
@@ -97,9 +113,7 @@ void gpu_calc_energy(
 		   	__local float* energy,
 		    	__local int*   run_id,
 
-		    	__local float* calc_coords_x,
-		    	__local float* calc_coords_y,
-		    	__local float* calc_coords_z,
+		    	__local float4* calc_coords,
 		    	__local float* partial_energies,
 
 			#if defined (DEBUG_ENERGY_KERNEL)
@@ -121,32 +135,54 @@ void gpu_calc_energy(
 //of the run whose population includes the current entity (which can be determined with blockIdx.x), since this
 //determines which reference orientation should be used.
 {
-	partial_energies[get_local_id(0)] = 0.0f;
+	int tidx = get_local_id(0);
+	partial_energies[tidx] = 0.0f;
 
 	#if defined (DEBUG_ENERGY_KERNEL)
-	partial_interE[get_local_id(0)] = 0.0f;
-	partial_intraE[get_local_id(0)] = 0.0f;
+	partial_interE[tidx] = 0.0f;
+	partial_intraE[tidx] = 0.0f;
 	#endif
 
+	// Initializing gradients (forces) 
+	// Derived from autodockdev/maps.py
+	for (uint atom_id = tidx;
+		  atom_id < dockpars_num_of_atoms;
+		  atom_id+= NUM_OF_THREADS_PER_BLOCK) {
+		// Initialize coordinates
+		calc_coords[atom_id] = (float4)(kerconst_conform->ref_coords_const[3*atom_id],
+						kerconst_conform->ref_coords_const[3*atom_id+1],
+						kerconst_conform->ref_coords_const[3*atom_id+2],0);
+	}
+
+	// General rotation moving vector
+	float4 genrot_movingvec;
+	genrot_movingvec.x = genotype[0];
+	genrot_movingvec.y = genotype[1];
+	genrot_movingvec.z = genotype[2];
+	genrot_movingvec.w = 0.0;
 	// Convert orientation genes from sex. to radians
 	float phi         = genotype[3] * DEG_TO_RAD;
 	float theta       = genotype[4] * DEG_TO_RAD;
 	float genrotangle = genotype[5] * DEG_TO_RAD;
 
-	float genrot_unitvec [3];
+	float4 genrot_unitvec;
 	float sin_angle = native_sin(theta);
-	genrot_unitvec [0] = sin_angle*native_cos(phi);
-	genrot_unitvec [1] = sin_angle*native_sin(phi);
-	genrot_unitvec [2] = native_cos(theta);
+	float s2 = native_sin(genrotangle*0.5f);
+	genrot_unitvec.x = s2*sin_angle*native_cos(phi);
+	genrot_unitvec.y = s2*sin_angle*native_sin(phi);
+	genrot_unitvec.z = s2*native_cos(theta);
+	genrot_unitvec.w = native_cos(genrotangle*0.5f);
 
-	uchar g1 = dockpars_gridsize_x;
-	uint  g2 = dockpars_gridsize_x_times_y;
-  	uint  g3 = dockpars_gridsize_x_times_y_times_z;
+	uint g1 = dockpars_gridsize_x;
+	uint g2 = dockpars_gridsize_x_times_y;
+	uint g3 = dockpars_gridsize_x_times_y_times_z;
+
+	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 	// ================================================
-	for (uint rotation_counter = get_local_id(0);
+	for (uint rotation_counter = tidx;
 	          rotation_counter < dockpars_rotbondlist_length;
 	          rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -157,70 +193,31 @@ void gpu_calc_energy(
 			uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
 
 			// Capturing atom coordinates
-			float atom_to_rotate[3];
+			float4 atom_to_rotate = calc_coords[atom_id];
 
-			if ((rotation_list_element & RLIST_FIRSTROT_MASK) != 0)	// If first rotation of this atom
-			{
-				atom_to_rotate[0] = kerconst_conform->ref_coords_x_const[atom_id];
-				atom_to_rotate[1] = kerconst_conform->ref_coords_y_const[atom_id];
-				atom_to_rotate[2] = kerconst_conform->ref_coords_z_const[atom_id];
-			}
-			else
-			{
-				atom_to_rotate[0] = calc_coords_x[atom_id];
-				atom_to_rotate[1] = calc_coords_y[atom_id];
-				atom_to_rotate[2] = calc_coords_z[atom_id];
-			}
+			// initialize with general rotation values
+			float4 rotation_unitvec = genrot_unitvec;
+			float4 rotation_movingvec = genrot_movingvec;
 
-			// Capturing rotation vectors and angle
-			float rotation_unitvec[3];
-			float rotation_movingvec[3];
-			float rotation_angle;
-
-			float quatrot_left_x, quatrot_left_y, quatrot_left_z, quatrot_left_q;
-			float quatrot_temp_x, quatrot_temp_y, quatrot_temp_z, quatrot_temp_q;
-
-			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation
-			{
-				rotation_unitvec[0] = genrot_unitvec[0];
-				rotation_unitvec[1] = genrot_unitvec[1];
-				rotation_unitvec[2] = genrot_unitvec[2];
-
-				rotation_movingvec[0] = genotype[0];
-				rotation_movingvec[1] = genotype[1];
-				rotation_movingvec[2] = genotype[2];
-
-				rotation_angle = genrotangle;
-			}
-			else	// If rotating around rotatable bond
+			if ((rotation_list_element & RLIST_GENROT_MASK) == 0) // If rotating around rotatable bond
 			{
 				uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
 
-				rotation_unitvec[0] = kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id];
-				rotation_unitvec[1] = kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1];
-				rotation_unitvec[2] = kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2];
-				
-				rotation_movingvec[0] = kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id];
-				rotation_movingvec[1] = kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1];
-				rotation_movingvec[2] = kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2];
-
-				rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD;
-
-				// Performing additionally the first movement which 
+				float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
+				float s = native_sin(rotation_angle);
+				rotation_unitvec = (float4)(s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id],
+							    s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1],
+							    s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2],
+							    native_cos(rotation_angle));
+				rotation_movingvec = (float4)(kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id],
+							      kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1],
+							      kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2],0);
+				// Performing additionally the first movement which
 				// is needed only if rotating around rotatable bond
-				atom_to_rotate[0] -= rotation_movingvec[0];
-				atom_to_rotate[1] -= rotation_movingvec[1];
-				atom_to_rotate[2] -= rotation_movingvec[2];
+				atom_to_rotate -= rotation_movingvec;
 			}
 
-			// Transforming orientation and torsion angles into quaternions
-			rotation_angle  = rotation_angle * 0.5f;
-			float sin_angle = native_sin(rotation_angle);
-			quatrot_left_q  = native_cos(rotation_angle);
-			quatrot_left_x  = sin_angle*rotation_unitvec[0];
-			quatrot_left_y  = sin_angle*rotation_unitvec[1];
-			quatrot_left_z  = sin_angle*rotation_unitvec[2];
-
+			float4 quatrot_left = rotation_unitvec;
 			// Performing rotation
 			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation,
 										// two rotations should be performed
@@ -228,63 +225,16 @@ void gpu_calc_energy(
 			{
 				// Calculating quatrot_left*ref_orientation_quats_const,
 				// which means that reference orientation rotation is the first
-				quatrot_temp_q = quatrot_left_q;
-				quatrot_temp_x = quatrot_left_x;
-				quatrot_temp_y = quatrot_left_y;
-				quatrot_temp_z = quatrot_left_z;
-
-				quatrot_left_q = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)]-
-						 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]-
-						 quatrot_temp_y*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]-
-						 quatrot_temp_z*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3];
-				quatrot_left_x = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]+
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_x+
-						 quatrot_temp_y*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]-
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]*quatrot_temp_z;
-				quatrot_left_y = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]+
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_y+
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_z-
-						 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3];
-				quatrot_left_z = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]+
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_z+
-						 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]-
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_y;
+				uint rid4 = 4*(*run_id);
+				quatrot_left = quaternion_multiply(quatrot_left,
+								   (float4)(kerconst_conform->ref_orientation_quats_const[rid4+0],
+									    kerconst_conform->ref_orientation_quats_const[rid4+1],
+									    kerconst_conform->ref_orientation_quats_const[rid4+2],
+									    kerconst_conform->ref_orientation_quats_const[rid4+3]));
 			}
 
-			quatrot_temp_q = 0 -
-					 quatrot_left_x*atom_to_rotate [0] -
-					 quatrot_left_y*atom_to_rotate [1] -
-					 quatrot_left_z*atom_to_rotate [2];
-			quatrot_temp_x = quatrot_left_q*atom_to_rotate [0] +
-					 quatrot_left_y*atom_to_rotate [2] -
-					 quatrot_left_z*atom_to_rotate [1];
-			quatrot_temp_y = quatrot_left_q*atom_to_rotate [1] -
-					 quatrot_left_x*atom_to_rotate [2] +
-					 quatrot_left_z*atom_to_rotate [0];
-			quatrot_temp_z = quatrot_left_q*atom_to_rotate [2] +
-					 quatrot_left_x*atom_to_rotate [1] -
-					 quatrot_left_y*atom_to_rotate [0];
-
-			atom_to_rotate [0] = 0 -
-					  quatrot_temp_q*quatrot_left_x +
-					  quatrot_temp_x*quatrot_left_q -
-					  quatrot_temp_y*quatrot_left_z +
-					  quatrot_temp_z*quatrot_left_y;
-			atom_to_rotate [1] = 0 -
-					  quatrot_temp_q*quatrot_left_y +
-					  quatrot_temp_x*quatrot_left_z +
-					  quatrot_temp_y*quatrot_left_q -
-					  quatrot_temp_z*quatrot_left_x;
-			atom_to_rotate [2] = 0 -
-					  quatrot_temp_q*quatrot_left_z -
-					  quatrot_temp_x*quatrot_left_y +
-					  quatrot_temp_y*quatrot_left_x +
-					  quatrot_temp_z*quatrot_left_q;
-
 			// Performing final movement and storing values
-			calc_coords_x[atom_id] = atom_to_rotate [0] + rotation_movingvec[0];
-			calc_coords_y[atom_id] = atom_to_rotate [1] + rotation_movingvec[1];
-			calc_coords_z[atom_id] = atom_to_rotate [2] + rotation_movingvec[2];
+			calc_coords[atom_id] = quaternion_rotate(atom_to_rotate,quatrot_left) + rotation_movingvec;
 
 		} // End if-statement not dummy rotation
 
@@ -295,163 +245,107 @@ void gpu_calc_energy(
 	// ================================================
 	// CALCULATING INTERMOLECULAR ENERGY
 	// ================================================
-	for (uint atom_id = get_local_id(0);
+	for (uint atom_id = tidx;
 	          atom_id < dockpars_num_of_atoms;
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
 		uint atom_typeid = kerconst_interintra->atom_types_const[atom_id];
-		float x = calc_coords_x[atom_id];
-		float y = calc_coords_y[atom_id];
-		float z = calc_coords_z[atom_id];
+		float x = calc_coords[atom_id].x;
+		float y = calc_coords[atom_id].y;
+		float z = calc_coords[atom_id].z;
 		float q = kerconst_interintra->atom_charges_const[atom_id];
-
 		if ((x < 0) || (y < 0) || (z < 0) || (x >= dockpars_gridsize_x-1)
 				                  || (y >= dockpars_gridsize_y-1)
 						  || (z >= dockpars_gridsize_z-1)){
-			partial_energies[get_local_id(0)] += 16777216.0f; //100000.0f;
-	
+			partial_energies[tidx] += 16777216.0f; //100000.0f;
 			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_interE[get_local_id(0)] += 16777216.0f;
+			partial_interE[tidx] += 16777216.0f;
 			#endif
+			continue; // get on with loop as our work here is done (we crashed into the walls)
 		}
-		else
-		{
-			// Getting coordinates
-			uint x_low  = (uint)floor(x); 
-			uint y_low  = (uint)floor(y); 
-			uint z_low  = (uint)floor(z);
-			uint x_high = (uint)ceil(x); 
-			uint y_high = (uint)ceil(y); 
-			uint z_high = (uint)ceil(z);
-			float dx = x - x_low; 
-			float dy = y - y_low; 
-			float dz = z - z_low;
+		// Getting coordinates
+		uint x_low  = (uint)floor(x); 
+		uint y_low  = (uint)floor(y); 
+		uint z_low  = (uint)floor(z);
 
-			// Calculating interpolation weights
-			float weights[2][2][2];
-			weights [0][0][0] = (1-dx)*(1-dy)*(1-dz);
-			weights [1][0][0] = dx*(1-dy)*(1-dz);
-			weights [0][1][0] = (1-dx)*dy*(1-dz);
-			weights [1][1][0] = dx*dy*(1-dz);
-			weights [0][0][1] = (1-dx)*(1-dy)*dz;
-			weights [1][0][1] = dx*(1-dy)*dz;
-			weights [0][1][1] = (1-dx)*dy*dz;
-			weights [1][1][1] = dx*dy*dz;
+		float dx = x - x_low;
+		float omdx = 1.0 - dx;
+		float dy = y - y_low; 
+		float omdy = 1.0 - dy;
+		float dz = z - z_low;
+		float omdz = 1.0 - dz;
 
-			// Capturing affinity values
-			uint ylow_times_g1  = y_low*g1;
-			uint yhigh_times_g1 = y_high*g1;
-		  	uint zlow_times_g2  = z_low*g2;
-			uint zhigh_times_g2 = z_high*g2;
+		// Calculating interpolation weights
+		float weights[8];
+		weights [idx_000] = omdx*omdy*omdz;
+		weights [idx_100] = dx*omdy*omdz;
+		weights [idx_010] = omdx*dy*omdz;
+		weights [idx_110] = dx*dy*omdz;
+		weights [idx_001] = omdx*omdy*dz;
+		weights [idx_101] = dx*omdy*dz;
+		weights [idx_011] = omdx*dy*dz;
+		weights [idx_111] = dx*dy*dz;
 
-			// Grid offset
-			uint offset_cube_000 = x_low  + ylow_times_g1  + zlow_times_g2;
-			uint offset_cube_100 = x_high + ylow_times_g1  + zlow_times_g2;
-			uint offset_cube_010 = x_low  + yhigh_times_g1 + zlow_times_g2;
-			uint offset_cube_110 = x_high + yhigh_times_g1 + zlow_times_g2;
-			uint offset_cube_001 = x_low  + ylow_times_g1  + zhigh_times_g2;
-			uint offset_cube_101 = x_high + ylow_times_g1  + zhigh_times_g2;
-			uint offset_cube_011 = x_low  + yhigh_times_g1 + zhigh_times_g2;
-			uint offset_cube_111 = x_high + yhigh_times_g1 + zhigh_times_g2;
+		// Grid value at 000
+		__global const float* grid_value_000 = dockpars_fgrids + ((x_low  + y_low*g1  + z_low*g2)<<2);
+		ulong mul_tmp = atom_typeid*g3<<2;
+		// Calculating affinity energy
+		partial_energies[tidx] += TRILININTERPOL((grid_value_000+mul_tmp), weights);
 
-			uint mul_tmp = atom_typeid*g3;
+		#if defined (DEBUG_ENERGY_KERNEL)
+		partial_interE[tidx] += TRILININTERPOL((grid_value_000+mul_tmp), weights);
+		#endif
 
-			float cube[2][2][2];
-			cube [0][0][0] = *(dockpars_fgrids + offset_cube_000 + mul_tmp);
-			cube [1][0][0] = *(dockpars_fgrids + offset_cube_100 + mul_tmp);
-			cube [0][1][0] = *(dockpars_fgrids + offset_cube_010 + mul_tmp);
-		        cube [1][1][0] = *(dockpars_fgrids + offset_cube_110 + mul_tmp);
-		        cube [0][0][1] = *(dockpars_fgrids + offset_cube_001 + mul_tmp);
-			cube [1][0][1] = *(dockpars_fgrids + offset_cube_101 + mul_tmp);
-                        cube [0][1][1] = *(dockpars_fgrids + offset_cube_011 + mul_tmp);
-                        cube [1][1][1] = *(dockpars_fgrids + offset_cube_111 + mul_tmp);
+		// Capturing electrostatic values
+		atom_typeid = dockpars_num_of_atypes;
 
-			// Calculating affinity energy
-			partial_energies[get_local_id(0)] += TRILININTERPOL(cube, weights);
+		mul_tmp = atom_typeid*g3<<2;
+		// Calculating electrostatic energy
+		partial_energies[tidx] += q * TRILININTERPOL((grid_value_000+mul_tmp), weights);
 
-			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_interE[get_local_id(0)] += TRILININTERPOL(cube, weights);
-			#endif
+		#if defined (DEBUG_ENERGY_KERNEL)
+		partial_interE[tidx] += q * TRILININTERPOL((grid_value_000+mul_tmp), weights);
+		#endif
 
-			// Capturing electrostatic values
-			atom_typeid = dockpars_num_of_atypes;
+		// Capturing desolvation values
+		atom_typeid = dockpars_num_of_atypes+1;
 
-			mul_tmp = atom_typeid*g3;
-			cube [0][0][0] = *(dockpars_fgrids + offset_cube_000 + mul_tmp);
-			cube [1][0][0] = *(dockpars_fgrids + offset_cube_100 + mul_tmp);
-      			cube [0][1][0] = *(dockpars_fgrids + offset_cube_010 + mul_tmp);
-      			cube [1][1][0] = *(dockpars_fgrids + offset_cube_110 + mul_tmp);
-		       	cube [0][0][1] = *(dockpars_fgrids + offset_cube_001 + mul_tmp);
-		        cube [1][0][1] = *(dockpars_fgrids + offset_cube_101 + mul_tmp);
-		        cube [0][1][1] = *(dockpars_fgrids + offset_cube_011 + mul_tmp);
-		        cube [1][1][1] = *(dockpars_fgrids + offset_cube_111 + mul_tmp);
+		mul_tmp = atom_typeid*g3<<2;
+		// Calculating desolvation energy
+		partial_energies[tidx] += fabs(q) * TRILININTERPOL((grid_value_000+mul_tmp), weights);
 
-			// Calculating electrostatic energy
-			partial_energies[get_local_id(0)] += q * TRILININTERPOL(cube, weights);
-
-			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_interE[get_local_id(0)] += q * TRILININTERPOL(cube, weights);
-			#endif
-
-			// Capturing desolvation values
-			atom_typeid = dockpars_num_of_atypes+1;
-
-			mul_tmp = atom_typeid*g3;
-			cube [0][0][0] = *(dockpars_fgrids + offset_cube_000 + mul_tmp);
-			cube [1][0][0] = *(dockpars_fgrids + offset_cube_100 + mul_tmp);
-      			cube [0][1][0] = *(dockpars_fgrids + offset_cube_010 + mul_tmp);
-      			cube [1][1][0] = *(dockpars_fgrids + offset_cube_110 + mul_tmp);
-      			cube [0][0][1] = *(dockpars_fgrids + offset_cube_001 + mul_tmp);
-      			cube [1][0][1] = *(dockpars_fgrids + offset_cube_101 + mul_tmp);
-      			cube [0][1][1] = *(dockpars_fgrids + offset_cube_011 + mul_tmp);
-      			cube [1][1][1] = *(dockpars_fgrids + offset_cube_111 + mul_tmp);
-
-			// Calculating desolvation energy
-			partial_energies[get_local_id(0)] += fabs(q) * TRILININTERPOL(cube, weights);
-
-			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_interE[get_local_id(0)] += fabs(q) * TRILININTERPOL(cube, weights);
-			#endif
-		}
-
+		#if defined (DEBUG_ENERGY_KERNEL)
+		partial_interE[tidx] += fabs(q) * TRILININTERPOL((grid_value_000+mul_tmp), weights);
+		#endif
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
 
-
-	#if defined (DEBUG_ENERGY_KERNEL)
+#if defined (DEBUG_ENERGY_KERNEL)
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	if (get_local_id(0) == 0)
+	// reduction to calculate energy
+	for (uint off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
 	{
-		float energy_interE = partial_interE[0];
-
-		for (uint contributor_counter=1;
-		          contributor_counter<NUM_OF_THREADS_PER_BLOCK;
-		          contributor_counter++)
-		{
-			energy_interE += partial_interE[contributor_counter];
-		}
-		partial_interE[0] = energy_interE;
-		//printf("%-20s %-10.8f\n", "energy_interE: ", energy_interE);
+		barrier(CLK_LOCAL_MEM_FENCE);
+		if (tidx < off)
+			partial_intraE[tidx] += partial_intraE[tidx+off];
 	}
-
-	barrier(CLK_LOCAL_MEM_FENCE);
-	#endif
-
+#endif
 
 	// In paper: intermolecular and internal energy calculation
 	// are independent from each other, -> NO BARRIER NEEDED
-  	// but require different operations,
+	// but require different operations,
 	// thus, they can be executed only sequentially on the GPU.
+	float delta_distance = 0.5f*dockpars_smooth; 
 
 	// ================================================
 	// CALCULATING INTRAMOLECULAR ENERGY
 	// ================================================
-	for (uint contributor_counter = get_local_id(0);
+	for (uint contributor_counter = tidx;
 	          contributor_counter < dockpars_num_of_intraE_contributors;
 	          contributor_counter +=NUM_OF_THREADS_PER_BLOCK)
 
 #if 0
-if (get_local_id (0) == 0) {
+if (tidx == 0) {
 	for (uint contributor_counter = 0;
 	          contributor_counter < dockpars_num_of_intraE_contributors;
 	          contributor_counter ++)
@@ -460,7 +354,6 @@ if (get_local_id (0) == 0) {
 #if 0
 		// Only for testing smoothing
 		float smoothed_intraE = 0.0f;
-
 		float raw_intraE_vdw_hb = 0.0f;
 		float raw_intraE_el     = 0.0f;
 		float raw_intraE_sol    = 0.0f;
@@ -470,12 +363,13 @@ if (get_local_id (0) == 0) {
 		// Getting atom IDs
 		uint atom1_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter];
 		uint atom2_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+1];
+		uint hbond = (uint)(kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1);	// evaluates to 1 in case of H-bond, 0 otherwise
 
 		// Calculating vector components of vector going
 		// from first atom's to second atom's coordinates
-		float subx = calc_coords_x[atom1_id] - calc_coords_x[atom2_id];
-		float suby = calc_coords_y[atom1_id] - calc_coords_y[atom2_id];
-		float subz = calc_coords_z[atom1_id] - calc_coords_z[atom2_id];
+		float subx = calc_coords[atom1_id].x - calc_coords[atom2_id].x;
+		float suby = calc_coords[atom1_id].y - calc_coords[atom2_id].y;
+		float subz = calc_coords[atom1_id].z - calc_coords[atom2_id].z;
 
 		// Calculating atomic_distance
 		float atomic_distance = native_sqrt(subx*subx + suby*suby + subz*subz)*dockpars_grid_spacing;
@@ -485,214 +379,135 @@ if (get_local_id (0) == 0) {
 		uint atom2_typeid = kerconst_interintra->atom_types_const[atom2_id];
 
 		uint atom1_type_vdw_hb = kerconst_intra->atom1_types_reqm_const [atom1_typeid];
-     	        uint atom2_type_vdw_hb = kerconst_intra->atom2_types_reqm_const [atom2_typeid];
+		uint atom2_type_vdw_hb = kerconst_intra->atom2_types_reqm_const [atom2_typeid];
 
-		// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
-		// reqm: equilibrium internuclear separation 
-		//       (sum of the vdW radii of two like atoms (A)) in the case of vdW
-		// reqm_hbond: equilibrium internuclear separation
-		//  	 (sum of the vdW radii of two like atoms (A)) in the case of hbond 
-		float opt_distance;
-
-		if (kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1)	//H-bond
-		{
-			opt_distance = kerconst_intra->reqm_hbond_const [atom1_type_vdw_hb] + kerconst_intra->reqm_hbond_const [atom2_type_vdw_hb];
-		}
-		else	//van der Waals
-		{
-			opt_distance = 0.5f*(kerconst_intra->reqm_const [atom1_type_vdw_hb] + kerconst_intra->reqm_const [atom2_type_vdw_hb]);
-		}
-
-		// Getting smoothed distance
-		// smoothed_distance = function(atomic_distance, opt_distance)
-		float smoothed_distance;
-		float delta_distance = 0.5f*dockpars_smooth; 
-
-		if (atomic_distance <= (opt_distance - delta_distance)) {
-			smoothed_distance = atomic_distance + delta_distance;
-		}
-		else if (atomic_distance < (opt_distance + delta_distance)) {
-			smoothed_distance = opt_distance;
-		}
-		else { // else if (atomic_distance >= (opt_distance + delta_distance))
-			smoothed_distance = atomic_distance - delta_distance;
-		}
 
 		// Calculating energy contributions
 		// Cuttoff1: internuclear-distance at 8A only for vdw and hbond.
 		if (atomic_distance < 8.0f)
 		{
+			// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
+			// reqm: equilibrium internuclear separation 
+			//       (sum of the vdW radii of two like atoms (A)) in the case of vdW
+			// reqm_hbond: equilibrium internuclear separation
+			//  	 (sum of the vdW radii of two like atoms (A)) in the case of hbond 
+			float opt_distance = (kerconst_intra->reqm_const [atom1_type_vdw_hb+ATYPE_NUM*hbond] + kerconst_intra->reqm_const [atom2_type_vdw_hb+ATYPE_NUM*hbond]);
+
+			// Getting smoothed distance
+			// smoothed_distance = function(atomic_distance, opt_distance)
+			float smoothed_distance = opt_distance;
+
+			if (atomic_distance <= (opt_distance - delta_distance)) {
+				smoothed_distance = atomic_distance + delta_distance;
+			}
+			if (atomic_distance >= (opt_distance + delta_distance)) {
+				smoothed_distance = atomic_distance - delta_distance;
+			}
 			// Calculating van der Waals / hydrogen bond term
-			partial_energies[get_local_id(0)] += native_divide(kerconst_intra->VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance/*atomic_distance*/,12));
+			uint idx = atom1_typeid * dockpars_num_of_atypes + atom2_typeid;
+			partial_energies[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12)) -
+						  native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
 
 			#if 0
-			smoothed_intraE = native_divide(kerconst_intra->VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance,12));
-			raw_intraE_vdw_hb      = native_divide(kerconst_intra->VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance  ,12)); 
+			smoothed_intraE = native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12)) -
+					  native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
+			raw_intraE_vdw_hb = native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(atomic_distance,12)) -
+					    native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
 			#endif
 
 			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_intraE[get_local_id(0)] += native_divide(kerconst_intra->VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance/*atomic_distance*/,12));
+			partial_intraE[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12)) -
+						native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
 			#endif
-
-			if (kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1) {	//H-bond
-				partial_energies[get_local_id(0)] -= native_divide(kerconst_intra->VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance/*atomic_distance*/,10));
-
-				#if 0
-				smoothed_intraE -= native_divide(kerconst_intra->VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance,10));
-				raw_intraE_vdw_hb 	-= native_divide(kerconst_intra->VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance  ,10));
-				#endif
-
-				#if defined (DEBUG_ENERGY_KERNEL)
-				partial_intraE[get_local_id(0)] -= native_divide(kerconst_intra->VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance/*atomic_distance*/,10));
-				#endif
-			}
-			else {	//van der Waals
-				partial_energies[get_local_id(0)] -= native_divide(kerconst_intra->VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance/*atomic_distance*/,6));
-
-				#if 0
-				smoothed_intraE -= native_divide(kerconst_intra->VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance,6));
-				raw_intraE_vdw_hb      -= native_divide(kerconst_intra->VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(atomic_distance  ,6));
-				#endif
-
-				#if defined (DEBUG_ENERGY_KERNEL)
-				partial_intraE[get_local_id(0)] -= native_divide(kerconst_intra->VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],native_powr(smoothed_distance/*atomic_distance*/,6));
-				#endif
-			}
-		} // if cuttoff1 - internuclear-distance at 8A	
+		} // if cuttoff1 - internuclear-distance at 8A
 
 		// Calculating energy contributions
 		// Cuttoff2: internuclear-distance at 20.48A only for el and sol.
 		if (atomic_distance < 20.48f)
 		{
-			// Calculating electrostatic term
-	       		partial_energies[get_local_id(0)] += native_divide (
-		                                                     dockpars_coeff_elec * kerconst_interintra->atom_charges_const[atom1_id] * kerconst_interintra->atom_charges_const[atom2_id],
-		                                                     atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
-		                                                     );
+			float q1 = kerconst_interintra->atom_charges_const[atom1_id];
+			float q2 = kerconst_interintra->atom_charges_const[atom2_id];
+						  // Calculating electrostatic term
+			partial_energies[tidx] += native_divide (
+								  dockpars_coeff_elec * q1 * q2,
+								  atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
+								) +
+						  // Calculating desolvation term
+						  // 1/25.92 = 0.038580246913580245
+						  ((kerconst_intra->dspars_S_const[atom1_typeid] +
+						    dockpars_qasp*fabs(q1)) * kerconst_intra->dspars_V_const[atom2_typeid] +
+						   (kerconst_intra->dspars_S_const[atom2_typeid] +
+						    dockpars_qasp*fabs(q2)) * kerconst_intra->dspars_V_const[atom1_typeid]) *
+							    dockpars_coeff_desolv*native_exp(-0.03858025f*atomic_distance*atomic_distance);
 			#if 0
 			smoothed_intraE += native_divide (
-						      dockpars_coeff_elec * kerconst_interintra->atom_charges_const[atom1_id] * kerconst_interintra->atom_charges_const[atom2_id],
-						      atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
-						     );
-
-			raw_intraE_el 	= native_divide (
-						      dockpars_coeff_elec * kerconst_interintra->atom_charges_const[atom1_id] * kerconst_interintra->atom_charges_const[atom2_id],
-						      atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
-						     );
-			#endif
-
-			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_intraE[get_local_id(0)] += native_divide (
-		                                                     dockpars_coeff_elec * kerconst_interintra->atom_charges_const[atom1_id] * kerconst_interintra->atom_charges_const[atom2_id],
-		                                                     atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
-		                                                     );
-			#endif
-
-			// Calculating desolvation term
-			// 1/25.92 = 0.038580246913580245
-			partial_energies[get_local_id(0)] += ((kerconst_intra->dspars_S_const[atom1_typeid] +
-								       dockpars_qasp*fabs(kerconst_interintra->atom_charges_const[atom1_id]))*kerconst_intra->dspars_V_const[atom2_typeid] +
-							               (kerconst_intra->dspars_S_const[atom2_typeid] +
-								       dockpars_qasp*fabs(kerconst_interintra->atom_charges_const[atom2_id]))*kerconst_intra->dspars_V_const[atom1_typeid]) *
-							               dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
-
-			#if 0
-			smoothed_intraE += ((kerconst_intra->dspars_S_const[atom1_typeid] +
-					dockpars_qasp*fabs(kerconst_interintra->atom_charges_const[atom1_id]))*kerconst_intra->dspars_V_const[atom2_typeid] +
-				       (kerconst_intra->dspars_S_const[atom2_typeid] +
-				       dockpars_qasp*fabs(kerconst_interintra->atom_charges_const[atom2_id]))*kerconst_intra->dspars_V_const[atom1_typeid]) *
-				       dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
-
+							  dockpars_coeff_elec * q1 * q2,
+							  atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
+							 ) +
+					   ((kerconst_intra->dspars_S_const[atom1_typeid] +
+					     dockpars_qasp*fabs(q1))*kerconst_intra->dspars_V_const[atom2_typeid] +
+					    (kerconst_intra->dspars_S_const[atom2_typeid] +
+					     dockpars_qasp*fabs(q2))*kerconst_intra->dspars_V_const[atom1_typeid]) *
+					         dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
+			raw_intraE_el = native_divide (
+						       dockpars_coeff_elec * q1 * q2,
+						       atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
+						      );
 			raw_intraE_sol = ((kerconst_intra->dspars_S_const[atom1_typeid] +
-					dockpars_qasp*fabs(kerconst_interintra->atom_charges_const[atom1_id]))*kerconst_intra->dspars_V_const[atom2_typeid] +
-				       (kerconst_intra->dspars_S_const[atom2_typeid] +
-				       dockpars_qasp*fabs(kerconst_interintra->atom_charges_const[atom2_id]))*kerconst_intra->dspars_V_const[atom1_typeid]) *
-				       dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
+						dockpars_qasp*fabs(q1))*kerconst_intra->dspars_V_const[atom2_typeid] +
+					  (kerconst_intra->dspars_S_const[atom2_typeid] +
+						dockpars_qasp*fabs(q2))*kerconst_intra->dspars_V_const[atom1_typeid]) *
+							dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
 			#endif
 
 			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_intraE[get_local_id(0)] += ((kerconst_intra->dspars_S_const[atom1_typeid] +
-							       dockpars_qasp*fabs(kerconst_interintra->atom_charges_const[atom1_id]))*kerconst_intra->dspars_V_const[atom2_typeid] +
-						               (kerconst_intra->dspars_S_const[atom2_typeid] +
-							       dockpars_qasp*fabs(kerconst_interintra->atom_charges_const[atom2_id]))*kerconst_intra->dspars_V_const[atom1_typeid]) *
-						               dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
+			partial_intraE[tidx] += native_divide (
+							       dockpars_coeff_elec * q1 * q2,
+							       atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
+							      ) +
+						((kerconst_intra->dspars_S_const[atom1_typeid] +
+						  dockpars_qasp*fabs(q1)) * kerconst_intra->dspars_V_const[atom2_typeid] +
+						 (kerconst_intra->dspars_S_const[atom2_typeid] +
+						  dockpars_qasp*fabs(q2))*kerconst_intra->dspars_V_const[atom1_typeid]) *
+							dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
 			#endif
 		} // if cuttoff2 - internuclear-distance at 20.48A
 
-
-
-#if 0
-			raw_intraE = raw_intraE_vdw_hb + raw_intraE_el + raw_intraE_sol;
-
-			if (debug == true) {
-///*
-			//if (get_local_id (0) == 0) {
-
-				if (kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1)	//H-bond
-				{
-					// diogos table
-//					printf("%3u %-5s %3u %3u %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f\n", contributor_counter, "hbond", atom1_id, atom2_id, kerconst_intra->reqm_hbond_const [atom1_type_vdw_hb], kerconst_intra->reqm_hbond_const [atom2_type_vdw_hb], opt_distance, atomic_distance, smoothed_distance, smoothed_intraE, raw_intraE);
-
-					printf("%3u %-5s %3u %3u %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f\n", contributor_counter, "hbond", atom1_id, atom2_id, kerconst_intra->reqm_hbond_const [atom1_type_vdw_hb], kerconst_intra->reqm_hbond_const [atom2_type_vdw_hb], opt_distance, atomic_distance, smoothed_distance, smoothed_intraE, raw_intraE, raw_intraE_vdw_hb, raw_intraE_el, raw_intraE_sol);
-
-
-
-
-				}
-				else	//van der Waals
-				{
-					// diogos table
-//					printf("%3u %-5s %3u %3u %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f\n", contributor_counter, "vdw", atom1_id, atom2_id, kerconst_intra->reqm_const [atom1_type_vdw_hb], kerconst_intra->reqm_const [atom2_type_vdw_hb], opt_distance, atomic_distance, smoothed_distance, smoothed_intraE, raw_intraE);
-
-					printf("%3u %-5s %3u %3u %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f %3.5f\n", contributor_counter, "vdw", atom1_id, atom2_id, kerconst_intra->reqm_const [atom1_type_vdw_hb], kerconst_intra->reqm_const [atom2_type_vdw_hb], opt_distance, atomic_distance, smoothed_distance, smoothed_intraE, raw_intraE, raw_intraE_vdw_hb, raw_intraE_el, raw_intraE_sol);
-
-
-				}; 
-			//}
-//*/
-			}
-#endif
+		// ------------------------------------------------
+		// Required only for flexrings
+		// Checking if this is a CG-G0 atomic pair.
+		// If so, then adding energy term (E = G * distance).
+		// Initial specification required NON-SMOOTHED distance.
+		// This interaction is evaluated at any distance,
+		// so no cuttoffs considered here!
+		if (((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) || 
+		    ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX))) {
+			partial_energies[tidx] += G * atomic_distance;
+		}
+		// ------------------------------------------------
 
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
 
 #if 0
-} // if (get_local_id (0) == 0) {
+} // if (tidx) == 0) {
 #endif
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	if (get_local_id(0) == 0)
+	// reduction to calculate energy
+	for (uint off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
 	{
+		barrier(CLK_LOCAL_MEM_FENCE);
+		if (tidx < off)
+		{
+			partial_energies[tidx] += partial_energies[tidx+off];
+#if defined (DEBUG_ENERGY_KERNEL)
+			partial_intraE[tidx] += partial_intraE[tidx+off];
+#endif
+		}
+	}
+	if (tidx == 0)
 		*energy = partial_energies[0];
-
-		for (uint contributor_counter=1;
-		          contributor_counter<NUM_OF_THREADS_PER_BLOCK;
-		          contributor_counter++)
-		{
-			*energy += partial_energies[contributor_counter];
-		}
-	}
-
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	#if defined (DEBUG_ENERGY_KERNEL)
-	if (get_local_id(0) == 0)
-	{
-		float energy_intraE = partial_intraE[0];
-
-		for (uint contributor_counter=1;
-		          contributor_counter<NUM_OF_THREADS_PER_BLOCK;
-		          contributor_counter++)
-		{
-			energy_intraE += partial_intraE[contributor_counter];
-		}
-		partial_intraE[0] = energy_intraE;
-		//printf("%-20s %-10.8f\n", "energy_intraE: ", energy_intraE);
-
-	}
-	barrier(CLK_LOCAL_MEM_FENCE);
-	#endif
-
 }
 
 // No needed to be included as all kernel sources are stringified

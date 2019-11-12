@@ -40,7 +40,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "calcenergy.h"
 #include "processresult.h"
 
-#include <CL/opencl.h>
+#ifdef __APPLE__
+	#include "OpenCL/opencl.h"
+#else
+	#include "CL/opencl.h"
+#endif
 #include "commonMacros.h"
 #include "listAttributes.h"
 #include "Platforms.h"

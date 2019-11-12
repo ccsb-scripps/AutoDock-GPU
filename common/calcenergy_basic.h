@@ -54,11 +54,42 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	// Optimization 2
 	// Implemented direclty in the kernel code: calcenergy_fourkernels_intel.cl
 
+typedef enum
+{
+	idx_000 = 0,
+	idx_010 = 1,
+	idx_001 = 2,
+	idx_011 = 3,
+	idx_100 = 4,
+	idx_110 = 5,
+	idx_101 = 6,
+	idx_111 = 7
+} indices;
+
+/*typedef enum
+{
+	idx_000 = 0,
+	idx_100 = 1,
+	idx_010 = 2,
+	idx_110 = 3,
+	idx_001 = 4,
+	idx_101 = 5,
+	idx_011 = 6,
+	idx_111 = 7
+} indices;*/
+
 // Macro for trilinear interpolation
-#define TRILININTERPOL(cube, weights) (cube[0][0][0]*weights[0][0][0] +cube[1][0][0]*weights[1][0][0] +	\
-				       cube[0][1][0]*weights[0][1][0] +cube[1][1][0]*weights[1][1][0] + \
-				       cube[0][0][1]*weights[0][0][1] +cube[1][0][1]*weights[1][0][1] + \
-				       cube[0][1][1]*weights[0][1][1] +cube[1][1][1]*weights[1][1][1])
+#define TRILININTERPOL(cube, weights) (cube[idx_000]*weights[idx_000] + \
+				       cube[idx_010]*weights[idx_010] + \
+				       cube[idx_001]*weights[idx_001] + \
+				       cube[idx_011]*weights[idx_011] + \
+				       cube[idx_100]*weights[idx_100] + \
+				       cube[idx_110]*weights[idx_110] + \
+				       cube[idx_101]*weights[idx_101] + \
+				       cube[idx_111]*weights[idx_111])
+
+// Sticking to array boundaries
+#define stick_to_bounds(x,a,b) x + (x <= a)*(a-x) + (x >= b)*(b-x)
 
 // Constants for dielelectric term of the 
 // electrostatic component of the intramolecular energy/gradient
@@ -72,20 +103,23 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define DIEL_B_TIMES_H_TIMES_K	(DIEL_B_TIMES_H * DIEL_K)
 
 // Used for Shoemake to quaternion transformation
-#define PI_TIMES_2 		(float)(2.0f*M_PI)
-#define PI_FLOAT		(float)(M_PI)
-
+#if defined(M_PI)
+	#define PI_FLOAT		(float)(M_PI)
+#else
+	#define PI_FLOAT		3.14159265359f
+#endif
+#define PI_TIMES_2 		2.0f*PI_FLOAT
 
 // -------------------------------------------
 // Gradient-related defines
 // -------------------------------------------
 
 #define INFINITESIMAL_RADIAN		1E-3
-#define HALF_INFINITESIMAL_RADIAN 	(0.5f * INFINITESIMAL_RADIAN)
+#define HALF_INFINITESIMAL_RADIAN 	(float)(0.5f * INFINITESIMAL_RADIAN)
 #define INV_INFINITESIMAL_RADIAN	(1/INFINITESIMAL_RADIAN)
 #define COS_HALF_INFINITESIMAL_RADIAN	cos(HALF_INFINITESIMAL_RADIAN)
 #define SIN_HALF_INFINITESIMAL_RADIAN	sin(HALF_INFINITESIMAL_RADIAN)
-
+#define inv_angle_delta			500.0f / PI_FLOAT
 
 /*
 #define TRANGENE_ALPHA 1E-3

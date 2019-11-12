@@ -162,7 +162,7 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	fprintf(fp, "Ligand file:                               %s\n", mypars->ligandfile);
 	fprintf(fp, "Grid fld file:                             %s\n\n", mypars->fldfile);
 
-	fprintf(fp, "Number of runs:                            %d\n", mypars->num_of_runs),
+	fprintf(fp, "Number of runs:                            %lu\n", mypars->num_of_runs),
 	fprintf(fp, "Number of energy evaluations:              %ld\n", mypars->num_of_energy_evals);
 	fprintf(fp, "Number of generations:                     %ld\n", mypars->num_of_generations);
 	fprintf(fp, "Size of population:                        %ld\n", mypars->pop_size);
@@ -223,7 +223,7 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	fprintf(fp, "    DUMMY DATA (only for ADT-compatibility)\n");
 	fprintf(fp, "    ________________________\n\n\n");
 	fprintf(fp, "DPF> outlev 1\n");
-	fprintf(fp, "DPF> ga_run %d\n", mypars->num_of_runs);
+	fprintf(fp, "DPF> ga_run %lu\n", mypars->num_of_runs);
 	fprintf(fp, "DPF> fld %s.maps.fld\n", mygrid->receptor_name);
 	fprintf(fp, "DPF> move %s\n\n\n", mypars->ligandfile);
 }
@@ -277,8 +277,8 @@ void make_resfiles(float* final_population,
 
 		fprintf(fp, "           COUNTER STATES           \n");
 		fprintf(fp, "===================================\n\n");
-		fprintf(fp, "Number of energy evaluations performed:    %ld\n", evals_performed);
-		fprintf(fp, "Number of generations used:                %ld\n", generations_used);
+		fprintf(fp, "Number of energy evaluations performed:    %d\n", evals_performed);
+		fprintf(fp, "Number of generations used:                %d\n", generations_used);
 		fprintf(fp, "\n\n");
 	}
 
@@ -592,7 +592,7 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 	{
 		fprintf(fp, "    FINAL DOCKED STATE:\n    ________________________\n\n\n");
 
-		fprintf(fp, "Run:   %d / %d\n", i+1, mypars->num_of_runs);
+		fprintf(fp, "Run:   %d / %lu\n", i+1, mypars->num_of_runs);
 		fprintf(fp, "Time taken for this run:   %.3lfs\n\n", docking_avg_runtime);
 
 		fprintf(fp, "DOCKED: MODEL        %d\n", i+1);

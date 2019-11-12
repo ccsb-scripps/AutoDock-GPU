@@ -54,7 +54,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define INC " -I " KRNL_FOLDER " -I " KRNL_COMMON
 
-#if defined (N16WI)
+#if defined (N1WI)
+	#define KNWI " -DN1WI "
+#elif defined (N2WI)
+	#define KNWI " -DN2WI "
+#elif defined (N4WI)
+	#define KNWI " -DN4WI "
+#elif defined (N8WI)
+	#define KNWI " -DN8WI "
+#elif defined (N16WI)
 	#define KNWI " -DN16WI "
 #elif defined (N32WI)
 	#define KNWI " -DN32WI "
@@ -75,7 +83,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #endif
 
 
-#define KGDB_GPU	" -g -O0 -Werror -cl-opt-disable "
+#ifdef __APPLE__
+	#define KGDB_GPU	" -g -cl-opt-disable "
+#else
+	#define KGDB_GPU	" -g -O0 -Werror -cl-opt-disable "
+#endif
 #define KGDB_CPU	" -g3 -Werror -cl-opt-disable "
 // Might work in some (Intel) devices " -g -s " KRNL_FILE
 
@@ -86,7 +98,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 		#define KGDB KGDB_GPU
 	#endif
 #else
-	#define KGDB " "
+	#define KGDB " -cl-mad-enable"
 #endif
 
 
@@ -129,7 +141,8 @@ filled with clock() */
 // OpenCL Host Setup
 // =======================================================================
 	cl_platform_id*  platform_id;
-	cl_device_id*    device_id;
+	cl_device_id*    device_ids;
+	cl_device_id     device_id;
 	cl_context       context;
 	cl_command_queue command_queue;
 	cl_program       program;
@@ -177,35 +190,41 @@ filled with clock() */
 	if (getPlatforms(&platform_id,&platformCount) != 0) return 1;
 
 	// Get all devices of first platform
-	if (getDevices(platform_id[0],platformCount,&device_id,&deviceCount) != 0) return 1;
+	if (getDevices(platform_id[0],platformCount,&device_ids,&deviceCount) != 0) return 1;
+	if (mypars->devnum>=deviceCount)
+	{
+		printf("Warning: user specified OpenCL device number does not exist, using first device.\n");
+		mypars->devnum=0;
+	}
+	device_id=device_ids[mypars->devnum];
 
 	// Create context from first platform
-	if (createContext(platform_id[0],1,device_id,&context) != 0) return 1;
+	if (createContext(platform_id[0],1,&device_id,&context) != 0) return 1;
 
 	// Create command queue for first device
-	if (createCommandQueue(context,device_id[0],&command_queue) != 0) return 1;
+	if (createCommandQueue(context,device_id,&command_queue) != 0) return 1;
 
 	// Create program from source 
 #ifdef _WIN32
-	if (ImportSource(filename, name_k1, device_id, context, options_program, &kernel1) != 0) return 1;
-	if (ImportSource(filename, name_k2, device_id, context, options_program, &kernel2) != 0) return 1;
-	if (ImportSource(filename, name_k3, device_id, context, options_program, &kernel3) != 0) return 1;
-	if (ImportSource(filename, name_k4, device_id, context, options_program, &kernel4) != 0) return 1;
-	if (ImportSource(filename, name_k5, device_id, context, options_program, &kernel5) != 0) return 1;
-	if (ImportSource(filename, name_k6, device_id, context, options_program, &kernel6) != 0) return 1;
-	if (ImportSource(filename, name_k7, device_id, context, options_program, &kernel7) != 0) return 1;
+	if (ImportSource(filename, name_k1, &device_id, context, options_program, &kernel1) != 0) return 1;
+	if (ImportSource(filename, name_k2, &device_id, context, options_program, &kernel2) != 0) return 1;
+	if (ImportSource(filename, name_k3, &device_id, context, options_program, &kernel3) != 0) return 1;
+	if (ImportSource(filename, name_k4, &device_id, context, options_program, &kernel4) != 0) return 1;
+	if (ImportSource(filename, name_k5, &device_id, context, options_program, &kernel5) != 0) return 1;
+	if (ImportSource(filename, name_k6, &device_id, context, options_program, &kernel6) != 0) return 1;
+	if (ImportSource(filename, name_k7, &device_id, context, options_program, &kernel7) != 0) return 1;
 #else
-	if (ImportSourceToProgram(calcenergy_ocl, device_id, context, &program, options_program) != 0) return 1;
+	if (ImportSourceToProgram(calcenergy_ocl, &device_id, context, &program, options_program) != 0) return 1;
 #endif
 
 	// Create kernels
-	if (createKernel(device_id, &program, name_k1, &kernel1) != 0) return 1;
-	if (createKernel(device_id, &program, name_k2, &kernel2) != 0) return 1;
-	if (createKernel(device_id, &program, name_k3, &kernel3) != 0) return 1;
-	if (createKernel(device_id, &program, name_k4, &kernel4) != 0) return 1;
-	if (createKernel(device_id, &program, name_k5, &kernel5) != 0) return 1;
-	if (createKernel(device_id, &program, name_k6, &kernel6) != 0) return 1;
-	if (createKernel(device_id, &program, name_k7, &kernel7) != 0) return 1;
+	if (createKernel(&device_id, &program, name_k1, &kernel1) != 0) return 1;
+	if (createKernel(&device_id, &program, name_k2, &kernel2) != 0) return 1;
+	if (createKernel(&device_id, &program, name_k3, &kernel3) != 0) return 1;
+	if (createKernel(&device_id, &program, name_k4, &kernel4) != 0) return 1;
+	if (createKernel(&device_id, &program, name_k5, &kernel5) != 0) return 1;
+	if (createKernel(&device_id, &program, name_k6, &kernel6) != 0) return 1;
+	if (createKernel(&device_id, &program, name_k7, &kernel7) != 0) return 1;
 
 // End of OpenCL Host Setup
 // =======================================================================
@@ -367,9 +386,7 @@ filled with clock() */
 
 	size_t sz_rotlist_const		= MAX_NUM_OF_ROTATIONS*sizeof(int);
 
-	size_t sz_conform_const		= MAX_NUM_OF_ATOMS*sizeof(float) + 
-					  MAX_NUM_OF_ATOMS*sizeof(float) + 
-					  MAX_NUM_OF_ATOMS*sizeof(float) + 
+	size_t sz_conform_const		= 3*MAX_NUM_OF_ATOMS*sizeof(float) + 
 					  3*MAX_NUM_OF_ROTBONDS*sizeof(float) + 
 					  3*MAX_NUM_OF_ROTBONDS*sizeof(float) + 
 					  4*MAX_NUM_OF_RUNS*sizeof(float);
@@ -459,7 +476,7 @@ filled with clock() */
 
  	//allocating GPU memory for populations, floatgirds,
 	//energies, evaluation counters and random number generator states
-	size_floatgrids = (sizeof(float)) * (mygrid->num_of_atypes+2) * (mygrid->size_xyz[0]) * (mygrid->size_xyz[1]) * (mygrid->size_xyz[2]);
+	size_floatgrids = 4 * (sizeof(float)) * (mygrid->num_of_atypes+2) * (mygrid->size_xyz[0]) * (mygrid->size_xyz[1]) * (mygrid->size_xyz[2]);
 
 	cl_mem mem_dockpars_fgrids;
 	cl_mem mem_dockpars_conformations_current;
@@ -808,46 +825,46 @@ filled with clock() */
 			#endif
 			// End of Kernel6
 		} else if (strcmp(mypars->ls_method, "ad") == 0) {
-			// Kernel6
-  			setKernelArg(kernel7,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
-  			setKernelArg(kernel7,1, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
-  			setKernelArg(kernel7,2, sizeof(dockpars.num_of_intraE_contributors),     &dockpars.num_of_intraE_contributors);
-  			setKernelArg(kernel7,3, sizeof(dockpars.gridsize_x),                     &dockpars.gridsize_x);
-  			setKernelArg(kernel7,4, sizeof(dockpars.gridsize_y),                     &dockpars.gridsize_y);
-  			setKernelArg(kernel7,5, sizeof(dockpars.gridsize_z),                     &dockpars.gridsize_z);
-  			setKernelArg(kernel7,6, sizeof(g2),                    		   	 &g2);
-  			setKernelArg(kernel7,7, sizeof(g3),                    		   	 &g3);
-  			setKernelArg(kernel7,8, sizeof(dockpars.grid_spacing),                   &dockpars.grid_spacing);
-  			setKernelArg(kernel7,9, sizeof(mem_dockpars_fgrids),                     &mem_dockpars_fgrids);
-  			setKernelArg(kernel7,10,sizeof(dockpars.rotbondlist_length),             &dockpars.rotbondlist_length);
-  			setKernelArg(kernel7,11,sizeof(dockpars.coeff_elec),                     &dockpars.coeff_elec);
-  			setKernelArg(kernel7,12,sizeof(dockpars.coeff_desolv),                   &dockpars.coeff_desolv);
-  			setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_next),         &mem_dockpars_conformations_next);
-  			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_next),              &mem_dockpars_energies_next);
-  			setKernelArg(kernel7,15,sizeof(mem_dockpars_evals_of_new_entities),      &mem_dockpars_evals_of_new_entities);
-  			setKernelArg(kernel7,16,sizeof(mem_dockpars_prng_states),                &mem_dockpars_prng_states);
-  			setKernelArg(kernel7,17,sizeof(dockpars.pop_size),                       &dockpars.pop_size);
-  			setKernelArg(kernel7,18,sizeof(dockpars.num_of_genes),                   &dockpars.num_of_genes);
-  			setKernelArg(kernel7,19,sizeof(dockpars.lsearch_rate),                   &dockpars.lsearch_rate);
-  			setKernelArg(kernel7,20,sizeof(dockpars.num_of_lsentities),              &dockpars.num_of_lsentities);
-  			setKernelArg(kernel7,21,sizeof(dockpars.max_num_of_iters),               &dockpars.max_num_of_iters);
-  			setKernelArg(kernel7,22,sizeof(dockpars.qasp),                           &dockpars.qasp);
-  			setKernelArg(kernel7,23,sizeof(dockpars.smooth),                         &dockpars.smooth);
+			// Kernel7
+			setKernelArg(kernel7,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
+			setKernelArg(kernel7,1, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
+			setKernelArg(kernel7,2, sizeof(dockpars.num_of_intraE_contributors),     &dockpars.num_of_intraE_contributors);
+			setKernelArg(kernel7,3, sizeof(dockpars.gridsize_x),                     &dockpars.gridsize_x);
+			setKernelArg(kernel7,4, sizeof(dockpars.gridsize_y),                     &dockpars.gridsize_y);
+			setKernelArg(kernel7,5, sizeof(dockpars.gridsize_z),                     &dockpars.gridsize_z);
+			setKernelArg(kernel7,6, sizeof(g2),                    		   	 &g2);
+			setKernelArg(kernel7,7, sizeof(g3),                    		   	 &g3);
+			setKernelArg(kernel7,8, sizeof(dockpars.grid_spacing),                   &dockpars.grid_spacing);
+			setKernelArg(kernel7,9, sizeof(mem_dockpars_fgrids),                     &mem_dockpars_fgrids);
+			setKernelArg(kernel7,10,sizeof(dockpars.rotbondlist_length),             &dockpars.rotbondlist_length);
+			setKernelArg(kernel7,11,sizeof(dockpars.coeff_elec),                     &dockpars.coeff_elec);
+			setKernelArg(kernel7,12,sizeof(dockpars.coeff_desolv),                   &dockpars.coeff_desolv);
+			setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_next),         &mem_dockpars_conformations_next);
+			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_next),              &mem_dockpars_energies_next);
+			setKernelArg(kernel7,15,sizeof(mem_dockpars_evals_of_new_entities),      &mem_dockpars_evals_of_new_entities);
+			setKernelArg(kernel7,16,sizeof(mem_dockpars_prng_states),                &mem_dockpars_prng_states);
+			setKernelArg(kernel7,17,sizeof(dockpars.pop_size),                       &dockpars.pop_size);
+			setKernelArg(kernel7,18,sizeof(dockpars.num_of_genes),                   &dockpars.num_of_genes);
+			setKernelArg(kernel7,19,sizeof(dockpars.lsearch_rate),                   &dockpars.lsearch_rate);
+			setKernelArg(kernel7,20,sizeof(dockpars.num_of_lsentities),              &dockpars.num_of_lsentities);
+			setKernelArg(kernel7,21,sizeof(dockpars.max_num_of_iters),               &dockpars.max_num_of_iters);
+			setKernelArg(kernel7,22,sizeof(dockpars.qasp),                           &dockpars.qasp);
+			setKernelArg(kernel7,23,sizeof(dockpars.smooth),                         &dockpars.smooth);
 
-	  		setKernelArg(kernel7,24,sizeof(mem_interintra_const),                 	 &mem_interintra_const);
-		  	setKernelArg(kernel7,25,sizeof(mem_intracontrib_const),          	 &mem_intracontrib_const);
-	  		setKernelArg(kernel7,26,sizeof(mem_intra_const),                         &mem_intra_const);
-	  		setKernelArg(kernel7,27,sizeof(mem_rotlist_const),                       &mem_rotlist_const);
-	  		setKernelArg(kernel7,28,sizeof(mem_conform_const),                 	 &mem_conform_const);
+			setKernelArg(kernel7,24,sizeof(mem_interintra_const),                 	 &mem_interintra_const);
+			setKernelArg(kernel7,25,sizeof(mem_intracontrib_const),          	 &mem_intracontrib_const);
+			setKernelArg(kernel7,26,sizeof(mem_intra_const),                         &mem_intra_const);
+			setKernelArg(kernel7,27,sizeof(mem_rotlist_const),                       &mem_rotlist_const);
+			setKernelArg(kernel7,28,sizeof(mem_conform_const),                 	 &mem_conform_const);
 
-  			setKernelArg(kernel7,29,sizeof(mem_rotbonds_const),         		 &mem_rotbonds_const);
-  			setKernelArg(kernel7,30,sizeof(mem_rotbonds_atoms_const),   		 &mem_rotbonds_atoms_const);
-  			setKernelArg(kernel7,31,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
-  			setKernelArg(kernel7,32,sizeof(mem_angle_const),			 &mem_angle_const);
-  			setKernelArg(kernel7,33,sizeof(mem_dependence_on_theta_const),		 &mem_dependence_on_theta_const);
-  			setKernelArg(kernel7,34,sizeof(mem_dependence_on_rotangle_const),	 &mem_dependence_on_rotangle_const);
-  			kernel7_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
-  			kernel7_lxsize = threadsPerBlock;
+			setKernelArg(kernel7,29,sizeof(mem_rotbonds_const),         		 &mem_rotbonds_const);
+			setKernelArg(kernel7,30,sizeof(mem_rotbonds_atoms_const),   		 &mem_rotbonds_atoms_const);
+			setKernelArg(kernel7,31,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
+			setKernelArg(kernel7,32,sizeof(mem_angle_const),			 &mem_angle_const);
+			setKernelArg(kernel7,33,sizeof(mem_dependence_on_theta_const),		 &mem_dependence_on_theta_const);
+			setKernelArg(kernel7,34,sizeof(mem_dependence_on_rotangle_const),	 &mem_dependence_on_rotangle_const);
+			kernel7_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
+			kernel7_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_ADADELTA", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
 			#endif
@@ -886,13 +903,10 @@ filled with clock() */
 	memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
 #endif
 	// -------- Replacing with memory maps! ------------
-
 	#if 0
 	generation_cnt = 1;
 	#endif
 	generation_cnt = 0;
-
-
 	// -------- Replacing with memory maps! ------------
 #if defined (MAPPED_COPY)
 	while ((progress = check_progress(map_cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs)) < 100.0)
@@ -900,102 +914,90 @@ filled with clock() */
 	while ((progress = check_progress(cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs)) < 100.0)
 #endif
 	// -------- Replacing with memory maps! ------------
-
 	{
 #ifdef DOCK_DEBUG
-    ite_cnt++;
-    printf("\nLGA iteration # %u\n", ite_cnt);
-    fflush(stdout);
-#endif
-
-	 //update progress bar (bar length is 50)
-	 new_progress_cnt = (int) (progress/2.0+0.5);
-	 if (new_progress_cnt > 50)
-	 	new_progress_cnt = 50;
-
-	 while (curr_progress_cnt < new_progress_cnt) {
-		curr_progress_cnt++;
-#ifndef DOCK_DEBUG
-		printf("*");
-#endif
+		ite_cnt++;
+		printf("\nLGA iteration # %u\n", ite_cnt);
 		fflush(stdout);
-	}
-
-	// Kernel4
-	#ifdef DOCK_DEBUG
-		printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
-	#endif
-		runKernel1D(command_queue,kernel4,kernel4_gxsize,kernel4_lxsize,&time_start_kernel,&time_end_kernel);
-	#ifdef DOCK_DEBUG
-		printf("%15s", " ... Finished\n");fflush(stdout);
-	#endif
-	// End of Kernel4
-
-	if (dockpars.lsearch_rate != 0.0f) {
-		if (strcmp(mypars->ls_method, "sw") == 0) {
-			// Kernel3
-			#ifdef DOCK_DEBUG
-				printf("%-25s", "\tK_LS_SOLISWETS");fflush(stdout);
-			#endif
-				runKernel1D(command_queue,kernel3,kernel3_gxsize,kernel3_lxsize,&time_start_kernel,&time_end_kernel);
-			#ifdef DOCK_DEBUG
-				printf("%15s" ," ... Finished\n");fflush(stdout);
-			#endif
-			// End of Kernel3
-
-		} else if (strcmp(mypars->ls_method, "sd") == 0) {
-			// Kernel5
-			#ifdef DOCK_DEBUG
-				printf("%-25s", "\tK_LS_GRAD_SDESCENT");fflush(stdout);
-			#endif
-				runKernel1D(command_queue,kernel5,kernel5_gxsize,kernel5_lxsize,&time_start_kernel,&time_end_kernel);
-			#ifdef DOCK_DEBUG
-				printf("%15s" ," ... Finished\n");fflush(stdout);
-			#endif
-			// End of Kernel5
-
-		} else if (strcmp(mypars->ls_method, "fire") == 0) {
-			// Kernel6
-			#ifdef DOCK_DEBUG
-				printf("%-25s", "\tK_LS_GRAD_FIRE");fflush(stdout);
-			#endif
-				runKernel1D(command_queue,kernel6,kernel6_gxsize,kernel6_lxsize,&time_start_kernel,&time_end_kernel);
-			#ifdef DOCK_DEBUG
-				printf("%15s" ," ... Finished\n");fflush(stdout);
-			#endif
-			// End of Kernel6
-
-		} else if (strcmp(mypars->ls_method, "ad") == 0) {
-			// Kernel7
-			#ifdef DOCK_DEBUG
-				printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
-			#endif
-				runKernel1D(command_queue,kernel7,kernel7_gxsize,kernel7_lxsize,&time_start_kernel,&time_end_kernel);
-			#ifdef DOCK_DEBUG
-				printf("%15s" ," ... Finished\n");fflush(stdout);
-			#endif
-			// End of Kernel7
+#endif
+		//update progress bar (bar length is 50)
+		new_progress_cnt = (int) (progress/2.0+0.5);
+		if (new_progress_cnt > 50)
+			new_progress_cnt = 50;
+		while (curr_progress_cnt < new_progress_cnt) {
+			curr_progress_cnt++;
+#ifndef DOCK_DEBUG
+			printf("*");
+#endif
+			fflush(stdout);
 		}
-	} // End if (dockpars.lsearch_rate != 0.0f)
-
-	// -------- Replacing with memory maps! ------------
-	#if defined (MAPPED_COPY)
-	unmemMap(command_queue,mem_gpu_evals_of_runs,map_cpu_evals_of_runs);
-	#endif
-	// -------- Replacing with memory maps! ------------
-
-	// Kernel2
-	#ifdef DOCK_DEBUG
-		printf("%-25s", "\tK_EVAL");fflush(stdout);
-	#endif
+		// Kernel4
+		#ifdef DOCK_DEBUG
+			printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
+		#endif
+		runKernel1D(command_queue,kernel4,kernel4_gxsize,kernel4_lxsize,&time_start_kernel,&time_end_kernel);
+		#ifdef DOCK_DEBUG
+			printf("%15s", " ... Finished\n");fflush(stdout);
+		#endif
+		// End of Kernel4
+		if (dockpars.lsearch_rate != 0.0f) {
+			if (strcmp(mypars->ls_method, "sw") == 0) {
+				// Kernel3
+				#ifdef DOCK_DEBUG
+					printf("%-25s", "\tK_LS_SOLISWETS");fflush(stdout);
+				#endif
+				runKernel1D(command_queue,kernel3,kernel3_gxsize,kernel3_lxsize,&time_start_kernel,&time_end_kernel);
+				#ifdef DOCK_DEBUG
+					printf("%15s" ," ... Finished\n");fflush(stdout);
+				#endif
+				// End of Kernel3
+			} else if (strcmp(mypars->ls_method, "sd") == 0) {
+				// Kernel5
+				#ifdef DOCK_DEBUG
+					printf("%-25s", "\tK_LS_GRAD_SDESCENT");fflush(stdout);
+				#endif
+				runKernel1D(command_queue,kernel5,kernel5_gxsize,kernel5_lxsize,&time_start_kernel,&time_end_kernel);
+				#ifdef DOCK_DEBUG
+					printf("%15s" ," ... Finished\n");fflush(stdout);
+				#endif
+				// End of Kernel5
+			} else if (strcmp(mypars->ls_method, "fire") == 0) {
+				// Kernel6
+				#ifdef DOCK_DEBUG
+					printf("%-25s", "\tK_LS_GRAD_FIRE");fflush(stdout);
+				#endif
+				runKernel1D(command_queue,kernel6,kernel6_gxsize,kernel6_lxsize,&time_start_kernel,&time_end_kernel);
+				#ifdef DOCK_DEBUG
+					printf("%15s" ," ... Finished\n");fflush(stdout);
+				#endif
+				// End of Kernel6
+			} else if (strcmp(mypars->ls_method, "ad") == 0) {
+				// Kernel7
+				#ifdef DOCK_DEBUG
+					printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
+				#endif
+				runKernel1D(command_queue,kernel7,kernel7_gxsize,kernel7_lxsize,&time_start_kernel,&time_end_kernel);
+				#ifdef DOCK_DEBUG
+					printf("%15s" ," ... Finished\n");fflush(stdout);
+				#endif
+				// End of Kernel7
+			}
+		} // End if (dockpars.lsearch_rate != 0.0f)
+		// -------- Replacing with memory maps! ------------
+		#if defined (MAPPED_COPY)
+		unmemMap(command_queue,mem_gpu_evals_of_runs,map_cpu_evals_of_runs);
+		#endif
+		// -------- Replacing with memory maps! ------------
+		// Kernel2
+		#ifdef DOCK_DEBUG
+			printf("%-25s", "\tK_EVAL");fflush(stdout);
+		#endif
 		runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
-	#ifdef DOCK_DEBUG
-		printf("%15s" ," ... Finished\n");fflush(stdout);
-	#endif
-	// End of Kernel2
+		#ifdef DOCK_DEBUG
+			printf("%15s" ," ... Finished\n");fflush(stdout);
+		#endif
+		// End of Kernel2
 		// ===============================================================================
-
-
 		// -------- Replacing with memory maps! ------------
 #if defined (MAPPED_COPY)
 		map_cpu_evals_of_runs = (int*) memMap(command_queue, mem_gpu_evals_of_runs, CL_MAP_READ, size_evals_of_runs);
@@ -1003,9 +1005,7 @@ filled with clock() */
 		memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
 #endif
 		// -------- Replacing with memory maps! ------------
-
 		generation_cnt++;
-
 		// ----------------------------------------------------------------------
 		// ORIGINAL APPROACH: switching conformation and energy pointers
 		// CURRENT APPROACH:  copy data from one buffer to another, pointers are kept the same
@@ -1023,26 +1023,25 @@ filled with clock() */
 			// Kernel 4
 			setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
 			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
-      			setKernelArg(kernel4,15,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
+			setKernelArg(kernel4,15,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
 			setKernelArg(kernel4,16,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
-
 			if (dockpars.lsearch_rate != 0.0f) {
 				if (strcmp(mypars->ls_method, "sw") == 0) {
 					// Kernel 3
 					setKernelArg(kernel3,13,sizeof(mem_dockpars_conformations_next),		&mem_dockpars_conformations_next);
-		      			setKernelArg(kernel3,14,sizeof(mem_dockpars_energies_next),			&mem_dockpars_energies_next);
+					setKernelArg(kernel3,14,sizeof(mem_dockpars_energies_next),			&mem_dockpars_energies_next);
 				} else if (strcmp(mypars->ls_method, "sd") == 0) {
 					// Kernel 5
 					setKernelArg(kernel5,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
-		      			setKernelArg(kernel5,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
+					setKernelArg(kernel5,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
 				} else if (strcmp(mypars->ls_method, "fire") == 0) {
 					// Kernel 6
 					setKernelArg(kernel6,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
-		      			setKernelArg(kernel6,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
+					setKernelArg(kernel6,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
 				} else if (strcmp(mypars->ls_method, "ad") == 0) {
 					// Kernel 7
 					setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
-		      			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
+					setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
 				}
 			} // End if (dockpars.lsearch_rate != 0.0f)
 		}
@@ -1050,53 +1049,46 @@ filled with clock() */
 			// Kernel 4
 			setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
 			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
-      			setKernelArg(kernel4,15,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
+			setKernelArg(kernel4,15,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
 			setKernelArg(kernel4,16,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
-
 			if (dockpars.lsearch_rate != 0.0f) {
 				if (strcmp(mypars->ls_method, "sw") == 0) {
 						// Kernel 3
-			     			setKernelArg(kernel3,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
-			      			setKernelArg(kernel3,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
+						setKernelArg(kernel3,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
+						setKernelArg(kernel3,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
 				} else if (strcmp(mypars->ls_method, "sd") == 0) {
 						// Kernel 5
-			     			setKernelArg(kernel5,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
-			      			setKernelArg(kernel5,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
+						setKernelArg(kernel5,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
+						setKernelArg(kernel5,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
 				} else if (strcmp(mypars->ls_method, "fire") == 0) {
 						// Kernel 6
-			     			setKernelArg(kernel6,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
-			      			setKernelArg(kernel6,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
+						setKernelArg(kernel6,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
+						setKernelArg(kernel6,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
 				} else if (strcmp(mypars->ls_method, "ad") == 0) {
 						// Kernel 7
-			     			setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
-			      			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
+						setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
+			 			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
 				}
 			} // End if (dockpars.lsearch_rate != 0.0f)
 		}
 		// ----------------------------------------------------------------------
-
-#ifdef DOCK_DEBUG
-        printf("\tProgress %.3f %%\n", progress);
-        fflush(stdout);
-#endif
+		#ifdef DOCK_DEBUG
+			printf("\tProgress %.3f %%\n", progress);
+			fflush(stdout);
+		#endif
 	} // End of while-loop
-
 	clock_stop_docking = clock();
-
 	//update progress bar (bar length is 50)mem_num_of_rotatingatoms_per_rotbond_const
 	while (curr_progress_cnt < 50) {
 		curr_progress_cnt++;
 		printf("*");
 		fflush(stdout);
 	}
-
 	printf("\n\n");
-
 	// ===============================================================================
 	// Modification based on:
 	// http://www.cc.gatech.edu/~vetter/keeneland/tutorial-2012-02-20/08-opencl.pdf
 	// ===============================================================================
-
 	//processing results
 	if (generation_cnt % 2 == 0) {
 		memcopyBufferObjectFromDevice(command_queue,cpu_final_populations,mem_dockpars_conformations_current,size_populations);
@@ -1106,24 +1098,16 @@ filled with clock() */
 		memcopyBufferObjectFromDevice(command_queue,cpu_final_populations,mem_dockpars_conformations_next,size_populations);
 		memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_next,size_energies);
 	}
-
-
 #if defined (DOCK_DEBUG)
 	for (int cnt_pop=0;cnt_pop<size_populations/sizeof(float);cnt_pop++)
 		printf("total_num_pop: %u, cpu_final_populations[%u]: %f\n",(unsigned int)(size_populations/sizeof(float)),cnt_pop,cpu_final_populations[cnt_pop]);
-
 	for (int cnt_pop=0;cnt_pop<size_energies/sizeof(float);cnt_pop++)
 		printf("total_num_energies: %u, cpu_energies[%u]: %f\n",    (unsigned int)(size_energies/sizeof(float)),cnt_pop,cpu_energies[cnt_pop]);
 #endif
-
-
 	// ===============================================================================
-
-
 	for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
 	{
 		arrange_result(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_energies+run_cnt*mypars->pop_size, mypars->pop_size);
-
 		make_resfiles(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, 
 			      cpu_energies+run_cnt*mypars->pop_size, 
 			      &myligand_reference,
@@ -1140,17 +1124,12 @@ filled with clock() */
                               /*1*/0,
 			      run_cnt, 
 			      &(cpu_result_ligands [run_cnt]));
-
 	}
-
 	clock_stop_program_before_clustering = clock();
 	clusanal_gendlg(cpu_result_ligands, mypars->num_of_runs, myligand_init, mypars,
 					 mygrid, argc, argv, ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs,
 					 ELAPSEDSECS(clock_stop_program_before_clustering, clock_start_program));
-
-
 	clock_stop_docking = clock();
-
 /*
 	clReleaseMemObject(mem_atom_charges_const);
         clReleaseMemObject(mem_atom_types_const);
@@ -1209,10 +1188,10 @@ filled with clock() */
 	clReleaseKernel(kernel7);
 
 	clReleaseProgram(program);
-
+	
 	clReleaseCommandQueue(command_queue);
 	clReleaseContext(context);
-	free(device_id);
+	free(device_ids);
 	free(platform_id);
 
 	free(cpu_init_populations);
@@ -1221,7 +1200,6 @@ filled with clock() */
 	free(cpu_prng_seeds);
 	free(cpu_evals_of_runs);
 	free(cpu_ref_ori_angles);
-
 	return 0;
 }
 

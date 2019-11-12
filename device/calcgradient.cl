@@ -136,9 +136,9 @@ void gpu_calc_gradient(
 			__local float* energy,
 		    	__local int*   run_id,
 
-		    	__local float* calc_coords_x,
-		    	__local float* calc_coords_y,
-		    	__local float* calc_coords_z,
+		    	__local float4* calc_coords,
+//		    	__local float* calc_coords_y,
+//		    	__local float* calc_coords_z,
 
 		     __constant        kernelconstant_interintra* 	kerconst_interintra,
 		     __global const    kernelconstant_intracontrib*  	kerconst_intracontrib,
@@ -227,15 +227,15 @@ void gpu_calc_gradient(
 
 			if ((rotation_list_element & RLIST_FIRSTROT_MASK) != 0)	// If first rotation of this atom
 			{
-				atom_to_rotate[0] = kerconst_conform->ref_coords_x_const[atom_id];
-				atom_to_rotate[1] = kerconst_conform->ref_coords_y_const[atom_id];
-				atom_to_rotate[2] = kerconst_conform->ref_coords_z_const[atom_id];
+				atom_to_rotate[0] = kerconst_conform->ref_coords_const[3*atom_id];
+				atom_to_rotate[1] = kerconst_conform->ref_coords_const[3*atom_id+1];
+				atom_to_rotate[2] = kerconst_conform->ref_coords_const[3*atom_id+2];
 			}
 			else
 			{
-				atom_to_rotate[0] = calc_coords_x[atom_id];
-				atom_to_rotate[1] = calc_coords_y[atom_id];
-				atom_to_rotate[2] = calc_coords_z[atom_id];
+				atom_to_rotate[0] = calc_coords[atom_id].x;
+				atom_to_rotate[1] = calc_coords[atom_id].y;
+				atom_to_rotate[2] = calc_coords[atom_id].z;
 			}
 
 			// Capturing rotation vectors and angle
@@ -299,22 +299,22 @@ void gpu_calc_gradient(
 				quatrot_temp_y = quatrot_left_y;
 				quatrot_temp_z = quatrot_left_z;
 
-				quatrot_left_q = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)]-
-						 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]-
+				quatrot_left_q = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]-
+						 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]-
+						 quatrot_temp_y*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]-
+						 quatrot_temp_z*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2];
+				quatrot_left_x = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]+
+						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]*quatrot_temp_x+
 						 quatrot_temp_y*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]-
-						 quatrot_temp_z*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3];
-				quatrot_left_x = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]+
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_x+
-						 quatrot_temp_y*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]-
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]*quatrot_temp_z;
-				quatrot_left_y = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]+
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_y+
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_z-
-						 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3];
-				quatrot_left_z = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]+
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)]*quatrot_temp_z+
-						 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]-
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_y;
+						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_z;
+				quatrot_left_y = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]+
+						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]*quatrot_temp_y+
+						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]*quatrot_temp_z-
+						 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2];
+				quatrot_left_z = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]+
+						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]*quatrot_temp_z+
+						 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]-
+						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]*quatrot_temp_y;
 			}
 
 			quatrot_temp_q = 0 -
@@ -348,9 +348,9 @@ void gpu_calc_gradient(
 					  quatrot_temp_z*quatrot_left_q;
 
 			// Performing final movement and storing values
-			calc_coords_x[atom_id] = atom_to_rotate [0] + rotation_movingvec[0];
-			calc_coords_y[atom_id] = atom_to_rotate [1] + rotation_movingvec[1];
-			calc_coords_z[atom_id] = atom_to_rotate [2] + rotation_movingvec[2];
+			calc_coords[atom_id].x = atom_to_rotate [0] + rotation_movingvec[0];
+			calc_coords[atom_id].y = atom_to_rotate [1] + rotation_movingvec[1];
+			calc_coords[atom_id].z = atom_to_rotate [2] + rotation_movingvec[2];
 
 		} // End if-statement not dummy rotation
 
@@ -366,9 +366,9 @@ void gpu_calc_gradient(
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
 		uint atom_typeid = kerconst_interintra->atom_types_const[atom_id];
-		float x = calc_coords_x[atom_id];
-		float y = calc_coords_y[atom_id];
-		float z = calc_coords_z[atom_id];
+		float x = calc_coords[atom_id].x;
+		float y = calc_coords[atom_id].y;
+		float z = calc_coords[atom_id].z;
 		float q = kerconst_interintra->atom_charges_const[atom_id];
 
 		if ((x < 0) || (y < 0) || (z < 0) || (x >= dockpars_gridsize_x-1)
@@ -397,15 +397,15 @@ void gpu_calc_gradient(
 			//printf("%-15s %-5u %-10.8f %-10.8f %-10.8f\n", "dx,dy,dz", atom_id, dx, dy, dz);
 
 			// Calculating interpolation weights
-			float weights[2][2][2];
-			weights [0][0][0] = (1-dx)*(1-dy)*(1-dz);
-			weights [1][0][0] = dx*(1-dy)*(1-dz);
-			weights [0][1][0] = (1-dx)*dy*(1-dz);
-			weights [1][1][0] = dx*dy*(1-dz);
-			weights [0][0][1] = (1-dx)*(1-dy)*dz;
-			weights [1][0][1] = dx*(1-dy)*dz;
-			weights [0][1][1] = (1-dx)*dy*dz;
-			weights [1][1][1] = dx*dy*dz;
+			float weights[8];
+			weights [idx_000] = (1-dx)*(1-dy)*(1-dz);
+			weights [idx_100] = dx*(1-dy)*(1-dz);
+			weights [idx_010] = (1-dx)*dy*(1-dz);
+			weights [idx_110] = dx*dy*(1-dz);
+			weights [idx_001] = (1-dx)*(1-dy)*dz;
+			weights [idx_101] = dx*(1-dy)*dz;
+			weights [idx_011] = (1-dx)*dy*dz;
+			weights [idx_111] = dx*dy*dz;
 
 			// Capturing affinity values
 			uint ylow_times_g1  = y_low*g1;
@@ -414,26 +414,26 @@ void gpu_calc_gradient(
 			uint zhigh_times_g2 = z_high*g2;
 
 			// Grid offset
-			uint offset_cube_000 = x_low  + ylow_times_g1  + zlow_times_g2;
-			uint offset_cube_100 = x_high + ylow_times_g1  + zlow_times_g2;
-			uint offset_cube_010 = x_low  + yhigh_times_g1 + zlow_times_g2;
-			uint offset_cube_110 = x_high + yhigh_times_g1 + zlow_times_g2;
-			uint offset_cube_001 = x_low  + ylow_times_g1  + zhigh_times_g2;
-			uint offset_cube_101 = x_high + ylow_times_g1  + zhigh_times_g2;
-			uint offset_cube_011 = x_low  + yhigh_times_g1 + zhigh_times_g2;
-			uint offset_cube_111 = x_high + yhigh_times_g1 + zhigh_times_g2;
+			ulong offset_cube_000 = (x_low  + ylow_times_g1  + zlow_times_g2)<<2;
+			ulong offset_cube_100 = (x_high + ylow_times_g1  + zlow_times_g2)<<2;
+			ulong offset_cube_010 = (x_low  + yhigh_times_g1 + zlow_times_g2)<<2;
+			ulong offset_cube_110 = (x_high + yhigh_times_g1 + zlow_times_g2)<<2;
+			ulong offset_cube_001 = (x_low  + ylow_times_g1  + zhigh_times_g2)<<2;
+			ulong offset_cube_101 = (x_high + ylow_times_g1  + zhigh_times_g2)<<2;
+			ulong offset_cube_011 = (x_low  + yhigh_times_g1 + zhigh_times_g2)<<2;
+			ulong offset_cube_111 = (x_high + yhigh_times_g1 + zhigh_times_g2)<<2;
 
-			uint mul_tmp = atom_typeid*g3;
+			ulong mul_tmp = atom_typeid*g3<<2;
 
-			float cube[2][2][2];
-			cube [0][0][0] = *(dockpars_fgrids + offset_cube_000 + mul_tmp);
-			cube [1][0][0] = *(dockpars_fgrids + offset_cube_100 + mul_tmp);
-			cube [0][1][0] = *(dockpars_fgrids + offset_cube_010 + mul_tmp);
-		        cube [1][1][0] = *(dockpars_fgrids + offset_cube_110 + mul_tmp);
-		        cube [0][0][1] = *(dockpars_fgrids + offset_cube_001 + mul_tmp);
-			cube [1][0][1] = *(dockpars_fgrids + offset_cube_101 + mul_tmp);
-                        cube [0][1][1] = *(dockpars_fgrids + offset_cube_011 + mul_tmp);
-                        cube [1][1][1] = *(dockpars_fgrids + offset_cube_111 + mul_tmp);
+			float cube[8];
+			cube [idx_000] = *(dockpars_fgrids + offset_cube_000 + mul_tmp);
+			cube [idx_100] = *(dockpars_fgrids + offset_cube_100 + mul_tmp);
+			cube [idx_010] = *(dockpars_fgrids + offset_cube_010 + mul_tmp);
+		        cube [idx_110] = *(dockpars_fgrids + offset_cube_110 + mul_tmp);
+		        cube [idx_001] = *(dockpars_fgrids + offset_cube_001 + mul_tmp);
+			cube [idx_101] = *(dockpars_fgrids + offset_cube_101 + mul_tmp);
+                        cube [idx_011] = *(dockpars_fgrids + offset_cube_011 + mul_tmp);
+                        cube [idx_111] = *(dockpars_fgrids + offset_cube_111 + mul_tmp);
 
 			// -------------------------------------------------------------------
 			// Deltas dx, dy, dz are already normalized 
@@ -477,28 +477,28 @@ void gpu_calc_gradient(
 			// -------------------------------------------------------------------
 
 			// Vector in x-direction
-			x10 = cube [1][0][0] - cube [0][0][0]; // z = 0
-			x52 = cube [1][1][0] - cube [0][1][0]; // z = 0
-			x43 = cube [1][0][1] - cube [0][0][1]; // z = 1
-			x76 = cube [1][1][1] - cube [0][1][1]; // z = 1
+			x10 = cube [idx_100] - cube [idx_000]; // z = 0
+			x52 = cube [idx_110] - cube [idx_010]; // z = 0
+			x43 = cube [idx_101] - cube [idx_001]; // z = 1
+			x76 = cube [idx_111] - cube [idx_011]; // z = 1
 			vx_z0 = (1 - dy) * x10 + dy * x52;     // z = 0
 			vx_z1 = (1 - dy) * x43 + dy * x76;     // z = 1
 			gradient_inter_x[atom_id] += (1 - dz) * vx_z0 + dz * vx_z1;
 
 			// Vector in y-direction
-			y20 = cube[0][1][0] - cube [0][0][0];	// z = 0
-			y51 = cube[1][1][0] - cube [1][0][0];	// z = 0
-			y63 = cube[0][1][1] - cube [0][0][1];	// z = 1
-			y74 = cube[1][1][1] - cube [1][0][1];	// z = 1
+			y20 = cube[idx_010] - cube [idx_000];	// z = 0
+			y51 = cube[idx_110] - cube [idx_100];	// z = 0
+			y63 = cube[idx_011] - cube [idx_001];	// z = 1
+			y74 = cube[idx_111] - cube [idx_101];	// z = 1
 			vy_z0 = (1 - dx) * y20 + dx * y51;	// z = 0
 			vy_z1 = (1 - dx) * y63 + dx * y74;	// z = 1
 			gradient_inter_y[atom_id] += (1 - dz) * vy_z0 + dz * vy_z1;
 
 			// Vectors in z-direction
-			z30 = cube [0][0][1] - cube [0][0][0];	// y = 0
-			z41 = cube [1][0][1] - cube [1][0][0];	// y = 0
-			z62 = cube [0][1][1] - cube [0][1][0];	// y = 1 
-			z75 = cube [1][1][1] - cube [1][1][0];	// y = 1
+			z30 = cube [idx_001] - cube [idx_000];	// y = 0
+			z41 = cube [idx_101] - cube [idx_100];	// y = 0
+			z62 = cube [idx_011] - cube [idx_010];	// y = 1 
+			z75 = cube [idx_111] - cube [idx_110];	// y = 1
 			vz_y0 = (1 - dx) * z30 + dx * z41;	// y = 0
 			vz_y1 = (1 - dx) * z62 + dx * z75;	// y = 1
 			gradient_inter_z[atom_id] += (1 - dy) * vz_y0 + dy * vz_y1;
@@ -514,39 +514,39 @@ void gpu_calc_gradient(
 			// Capturing electrostatic values
 			atom_typeid = dockpars_num_of_atypes;
 
-			mul_tmp = atom_typeid*g3;
-			cube [0][0][0] = *(dockpars_fgrids + offset_cube_000 + mul_tmp);
-			cube [1][0][0] = *(dockpars_fgrids + offset_cube_100 + mul_tmp);
-      			cube [0][1][0] = *(dockpars_fgrids + offset_cube_010 + mul_tmp);
-      			cube [1][1][0] = *(dockpars_fgrids + offset_cube_110 + mul_tmp);
-		       	cube [0][0][1] = *(dockpars_fgrids + offset_cube_001 + mul_tmp);
-		        cube [1][0][1] = *(dockpars_fgrids + offset_cube_101 + mul_tmp);
-		        cube [0][1][1] = *(dockpars_fgrids + offset_cube_011 + mul_tmp);
-		        cube [1][1][1] = *(dockpars_fgrids + offset_cube_111 + mul_tmp);
+			mul_tmp = atom_typeid*g3<<2;
+			cube [idx_000] = *(dockpars_fgrids + offset_cube_000 + mul_tmp);
+			cube [idx_100] = *(dockpars_fgrids + offset_cube_100 + mul_tmp);
+      			cube [idx_010] = *(dockpars_fgrids + offset_cube_010 + mul_tmp);
+      			cube [idx_110] = *(dockpars_fgrids + offset_cube_110 + mul_tmp);
+		       	cube [idx_001] = *(dockpars_fgrids + offset_cube_001 + mul_tmp);
+		        cube [idx_101] = *(dockpars_fgrids + offset_cube_101 + mul_tmp);
+		        cube [idx_011] = *(dockpars_fgrids + offset_cube_011 + mul_tmp);
+		        cube [idx_111] = *(dockpars_fgrids + offset_cube_111 + mul_tmp);
 
 			// Vector in x-direction
-			x10 = cube [1][0][0] - cube [0][0][0]; // z = 0
-			x52 = cube [1][1][0] - cube [0][1][0]; // z = 0
-			x43 = cube [1][0][1] - cube [0][0][1]; // z = 1
-			x76 = cube [1][1][1] - cube [0][1][1]; // z = 1
+			x10 = cube [idx_100] - cube [idx_000]; // z = 0
+			x52 = cube [idx_110] - cube [idx_010]; // z = 0
+			x43 = cube [idx_101] - cube [idx_001]; // z = 1
+			x76 = cube [idx_111] - cube [idx_011]; // z = 1
 			vx_z0 = (1 - dy) * x10 + dy * x52;     // z = 0
 			vx_z1 = (1 - dy) * x43 + dy * x76;     // z = 1
 			gradient_inter_x[atom_id] += q * ((1 - dz) * vx_z0 + dz * vx_z1);
 
 			// Vector in y-direction
-			y20 = cube[0][1][0] - cube [0][0][0];	// z = 0
-			y51 = cube[1][1][0] - cube [1][0][0];	// z = 0
-			y63 = cube[0][1][1] - cube [0][0][1];	// z = 1
-			y74 = cube[1][1][1] - cube [1][0][1];	// z = 1
+			y20 = cube[idx_010] - cube [idx_000];	// z = 0
+			y51 = cube[idx_110] - cube [idx_100];	// z = 0
+			y63 = cube[idx_011] - cube [idx_001];	// z = 1
+			y74 = cube[idx_111] - cube [idx_101];	// z = 1
 			vy_z0 = (1 - dx) * y20 + dx * y51;	// z = 0
 			vy_z1 = (1 - dx) * y63 + dx * y74;	// z = 1
 			gradient_inter_y[atom_id] += q *((1 - dz) * vy_z0 + dz * vy_z1);
 
 			// Vectors in z-direction
-			z30 = cube [0][0][1] - cube [0][0][0];	// y = 0
-			z41 = cube [1][0][1] - cube [1][0][0];	// y = 0
-			z62 = cube [0][1][1] - cube [0][1][0];	// y = 1 
-			z75 = cube [1][1][1] - cube [1][1][0];	// y = 1
+			z30 = cube [idx_001] - cube [idx_000];	// y = 0
+			z41 = cube [idx_101] - cube [idx_100];	// y = 0
+			z62 = cube [idx_011] - cube [idx_010];	// y = 1 
+			z75 = cube [idx_111] - cube [idx_110];	// y = 1
 			vz_y0 = (1 - dx) * z30 + dx * z41;	// y = 0
 			vz_y1 = (1 - dx) * z62 + dx * z75;	// y = 1
 			gradient_inter_z[atom_id] += q *((1 - dy) * vz_y0 + dy * vz_y1);
@@ -562,39 +562,39 @@ void gpu_calc_gradient(
 			// Capturing desolvation values
 			atom_typeid = dockpars_num_of_atypes+1;
 
-			mul_tmp = atom_typeid*g3;
-			cube [0][0][0] = *(dockpars_fgrids + offset_cube_000 + mul_tmp);
-			cube [1][0][0] = *(dockpars_fgrids + offset_cube_100 + mul_tmp);
-      			cube [0][1][0] = *(dockpars_fgrids + offset_cube_010 + mul_tmp);
-      			cube [1][1][0] = *(dockpars_fgrids + offset_cube_110 + mul_tmp);
-      			cube [0][0][1] = *(dockpars_fgrids + offset_cube_001 + mul_tmp);
-      			cube [1][0][1] = *(dockpars_fgrids + offset_cube_101 + mul_tmp);
-      			cube [0][1][1] = *(dockpars_fgrids + offset_cube_011 + mul_tmp);
-      			cube [1][1][1] = *(dockpars_fgrids + offset_cube_111 + mul_tmp);
+			mul_tmp = atom_typeid*g3<<2;
+			cube [idx_000] = *(dockpars_fgrids + offset_cube_000 + mul_tmp);
+			cube [idx_100] = *(dockpars_fgrids + offset_cube_100 + mul_tmp);
+      			cube [idx_010] = *(dockpars_fgrids + offset_cube_010 + mul_tmp);
+      			cube [idx_110] = *(dockpars_fgrids + offset_cube_110 + mul_tmp);
+      			cube [idx_001] = *(dockpars_fgrids + offset_cube_001 + mul_tmp);
+      			cube [idx_101] = *(dockpars_fgrids + offset_cube_101 + mul_tmp);
+      			cube [idx_011] = *(dockpars_fgrids + offset_cube_011 + mul_tmp);
+      			cube [idx_111] = *(dockpars_fgrids + offset_cube_111 + mul_tmp);
 
 			// Vector in x-direction
-			x10 = cube [1][0][0] - cube [0][0][0]; // z = 0
-			x52 = cube [1][1][0] - cube [0][1][0]; // z = 0
-			x43 = cube [1][0][1] - cube [0][0][1]; // z = 1
-			x76 = cube [1][1][1] - cube [0][1][1]; // z = 1
+			x10 = cube [idx_100] - cube [idx_000]; // z = 0
+			x52 = cube [idx_110] - cube [idx_010]; // z = 0
+			x43 = cube [idx_101] - cube [idx_001]; // z = 1
+			x76 = cube [idx_111] - cube [idx_011]; // z = 1
 			vx_z0 = (1 - dy) * x10 + dy * x52;     // z = 0
 			vx_z1 = (1 - dy) * x43 + dy * x76;     // z = 1
 			gradient_inter_x[atom_id] += fabs(q) * ((1 - dz) * vx_z0 + dz * vx_z1);
 
 			// Vector in y-direction
-			y20 = cube[0][1][0] - cube [0][0][0];	// z = 0
-			y51 = cube[1][1][0] - cube [1][0][0];	// z = 0
-			y63 = cube[0][1][1] - cube [0][0][1];	// z = 1
-			y74 = cube[1][1][1] - cube [1][0][1];	// z = 1
+			y20 = cube[idx_010] - cube [idx_000];	// z = 0
+			y51 = cube[idx_110] - cube [idx_100];	// z = 0
+			y63 = cube[idx_011] - cube [idx_001];	// z = 1
+			y74 = cube[idx_111] - cube [idx_101];	// z = 1
 			vy_z0 = (1 - dx) * y20 + dx * y51;	// z = 0
 			vy_z1 = (1 - dx) * y63 + dx * y74;	// z = 1
 			gradient_inter_y[atom_id] += fabs(q) *((1 - dz) * vy_z0 + dz * vy_z1);
 
 			// Vectors in z-direction
-			z30 = cube [0][0][1] - cube [0][0][0];	// y = 0
-			z41 = cube [1][0][1] - cube [1][0][0];	// y = 0
-			z62 = cube [0][1][1] - cube [0][1][0];	// y = 1 
-			z75 = cube [1][1][1] - cube [1][1][0];	// y = 1
+			z30 = cube [idx_001] - cube [idx_000];	// y = 0
+			z41 = cube [idx_101] - cube [idx_100];	// y = 0
+			z62 = cube [idx_011] - cube [idx_010];	// y = 1 
+			z75 = cube [idx_111] - cube [idx_110];	// y = 1
 			vz_y0 = (1 - dx) * z30 + dx * z41;	// y = 0
 			vz_y1 = (1 - dx) * z62 + dx * z75;	// y = 1
 			gradient_inter_z[atom_id] += fabs(q) *((1 - dy) * vz_y0 + dy * vz_y1);
@@ -631,9 +631,9 @@ void gpu_calc_gradient(
 		
 		// Calculating vector components of vector going
 		// from first atom's to second atom's coordinates
-		float subx = calc_coords_x[atom1_id] - calc_coords_x[atom2_id];
-		float suby = calc_coords_y[atom1_id] - calc_coords_y[atom2_id];
-		float subz = calc_coords_z[atom1_id] - calc_coords_z[atom2_id];
+		float subx = calc_coords[atom1_id].x - calc_coords[atom2_id].x;
+		float suby = calc_coords[atom1_id].y - calc_coords[atom2_id].y;
+		float subz = calc_coords[atom1_id].z - calc_coords[atom2_id].z;
 
 		// Calculating atomic distance
 		float dist = native_sqrt(subx*subx + suby*suby + subz*subz);
@@ -656,11 +656,11 @@ void gpu_calc_gradient(
 
 		if (kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1)	//H-bond
 		{
-			opt_distance = kerconst_intra->reqm_hbond_const [atom1_type_vdw_hb] + kerconst_intra->reqm_hbond_const [atom2_type_vdw_hb];
+			opt_distance = kerconst_intra->reqm_const [atom1_type_vdw_hb+ATYPE_NUM] + kerconst_intra->reqm_const [atom2_type_vdw_hb+ATYPE_NUM];
 		}
 		else	//van der Waals
 		{
-			opt_distance = 0.5f*(kerconst_intra->reqm_const [atom1_type_vdw_hb] + kerconst_intra->reqm_const [atom2_type_vdw_hb]);
+			opt_distance = (kerconst_intra->reqm_const [atom1_type_vdw_hb] + kerconst_intra->reqm_const [atom2_type_vdw_hb]);
 		}
 
 		// Getting smoothed distance
@@ -718,6 +718,19 @@ void gpu_calc_gradient(
 									      ) *
 						               			dockpars_coeff_desolv * /*-0.07716049382716049*/ -0.077160f * atomic_distance * native_exp(/*-0.038580246913580245*/ -0.038580f *native_powr(atomic_distance, 2));
 		} // if cuttoff2 - internuclear-distance at 20.48A
+
+		// ------------------------------------------------
+		// Required only for flexrings
+		// Checking if this is a CG-G0 atomic pair.
+		// If so, then adding energy term (E = G * distance).
+		// Initial specification required NON-SMOOTHED distance.
+		// This interaction is evaluated at any distance,
+		// so no cuttoffs considered here!
+		if (((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) || 
+		    ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX))) {
+			priv_gradient_per_intracontributor += G;
+		}
+		// ------------------------------------------------
 
 		// Decomposing "priv_gradient_per_intracontributor" 
 		// into the contribution of each atom of the pair.
@@ -906,9 +919,9 @@ void gpu_calc_gradient(
 		for (uint lig_atom_id = 0;
 			  lig_atom_id<dockpars_num_of_atoms;
 			  lig_atom_id++) {
-			r.x = (calc_coords_x[lig_atom_id] - about.x) * dockpars_grid_spacing; 
-			r.y = (calc_coords_y[lig_atom_id] - about.y) * dockpars_grid_spacing;  
-			r.z = (calc_coords_z[lig_atom_id] - about.z) * dockpars_grid_spacing; 
+			r.x = (calc_coords[lig_atom_id].x - about.x) * dockpars_grid_spacing; 
+			r.y = (calc_coords[lig_atom_id].y - about.y) * dockpars_grid_spacing;  
+			r.z = (calc_coords[lig_atom_id].z - about.z) * dockpars_grid_spacing; 
 
 			// Re-using "gradient_inter_*" for total gradient (inter+intra)
 			float3 force;
@@ -1111,14 +1124,7 @@ void gpu_calc_gradient(
 		printf("%-13s %-13s %-13s \n", "grad_phi", "grad_theta", "grad_rotangle");
 		printf("%-13.6f %-13.6f %-13.6f\n", grad_phi, grad_theta, grad_rotangle);
 		#endif
-			
-		// Corrections of derivatives
-		// Constant arrays have 1000 elements.
-		// Each array spans approximatedly from 0.0 to 2*PI.
-		// The distance between each x-point (angle-delta) is 2*PI/1000.
-		const float angle_delta = 0.00628353f;
-		const float inv_angle_delta = 159.154943;
-				
+
 		// Correcting theta gradients interpolating 
 		// values from correction look-up-tables
 		// (X0,Y0) and (X1,Y1) are known points
@@ -1250,9 +1256,9 @@ void gpu_calc_gradient(
 			int atom2_id = rotbonds_const[2*rotbond_id+1];
 
 			float3 atomRef_coords;
-			atomRef_coords.x = calc_coords_x[atom1_id];
-			atomRef_coords.y = calc_coords_y[atom1_id];
-			atomRef_coords.z = calc_coords_z[atom1_id];
+			atomRef_coords.x = calc_coords[atom1_id].x;
+			atomRef_coords.y = calc_coords[atom1_id].y;
+			atomRef_coords.z = calc_coords[atom1_id].z;
 
 			#if defined (PRINT_GRAD_TORSION_GENES)
 			printf("\n%s\n", "----------------------------------------------------------");
@@ -1265,9 +1271,9 @@ void gpu_calc_gradient(
 			rotation_unitvec.y = kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1];
 			rotation_unitvec.z = kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2];
 			*/
-			rotation_unitvec.x = calc_coords_x[atom2_id] - calc_coords_x[atom1_id];
-			rotation_unitvec.y = calc_coords_y[atom2_id] - calc_coords_y[atom1_id];
-			rotation_unitvec.z = calc_coords_z[atom2_id] - calc_coords_z[atom1_id];
+			rotation_unitvec.x = calc_coords[atom2_id].x - calc_coords[atom1_id].x;
+			rotation_unitvec.y = calc_coords[atom2_id].y - calc_coords[atom1_id].y;
+			rotation_unitvec.z = calc_coords[atom2_id].z - calc_coords[atom1_id].z;
 			rotation_unitvec = fast_normalize(rotation_unitvec);
 
 			#if defined (PRINT_GRAD_TORSION_GENES)
@@ -1292,9 +1298,9 @@ void gpu_calc_gradient(
 				// Calculating torque on point "A" 
 				// (could be any other point "B" along the rotation axis)
 				float3 atom_coords;
-				atom_coords.x = calc_coords_x[lig_atom_id];
-				atom_coords.y = calc_coords_y[lig_atom_id];
-				atom_coords.z = calc_coords_z[lig_atom_id];
+				atom_coords.x = calc_coords[lig_atom_id].x;
+				atom_coords.y = calc_coords[lig_atom_id].y;
+				atom_coords.z = calc_coords[lig_atom_id].z;
 
 				// Temporal variable to calculate translation differences.
 				// They are converted back to Angstroms here

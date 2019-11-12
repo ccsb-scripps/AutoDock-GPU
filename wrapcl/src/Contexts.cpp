@@ -50,7 +50,7 @@ int createContext(
 
   cl_context_properties context_props[] = {CL_CONTEXT_PLATFORM,(cl_context_properties) platform_id, 0};
 
-  //context = clCreateContext(0, 1, device_id, NULL, NULL, &err);
+  // context = clCreateContext(0, 1, device_id, NULL, NULL, &err);
   local_context = clCreateContext(context_props,
 				  num_devices,
 				  (const cl_device_id*) device_id, NULL, NULL, &err);

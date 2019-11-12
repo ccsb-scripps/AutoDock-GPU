@@ -22,8 +22,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
-
-
+// Output showing the CG-G0 virtual bonds and pairs
+#define CG_G0_INFO
 
 #include "processligand.h"
 
@@ -39,10 +39,7 @@ int init_liganddata(const char* ligfilename,
 {
 	FILE* fp;
 	int num_of_atypes, i, new_type;
-	#if 0
-	char atom_types [14][3];
-	#endif
-	char atom_types [MAX_NUM_OF_ATYPES][3];
+	char atom_types [MAX_NUM_OF_ATYPES][4];
 	char tempstr [256];
 
 	fp = fopen(ligfilename, "rb"); // fp = fopen(ligfilename, "r");
@@ -73,7 +70,7 @@ int init_liganddata(const char* ligfilename,
 			fscanf(fp, "%*f");
 			fscanf(fp, "%s", tempstr);	//reading atom type
 
-			tempstr[2] = '\0';	//just to be sure strcpy wont fail even if something is wrong with position
+			tempstr[3] = '\0';	//just to be sure strcpy wont fail even if something is wrong with position
 
 			//checking if this atom has been already found
 			for (i=0; i<num_of_atypes; i++)
@@ -85,9 +82,6 @@ int init_liganddata(const char* ligfilename,
 			if (new_type == 1)	//if new type, copying string...
 			{
 				//checking if atom type number doesn't exceed 14
-				#if 0
-				if (num_of_atypes >= 14)
-				#endif
 				if (num_of_atypes >= MAX_NUM_OF_ATYPES)
 				{
 					printf("Error: too many types of ligand atoms!\n");
@@ -107,7 +101,13 @@ int init_liganddata(const char* ligfilename,
 	for (i=0; i<num_of_atypes; i++)
 	{
 		strcpy(myligand->atom_types[i], atom_types[i]);
-		strcpy(mygrid->grid_types[i], atom_types[i]);
+		strncpy(mygrid->grid_types[i], atom_types[i],2);
+		mygrid->grid_types[i][2] = '\0'; // make sure CG0..9 results in CG
+		if (isdigit(mygrid->grid_types[i][1])) // make sure G0..9 results in G0
+			mygrid->grid_types[i][1] = '0';
+#if defined(CG_G0_INFO)
+		printf("Atom type %i -> %s -> grid type %s\n",i,myligand->atom_types[i],mygrid->grid_types[i]);
+#endif
 	}
 
 	//adding the two other grid types to mygrid
@@ -128,11 +128,13 @@ int set_liganddata_typeid(Liganddata* myligand,
 	int i;
 	int type;
 
-	type = myligand->num_of_atypes;		//setting type to an unvalid index
+	type = myligand->num_of_atypes;		//setting type to an invalid index
 	for (i=0; i < myligand->num_of_atypes; i++)
 	{
 		if (strcmp(myligand->atom_types[i], typeof_new_atom) == 0)
+		{
 			type = i;
+		}
 	}
 
 	if (type < myligand->num_of_atypes)
@@ -154,10 +156,6 @@ void get_intraE_contributors(Liganddata* myligand)
 {
 
 	int  atom_id1, atom_id2, atom_id3, rotb_id1, rotb_id2;
-	#if 0
-	char atom_neighbours [256];
-	char atom_neighbours_temp [256];
-	#endif
 	char atom_neighbours [MAX_NUM_OF_ATOMS];
 	char atom_neighbours_temp [MAX_NUM_OF_ATOMS];
 	int  atom_id_a, atom_id_b, structure_id_A, structure_id_B;
@@ -176,9 +174,9 @@ void get_intraE_contributors(Liganddata* myligand)
 			else
 				myligand->intraE_contributors[atom_id1][atom_id2] = 0;
 
-	//There are 4 cases when the atom pair's energy contribution
+	//There are 5 cases when the atom pair's energy contribution
 	//has not to be included in intramolecular energy calculation
-	//(that is, when the distance of the atoms are constant during docking)
+	//(that is, when the distance of the atoms are constant during docking) <- 1-4 interactions do actually change
 
 	//CASE 1
 	//if the two atoms are members of the same rigid structure, they aren't contributors
@@ -202,7 +200,7 @@ void get_intraE_contributors(Liganddata* myligand)
 		//if atom_neighbours[i] is one,
 		//it will indicate that the atom with id i is the neighbour of the atom with id atom_id1
 		for (atom_id2=0; atom_id2 < myligand->num_of_atoms; atom_id2++)
-			if (myligand->bonds[atom_id1][atom_id2] == 1)
+			if (myligand->bonds[atom_id1][atom_id2] > 0)
 				atom_neighbours[atom_id2] = 1;		//neighbour
 			else
 				atom_neighbours[atom_id2] = 0;		//not neighbour
@@ -213,7 +211,7 @@ void get_intraE_contributors(Liganddata* myligand)
 		for (atom_id2=0; atom_id2 < myligand->num_of_atoms; atom_id2++)
 			if (atom_neighbours[atom_id2] == 1)			//for each neighbour of atom_id1
 				for (atom_id3=0; atom_id3 < myligand->num_of_atoms; atom_id3++)
-					if (myligand->bonds[atom_id2][atom_id3] == 1)		//if atom_id3 is second neighbour of atom_id1
+					if (myligand->bonds[atom_id2][atom_id3] > 0)		//if atom_id3 is second neighbour of atom_id1
 						atom_neighbours_temp[atom_id3] = 1;			//changing the temporary array
 
 		for (atom_id2=0; atom_id2 < myligand->num_of_atoms; atom_id2++)
@@ -225,7 +223,7 @@ void get_intraE_contributors(Liganddata* myligand)
 		for (atom_id2=0; atom_id2 < myligand->num_of_atoms; atom_id2++)
 			if (atom_neighbours[atom_id2] == 1)			//for each neighbour or second neighbour of atom_id1
 				for (atom_id3=0; atom_id3 < myligand->num_of_atoms; atom_id3++)
-					if (myligand->bonds[atom_id2][atom_id3] == 1)		//if atom_id3 is second or third neighbour of atom_id1
+					if (myligand->bonds[atom_id2][atom_id3] > 0)		//if atom_id3 is second or third neighbour of atom_id1
 						atom_neighbours_temp[atom_id3] = 1;
 
 		for (atom_id2=0; atom_id2 < myligand->num_of_atoms; atom_id2++)
@@ -234,11 +232,49 @@ void get_intraE_contributors(Liganddata* myligand)
 		//now atom_neighbours [i] is one for atom_id1, its first, second and third neighbours, pairs consisting of
 		//these atoms aren't contributors
 		for (atom_id2=0; atom_id2 < myligand->num_of_atoms; atom_id2++)
-			if ((atom_neighbours[atom_id1] == 1) && (atom_neighbours[atom_id2] == 1))
+			if (atom_neighbours[atom_id2] == 1)
 			{
 				myligand->intraE_contributors[atom_id1][atom_id2] = 0;
 				myligand->intraE_contributors[atom_id2][atom_id1] = 0;
 			}
+		int atom_typeid1 = myligand->atom_idxyzq[atom_id1][0];
+		// take care of CG-G0 atoms and pairs
+		for (atom_id2=0; atom_id2 < myligand->num_of_atoms; atom_id2++)
+		{
+			int atom_typeid2 = myligand->atom_idxyzq[atom_id2][0];
+			// Make sure G0 atoms do not interact with anything (except their respective CG partner as set below)
+			if ((strncmp(myligand->atom_types[atom_typeid1], "G", 1) == 0) || (strncmp(myligand->atom_types[atom_typeid2], "G", 1) == 0)) {
+				myligand->intraE_contributors[atom_id1][atom_id2] = 0;
+				myligand->intraE_contributors[atom_id2][atom_id1] = 0;
+			}
+			// first, make sure non-matching ID pairs don't interact with each other (the code above happily allows it)
+			if (  (myligand->bonds[atom_id1][atom_id2] == 0) && // for non-bonded CG-G0 atoms
+			    (((strncmp(myligand->atom_types[atom_typeid1], "CG", 2) == 0) &&
+			      (strncmp(myligand->atom_types[atom_typeid2], "G", 1) == 0) &&
+			      (strcmp(myligand->atom_types[atom_typeid1]+2,myligand->atom_types[atom_typeid2]+1) != 0)) || // with non-matching ids
+			     ((strncmp(myligand->atom_types[atom_typeid1], "G", 1) == 0) &&
+			      (strncmp(myligand->atom_types[atom_typeid2], "CG", 2) == 0) &&
+			      (strcmp(myligand->atom_types[atom_typeid1]+1,myligand->atom_types[atom_typeid2]+2) != 0))))
+			{
+				myligand->intraE_contributors[atom_id1][atom_id2] = 0;
+				myligand->intraE_contributors[atom_id2][atom_id1] = 0;
+			}
+			// second, let matching ID pair interact
+			if (  (myligand->bonds[atom_id1][atom_id2] == 0) && // for non-bonded CG-G0 atoms
+			    (((strncmp(myligand->atom_types[atom_typeid1], "CG", 2) == 0) &&
+			      (strncmp(myligand->atom_types[atom_typeid2], "G", 1) == 0) &&
+			      (strcmp(myligand->atom_types[atom_typeid1]+2,myligand->atom_types[atom_typeid2]+1) == 0)) || // with matching ids
+			     ((strncmp(myligand->atom_types[atom_typeid1], "G", 1) == 0) &&
+			      (strncmp(myligand->atom_types[atom_typeid2], "CG", 2) == 0) &&
+			      (strcmp(myligand->atom_types[atom_typeid1]+1,myligand->atom_types[atom_typeid2]+2) == 0))))
+			{
+				myligand->intraE_contributors[atom_id1][atom_id2] = 1;
+				myligand->intraE_contributors[atom_id2][atom_id1] = 1;
+#if defined(CG_G0_INFO)
+				printf("Found CG-G0 pair: atom %i (%s) <-> atom %i (%s)\n",atom_id1+1,myligand->atom_types[atom_typeid1],atom_id2+1,myligand->atom_types[atom_typeid2]);
+#endif
+			}
+		}
 	}
 
 	//CASE3
@@ -308,6 +344,19 @@ void get_intraE_contributors(Liganddata* myligand)
 			}
 		}
 
+	// CASE5
+	// One of the atoms is a W atom
+	for (atom_id1=0; atom_id1 < myligand->num_of_atoms-1; atom_id1++) {
+		int atom_id1_type = myligand->atom_idxyzq[atom_id1][0];
+		for (atom_id2=atom_id1+1; atom_id2 < myligand->num_of_atoms; atom_id2++) {
+			int atom_id2_type = myligand->atom_idxyzq[atom_id2][0];
+			if ((strcmp(myligand->atom_types[atom_id1_type], "W") == 0) || (strcmp(myligand->atom_types[atom_id2_type], "W") == 0))
+			{
+				myligand->intraE_contributors[atom_id1][atom_id2] = 0;
+				myligand->intraE_contributors[atom_id2][atom_id1] = 0;
+			}
+		}
+	}
 }
 
 int get_bonds(Liganddata* myligand)
@@ -315,37 +364,29 @@ int get_bonds(Liganddata* myligand)
 //which can be calculated from the atom_idxyzq field, so this field must contain valid data
 //when calling this function.
 {
-	#if 0
-	char atom_names [16][3];
-	#endif
 	char atom_names [ATYPE_GETBONDS][3];
-
-	//atom type indexes which refer to the atom type's bond type (length range)
-	#if 0
-	char bondtype_id [16] = {0, 0, 3,
-				 1, 2, 4,
-				 4, 5, 6,
-				 4, 4, 4,
-				 4, 4, 4,
-				 4};
-	#endif
+	// Values from atomic parameter file AD4.1_bound_dat / "bond_index"
 	char bondtype_id [ATYPE_GETBONDS] = {
 					     0, // "C"
 					     0, // "A"
 					     3, // "Hx"
-				 	     1, // "Nx"
+					     1, // "Nx"
 					     2, // "Ox"
 					     4, // "F"
-				 	     4, // "MG"
+					     4, // "MG"
 					     5, // "P"
 					     6, // "Sx"
-				 	     4, // "CL"
+					     4, // "CL"
 					     4, // "CA"
-                                             4, // "MN"
-				 	     4, // "FE"
+					     4, // "MN"
+					     4, // "FE"
 					     4, // "ZN"
 					     4, // "BR"
-				 	     4  // "I"
+					     4, // "I"
+					     0, // "CG"
+					     0, // "G0"
+					     2, // "W" as oxygen, but irrelevant, all bonds containing W will be disabled
+					     0  // "CX"
 					    };
 
 	double mindist[7][7];
@@ -359,6 +400,9 @@ int get_bonds(Liganddata* myligand)
 	int atom_typeid1, atom_typeid2;
 	int atom_nameid1, atom_nameid2;
 	int bondtype_id1, bondtype_id2;
+
+	int W_nameid = 18; // hard-coded (sorry!) id for W atom
+	int CG_nameid = 16;
 
 	strcpy(atom_names[0],  "C");
 	strcpy(atom_names[1],  "A");
@@ -376,6 +420,10 @@ int get_bonds(Liganddata* myligand)
 	strcpy(atom_names[13], "ZN");
 	strcpy(atom_names[14], "BR");
 	strcpy(atom_names[15], "I");
+	strcpy(atom_names[16], "CG");
+	strcpy(atom_names[17], "G0");
+	strcpy(atom_names[18], "W"); // used to disable all bonds containing W
+	strcpy(atom_names[19], "CX"); // used to disable all bonds containing W
 
 	//Filling the mindist and maxdist tables (as in Autodock, see AD4_parameters.dat and mdist.h).
 	//It is supposed that the bond length of atoms with bondtype_id1 and bondtype_id2 is
@@ -390,114 +438,116 @@ int get_bonds(Liganddata* myligand)
 	}
 
 	//0=C, 3=H
-    	mindist[0][3] = 1.07; mindist[3][0] = mindist[0][3];
-    	maxdist[0][3] = 1.15; maxdist[3][0] = maxdist[0][3];
+	mindist[0][3] = 1.07; mindist[3][0] = mindist[0][3];
+	maxdist[0][3] = 1.15; maxdist[3][0] = maxdist[0][3];
 
-    	//1=N
-    	mindist[1][3] = 0.99; mindist[3][1] = mindist[1][3];
-    	maxdist[1][3] = 1.10; maxdist[3][1] = maxdist[1][3];
+	//1=N
+	mindist[1][3] = 0.99; mindist[3][1] = mindist[1][3];
+	maxdist[1][3] = 1.10; maxdist[3][1] = maxdist[1][3];
 
-    	//2=O
-    	mindist[2][3] = 0.94; mindist[3][2] = mindist[2][3];
-   	maxdist[2][3] = 1.10; maxdist[3][2] = maxdist[2][3];
+	//2=O
+	mindist[2][3] = 0.94; mindist[3][2] = mindist[2][3];
+	maxdist[2][3] = 1.10; maxdist[3][2] = maxdist[2][3];
 
-    	//6=S
-    	mindist[6][3] = 1.316; mindist[3][6] = mindist[6][3];
-    	maxdist[6][3] = 1.356; maxdist[3][6] = maxdist[6][3];
+	//6=S
+	mindist[6][3] = 1.316; mindist[3][6] = mindist[6][3];
+	maxdist[6][3] = 1.356; maxdist[3][6] = maxdist[6][3];
 
-    	//5=P
-    	mindist[5][3] = 1.35; mindist[3][5] = mindist[5][3];
+	//5=P
+	mindist[5][3] = 1.35; mindist[3][5] = mindist[5][3];
 	maxdist[5][3] = 1.40; maxdist[3][5] = maxdist[5][3];
 
-    	mindist[1][2] = 1.11;  // N=O is ~ 1.21 A, minus 0.1A error
-    	maxdist[1][2] = 1.50;  // N-O is ~ 1.40 A, plus 0.1 A error
-    	mindist[2][1] = mindist[1][2];  // N=O is ~ 1.21 A, minus 0.1A error
-    	maxdist[2][1] = maxdist[1][2];  // N-O is ~ 1.40 A, plus 0.1 A error
+	mindist[1][2] = 1.11;  // N=O is ~ 1.21 A, minus 0.1A error
+	maxdist[1][2] = 1.50;  // N-O is ~ 1.40 A, plus 0.1 A error
+	mindist[2][1] = mindist[1][2];  // N=O is ~ 1.21 A, minus 0.1A error
+	maxdist[2][1] = maxdist[1][2];  // N-O is ~ 1.40 A, plus 0.1 A error
 
-    	//There is no bond between two hydrogenes (does not derive from Autodock)
-    	mindist[3][3] = 2;
-    	maxdist[3][3] = 1;
+	//There is no bond between two hydrogenes (does not derive from Autodock)
+	mindist[3][3] = 2;
+	maxdist[3][3] = 1;
 
-    for (atom_id1=0; atom_id1 < myligand->num_of_atoms-1; atom_id1++)
-    	for (atom_id2=atom_id1; atom_id2 < myligand->num_of_atoms; atom_id2++)
-    	{
-		temp_point1[0] = myligand->atom_idxyzq[atom_id1][1];
-		temp_point1[1] = myligand->atom_idxyzq[atom_id1][2];
-		temp_point1[2] = myligand->atom_idxyzq[atom_id1][3];
-		temp_point2[0] = myligand->atom_idxyzq[atom_id2][1];
-    		temp_point2[1] = myligand->atom_idxyzq[atom_id2][2];
-    		temp_point2[2] = myligand->atom_idxyzq[atom_id2][3];
-    		temp_dist = distance(temp_point1, temp_point2);
-
-		# if 0
-    		atom_nameid1 = 16;
-    		atom_nameid2 = 16;
-		#endif
-		atom_nameid1 = ATYPE_GETBONDS;
-    		atom_nameid2 = ATYPE_GETBONDS;
-
-    		//identifying atom types
-		#if 0
-    		for (i=0; i<16; i++)
-		#endif
-		for (i=0; i<ATYPE_GETBONDS; i++)
-    		{
-    			atom_typeid1 = myligand->atom_idxyzq[atom_id1][0];
-    			if (atom_names[i][1] == 'x')
-    			{
-    				if (atom_names[i][0] == toupper(myligand->atom_types[atom_typeid1][0]))
-    					atom_nameid1 = i;
-    			}
-    			else
-    			{
-    				if (stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
-				//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
-    					atom_nameid1 = i;
-    			}
-    		}
-
-		#if 0
-  		for (i=0; i<16; i++)
-		#endif
-		for (i=0; i<ATYPE_GETBONDS; i++)
-  		{
-  			atom_typeid2 = myligand->atom_idxyzq[atom_id2][0];
- 			if (atom_names[i][1] == 'x')
- 			{
-    				if (atom_names[i][0] == toupper(myligand->atom_types[atom_typeid2][0]))
-    					atom_nameid2 = i;
-    			}
-    			else
-    			{
-    				if (stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
-				//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
-    					atom_nameid2 = i;
-    			}
-  		}
-
-		#if 0
-    		if ((atom_nameid1 == 16) || (atom_nameid2 == 16))
-		#endif
-		if ((atom_nameid1 == ATYPE_GETBONDS) || (atom_nameid2 == ATYPE_GETBONDS))
-    		{
-    			printf("Error: Ligand includes atom with unknown type: %s!\n", myligand->atom_types[atom_typeid1]);
-    			return 1;
-    		}
-
-		bondtype_id1 = bondtype_id[atom_nameid1];
-		bondtype_id2 = bondtype_id[atom_nameid2];
-
-		if (((temp_dist >= mindist [bondtype_id1][bondtype_id2]) && (temp_dist <= maxdist [bondtype_id1][bondtype_id2])) || (atom_id1 == atom_id2))
+	for (atom_id1=0; atom_id1 < myligand->num_of_atoms-1; atom_id1++)
+	{
+		atom_typeid1 = myligand->atom_idxyzq[atom_id1][0];
+		for (atom_id2=atom_id1; atom_id2 < myligand->num_of_atoms; atom_id2++)
 		{
-			myligand->bonds [atom_id1][atom_id2] = 1;
-			myligand->bonds [atom_id2][atom_id1] = 1;
-		}
-		else
-		{
-			myligand->bonds [atom_id1][atom_id2] = 0;
-			myligand->bonds [atom_id2][atom_id1] = 0;
-		}
-    	}
+			atom_typeid2 = myligand->atom_idxyzq[atom_id2][0];
+			temp_point1[0] = myligand->atom_idxyzq[atom_id1][1];
+			temp_point1[1] = myligand->atom_idxyzq[atom_id1][2];
+			temp_point1[2] = myligand->atom_idxyzq[atom_id1][3];
+			temp_point2[0] = myligand->atom_idxyzq[atom_id2][1];
+			temp_point2[1] = myligand->atom_idxyzq[atom_id2][2];
+			temp_point2[2] = myligand->atom_idxyzq[atom_id2][3];
+			temp_dist = distance(temp_point1, temp_point2);
+			atom_nameid1 = ATYPE_GETBONDS;
+			atom_nameid2 = ATYPE_GETBONDS;
+			//identifying atom types
+			for (i=0; i<ATYPE_GETBONDS; i++)
+			{
+				if ((atom_names[i][1] == 'x') || (atom_names[i][1] == '0')) // this catches "G0..9"
+				{
+					if (atom_names[i][0] == toupper(myligand->atom_types[atom_typeid1][0]))
+						atom_nameid1 = i;
+				}
+				else
+				{
+					if (strincmp(atom_names[i], myligand->atom_types[atom_typeid1], 2) == 0)
+						atom_nameid1 = i;
+				}
+			}
+
+			for (i=0; i<ATYPE_GETBONDS; i++)
+			{
+				if ((atom_names[i][1] == 'x') || (atom_names[i][1] == '0')) // this catches "G0..9"
+				{
+					if (atom_names[i][0] == toupper(myligand->atom_types[atom_typeid2][0]))
+						atom_nameid2 = i;
+				}
+				else
+				{
+					if (strincmp(atom_names[i], myligand->atom_types[atom_typeid2], 2) == 0)
+					{
+						atom_nameid2 = i;
+					}
+				}
+			}
+
+			if ((atom_nameid1 == ATYPE_GETBONDS) || (atom_nameid2 == ATYPE_GETBONDS))
+			{
+				printf("Error: Ligand includes atom with unknown type: %s or %s!\n", myligand->atom_types[atom_typeid1], myligand->atom_types[atom_typeid2]);
+				return 1;
+			}
+
+			bondtype_id1 = bondtype_id[atom_nameid1];
+			bondtype_id2 = bondtype_id[atom_nameid2];
+
+			// W atoms are never bonded to any other atom
+			if ((atom_nameid1 == W_nameid) || (atom_nameid2 == W_nameid))
+			{
+				myligand->bonds [atom_id1][atom_id2] = 0;
+				myligand->bonds [atom_id2][atom_id1] = 0;
+			}
+			else if (((temp_dist >= mindist [bondtype_id1][bondtype_id2]) && (temp_dist <= maxdist [bondtype_id1][bondtype_id2])) || (atom_id1 == atom_id2))
+				{
+					myligand->bonds [atom_id1][atom_id2] = 1;
+					myligand->bonds [atom_id2][atom_id1] = 1;
+				}
+				else if ((atom_nameid1 == CG_nameid) && (atom_nameid2 == CG_nameid) && // two CG atoms
+					 (strcmp(myligand->atom_types[atom_typeid1]+2,myligand->atom_types[atom_typeid2]+2) == 0)) // and matching numbers
+					{
+						myligand->bonds [atom_id1][atom_id2] = 2; // let's call 2 a "virtual" bond to
+						myligand->bonds [atom_id2][atom_id1] = 2; // distinguish them if needed later
+#if defined(CG_G0_INFO)
+						printf("Found virtual CG-CG bond between atom %i (%s) and atom %i (%s).\n",atom_id1+1,myligand->atom_types[atom_typeid1],atom_id2+1,myligand->atom_types[atom_typeid2]);
+#endif
+					}
+					else
+					{
+						myligand->bonds [atom_id1][atom_id2] = 0;
+						myligand->bonds [atom_id2][atom_id1] = 0;
+					}
+		} // inner for-loop
+	} // outer for-loop
 
 	return 0;
 }
@@ -510,13 +560,29 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 {
 	char atom_names [ATYPE_NUM][3];
 
+	// Initial implementation included 22 atom-types.
+	// Handling flexrings requires 2 additional atom-types: "CG" & "G0".
+	// All corresponding CG & G0 values are added as last 2 elements
+	// in existing atom-types look-up tables.
+
+	// See in ./common/defines.h: ATYPE_CG_IDX and ATYPE_G0_IDX
+	// CG (idx=22): a copy of the standard "C" (idx=3) atom-type
+	// G0 (idx=23): an invisible atom-type, all atomic parameters are zero
+	
+
 	//Sum of vdW radii of two like atoms (A)
 	double reqm [ATYPE_NUM] = {
 				   2.00, 2.00, 2.00, 4.00, 4.00,
 				   3.50, 3.50, 3.50, 3.20, 3.20,
 				   3.09, 1.30, 4.20, 4.00, 4.00,
 				   4.09, 1.98, 1.30, 1.30, 1.48,
-				   4.33, 4.72
+				   4.33, 4.72,
+				   4.00, // CG
+				   0.00, // G0
+				   0.00, // W
+				   4.00, // CX
+				   3.50, // NX
+				   3.20  // OX
 				  };
 
 	//cdW well depth (kcal/mol)
@@ -525,35 +591,59 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 				  0.160, 0.160, 0.160, 0.200, 0.200,
 				  0.080, 0.875, 0.200, 0.200, 0.200,
 				  0.276, 0.550, 0.875, 0.010, 0.550,
-				  0.389, 0.550
+				  0.389, 0.550,
+				  0.150, // CG
+				  0.000, // G0
+				  0.000, // W
+				  0.150, // CX
+				  0.160, // NX
+				  0.200  // OX
 				 };
 
 	//Sum of vdW radii of two like atoms (A) in case of hydrogen bond
 	double reqm_hbond [ATYPE_NUM] = {
 					 0.0, 0.0, 0.0, 0.0, 0.0,
 					 0.0, 1.9, 1.9, 1.9, 1.9,
-				         0.0, 0.0, 0.0, 2.5, 0.0,
+					 0.0, 0.0, 0.0, 2.5, 0.0,
 					 0.0, 0.0, 0.0, 0.0, 0.0,
-					 0.0, 0.0
+					 0.0, 0.0,
+					 0.0, // CG
+					 0.0, // G0
+					 0.0, // W
+					 0.0, // CX
+					 0.0, // NX
+					 1.9  // OX
 					};
 
 	//cdW well depth (kcal/mol) in case of hydrogen bond
 	double eps_hbond [ATYPE_NUM] = {
-					0.0, 1.0, 1.0, 0.0, 0.0, //HD and HS value is 1 so that it is not necessary to decide which atom_typeid
-  				        0.0, 5.0, 5.0, 5.0, 5.0, //corresponds to the hydrogen when reading eps_hbond...
+					0.0, 1.0, 1.0, 0.0, 0.0, 	//HD and HS value is 1 so that it is not necessary to decide which atom_typeid
+					0.0, 5.0, 5.0, 5.0, 5.0, 	//corresponds to the hydrogen when reading eps_hbond...
 					0.0, 0.0, 0.0, 1.0, 0.0,
 					0.0, 0.0, 0.0, 0.0, 0.0,
-					0.0, 0.0
+					0.0, 0.0,
+					0.0, // CG
+					0.0, // G0
+					0.0, // W
+					0.0, // CX
+					0.0, // NX
+					5.0  // OX
 				       };
 
 	//volume of atoms
 	double volume [ATYPE_NUM] = {
-				     0.0000,  0.0000,  0.0000,  33.5103, 33.5103,
+				      0.0000,  0.0000,  0.0000, 33.5103, 33.5103,
 				     22.4493, 22.4493, 22.4493, 17.1573, 17.1573,
-				     15.4480, 1.5600,  38.7924, 33.5103, 33.5103,
-				     35.8235, 2.7700,  2.1400,  1.8400,  1.7000,
-				     42.5661, 55.0585
- 				    };
+				     15.4480,  1.5600, 38.7924, 33.5103, 33.5103,
+				     35.8235,  2.7700,  2.1400,  1.8400,  1.7000,
+				     42.5661, 55.0585,
+				     33.5103, // CG
+				      0.0000, // G0
+				      0.0000, // W
+				     33.5103, // CX
+				     22.4493, // NX
+				     17.1573  // OX
+				    };
 
 	//atomic solvation parameters
 	double solpar [ATYPE_NUM] = {
@@ -561,22 +651,28 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 				     -0.00162, -0.00162, -0.00162, -0.00251, -0.00251,
 				     -0.00110, -0.00110, -0.00110, -0.00214, -0.00214,
 				     -0.00110, -0.00110, -0.00110, -0.00110, -0.00110,
-				     -0.00110, -0.00110
+				     -0.00110, -0.00110,
+				     -0.00143, // CG
+				      0.00000, // G0
+				      0.00000, // W
+				     -0.00143, // CX
+				     -0.00162, // NX
+				     -0.00251  // OX
 				    };
 
 	int atom_typeid1, atom_typeid2, VWid_atype1, VWid_atype2, i;
 	double eps12, reqm12;
 
-	strcpy(atom_names [0],  "H");
-	strcpy(atom_names [1],  "HD");
-	strcpy(atom_names [2],  "HS");
-	strcpy(atom_names [3],  "C");
-	strcpy(atom_names [4],  "A");
-	strcpy(atom_names [5],  "N");
-	strcpy(atom_names [6],  "NA");
-	strcpy(atom_names [7],  "NS");
-	strcpy(atom_names [8],  "OA");
-	strcpy(atom_names [9],  "OS");
+	strcpy(atom_names [0], "H");
+	strcpy(atom_names [1], "HD");
+	strcpy(atom_names [2], "HS");
+	strcpy(atom_names [3], "C");
+	strcpy(atom_names [4], "A");
+	strcpy(atom_names [5], "N");
+	strcpy(atom_names [6], "NA");
+	strcpy(atom_names [7], "NS");
+	strcpy(atom_names [8], "OA");
+	strcpy(atom_names [9], "OS");
 	strcpy(atom_names [10], "F");
 	strcpy(atom_names [11], "MG");
 	strcpy(atom_names [12], "P");
@@ -589,6 +685,18 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 	strcpy(atom_names [19], "ZN");
 	strcpy(atom_names [20], "BR");
 	strcpy(atom_names [21], "I");
+	strcpy(atom_names [/*22*/ATYPE_CG_IDX], "CG"); // CG
+	strcpy(atom_names [/*23*/ATYPE_G0_IDX], "G0"); // G0
+	strcpy(atom_names [/*24*/ATYPE_W_IDX], "W"); // W
+	strcpy(atom_names [/*25*/ATYPE_CX_IDX], "CX"); // CX
+	strcpy(atom_names [/*26*/ATYPE_NX_IDX], "NX"); // NX
+	strcpy(atom_names [/*27*/ATYPE_OX_IDX], "OX"); // OX
+
+	// Using this variable to signal when the CG-CG pair was found.
+	// This is further reused to set vdW constant coeffs: "vdWpars_A" and "vdWpars_B".
+	// found_CG_CG_pair == true  -> set vdW coeffs to zero
+	// found_CG_CG_pair == false -> use vdW default values
+	bool found_CG_CG_pair;
 
 	for (atom_typeid1 = 0; atom_typeid1 < myligand->num_of_atypes; atom_typeid1++)
 		for (atom_typeid2 = 0; atom_typeid2 < myligand->num_of_atypes; atom_typeid2++)
@@ -596,40 +704,61 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 			VWid_atype1 = ATYPE_NUM;
 			VWid_atype2 = ATYPE_NUM;
 
+			// Was CG_CG_pair found?
+			found_CG_CG_pair = false;
+
 			//identifying atom types
 			for (i=0; i<ATYPE_NUM; i++) {
-				/*
-				if (stricmp(atom_names [i], myligand->atom_types [atom_typeid1]) == 0) 
-				//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
-					VWid_atype1 = i;
-				*/
-				if (stricmp(atom_names [i], myligand->atom_types [atom_typeid1]) == 0) {
+				if (strincmp(atom_names [i], myligand->atom_types [atom_typeid1],2) == 0) {
 					VWid_atype1 = i;
 					myligand->atom1_types_reqm [atom_typeid1] = VWid_atype1;
+				}
+				else
+				{
+					if(atom_names[i][1] == '0') {
+						if (atom_names[i][0] == toupper(myligand->atom_types[atom_typeid1][0])) {
+							VWid_atype1 = i;
+							myligand->atom1_types_reqm [atom_typeid1] = VWid_atype1;
+						}
+					}
 				}
 			}
 
 			for (i=0; i<ATYPE_NUM; i++) {
-				/*
-				if (stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
-				//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0)
-					VWid_atype2 = i;
-				*/
-				if (stricmp(atom_names[i], myligand->atom_types[atom_typeid2]) == 0) {
+				if (strincmp(atom_names[i], myligand->atom_types[atom_typeid2],2) == 0) {
 					VWid_atype2 = i;
 					myligand->atom2_types_reqm [atom_typeid2] = VWid_atype2;
 				}
+				else
+				{
+					if(atom_names[i][1] == '0') {
+						if (atom_names[i][0] == toupper(myligand->atom_types[atom_typeid2][0])) {
+							VWid_atype2 = i;
+							myligand->atom2_types_reqm [atom_typeid2] = VWid_atype2;
+						}
+					}
+				}
+			}
+
+			// Was CG_CG_pair found?
+			// CG atom-type has a idx=22
+			if ((VWid_atype1 == /*22*/ATYPE_CG_IDX) && (VWid_atype2 == /*22*/ATYPE_CG_IDX) &&
+			    (strcmp(myligand->atom_types[atom_typeid1]+2,myligand->atom_types[atom_typeid2]+2) == 0)) { // make sure to only exclude matching IDs
+				found_CG_CG_pair = true;
+			}
+			else {
+				found_CG_CG_pair = false;
 			}
 
 			if (VWid_atype1 == ATYPE_NUM)
 			{
-				printf("Error: Ligand includes atom with unknown type: %s!\n", myligand->atom_types [atom_typeid1]);
+				printf("Error: Ligand includes atom with unknown type 1: %s!\n", myligand->atom_types [atom_typeid1]);
 				return 1;
 			}
 
 			if  (VWid_atype2 == ATYPE_NUM)
 			{
-				printf("Error: Ligand includes atom with unknown type: %s!\n", myligand->atom_types [atom_typeid2]);
+				printf("Error: Ligand includes atom with unknown type 2: %s!\n", myligand->atom_types [atom_typeid2]);
 				return 1;
 			}
 
@@ -647,15 +776,22 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 			{
 				eps12 = AD4_coeff_vdW * sqrt(eps [VWid_atype1]*eps [VWid_atype2]);		//weighting with coefficient for van der Waals term
 				reqm12 = 0.5*(reqm [VWid_atype1]+reqm [VWid_atype2]);
-				myligand->VWpars_A [atom_typeid1][atom_typeid2] = eps12*pow(reqm12, 12);
-				myligand->VWpars_B [atom_typeid1][atom_typeid2] = 2*eps12*pow(reqm12, 6);
+
+				// Was CG_CG_pair found?
+				if (found_CG_CG_pair == true) { // Zero for CG-CG atomic pair
+					myligand->VWpars_A [atom_typeid1][atom_typeid2] = 0.0;
+					myligand->VWpars_B [atom_typeid1][atom_typeid2] = 0.0;
+				} else { // Using default values for any atomic-pair different than CG-CG
+					myligand->VWpars_A [atom_typeid1][atom_typeid2] =   eps12*pow(reqm12, 12);
+					myligand->VWpars_B [atom_typeid1][atom_typeid2] = 2*eps12*pow(reqm12, 6);
+				}
 				myligand->VWpars_C [atom_typeid1][atom_typeid2] = 0;
 				myligand->VWpars_D [atom_typeid1][atom_typeid2] = 0;
 
-				/*
+/*
 				// ----------------------------------
 				// Smoothing test
-				eps12 = AD4_coeff_vdW * sqrt(eps [3]*eps [8]);	//weighting with coefficient for van der Waals term
+				eps12 = AD4_coeff_vdW * sqrt(eps [3]*eps [8]);		//weighting with coefficient for van der Waals term
 				reqm12 = 0.5*(reqm [3]+reqm [8]);
 				
 				printf("epsii (C): %f\n", eps [3]);
@@ -664,8 +800,10 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 				printf("rij: %f\n", reqm12);
 				printf("C12=%f\n", eps12*pow(reqm12, 12));
 				printf("C6=%f\n", 2*eps12*pow(reqm12, 6));
+
 				// ----------------------------------
-				*/
+*/				
+
 			}
 		}
 
@@ -679,10 +817,19 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 		VWid_atype1 = ATYPE_NUM;
 
 		//identifying atom type
-		for (i=0; i<ATYPE_NUM; i++)
-			if (stricmp(atom_names [i], myligand->atom_types [atom_typeid1]) == 0)
-			//if (_stricmp(atom_names[i], myligand->atom_types[atom_typeid1]) == 0)
+		for (i=0; i<ATYPE_NUM; i++) {
+			if (strincmp(atom_names [i], myligand->atom_types [atom_typeid1], 2) == 0) // captures GG0..9 to CG in tables
+			{
 				VWid_atype1 = i;
+			}
+			else
+			{
+				if(atom_names[i][1] == '0') { // captures G0..9 to G0 in tables
+					if (atom_names[i][0] == toupper(myligand->atom_types[atom_typeid1][0]))
+						VWid_atype1 = i;
+				}
+			}
+		}
 
 		if (VWid_atype1 == ATYPE_NUM)
 		{
@@ -725,7 +872,7 @@ void get_moving_and_unit_vectors(Liganddata* myligand)
 
 		//normalize unitvector
 		dist = distance(pointA, pointB);
-		for (i=0; i<3; i++)												//capturing coordinates of the two atoms
+		for (i=0; i<3; i++) //capturing coordinates of the two atoms
 		{
 			unitvec [i] = unitvec [i]/dist;
 			if (unitvec [i] >= 1)		//although it is not too probable...
@@ -1998,10 +2145,6 @@ float calc_intraE_f(const Liganddata* myligand,
 	//The following arrays will contain the q1*q2 and qasp*abs(q) values for the ligand which is the input parameter when this
 	//function is called first time (it is supposed that the energy must always be calculated for this ligand only, that is, there
 	//is only one ligand during the run of the program...)
-	#if 0
-	static float q1q2 [256][256];
-	static float qasp_mul_absq [256];
-	#endif
 	static float q1q2 [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
 	static float qasp_mul_absq [MAX_NUM_OF_ATOMS];
 
@@ -2021,22 +2164,13 @@ float calc_intraE_f(const Liganddata* myligand,
 		printf("\n\n\nINTRAMOLECULAR ENERGY CALCULATION\n\n");
 
 	for (atom_id1=0; atom_id1<myligand->num_of_atoms-1; atom_id1++)	//for each atom pair
+	{
 		for (atom_id2=atom_id1+1; atom_id2<myligand->num_of_atoms; atom_id2++)
 		{
 			if (myligand->intraE_contributors [atom_id1][atom_id2] == 1)	//if they have to be included in intramolecular energy calculation
 			{															//the energy contribution has to be calculated
 				dist = distance(&(myligand->atom_idxyzq [atom_id1][1]), &(myligand->atom_idxyzq [atom_id2][1]));
 
-				#if 0
-				if (dist <= 1)
-				{
-					if (debug == 1)
-						printf("\n\nToo low distance (%lf) between atoms %d and %d\n", dist, atom_id1, atom_id2);
-
-					//return HIGHEST_ENERGY;	//returning maximal value
-					dist = 1;
-				}
-				#endif
 				if (debug == 1)
 				{
 					printf("\n\nCalculating energy contribution of atoms %d and %d\n", atom_id1+1, atom_id2+1);
@@ -2050,7 +2184,7 @@ float calc_intraE_f(const Liganddata* myligand,
 				type_id2 = myligand->atom_idxyzq [atom_id2][0];
 
 				unsigned int atom1_type_vdw_hb = myligand->atom1_types_reqm [type_id1];
-		     	        unsigned int atom2_type_vdw_hb = myligand->atom2_types_reqm [type_id2];
+				unsigned int atom2_type_vdw_hb = myligand->atom2_types_reqm [type_id2];
 
 				// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
 				// reqm: equilibrium internuclear separation
@@ -2087,15 +2221,12 @@ float calc_intraE_f(const Liganddata* myligand,
 				if (distance_id < 0) {
 					distance_id = 0;
 				}
-		
+
 				smoothed_distance_id = (int) floor((100*smoothed_distance) + 0.5) - 1;	// +0.5: rounding, -1: r_xx_table [0] corresponds to r=0.01
 				if (smoothed_distance_id < 0) {
 					smoothed_distance_id = 0;
 				}
 
-				#if 0
-				if ((dist < dcutoff) && (dist < 20.48))	//but only if the distance is less than distance cutoff value and 20.48A (because of the tables)
-				#endif
 				if (dist < dcutoff) //but only if the distance is less than distance cutoff value
 				{
 					if (is_H_bond(myligand->atom_types [type_id1], myligand->atom_types [type_id2]) != 0)	//H-bond
@@ -2131,8 +2262,23 @@ float calc_intraE_f(const Liganddata* myligand,
 					el += q1q2[atom_id1][atom_id2] * r_epsr_table [distance_id];
 					desolv += (s1*v2 + s2*v1) * desolv_table [distance_id];
 				}
+				// ------------------------------------------------
+				// Required only for flexrings
+				// Checking if this is a CG-G0 atomic pair.
+				// If so, then adding energy term (E = G * distance).
+				// Initial specification required NON-SMOOTHED distance.
+				// This interaction is evaluated at any distance, 
+				// so no cuttoffs considered here!
+				// FIXME: accumulated into vW ... is that correct?
+				if (((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) || 
+				    ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX))) {
+					vW += G * dist;
+					/*printf("OpenCL host - calc_intraE_f: CG-G0 pair found!\n");*/
+				}
+				// ------------------------------------------------
 			}
 		}
+	}
 
 	if (debug == 1)
 		printf("\nFinal energies: van der Waals = %lf, electrostatic = %lf, desolvation = %lf, total = %lf\n\n", vW, el, desolv, vW + el + desolv);

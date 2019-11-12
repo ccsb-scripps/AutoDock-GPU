@@ -11,6 +11,28 @@
 # Choose OpenCL device
 # Valid values: CPU, GPU
 
+CPP = g++
+LIB_OPENCL = -lOpenCL
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Darwin)
+# In case ScoreP (for profiling/tracing) is used,
+# need to link to a *.dylib for instrumentation
+ifneq (,$(findstring scorep,$(CPP)))
+# We're assuming that if the user sets the library
+# path there is a libOpenCL.so/dylib in it,
+# otherwise, we'll create a symbolic link from the
+# framework to link against
+ifeq ($(GPU_LIBRARY_PATH),)
+$(shell ln -sf /System/Library/Frameworks/OpenCL.framework/OpenCL ./libOpenCL.dylib)
+LIB_OPENCL = -L./ -lOpenCL
+endif
+else
+# in the normal case we can just include the framework
+LIB_OPENCL = -framework OpenCL
+endif
+endif
+
 ifeq ($(DEVICE), CPU)
 	DEV =-DCPU_DEVICE
 	OCLA_INC_PATH=$(CPU_INCLUDE_PATH)
@@ -72,7 +94,19 @@ BIN := $(wildcard $(TARGET)*)
 # Valid values: 16, 32, 64, 128
 NUMWI=
 
-ifeq ($(NUMWI), 16)
+ifeq ($(NUMWI), 1)
+	NWI=-DN1WI
+	TARGET:=$(TARGET)_1wi
+else ifeq ($(NUMWI), 2)
+	NWI=-DN2WI
+	TARGET:=$(TARGET)_2wi
+else ifeq ($(NUMWI), 4)
+	NWI=-DN4WI
+	TARGET:=$(TARGET)_4wi
+else ifeq ($(NUMWI), 8)
+	NWI=-DN8WI
+	TARGET:=$(TARGET)_8wi
+else ifeq ($(NUMWI), 16)
 	NWI=-DN16WI
 	TARGET:=$(TARGET)_16wi
 else ifeq ($(NUMWI), 32)
@@ -103,20 +137,24 @@ endif
 # LDEBUG (light): enables debugging on host
 # RELEASE
 CONFIG=RELEASE
+#CONFIG=FDEBUG
 
 OCL_DEBUG_BASIC=-DPLATFORM_ATTRIBUTES_DISPLAY\
+	      -DCMD_QUEUE_PROFILING_ENABLE \
 	        -DDEVICE_ATTRIBUTES_DISPLAY
 
 OCL_DEBUG_ALL=$(OCL_DEBUG_BASIC) \
 	      -DCONTEXT_INFO_DISPLAY \
 	      -DCMD_QUEUE_INFO_DISPLAY \
 	      -DCMD_QUEUE_PROFILING_ENABLE \
-	      -DCMD_QUEUE_OUTORDER_ENABLE \
 	      -DPROGRAM_INFO_DISPLAY \
 	      -DPROGRAM_BUILD_INFO_DISPLAY \
 	      -DKERNEL_INFO_DISPLAY \
 	      -DKERNEL_WORK_GROUP_INFO_DISPLAY \
 	      -DBUFFER_OBJECT_INFO_DISPLAY
+ifneq ($(UNAME), Darwin) # out of order queues don't work on Mac OS X
+OCL_DEBUG_ALL += -DCMD_QUEUE_OUTORDER_ENABLE
+endif
 
 ifeq ($(CONFIG),FDEBUG)
 	OPT =-O0 -g3 -Wall $(OCL_DEBUG_ALL) -DDOCK_DEBUG
@@ -199,10 +237,10 @@ stringify:
 	./stringify_ocl_krnls.sh
 
 odock: check-env-all stringify $(SRC)
-	g++ \
+	$(CPP) \
 	$(SRC) \
 	$(CFLAGS) \
-	-lOpenCL \
+	$(LIB_OPENCL) \
 	-o$(BIN_DIR)/$(TARGET) \
 	$(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
 

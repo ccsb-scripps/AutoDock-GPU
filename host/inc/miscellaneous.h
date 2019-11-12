@@ -34,7 +34,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdlib.h>
 #include <ctype.h>
 
-#define PI 3.1415926535
+#define PI 3.14159265359
 
 //Visual C++ linear congruential generator constants
 #define RAND_A_GS 214013u
@@ -100,6 +100,8 @@ void print_binary_string(unsigned long long);
 
 #ifndef _WIN32
 int stricmp(const char*, const char*);
+
+int strincmp(const char*, const char*, int);
 #endif
 
 unsigned int genseed(unsigned int init);

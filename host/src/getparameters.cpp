@@ -165,6 +165,7 @@ void get_commandpars(const int* argc,
 				    // char fldfile [128]
 		                    // char ligandfile [128]
 			            // float ref_ori_angles [3]
+	mypars->devnum	 	    = 0;
 	mypars->num_of_runs 	    = 1;
 	mypars->reflig_en_reqired   = 0;
 				    // char unbound_model
@@ -466,6 +467,19 @@ void get_commandpars(const int* argc,
 		// UPDATED in : gen_initpop_and_reflig()
 		// ---------------------------------
 
+		// ----------------------------------
+		//Argument: OpenCL device number to use
+		if (strcmp("-devnum", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv [i+1], "%lu", &tempint);
+			if ((tempint >= 1) && (tempint <= 256))
+				mypars->devnum = (unsigned long) tempint-1;
+			else
+				printf("Warning: value of -devnum argument ignored. Value must be an integer between 1 and 256.\n");
+		}
+		// ----------------------------------
+
 		//Argument: number of runs. Must be an integer between 1 and 1000.
 		//Means the number of required runs
 		if (strcmp("-nrun", argv [i]) == 0)
@@ -587,6 +601,7 @@ void get_commandpars(const int* argc,
 			printf("Info: using -xraylfile value as X-ray ligand.");
 		}
 		// ----------------------------------
+
 
 		if (arg_recognized != 1)
 			printf("Warning: unknown argument '%s'.\n", argv [i]);

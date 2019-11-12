@@ -137,8 +137,7 @@ typedef struct
 
 typedef struct
 {
-       float reqm_const [ATYPE_NUM];
-       float reqm_hbond_const [ATYPE_NUM];
+       float reqm_const [2*ATYPE_NUM]; // 1st ATYPE_NUM entries = vdW, 2nd ATYPE_NUM entries = hbond
        unsigned int  atom1_types_reqm_const [ATYPE_NUM];
        unsigned int  atom2_types_reqm_const [ATYPE_NUM];
        float VWpars_AC_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
@@ -154,9 +153,7 @@ typedef struct
 
 typedef struct
 {
-       float ref_coords_x_const[MAX_NUM_OF_ATOMS];
-       float ref_coords_y_const[MAX_NUM_OF_ATOMS];
-       float ref_coords_z_const[MAX_NUM_OF_ATOMS];
+       float ref_coords_const[3*MAX_NUM_OF_ATOMS];
        float rotbonds_moving_vectors_const[3*MAX_NUM_OF_ROTBONDS];
        float rotbonds_unit_vectors_const  [3*MAX_NUM_OF_ROTBONDS];
        float ref_orientation_quats_const  [4*MAX_NUM_OF_RUNS];

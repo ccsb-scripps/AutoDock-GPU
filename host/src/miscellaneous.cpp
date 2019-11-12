@@ -490,7 +490,10 @@ int stricmp(const char* str1, const char* str2)
 	while ((c1 != '\0') && (c2 != '\0'))
 	{
 		if (toupper(c1) != toupper(c2))
+		{
 			isdifferent = 1;
+			break;
+		}
 
 		c1_poi++;
 		c2_poi++;
@@ -503,6 +506,42 @@ int stricmp(const char* str1, const char* str2)
 		isdifferent = 1;
 
 	return isdifferent;
+}
+
+int strincmp(const char* str1, const char* str2, int num)
+//The function compares up to num characters of two input
+//strings and returns 0 if they are identical (case-UNsensitive)
+//and 1 if not.
+{
+	const char* c1_poi;
+	const char* c2_poi;
+	char c1;
+	char c2;
+	char count = 1; // the test at the end counts too
+
+	c1_poi = str1;
+	c2_poi = str2;
+
+	c1 = *c1_poi;
+	c2 = *c2_poi;
+	
+	while ((c1 != '\0') && (c2 != '\0') && (count<num))
+	{
+		if (toupper(c1) != toupper(c2))
+			return 1;
+
+		c1_poi++;
+		c2_poi++;
+
+		c1 = *c1_poi;
+		c2 = *c2_poi;
+		count++;
+	}
+
+	if (toupper(c1) != toupper(c2))
+		return 1;
+
+	return 0;
 }
 #endif
 

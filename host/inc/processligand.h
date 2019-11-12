@@ -32,10 +32,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "processgrid.h"
 #include "miscellaneous.h"
 
-/*
-#define ATYPE_NUM 22
-*/
-
 typedef struct
 //Struct which contains ligand information. The fields contain the following information:
 //num_of_atoms: 	Number of ligand atoms.
@@ -84,14 +80,14 @@ typedef struct
 //						  -1*rotbonds_moving_vectors [i].
 //						  WARNING: after calling calc_conform for a Liganddata structure,
 //						  the orientation of the molecule will be changed, and these
-//						  vecotrs will be unvalid, so they must be calculated again if
+//						  vectors will be invalid, so they must be calculated again if
 //						  it is necessary.
 {
 	int 	num_of_atoms;
 	int 	num_of_atypes;
 	int 	num_of_rotbonds;
-	char 	atom_types [MAX_NUM_OF_ATYPES][3];	//in the case of arrays, the first index is called row index,
-	double 	atom_idxyzq [MAX_NUM_OF_ATOMS][5];	//the second is called column index
+	char 	atom_types [MAX_NUM_OF_ATYPES][4];
+	double 	atom_idxyzq [MAX_NUM_OF_ATOMS][5];
 	int 	rotbonds [MAX_NUM_OF_ROTBONDS][2];
 	char 	atom_rotbonds [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ROTBONDS];
 	int 	atom_rigid_structures [MAX_NUM_OF_ATOMS];

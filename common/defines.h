@@ -28,7 +28,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef DEFINES_H_
 #define DEFINES_H_
 
-#if defined (N16WI)
+#if defined (N1WI)
+	#define NUM_OF_THREADS_PER_BLOCK 1
+#elif defined (N2WI)
+	#define NUM_OF_THREADS_PER_BLOCK 2
+#elif defined (N4WI)
+	#define NUM_OF_THREADS_PER_BLOCK 4
+#elif defined (N8WI)
+	#define NUM_OF_THREADS_PER_BLOCK 8
+#elif defined (N16WI)
 	#define NUM_OF_THREADS_PER_BLOCK 16
 #elif defined (N32WI)
 	#define NUM_OF_THREADS_PER_BLOCK 32
@@ -39,11 +47,26 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #elif defined (N256WI)
 	#define NUM_OF_THREADS_PER_BLOCK 256
 #else
-	#define NUM_OF_THREADS_PER_BLOCK 64
+	#define NUM_OF_THREADS_PER_BLOCK 16
 #endif
 
-#define ATYPE_NUM 		22	// initial: 22
-#define ATYPE_GETBONDS		16	// initial: 16
+// Indexes of atomic types used in
+// host/src/processligand.cpp/get_VWpars(),
+// and kernel energy & gradient calculation.
+#define ATYPE_NUM 		28	// 22 (initial) + 2 (CG & G0 for handling flexrings) + W (waters) + CX + NX + OX
+
+#define ATYPE_CG_IDX		22
+#define ATYPE_G0_IDX		23
+#define ATYPE_W_IDX		24
+#define ATYPE_CX_IDX		25
+#define ATYPE_NX_IDX		26
+#define ATYPE_OX_IDX		27
+
+// Indexes of atomic types used in
+// host/src/processligand.cpp/get_bonds().
+// Added definition to support flexrings.
+#define ATYPE_GETBONDS		20      // + CX [ Nx / Ox already accounted for ]
+
 #define MAX_NUM_OF_ATOMS 	256
 #define MAX_NUM_OF_ATYPES 	14
 #define MAX_NUM_OF_ROTBONDS 	32
@@ -64,6 +87,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define MAPPED_COPY
 
 
+// Coefficients for CG-G0 pairs used in
+// host/src/processligand.cpp/calc_intraE_f(),
+// and in kernel energy and gradient calculation.
+// Added definition to support flexrings.
+#define G 50
 
 
 

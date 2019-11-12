@@ -176,9 +176,9 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 				charpoi++;
 				*charpoi = (char) j;
 				charpoi++;
-
 				type_id1 = (int) myligand_reference->atom_idxyzq [i][0];
 				type_id2 = (int) myligand_reference->atom_idxyzq [j][0];
+
 				if (is_H_bond(myligand_reference->atom_types[type_id1], myligand_reference->atom_types[type_id2]) != 0)
 					*charpoi = (char) 1;
 				else
@@ -194,7 +194,7 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 		reqm_hbond[i] = myligand_reference->reqm_hbond[i];
 
 		atom1_types_reqm [i] = myligand_reference->atom1_types_reqm[i];
-        	atom2_types_reqm [i] = myligand_reference->atom2_types_reqm[i];
+		atom2_types_reqm [i] = myligand_reference->atom2_types_reqm[i];
 	}
 
 	//van der Waals parameters
@@ -267,10 +267,10 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 		theta = cpu_ref_ori_angles[3*i+1]*DEG_TO_RAD;
 		genrotangle = cpu_ref_ori_angles[3*i+2]*DEG_TO_RAD;
 
-		ref_orientation_quats[4*i] = cosf(genrotangle/2.0f);					//q
-		ref_orientation_quats[4*i+1] = sinf(genrotangle/2.0f)*sinf(theta)*cosf(phi);		//x
-		ref_orientation_quats[4*i+2] = sinf(genrotangle/2.0f)*sinf(theta)*sinf(phi);		//y
-		ref_orientation_quats[4*i+3] = sinf(genrotangle/2.0f)*cosf(theta);			//z
+		ref_orientation_quats[4*i+0] = sinf(genrotangle/2.0f)*sinf(theta)*cosf(phi);		//x
+		ref_orientation_quats[4*i+1] = sinf(genrotangle/2.0f)*sinf(theta)*sinf(phi);		//y
+		ref_orientation_quats[4*i+2] = sinf(genrotangle/2.0f)*cosf(theta);			//z
+		ref_orientation_quats[4*i+3] = cosf(genrotangle/2.0f);					//q
 /*
 		// Shoemake genes
 		// autodockdev/motions.py
@@ -361,8 +361,10 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 
 	for (m=0;m<3*MAX_INTRAE_CONTRIBUTORS;m++){ KerConst_intracontrib->intraE_contributors_const[m] = intraE_contributors[m]; }
 
-	for (m=0;m<ATYPE_NUM;m++)				{ KerConst_intra->reqm_const[m] 	    = reqm[m]; }
-	for (m=0;m<ATYPE_NUM;m++)				{ KerConst_intra->reqm_hbond_const[m] 	    = reqm_hbond[m]; }
+	for (m=0;m<ATYPE_NUM;m++){
+		KerConst_intra->reqm_const[m] 	    = 0.5*reqm[m];
+		KerConst_intra->reqm_const[m+ATYPE_NUM]	    = reqm_hbond[m];
+	}
 	for (m=0;m<ATYPE_NUM;m++)				{ KerConst_intra->atom1_types_reqm_const[m] = atom1_types_reqm[m]; }
 	for (m=0;m<ATYPE_NUM;m++)				{ KerConst_intra->atom2_types_reqm_const[m] = atom2_types_reqm[m]; }
 	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++)	{ KerConst_intra->VWpars_AC_const[m]        = VWpars_AC[m]; }
@@ -370,11 +372,20 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 	for (m=0;m<MAX_NUM_OF_ATYPES;m++)		   	{ KerConst_intra->dspars_S_const[m]         = dspars_S[m]; }
 	for (m=0;m<MAX_NUM_OF_ATYPES;m++)		   	{ KerConst_intra->dspars_V_const[m]         = dspars_V[m]; }
 
-	for (m=0;m<MAX_NUM_OF_ROTATIONS;m++) { KerConst_rotlist->rotlist_const[m]  = rotlist[m]; }
+	for (m=0;m<MAX_NUM_OF_ROTATIONS;m++) {
+		KerConst_rotlist->rotlist_const[m]  = rotlist[m];
+/*		if(m!=0 && m%myligand_reference->num_of_atoms==0)
+			printf("***\n");
+		if(m!=0 && m%NUM_OF_THREADS_PER_BLOCK==0)
+			printf("===\n");
+		printf("%i (%i): %i -> atom_id: %i, dummy: %i, first: %i, genrot: %i, rotbond_id: %i\n",m,m%NUM_OF_THREADS_PER_BLOCK,rotlist[m],rotlist[m] & RLIST_ATOMID_MASK, rotlist[m] & RLIST_DUMMY_MASK,rotlist[m] & RLIST_FIRSTROT_MASK,rotlist[m] & RLIST_GENROT_MASK,(rotlist[m] & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT);*/
+	}
 
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++)     { KerConst_conform->ref_coords_x_const[m]		 = ref_coords_x[m]; }
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++)     { KerConst_conform->ref_coords_y_const[m]		 = ref_coords_y[m]; }
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++)     { KerConst_conform->ref_coords_z_const[m]		 = ref_coords_z[m]; }
+	for (m=0;m<MAX_NUM_OF_ATOMS;m++) {
+		KerConst_conform->ref_coords_const[3*m]		 = ref_coords_x[m];
+		KerConst_conform->ref_coords_const[3*m+1]	 = ref_coords_y[m];
+		KerConst_conform->ref_coords_const[3*m+2]	 = ref_coords_z[m];
+	}
 	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst_conform->rotbonds_moving_vectors_const[m]= rotbonds_moving_vectors[m]; }
 	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst_conform->rotbonds_unit_vectors_const[m]  = rotbonds_unit_vectors[m]; }
 	for (m=0;m<4*MAX_NUM_OF_RUNS;m++)    { KerConst_conform->ref_orientation_quats_const[m]  = ref_orientation_quats[m]; }

@@ -220,7 +220,7 @@ int getKernelWorkGroupInfo(cl_kernel kernel, cl_device_id device){
  	return EXIT_FAILURE;
   }
 
-  printf("  %-45s: %lu \n", "CL_KERNEL_WORK_GROUP_SIZE", ker_wg_size);
+  printf("  %-45s: %lu \n", "CL_KERNEL_WORK_GROUP_SIZE", *ker_wg_size);
   free(ker_wg_size);
 
 /*
@@ -247,7 +247,7 @@ int getKernelWorkGroupInfo(cl_kernel kernel, cl_device_id device){
  	return EXIT_FAILURE;
   }
 
-  ker_loc_mem_size = (size_t*) malloc(sizeof(size_t) * sizeParam);
+  ker_loc_mem_size = (cl_ulong*) malloc(sizeof(size_t) * sizeParam);
   err = clGetKernelWorkGroupInfo(kernel,device,CL_KERNEL_LOCAL_MEM_SIZE,sizeParam,ker_loc_mem_size,NULL);
   if (err != CL_SUCCESS){
 	printf("Error: clGetKernelWorkGroupInfo() %d\n",err);
@@ -255,7 +255,7 @@ int getKernelWorkGroupInfo(cl_kernel kernel, cl_device_id device){
  	return EXIT_FAILURE;
   }
 
-  printf("  %-45s: %lu \n", "CL_KERNEL_LOCAL_MEM_SIZE (#bytes)", ker_loc_mem_size);  
+  printf("  %-45s: %llu \n", "CL_KERNEL_LOCAL_MEM_SIZE (#bytes)", *ker_loc_mem_size);  
   free(ker_loc_mem_size);
 
   // ----------------------------------------------------------------------------
@@ -267,7 +267,7 @@ int getKernelWorkGroupInfo(cl_kernel kernel, cl_device_id device){
  	return EXIT_FAILURE;
   }
 
-  ker_pri_mem_size = (size_t*) malloc(sizeof(size_t) * sizeParam);
+  ker_pri_mem_size = (cl_ulong*) malloc(sizeof(size_t) * sizeParam);
   err = clGetKernelWorkGroupInfo(kernel,device,CL_KERNEL_PRIVATE_MEM_SIZE,sizeParam,ker_pri_mem_size,NULL);
   if (err != CL_SUCCESS){
 	printf("Error: clGetKernelWorkGroupInfo() %d\n",err);
@@ -275,7 +275,7 @@ int getKernelWorkGroupInfo(cl_kernel kernel, cl_device_id device){
  	return EXIT_FAILURE;
   }
 
-  printf("  %-45s: %lu \n", "CL_KERNEL_PRIVATE_MEM_SIZE (#bytes)", ker_pri_mem_size);  
+  printf("  %-45s: %lu \n", "CL_KERNEL_PRIVATE_MEM_SIZE (#bytes)", *ker_pri_mem_size);  
   free(ker_pri_mem_size);
 
   // ----------------------------------------------------------------------------
@@ -292,7 +292,7 @@ int getKernelWorkGroupInfo(cl_kernel kernel, cl_device_id device){
   if (err != CL_SUCCESS){
 	printf("Error: clGetKernelWorkGroupInfo() %d\n",err);
 	fflush(stdout);
- 	return EXIT_FAILURE;
+	return EXIT_FAILURE;
   }
 
   printf("  %-45s: %lu %lu %lu\n", "CL_KERNEL_COMPILE_WORK_GROUP_SIZE", ker_comp_wg_size[0],  ker_comp_wg_size[1],  ker_comp_wg_size[2]);  
@@ -321,14 +321,20 @@ int runKernel1D(cl_command_queue cmd_queue,
 		cl_ulong*	 time_stop){
 
   cl_int   err;
+#ifdef CMD_QUEUE_PROFILING_ENABLE
   cl_event event;
+#endif
   //cl_ulong start;
   //cl_ulong stop;
   size_t gsize = gxDimSize;
   size_t lsize = lxDimSize;
 
   // Enqueue kernel
+#ifdef CMD_QUEUE_PROFILING_ENABLE
   err = clEnqueueNDRangeKernel(cmd_queue,kernel,1,NULL,&gsize,&lsize,0,NULL,&event);
+#else
+  err = clEnqueueNDRangeKernel(cmd_queue,kernel,1,NULL,&gsize,&lsize,0,NULL,NULL);
+#endif
   if (err != CL_SUCCESS){
 	printf("Error: clEnqueueNDRangeKernel() %d\n", err);
 	fflush(stdout);
@@ -339,21 +345,26 @@ int runKernel1D(cl_command_queue cmd_queue,
 
   // clFinish commented out, as this causes slow down
   // Our command queue is in-order and this is not needed
-  //clFinish(cmd_queue);
+  // clFinish(cmd_queue);
 
 #ifdef CMD_QUEUE_PROFILING_ENABLE
   // Get start and stop time
+  clWaitForEvents(1,&event);
   cl_ulong start;
   cl_ulong stop;
   clGetEventProfilingInfo(event,CL_PROFILING_COMMAND_START,sizeof(start),&start,NULL);
   clGetEventProfilingInfo(event,CL_PROFILING_COMMAND_END,  sizeof(stop),&stop, NULL);
+  printf("queue %p, event %p here: %llu -> %llu (%llu)\n",cmd_queue,event,start,stop,stop-start);
+  clGetEventProfilingInfo(event,CL_PROFILING_COMMAND_QUEUED,sizeof(start),&start,NULL);
+  clGetEventProfilingInfo(event,CL_PROFILING_COMMAND_SUBMIT,  sizeof(stop),&stop, NULL);
+  printf("queue %p, event %p there: %llu -> %llu\n",cmd_queue,event,start,stop);
 
   // Pass kernel exec time to calling function
   *time_start = start;
   *time_stop  = stop;
-#endif
 
   clReleaseEvent(event);
+#endif
   return CL_SUCCESS;
 }
 
@@ -368,14 +379,20 @@ int runKernel2D(cl_command_queue cmd_queue,
 		cl_ulong*	 time_stop){
 
   cl_int   err;
+#ifdef CMD_QUEUE_PROFILING_ENABLE
   cl_event event;
+#endif
   //cl_ulong start;
   //cl_ulong stop;
   size_t gsize[2] = {gxDimSize,gyDimSize};
   size_t lsize[2] = {lxDimSize,lyDimSize};
 
   // Enqueue kernel
+#ifdef CMD_QUEUE_PROFILING_ENABLE
   err = clEnqueueNDRangeKernel(cmd_queue,kernel,2,NULL,gsize,lsize,0,NULL,&event);
+#else
+  err = clEnqueueNDRangeKernel(cmd_queue,kernel,2,NULL,gsize,lsize,0,NULL,NULL);
+#endif
   if (err != CL_SUCCESS){
 	printf("Error: clEnqueueNDRangeKernel() %d\n", err);
 	fflush(stdout);
@@ -398,9 +415,9 @@ int runKernel2D(cl_command_queue cmd_queue,
   // Pass kernel exec time to calling function
   *time_start = start;
   *time_stop  = stop;
-#endif
 
   clReleaseEvent(event);
+#endif
   return CL_SUCCESS;
 }
 
@@ -417,14 +434,20 @@ int runKernel3D(cl_command_queue cmd_queue,
 		cl_ulong*	 time_stop){
 
   cl_int   err;
+#ifdef CMD_QUEUE_PROFILING_ENABLE
   cl_event event;
+#endif
   //cl_ulong start;
   //cl_ulong stop;
   size_t gsize[3] = {gxDimSize,gyDimSize,gzDimSize};
   size_t lsize[3] = {lxDimSize,lyDimSize,lzDimSize};
 
   // Enqueue kernel
+#ifdef CMD_QUEUE_PROFILING_ENABLE
   err = clEnqueueNDRangeKernel(cmd_queue,kernel,3,NULL,gsize,lsize,0,NULL,&event);
+#else
+  err = clEnqueueNDRangeKernel(cmd_queue,kernel,3,NULL,gsize,lsize,0,NULL,NULL);
+#endif
   if (err != CL_SUCCESS){
 	printf("Error: clEnqueueNDRangeKernel() %d\n", err);
 	fflush(stdout);
@@ -447,8 +470,8 @@ int runKernel3D(cl_command_queue cmd_queue,
   // Pass kernel exec time to calling function
   *time_start = start;
   *time_stop  = stop;
-#endif
 
   clReleaseEvent(event);
+#endif
   return CL_SUCCESS;
 }

@@ -91,9 +91,7 @@ perform_LS(
 	__local int entity_id;
 	__local float offspring_energy;
 
-	__local float calc_coords_x[MAX_NUM_OF_ATOMS];
-	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
-	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
+	__local float4 calc_coords[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
 
 	#if defined (DEBUG_ENERGY_KERNEL)
@@ -203,9 +201,9 @@ perform_LS(
 				// local variables within non-kernel functions.
 				// These local variables must be declared in a kernel, 
 				// and then passed to non-kernel functions.
-				calc_coords_x,
-				calc_coords_y,
-				calc_coords_z,
+				calc_coords,
+//				calc_coords_y,
+//				calc_coords_z,
 				partial_energies,
 				#if defined (DEBUG_ENERGY_KERNEL)
 				partial_interE,
@@ -295,9 +293,9 @@ perform_LS(
 					// local variables within non-kernel functions.
 					// These local variables must be declared in a kernel, 
 					// and then passed to non-kernel functions.
-					calc_coords_x,
-					calc_coords_y,
-					calc_coords_z,
+					calc_coords,
+//					calc_coords_y,
+//					calc_coords_z,
 					partial_energies,
 					#if defined (DEBUG_ENERGY_KERNEL)
 					partial_interE,
