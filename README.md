@@ -5,16 +5,18 @@ AutoDock-GPU: AutoDock for GPUs using OpenCL
 
 # Features
 
-* OpenCL-accelerated version of AutoDock4.2.6. It leverages the embarrasingly parallelism of its LGA by processing ligand-receptor poses in parallel over multiple compute units.
+* OpenCL-accelerated version of AutoDock4.2.6. It leverages its embarrasingly parallelizable LGA by processing ligand-receptor poses in parallel over multiple compute units.
 * Besides the legacy Solis-Wets local search method, AutoDock-GPU adds newly implemented local-search methods based on gradients of the scoring function. One of these methods, ADADELTA, has proven to increase significantly the docking quality in terms of RMSDs and scores.
 * It targets platforms based on GPU as well as multicore CPU accelerators.
 * Observed speedups of up to 4x (quad-core CPU) and 56x (GPU) over the original serial AutoDock 4.2 (Solis-Wets) on CPU.
 
 # Setup
 
-| Operating system: Linux                  | CPU                          |GPU                                  |
+| Operating system                         | CPU                          |GPU                                  |
 |:----------------------------------------:|:----------------------------:|:-----------------------------------:|
 |CentOS 6.7 & 6.8 / Ubuntu 14.04 & 16.04   | Intel SDK for OpenCL 2017    | AMD APP SDK v3.0 / CUDA v8.0 & v9.0 |
+|macOS Catalina 10.15.1                    | Apple / Intel                | Apple / Intel Iris, Radeon Vega 64  |
+
 
 Other environments or configurations likely work as well, but are untested.
 
@@ -24,18 +26,20 @@ Other environments or configurations likely work as well, but are untested.
 make DEVICE=<TYPE> NUMWI=<NWI>
 ```
 
-| Parameters | Description            | Values                         |
-|:----------:|:----------------------:|:------------------------------:|
-| `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`                   |
-| `<NWI>`    | OpenCL work-group size | `16`, `32`, `64`, `128`, `256` |
+| Parameters | Description            | Values                                             |
+|:----------:|:----------------------:|:--------------------------------------------------:|
+| `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`                                       |
+| `<NWI>`    | OpenCL work-group size | `1`, `2`, `4`, `8`, `16`, `32`, `64`, `128`, `256` |
 
+Hints: The best work-group size depends on the GPU and workload. Try `NUMWI=128` or `NUMWI=64` for modern cards with the example workloads. On macOS, use `NUMWI=1` for CPUs.
 
 After successful compilation, the host binary **autodock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
 
-| Binary-name portion | Description            | Values                         |
-|:-------------------:|:----------------------:|:------------------------------:|
-| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`                   |
-| **&lt;N&gt;**       | OpenCL work-group size | `16`, `32`, `64`, `128`, `256` |
+| Binary-name portion | Description            | Values                                            |
+|:-------------------:|:----------------------:|:-------------------------------------------------:|
+| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`                                      |
+| **&lt;N&gt;**       | OpenCL work-group size | `1`, `2`, `4`, `8`,`16`, `32`, `64`, `128`, `256` |
+
 
 # Usage
 
@@ -77,6 +81,7 @@ By default the output log file is written in the current working folder. Example
 | -trat    | Tournament (selection) rate                  | 60 (%)          |
 | -resnam  | Name for docking output log                  | _"docking"_     |
 | -hsym    | Handle symmetry in RMSD calc.                | 1               |
+| -devnum  | OpenCL device number                         | 1               |
 
 For a complete list of available arguments and their default values, check [getparameters.cpp](host/src/getparameters.cpp).
 
