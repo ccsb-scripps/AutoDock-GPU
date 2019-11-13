@@ -67,21 +67,22 @@ By default the output log file is written in the current working folder. Example
 
 ## Supported arguments
 
-| Argument | Description                                  | Default value   |
-|:---------|:---------------------------------------------|----------------:|
-| -nrun    | # LGA runs                                   | 1               |
-| -nev     | # Score evaluations (max.) per LGA run       | 2500000         |
-| -ngen    | # Generations (max.) per LGA run             | 27000           |
-| -lsmet   | Local-search method                          | sw (Solis-Wets) |
-| -lsit    | # Local-search iterations (max.)             | 300             |
-| -psize   | Population size                              | 150             |
-| -mrat    | Mutation rate                                | 2 (%)           |
-| -crat    | Crossover rate                               | 80 (%)          |
-| -lsrat   | Local-search rate                            | 6 (%)           |
-| -trat    | Tournament (selection) rate                  | 60 (%)          |
-| -resnam  | Name for docking output log                  | _"docking"_     |
-| -hsym    | Handle symmetry in RMSD calc.                | 1               |
-| -devnum  | OpenCL device number                         | 1               |
+| Argument | Description                                           | Default value    |
+|:---------|:------------------------------------------------------|-----------------:|
+| -nrun    | # LGA runs                                            | 1                |
+| -nev     | # Score evaluations (max.) per LGA run                | 2500000          |
+| -ngen    | # Generations (max.) per LGA run                      | 27000            |
+| -lsmet   | Local-search method                                   | sw (Solis-Wets)  |
+| -lsit    | # Local-search iterations (max.)                      | 300              |
+| -psize   | Population size                                       | 150              |
+| -mrat    | Mutation rate                                         | 2 (%)            |
+| -crat    | Crossover rate                                        | 80 (%)           |
+| -lsrat   | Local-search rate                                     | 80 (%)           |
+| -trat    | Tournament (selection) rate                           | 60 (%)           |
+| -resnam  | Name for docking output log                           | _"docking"_      |
+| -hsym    | Handle symmetry in RMSD calc.                         | 1                |
+| -devnum  | OpenCL device number                                  | 1                |
+| -cgmaps  | Use individual maps for CG-G0 instead of the same one | 0 (use same map) |
 
 For a complete list of available arguments and their default values, check [getparameters.cpp](host/src/getparameters.cpp).
 

@@ -67,7 +67,7 @@ typedef struct
 	int    size_xyz [3];
 	double spacing;
 	double size_xyz_angstr [3];
-	char   grid_types [MAX_NUM_OF_ATYPES+2][3]; // The additional two are the electrostatic and the desolvation types
+	char   grid_types [MAX_NUM_OF_ATYPES+2][4]; // The additional two are the electrostatic and the desolvation types
 	int    num_of_atypes;
 	double origo_real_xyz [3];
 } Gridinfo;
@@ -75,6 +75,7 @@ typedef struct
 int get_gridinfo(const char*, Gridinfo*);
 
 int get_gridvalues_f(const Gridinfo* mygrid,
-		     float** fgrids);
+		     float** fgrids,
+		     bool cgmaps);
 
 #endif /* PROCESSGRID_H_ */

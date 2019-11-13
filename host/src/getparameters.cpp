@@ -145,7 +145,7 @@ void get_commandpars(const int* argc,
 	mypars->abs_max_dang        = 90; 		// +/- 90°
 	mypars->mutation_rate 	    = 2; 		// 2%
 	mypars->crossover_rate 	    = 80;		// 80%
-	mypars->lsearch_rate 	    = 6;		// 6%
+	mypars->lsearch_rate 	    = 80;		// 80%
 				    // unsigned long num_of_ls
 
 	strcpy(mypars->ls_method, "sw");		// "sw": Solis-Wets, 
@@ -477,6 +477,17 @@ void get_commandpars(const int* argc,
 				mypars->devnum = (unsigned long) tempint-1;
 			else
 				printf("Warning: value of -devnum argument ignored. Value must be an integer between 1 and 256.\n");
+		}
+		// ----------------------------------
+
+		// ----------------------------------
+		//Argument: Multiple CG-G0 maps or not
+		// - has already been tested for in
+		//   main.cpp, as it's needed at grid
+		//   creation time not after (now)
+		if (strcmp("-cgmaps", argv [i]) == 0)
+		{
+			arg_recognized = 1; // stub to not complain about an unknown parameter
 		}
 		// ----------------------------------
 

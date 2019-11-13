@@ -23,13 +23,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 // Output showing the CG-G0 virtual bonds and pairs
-#define CG_G0_INFO
+// #define CG_G0_INFO
 
 #include "processligand.h"
 
 int init_liganddata(const char* ligfilename,
 		    Liganddata* myligand,
-		    Gridinfo*   mygrid)
+		    Gridinfo*   mygrid,
+		    bool cgmaps)
 //The functions first parameter is an empty Liganddata, the second a variable of
 //Gridinfo type. The function fills the num_of_atypes and atom_types fields of
 //myligand according to the num_of_atypes and grid_types fields of mygrid. In
@@ -97,14 +98,29 @@ int init_liganddata(const char* ligfilename,
 	//copying field to ligand and grid data
 	myligand->num_of_atypes = num_of_atypes;
 	mygrid->num_of_atypes   = num_of_atypes;
-
+#if defined(CG_G0_INFO)
+	if (cgmaps)
+	{
+		printf("Expecting individual maps for CGx and Gx atom types (x=0..9).\n");
+	}
+	else
+	{
+		printf("Using one map file, .CG.map and .G0.map, for CGx and Gx atom types, respectively.\n");
+	}
+#endif
 	for (i=0; i<num_of_atypes; i++)
 	{
 		strcpy(myligand->atom_types[i], atom_types[i]);
-		strncpy(mygrid->grid_types[i], atom_types[i],2);
-		mygrid->grid_types[i][2] = '\0'; // make sure CG0..9 results in CG
-		if (isdigit(mygrid->grid_types[i][1])) // make sure G0..9 results in G0
-			mygrid->grid_types[i][1] = '0';
+		if(cgmaps) {
+			strcpy(mygrid->grid_types[i], atom_types[i]);
+		}
+		else
+		{
+			strncpy(mygrid->grid_types[i], atom_types[i],2);
+			mygrid->grid_types[i][2] = '\0'; // make sure CG0..9 results in CG
+			if (isdigit(mygrid->grid_types[i][1])) // make sure G0..9 results in G0
+				mygrid->grid_types[i][1] = '0';
+		}
 #if defined(CG_G0_INFO)
 		printf("Atom type %i -> %s -> grid type %s\n",i,myligand->atom_types[i],mygrid->grid_types[i]);
 #endif

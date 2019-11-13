@@ -71,6 +71,27 @@ int main(int argc, char* argv[])
 		return 1;
 
 	//------------------------------------------------------------
+	// Testing command line arguments for cgmaps parameter
+	// since we need it at grid creation time
+	//------------------------------------------------------------
+	mypars.cgmaps = 0; // default is 0 (use one maps for every CGx or Gx atom types, respectively)
+	for (unsigned int i=1; i<argc-1; i+=2)
+	{
+		// ----------------------------------
+		//Argument: Use individual maps for CG-G0 instead of the same one
+		if (strcmp("-cgmaps", argv [i]) == 0)
+		{
+			int tempint;
+			sscanf(argv [i+1], "%ld", &tempint);
+			if (tempint == 0)
+				mypars.cgmaps = 0;
+			else
+				mypars.cgmaps = 1;
+		}
+		// ----------------------------------
+	}
+
+	//------------------------------------------------------------
 	// Processing receptor and ligand files
 	//------------------------------------------------------------
 
@@ -79,7 +100,7 @@ int main(int argc, char* argv[])
 		return 1;
 
 	// Filling the atom types filed of myligand according to the grid types
-	if (init_liganddata(mypars.ligandfile, &myligand_init, &mygrid) != 0)
+	if (init_liganddata(mypars.ligandfile, &myligand_init, &mygrid, mypars.cgmaps) != 0)
 		return 1;
 
 	// Filling myligand according to the pdbqt file
@@ -87,7 +108,7 @@ int main(int argc, char* argv[])
 		return 1;
 
 	//Reading the grid files and storing values in the memory region pointed by floatgrids
-	if (get_gridvalues_f(&mygrid, &floatgrids) != 0)
+	if (get_gridvalues_f(&mygrid, &floatgrids, mypars.cgmaps) != 0)
 		return 1;
 
 	//------------------------------------------------------------
@@ -99,7 +120,7 @@ int main(int argc, char* argv[])
 	Gridinfo   mydummygrid;
 	// if -lxrayfile provided, then read xray ligand data
 	if (mypars.given_xrayligandfile == true) {
-			if (init_liganddata(mypars.xrayligandfile, &myxrayligand, &mydummygrid) != 0)
+			if (init_liganddata(mypars.xrayligandfile, &myxrayligand, &mydummygrid, mypars.cgmaps) != 0)
 				return 1;
 
 			if (get_liganddata(mypars.xrayligandfile, &myxrayligand, mypars.coeffs.AD4_coeff_vdW, mypars.coeffs.AD4_coeff_hb) != 0)

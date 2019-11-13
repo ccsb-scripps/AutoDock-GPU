@@ -120,7 +120,7 @@ typedef struct
 	double 	rotbonds_unit_vectors [MAX_NUM_OF_ROTBONDS][3];
 } Liganddata;
 
-int init_liganddata(const char*, Liganddata*, Gridinfo*);
+int init_liganddata(const char*, Liganddata*, Gridinfo*, bool cgmaps);
 
 int set_liganddata_typeid(Liganddata*, int, const char*);
 

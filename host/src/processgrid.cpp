@@ -136,7 +136,7 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 	return 0;
 }
 
-int get_gridvalues_f(const Gridinfo* mygrid, float** fgrids)
+int get_gridvalues_f(const Gridinfo* mygrid, float** fgrids, bool cgmaps)
 //The function reads the grid point values from the .map files
 //that correspond to the receptor given by the first parameter.
 //It allocates the proper amount of memory and stores the data there,
@@ -179,6 +179,14 @@ int get_gridvalues_f(const Gridinfo* mygrid, float** fgrids)
 		if (fp == NULL)
 		{
 			printf("Error: can't open %s!\n", tempstr);
+			if ((strncmp(mygrid->grid_types[t],"CG",2)==0) ||
+			    (strncmp(mygrid->grid_types[t],"G",1)==0))
+			{
+				if(cgmaps)
+					printf("-> Expecting an individual map for each CGx and Gx (x=0..9) atom type.\n");
+				else
+					printf("-> Expecting one map file, ending in .CG.map and .G0.map, for CGx and Gx atom types, respectively.\n");
+			}
 			return 1;
 		}
 
