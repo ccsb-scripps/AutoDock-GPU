@@ -75,6 +75,8 @@ typedef struct
 		bool  given_xrayligandfile;
 		float ref_ori_angles [3];
 	unsigned long devnum;
+		bool  autostop;
+		float stopstd;
 		char  cgmaps;
 	unsigned long num_of_runs;
 		char  reflig_en_reqired;

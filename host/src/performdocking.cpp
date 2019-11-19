@@ -108,6 +108,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "stringify.h"
 #include "correct_grad_axisangle.h"
 
+inline float average(float* average_sd2_N)
+{
+	if(average_sd2_N[2]<1.0f)
+		return 0.0;
+	return average_sd2_N[0]/average_sd2_N[2];
+}
+
+inline float stddev(float* average_sd2_N)
+{
+	if(average_sd2_N[2]<1.0f)
+		return 0.0;
+	float sq = average_sd2_N[1]*average_sd2_N[2]-average_sd2_N[0]*average_sd2_N[0];
+	if((fabs(sq)<=0.000001) || (sq<0.0)) return 0.0;
+	return sqrt(sq)/average_sd2_N[2];
+}
+
 int docking_with_gpu(const Gridinfo*  	 	mygrid,
 	         /*const*/ float*      		cpu_floatgrids,
                            Dockpars*   		mypars,
@@ -574,9 +590,18 @@ filled with clock() */
 
 	//print progress bar
 #ifndef DOCK_DEBUG
-	printf("\nExecuting docking runs:\n");
-	printf("        20%%        40%%       60%%       80%%       100%%\n");
-	printf("---------+---------+---------+---------+---------+\n");
+	if (mypars->autostop)
+	{
+		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation\nof the best molecules, %u generations, or %u evaluations, whichever comes first:\n\n",mypars->stopstd,mypars->num_of_generations,mypars->num_of_energy_evals);
+		printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
+		printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
+	}
+	else
+	{
+		printf("\nExecuting docking runs:\n");
+		printf("        20%%        40%%       60%%       80%%       100%%\n");
+		printf("---------+---------+---------+---------+---------+\n");
+	}
 #else
 	printf("\n");
 #endif
@@ -907,29 +932,152 @@ filled with clock() */
 	generation_cnt = 1;
 	#endif
 	generation_cnt = 0;
+	bool first_time = true;
+	float* energies;
+	float threshold = 1<<24;
+	float threshold_used;
+	float thres_stddev = threshold;
+	float curr_avg = -(1<<24);
+	float curr_std = thres_stddev;
+	float prev_avg = 0.0;
+	unsigned int roll_count = 0;
+	float rolling[4*3];
+	float rolling_stddev;
+	memset(&rolling[0],0,12*sizeof(float));
+	unsigned int bestN = 1;
+	unsigned int Ntop = mypars->pop_size;
+	unsigned int Ncream = Ntop / 10;
+	float delta_energy = 2.0 * thres_stddev / Ntop;
+	float overall_best_energy;
+	unsigned int avg_arr_size = (Ntop+1)*3;
+	float average_sd2_N[avg_arr_size];
+	unsigned long total_evals;
 	// -------- Replacing with memory maps! ------------
 #if defined (MAPPED_COPY)
-	while ((progress = check_progress(map_cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs)) < 100.0)
+	while ((progress = check_progress(map_cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
 #else
-	while ((progress = check_progress(cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs)) < 100.0)
+	while ((progress = check_progress(cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
 #endif
 	// -------- Replacing with memory maps! ------------
 	{
+		if (mypars->autostop)
+		{
+			if (generation_cnt % 10 == 0) {
+				memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_current,size_energies);
+				for(unsigned int count=0; (count<1+8*(generation_cnt==0)) && (fabs(curr_avg-prev_avg)>0.00001); count++)
+				{
+					threshold_used = threshold;
+					overall_best_energy = 1<<24;
+					memset(&average_sd2_N[0],0,avg_arr_size*sizeof(float));
+					for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
+					{
+						energies = cpu_energies+run_cnt*mypars->pop_size;
+						for (unsigned int i=0; i<mypars->pop_size; i++)
+						{
+							float energy = energies[i];
+							if(energy < overall_best_energy)
+								overall_best_energy = energy;
+							if(energy < threshold)
+							{
+								average_sd2_N[0] += energy;
+								average_sd2_N[1] += energy * energy;
+								average_sd2_N[2] += 1.0;
+								for(unsigned int m=0; m<Ntop; m++)
+									if(energy < (threshold-2.0*thres_stddev)+m*delta_energy)
+									{
+										average_sd2_N[3*(m+1)] += energy;
+										average_sd2_N[3*(m+1)+1] += energy*energy;
+										average_sd2_N[3*(m+1)+2] += 1.0;
+										break; // only one entry per bin
+									}
+							}
+						}
+					}
+					if(first_time)
+					{
+						curr_avg = average(&average_sd2_N[0]);
+						curr_std = stddev(&average_sd2_N[0]);
+						bestN = average_sd2_N[2];
+						thres_stddev = curr_std;
+						threshold = curr_avg + thres_stddev;
+						delta_energy = 2.0 * thres_stddev / (Ntop-1);
+						first_time = false;
+					}
+					else
+					{
+						curr_avg = average(&average_sd2_N[0]);
+						curr_std = stddev(&average_sd2_N[0]);
+						bestN = average_sd2_N[2];
+						average_sd2_N[0] = 0.0;
+						average_sd2_N[1] = 0.0;
+						average_sd2_N[2] = 0.0;
+						unsigned int lowest_energy = 0;
+						for(unsigned int m=0; m<Ntop; m++)
+						{
+							if((average_sd2_N[3*(m+1)+2]>=1.0) && (lowest_energy<Ncream))
+							{
+								if((average_sd2_N[2]<4.0) || fabs(average(&average_sd2_N[0])-average(&average_sd2_N[3*(m+1)]))<2.0*mypars->stopstd)
+								{
+//									printf("Adding %f +/- %f (%i)\n",average(&average_sd2_N[3*(m+1)]),stddev(&average_sd2_N[3*(m+1)]),(unsigned int)average_sd2_N[3*(m+1)+2]);
+									average_sd2_N[0] += average_sd2_N[3*(m+1)];
+									average_sd2_N[1] += average_sd2_N[3*(m+1)+1];
+									average_sd2_N[2] += average_sd2_N[3*(m+1)+2];
+									lowest_energy++;
+								}
+							}
+						}
+//						printf("---\n");
+						if(lowest_energy>0)
+						{
+							curr_avg = average(&average_sd2_N[0]);
+							curr_std = stddev(&average_sd2_N[0]);
+							bestN = average_sd2_N[2];
+						}
+						if(curr_std<0.5f*mypars->stopstd)
+							thres_stddev = mypars->stopstd;
+						else
+							thres_stddev = curr_std;
+						threshold = curr_avg + Ncream * thres_stddev / bestN;
+						delta_energy = 2.0 * thres_stddev / (Ntop-1);
+					}
+				}
+				printf("%11u | %12u |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/mypars->num_of_runs,threshold_used,curr_avg,curr_std,bestN,overall_best_energy);
+				fflush(stdout);
+				rolling[3*roll_count] = curr_avg * bestN;
+				rolling[3*roll_count+1] = (curr_std*curr_std + curr_avg*curr_avg)*bestN;
+				rolling[3*roll_count+2] = bestN;
+				roll_count = (roll_count + 1) % 4;
+				average_sd2_N[0] = rolling[0] + rolling[3] + rolling[6] + rolling[9];
+				average_sd2_N[1] = rolling[1] + rolling[4] + rolling[7] + rolling[10];
+				average_sd2_N[2] = rolling[2] + rolling[5] + rolling[8] + rolling[11];
+				// Finish when the std.dev. of the last 4 rounds is below 0.1 kcal/mol
+				if((stddev(&average_sd2_N[0])<mypars->stopstd) && (generation_cnt>30))
+				{
+					printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
+					printf("\n%43s evaluation after reaching\n%40.2f +/-%8.2f kcal/mol combined.\n%34i samples, best energy %8.2f kcal/mol.\n","Finished",average(&average_sd2_N[0]),stddev(&average_sd2_N[0]),(unsigned int)average_sd2_N[2],overall_best_energy);
+					fflush(stdout);
+					break;
+				}
+			}
+		}
+		else
+		{
 #ifdef DOCK_DEBUG
-		ite_cnt++;
-		printf("\nLGA iteration # %u\n", ite_cnt);
-		fflush(stdout);
-#endif
-		//update progress bar (bar length is 50)
-		new_progress_cnt = (int) (progress/2.0+0.5);
-		if (new_progress_cnt > 50)
-			new_progress_cnt = 50;
-		while (curr_progress_cnt < new_progress_cnt) {
-			curr_progress_cnt++;
-#ifndef DOCK_DEBUG
-			printf("*");
-#endif
+			ite_cnt++;
+			printf("\nLGA iteration # %u\n", ite_cnt);
 			fflush(stdout);
+#endif
+			//update progress bar (bar length is 50)
+			new_progress_cnt = (int) (progress/2.0+0.5);
+			if (new_progress_cnt > 50)
+				new_progress_cnt = 50;
+			while (curr_progress_cnt < new_progress_cnt) {
+				curr_progress_cnt++;
+#ifndef DOCK_DEBUG
+				printf("*");
+#endif
+				fflush(stdout);
+			}
 		}
 		// Kernel4
 		#ifdef DOCK_DEBUG
@@ -1078,11 +1226,14 @@ filled with clock() */
 		#endif
 	} // End of while-loop
 	clock_stop_docking = clock();
-	//update progress bar (bar length is 50)mem_num_of_rotatingatoms_per_rotbond_const
-	while (curr_progress_cnt < 50) {
-		curr_progress_cnt++;
-		printf("*");
-		fflush(stdout);
+	if (mypars->autostop==0)
+	{
+		//update progress bar (bar length is 50)mem_num_of_rotatingatoms_per_rotbond_const
+		while (curr_progress_cnt < 50) {
+			curr_progress_cnt++;
+			printf("*");
+			fflush(stdout);
+		}
 	}
 	printf("\n\n");
 	// ===============================================================================
@@ -1128,7 +1279,7 @@ filled with clock() */
 	clock_stop_program_before_clustering = clock();
 	clusanal_gendlg(cpu_result_ligands, mypars->num_of_runs, myligand_init, mypars,
 					 mygrid, argc, argv, ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs,
-					 ELAPSEDSECS(clock_stop_program_before_clustering, clock_start_program));
+					 ELAPSEDSECS(clock_stop_program_before_clustering, clock_start_program),generation_cnt,total_evals/mypars->num_of_runs);
 	clock_stop_docking = clock();
 /*
 	clReleaseMemObject(mem_atom_charges_const);
@@ -1203,7 +1354,7 @@ filled with clock() */
 	return 0;
 }
 
-double check_progress(int* evals_of_runs, int generation_cnt, int max_num_of_evals, int max_num_of_gens, int num_of_runs)
+double check_progress(int* evals_of_runs, int generation_cnt, int max_num_of_evals, int max_num_of_gens, int num_of_runs, unsigned long &total_evals)
 //The function checks if the stop condition of the docking is satisfied, returns 0 if no, and returns 1 if yes. The fitst
 //parameter points to the array which stores the number of evaluations performed for each run. The second parameter stores
 //the generations used. The other parameters describe the maximum number of energy evaluations, the maximum number of
@@ -1228,17 +1379,16 @@ double check_progress(int* evals_of_runs, int generation_cnt, int max_num_of_eva
 
 	//Stops if the sum of evals of every run reached the sum of the total number of evals
 
-	double total_evals;
 	int i;
 	double evals_progress;
 	double gens_progress;
 
 	//calculating progress according to number of runs
-	total_evals = 0.0;
+	total_evals = 0;
 	for (i=0; i<num_of_runs; i++)
 		total_evals += evals_of_runs[i];
 
-	evals_progress = total_evals/((double) num_of_runs)/max_num_of_evals*100.0;
+	evals_progress = (double)total_evals/((double) num_of_runs)/max_num_of_evals*100.0;
 
 	//calculating progress according to number of generations
 	gens_progress = ((double) generation_cnt)/((double) max_num_of_gens)*100.0; //std::cout<< "gens_progress: " << gens_progress <<std::endl;

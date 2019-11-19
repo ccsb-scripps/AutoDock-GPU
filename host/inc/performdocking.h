@@ -87,6 +87,7 @@ double check_progress(int* evals_of_runs,
 		      int generation_cnt,
 		      int max_num_of_evals,
 		      int max_num_of_gens,
-		      int num_of_runs);
+		      int num_of_runs,
+		      unsigned long &total_evals);
 
 #endif /* PERFORMDOCKING_H_ */

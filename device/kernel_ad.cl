@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
+// #define AD_RHO_CRITERION
 
 // Gradient-based adadelta minimizer
 // https://arxiv.org/pdf/1212.5701.pdf
@@ -473,7 +474,20 @@ gradient_minAD(
 		// Updating number of ADADELTA iterations (energy evaluations)
 		if (tidx == 0) {
 			if (energy < best_energy)
+			{
 				best_energy = energy;
+#ifdef AD_RHO_CRITERION
+				cons_succ++;
+				cons_fail = 0;
+#endif
+			}
+#ifdef AD_RHO_CRITERION
+			else
+			{
+				cons_succ = 0;
+				cons_fail++;
+			}
+#endif
 
 			iteration_cnt = iteration_cnt + 1;
 

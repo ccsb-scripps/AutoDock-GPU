@@ -528,7 +528,7 @@ void cluster_analysis(Ligandresult myresults [], int num_of_runs, char* report_f
 
 void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddata* ligand_ref,
 					 const Dockpars* mypars, const Gridinfo* mygrid, const int* argc, char** argv, const double docking_avg_runtime,
-					 const double program_runtime)
+					 const double program_runtime, unsigned long generations_used, unsigned long evals_performed)
 //The function performs ranked cluster analisys similar to that of AutoDock and creates a file with report_file_name name, the result
 //will be written to it.
 {
@@ -570,6 +570,11 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 
 	write_basic_info_dlg(fp, ligand_ref, mypars, mygrid, argc, argv);
 
+	fprintf(fp, "           COUNTER STATES           \n");
+	fprintf(fp, "___________________________________\n\n");
+	fprintf(fp, "Number of energy evaluations performed:    %d\n", evals_performed);
+	fprintf(fp, "Number of generations used:                %d\n", generations_used);
+	fprintf(fp, "\n\n");
 
 	//writing input pdbqt file
 

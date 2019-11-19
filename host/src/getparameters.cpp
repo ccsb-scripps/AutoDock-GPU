@@ -139,45 +139,47 @@ void get_commandpars(const int* argc,
 
 	// ------------------------------------------
 	//default values
-	mypars->num_of_energy_evals = 2500000;
-	mypars->num_of_generations  = 27000;
-	mypars->abs_max_dmov        = 6.0/(*spacing); 	// +/-6A
-	mypars->abs_max_dang        = 90; 		// +/- 90°
-	mypars->mutation_rate 	    = 2; 		// 2%
-	mypars->crossover_rate 	    = 80;		// 80%
-	mypars->lsearch_rate 	    = 80;		// 80%
+	mypars->num_of_energy_evals	= 2500000;
+	mypars->num_of_generations	= 27000;
+	mypars->abs_max_dmov		= 6.0/(*spacing); 	// +/-6A
+	mypars->abs_max_dang		= 90; 		// +/- 90°
+	mypars->mutation_rate		= 2; 		// 2%
+	mypars->crossover_rate		= 80;		// 80%
+	mypars->lsearch_rate		= 80;		// 80%
 				    // unsigned long num_of_ls
 
 	strcpy(mypars->ls_method, "sw");		// "sw": Solis-Wets, 
 							// "sd": Steepest-Descent
 							// "fire": FIRE, https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
 							// "ad": ADADELTA, https://arxiv.org/abs/1212.5701
-	mypars->smooth              = 0.5f;
-	mypars->tournament_rate     = 60;		// 60%
-	mypars->rho_lower_bound     = 0.01;		// 0.01
-	mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);	// 2 A
-	mypars->base_dang_mul_sqrt3 = 75.0*sqrt(3.0);		// 75°
-	mypars->cons_limit 	    = 4;			// 4
-	mypars->max_num_of_iters    = 300;
-	mypars->pop_size            = 150;
-	mypars->initpop_gen_or_loadfile = 0;
-	mypars->gen_pdbs 	    = 0;
+	mypars->smooth			= 0.5f;
+	mypars->tournament_rate		= 60;		// 60%
+	mypars->rho_lower_bound		= 0.01;		// 0.01
+	mypars->base_dmov_mul_sqrt3	= 2.0/(*spacing)*sqrt(3.0);	// 2 A
+	mypars->base_dang_mul_sqrt3	= 75.0*sqrt(3.0);		// 75°
+	mypars->cons_limit		= 4;		// 4
+	mypars->max_num_of_iters	= 300;
+	mypars->pop_size		= 150;
+	mypars->initpop_gen_or_loadfile	= 0;
+	mypars->gen_pdbs		= 0;
 				    // char fldfile [128]
-		                    // char ligandfile [128]
-			            // float ref_ori_angles [3]
-	mypars->devnum	 	    = 0;
-	mypars->num_of_runs 	    = 1;
-	mypars->reflig_en_reqired   = 0;
+				    // char ligandfile [128]
+				    // float ref_ori_angles [3]
+	mypars->devnum			= 0;
+	mypars->autostop		= 0;
+	mypars->stopstd			= 0.15;
+	mypars->num_of_runs		= 1;
+	mypars->reflig_en_reqired	= 0;
 				    // char unbound_model
 				    // AD4_free_energy_coeffs coeffs
-	mypars->handle_symmetry     = 1;
-	mypars->gen_finalpop        = 0;
-	mypars->gen_best            = 0;
+	mypars->handle_symmetry		= 1;
+	mypars->gen_finalpop		= 0;
+	mypars->gen_best		= 0;
 	strcpy(mypars->resname, "docking");
-	mypars->qasp 		    = 0.01097f;
-	mypars->rmsd_tolerance      = 2.0;			//2 Angström	
+	mypars->qasp			= 0.01097f;
+	mypars->rmsd_tolerance 		= 2.0;			//2 Angstroem
 	strcpy(mypars->xrayligandfile, mypars->ligandfile);	// By default xray-ligand file is the same as the randomized input ligand
-	mypars->given_xrayligandfile      = false;		// That is, not given (explicitly by the user)
+	mypars->given_xrayligandfile	= false;		// That is, not given (explicitly by the user)
 	// ------------------------------------------
 
 	//overwriting values which were defined as a command line argument
@@ -491,6 +493,35 @@ void get_commandpars(const int* argc,
 		}
 		// ----------------------------------
 
+		// ----------------------------------
+		//Argument: Automatic stopping criterion (1) or not (0)
+		if (strcmp("-autostop", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv [i+1], "%ld", &tempint);
+
+			if (tempint == 0)
+				mypars->autostop = 0;
+			else
+				mypars->autostop = 1;
+		}
+		// ----------------------------------
+
+		// ----------------------------------
+		//Argument: Stopping criterion standard deviation.. Must be a float between 0.01 and 2.0;
+		//Means the energy standard deviation of the best candidates after which to stop evaluation when autostop is 1..
+		if (strcmp("-stopstd", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv [i+1], "%f", &tempfloat);
+
+			if ((tempfloat >= 0.01) && (tempfloat < 2.0))
+				mypars->stopstd = tempfloat;
+			else
+				printf("Warning: value of -stopstd argument ignored. Value must be a float between 0.01 and 2.0.\n");
+		}
+		// ----------------------------------
+		
 		//Argument: number of runs. Must be an integer between 1 and 1000.
 		//Means the number of required runs
 		if (strcmp("-nrun", argv [i]) == 0)
