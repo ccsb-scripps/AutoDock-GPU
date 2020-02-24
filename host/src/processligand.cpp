@@ -2175,7 +2175,7 @@ float calc_intraE_f(const Liganddata* myligand,
 	vW = 0;
 	el = 0;
 	desolv = 0;
-
+	
 	if (debug == 1)
 		printf("\n\n\nINTRAMOLECULAR ENERGY CALCULATION\n\n");
 

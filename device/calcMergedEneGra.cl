@@ -343,6 +343,8 @@ void gpu_calc_energrad(
 	// ================================================
 	// CALCULATING INTERMOLECULAR GRADIENTS
 	// ================================================
+	float weights[8];
+	float cube[8];
 	for (uint atom_id = tidx;
 	          atom_id < dockpars_num_of_atoms;
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
@@ -356,15 +358,19 @@ void gpu_calc_energrad(
 		if ((x < 0) || (y < 0) || (z < 0) || (x >= dockpars_gridsize_x-1)
 				                  || (y >= dockpars_gridsize_y-1)
 						  || (z >= dockpars_gridsize_z-1)){
-			partial_energies[tidx] += 16777216.0f; //100000.0f;
+			x -= 0.5f * dockpars_gridsize_x;
+			y -= 0.5f * dockpars_gridsize_y;
+			z -= 0.5f * dockpars_gridsize_z;
+			partial_energies[tidx] += 21.0f * (x*x+y*y+z*z); //100000.0f;
 			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_interE[tidx] += 16777216.0f;
+			partial_interE[tidx] += 21.0f * (x*x+y*y+z*z);
 			#endif
 			// Setting gradients (forces) penalties.
-			// These are valid as long as they are high
-			gradient_inter_x[atom_id] += 16777216.0f;
-			gradient_inter_y[atom_id] += 16777216.0f;
-			gradient_inter_z[atom_id] += 16777216.0f;
+			// The idea here is to push the offending
+			// molecule towards the center rather
+			gradient_inter_x[atom_id] += 42.0f * x;
+			gradient_inter_y[atom_id] += 42.0f * y;
+			gradient_inter_z[atom_id] += 42.0f * z;
 			continue;
 		}
 		// Getting coordinates
@@ -383,30 +389,28 @@ void gpu_calc_energrad(
 		float omdz = 1.0f - dz;
 
 		// Calculating interpolation weights
-		float weights[8];
 		weights [idx_000] = omdx*omdy*omdz;
-		weights [idx_100] = dx*omdy*omdz;
 		weights [idx_010] = omdx*dy*omdz;
-		weights [idx_110] = dx*dy*omdz;
 		weights [idx_001] = omdx*omdy*dz;
-		weights [idx_101] = dx*omdy*dz;
 		weights [idx_011] = omdx*dy*dz;
+		weights [idx_100] = dx*omdy*omdz;
+		weights [idx_110] = dx*dy*omdz;
+		weights [idx_101] = dx*omdy*dz;
 		weights [idx_111] = dx*dy*dz;
 
 		ulong mul_tmp = atom_typeid*g3<<2;
-		float cube[8];
-		cube[0] = *(grid_value_000+mul_tmp+0) * weights [0];
-		cube[1] = *(grid_value_000+mul_tmp+1) * weights [1];
-		cube[2] = *(grid_value_000+mul_tmp+2) * weights [2];
-		cube[3] = *(grid_value_000+mul_tmp+3) * weights [3];
-		cube[4] = *(grid_value_000+mul_tmp+4) * weights [4];
-		cube[5] = *(grid_value_000+mul_tmp+5) * weights [5];
-		cube[6] = *(grid_value_000+mul_tmp+6) * weights [6];
-		cube[7] = *(grid_value_000+mul_tmp+7) * weights [7];
+		cube[0] = *(grid_value_000+mul_tmp+0);
+		cube[1] = *(grid_value_000+mul_tmp+1);
+		cube[2] = *(grid_value_000+mul_tmp+2);
+		cube[3] = *(grid_value_000+mul_tmp+3);
+		cube[4] = *(grid_value_000+mul_tmp+4);
+		cube[5] = *(grid_value_000+mul_tmp+5);
+		cube[6] = *(grid_value_000+mul_tmp+6);
+		cube[7] = *(grid_value_000+mul_tmp+7);
 		// Calculating affinity energy
-		partial_energies[tidx] += cube[0] + cube[1] + cube[2] + cube[3] + cube[4] + cube[5] + cube[6] + cube[7];
+		partial_energies[tidx] += cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7];
 		#if defined (DEBUG_ENERGY_KERNEL)
-		partial_interE[tidx] += cube[0] + cube[1] + cube[2] + cube[3] + cube[4] + cube[5] + cube[6] + cube[7];
+		partial_interE[tidx] += cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7];
 		#endif
 		// -------------------------------------------------------------------
 		// Deltas dx, dy, dz are already normalized 
@@ -452,44 +456,14 @@ void gpu_calc_energrad(
 
 		// AT - all in one go with no intermediate variables (following calcs are similar)
 		// Vector in x-direction
-/*		gradient_inter_x[atom_id] += omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
+		gradient_inter_x[atom_id] += omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
 		                               dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011]));
-		= weights[idx_100]*cube[idx_100] / dx - weights[idx_000]*cube[idx_000] / omdx +
-		  weights[idx_110]*cube[idx_110] / dx - weights[idx_010]*cube[idx_010] / omdx +
-		  weights[idx_101]*cube[idx_101] / dx - weights[idx_001]*cube[idx_001] / omdx +
-		  weights[idx_111]*cube[idx_111] / dx - weights[idx_011]*cube[idx_011] / omdx
-		= ( weights[idx_100]*cube[idx_100] +          ( weights[idx_000]*cube[idx_000] +
-		    weights[idx_110]*cube[idx_110] +       -    weights[idx_010]*cube[idx_010] +
-		    weights[idx_101]*cube[idx_101] +            weights[idx_001]*cube[idx_001] +
-		    weights[idx_111]*cube[idx_111] ) / dx       weights[idx_011]*cube[idx_011] ) / omdx */
-		gradient_inter_x[atom_id] += native_divide(cube[idx_100] + cube[idx_110] + cube[idx_101] + cube[idx_111],dx) -
-					     native_divide(cube[idx_000] + cube[idx_010] + cube[idx_001] + cube[idx_011],omdx);
 		// Vector in y-direction
-/*		gradient_inter_y[atom_id] += omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
+		gradient_inter_y[atom_id] += omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
 		                               dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101]));
-		= weights[idx_010]*cube[idx_010] / dy - weights[idx_000]*cube[idx_000] / omdy +
-		  weights[idx_110]*cube[idx_110] / dy - weights[idx_100]*cube[idx_100] / omdy +
-		  weights[idx_011]*cube[idx_011] / dy - weights[idx_001]*cube[idx_001] / omdy +
-		  weights[idx_111]*cube[idx_111] / dy - weights[idx_101]*cube[idx_101] / omdy
-		= ( weights[idx_010]*cube[idx_010] +          ( weights[idx_000]*cube[idx_000] +
-		    weights[idx_011]*cube[idx_011] +       -    weights[idx_001]*cube[idx_001] +
-		    weights[idx_110]*cube[idx_110] +            weights[idx_100]*cube[idx_100] +
-		    weights[idx_111]*cube[idx_111] ) / dy       weights[idx_101]*cube[idx_101] ) / omdy */
-		gradient_inter_y[atom_id] += native_divide(cube[idx_010] + cube[idx_011] + cube[idx_110] + cube[idx_111],dy) -
-					     native_divide(cube[idx_000] + cube[idx_001] + cube[idx_100] + cube[idx_101],omdy);
 		// Vectors in z-direction
-/*		gradient_inter_z[atom_id] += omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
+		gradient_inter_z[atom_id] += omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
 		                               dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110]));
-		= weights[idx_001]*cube[idx_001] / dz - weights[idx_000]*cube[idx_000] / omdz +
-		  weights[idx_101]*cube[idx_101] / dz - weights[idx_100]*cube[idx_100] / omdz +
-		  weights[idx_011]*cube[idx_011] / dz - weights[idx_010]*cube[idx_010] / omdz +
-		  weights[idx_111]*cube[idx_111] / dz - weights[idx_110]*cube[idx_110] / omdz
-		= ( weights[idx_001]*cube[idx_001] +          ( weights[idx_000]*cube[idx_000]
-		    weights[idx_011]*cube[idx_011] +       -    weights[idx_010]*cube[idx_010]
-		    weights[idx_101]*cube[idx_101] +            weights[idx_100]*cube[idx_100]
-		    weights[idx_111]*cube[idx_111] ) / dz       weights[idx_110]*cube[idx_110] ) / omdz */
-		gradient_inter_z[atom_id] += native_divide(cube[idx_001] + cube[idx_011] + cube[idx_101] + cube[idx_111],dz) -
-					     native_divide(cube[idx_000] + cube[idx_010] + cube[idx_100] + cube[idx_110],omdz);
 		// -------------------------------------------------------------------
 		// Calculating gradients (forces) corresponding to 
 		// "elec" intermolecular energy
@@ -500,30 +474,30 @@ void gpu_calc_energrad(
 		atom_typeid = dockpars_num_of_atypes;
 
 		mul_tmp = atom_typeid*g3<<2; // different atom type id to get charge IA
-		cube[0] = *(grid_value_000+mul_tmp+0) * weights [0];
-		cube[1] = *(grid_value_000+mul_tmp+1) * weights [1];
-		cube[2] = *(grid_value_000+mul_tmp+2) * weights [2];
-		cube[3] = *(grid_value_000+mul_tmp+3) * weights [3];
-		cube[4] = *(grid_value_000+mul_tmp+4) * weights [4];
-		cube[5] = *(grid_value_000+mul_tmp+5) * weights [5];
-		cube[6] = *(grid_value_000+mul_tmp+6) * weights [6];
-		cube[7] = *(grid_value_000+mul_tmp+7) * weights [7];
+		cube[0] = *(grid_value_000+mul_tmp+0);
+		cube[1] = *(grid_value_000+mul_tmp+1);
+		cube[2] = *(grid_value_000+mul_tmp+2);
+		cube[3] = *(grid_value_000+mul_tmp+3);
+		cube[4] = *(grid_value_000+mul_tmp+4);
+		cube[5] = *(grid_value_000+mul_tmp+5);
+		cube[6] = *(grid_value_000+mul_tmp+6);
+		cube[7] = *(grid_value_000+mul_tmp+7);
 
 		// Calculating affinity energy
-		partial_energies[tidx] += q * (cube[0] + cube[1] + cube[2] + cube[3] + cube[4] + cube[5] + cube[6] + cube[7]);
+		partial_energies[tidx] += q * (cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
 		#if defined (DEBUG_ENERGY_KERNEL)
-		partial_interE[tidx] += q *(cube[0] + cube[1] + cube[2] + cube[3] + cube[4] + cube[5] + cube[6] + cube[7]);
+		partial_interE[tidx] += q *(cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
 		#endif
 
 		// Vector in x-direction
-		gradient_inter_x[atom_id] += q * (native_divide(cube[idx_100] + cube[idx_110] + cube[idx_101] + cube[idx_111],dx) -
-					          native_divide(cube[idx_000] + cube[idx_010] + cube[idx_001] + cube[idx_011],omdx));
+		gradient_inter_x[atom_id] += q * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
+		                                     dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011])));
 		// Vector in y-direction
-		gradient_inter_y[atom_id] += q * (native_divide(cube[idx_010] + cube[idx_011] + cube[idx_110] + cube[idx_111],dy) -
-					          native_divide(cube[idx_000] + cube[idx_001] + cube[idx_100] + cube[idx_101],omdy));
+		gradient_inter_y[atom_id] += q * ( omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
+		                                     dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101])));
 		// Vectors in z-direction
-		gradient_inter_z[atom_id] += q * (native_divide(cube[idx_001] + cube[idx_011] + cube[idx_101] + cube[idx_111],dz) -
-					          native_divide(cube[idx_000] + cube[idx_010] + cube[idx_100] + cube[idx_110],omdz));
+		gradient_inter_z[atom_id] += q * ( omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
+		                                     dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110])));
 		// -------------------------------------------------------------------
 		// Calculating gradients (forces) corresponding to 
 		// "dsol" intermolecular energy
@@ -533,30 +507,30 @@ void gpu_calc_energrad(
 		q = fabs(q);
 		// Capturing desolvation values (atom_typeid+1 compared to above => mul_tmp + g3*4)
 		mul_tmp += g3<<2;
-		cube[0] = *(grid_value_000+mul_tmp+0) * weights [0];
-		cube[1] = *(grid_value_000+mul_tmp+1) * weights [1];
-		cube[2] = *(grid_value_000+mul_tmp+2) * weights [2];
-		cube[3] = *(grid_value_000+mul_tmp+3) * weights [3];
-		cube[4] = *(grid_value_000+mul_tmp+4) * weights [4];
-		cube[5] = *(grid_value_000+mul_tmp+5) * weights [5];
-		cube[6] = *(grid_value_000+mul_tmp+6) * weights [6];
-		cube[7] = *(grid_value_000+mul_tmp+7) * weights [7];
+		cube[0] = *(grid_value_000+mul_tmp+0);
+		cube[1] = *(grid_value_000+mul_tmp+1);
+		cube[2] = *(grid_value_000+mul_tmp+2);
+		cube[3] = *(grid_value_000+mul_tmp+3);
+		cube[4] = *(grid_value_000+mul_tmp+4);
+		cube[5] = *(grid_value_000+mul_tmp+5);
+		cube[6] = *(grid_value_000+mul_tmp+6);
+		cube[7] = *(grid_value_000+mul_tmp+7);
 
 		// Calculating affinity energy
-		partial_energies[tidx] += q * (cube[0] + cube[1] + cube[2] + cube[3] + cube[4] + cube[5] + cube[6] + cube[7]);
+		partial_energies[tidx] += q * (cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
 		#if defined (DEBUG_ENERGY_KERNEL)
-		partial_interE[tidx] += q *(cube[0] + cube[1] + cube[2] + cube[3] + cube[4] + cube[5] + cube[6] + cube[7]);
+		partial_interE[tidx] += q *(cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
 		#endif
 
 		// Vector in x-direction
-		gradient_inter_x[atom_id] += q * (native_divide(cube[idx_100] + cube[idx_110] + cube[idx_101] + cube[idx_111],dx) -
-					          native_divide(cube[idx_000] + cube[idx_010] + cube[idx_001] + cube[idx_011],omdx));
+		gradient_inter_x[atom_id] += q * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
+		                                     dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011])));
 		// Vector in y-direction
-		gradient_inter_y[atom_id] += q * (native_divide(cube[idx_010] + cube[idx_011] + cube[idx_110] + cube[idx_111],dy) -
-					          native_divide(cube[idx_000] + cube[idx_001] + cube[idx_100] + cube[idx_101],omdy));
+		gradient_inter_y[atom_id] += q * ( omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
+		                                     dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101])));
 		// Vectors in z-direction
-		gradient_inter_z[atom_id] += q * (native_divide(cube[idx_001] + cube[idx_011] + cube[idx_101] + cube[idx_111],dz) -
-					          native_divide(cube[idx_000] + cube[idx_010] + cube[idx_100] + cube[idx_110],omdz));
+		gradient_inter_z[atom_id] += q * ( omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
+		                                     dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110])));
 		// -------------------------------------------------------------------
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
 
@@ -565,6 +539,7 @@ void gpu_calc_energrad(
 	// As these two require different operations,
 	// they can be executed only sequentially on the GPU.
 	float delta_distance = 0.5f*dockpars_smooth;
+	float smoothed_distance;
 
 	// ================================================
 	// CALCULATING INTRAMOLECULAR GRADIENTS
@@ -626,14 +601,10 @@ void gpu_calc_energrad(
 
 			// Getting smoothed distance
 			// smoothed_distance = function(atomic_distance, opt_distance)
-			float smoothed_distance = opt_distance;
-
-			if (atomic_distance <= (opt_distance - delta_distance)) {
-				smoothed_distance = atomic_distance + delta_distance;
-			}
-			if (atomic_distance >= (opt_distance + delta_distance)) {
-				smoothed_distance = atomic_distance - delta_distance;
-			}
+			float opt_dist_delta = opt_distance - atomic_distance;
+			if(fabs(opt_dist_delta)>=delta_distance){
+				smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
+			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
 			uint idx = atom1_typeid * dockpars_num_of_atypes + atom2_typeid;
 			float nvbond = 1.0 - vbond;
@@ -652,38 +623,57 @@ void gpu_calc_energrad(
 		{
 			float q1 = kerconst_interintra->atom_charges_const[atom1_id];
 			float q2 = kerconst_interintra->atom_charges_const[atom2_id];
-			float exp_el = native_exp(DIEL_B_TIMES_H*atomic_distance);
+//			float exp_el = native_exp(DIEL_B_TIMES_H*atomic_distance);
+			float dist2 = atomic_distance*atomic_distance;
 			// Calculating desolvation term
 			// 1/25.92 = 0.038580246913580245
 			float desolv_energy =  ((kerconst_intra->dspars_S_const[atom1_typeid] +
 						 dockpars_qasp*fabs(q1)) * kerconst_intra->dspars_V_const[atom2_typeid] +
 						(kerconst_intra->dspars_S_const[atom2_typeid] +
 						 dockpars_qasp*fabs(q2)) * kerconst_intra->dspars_V_const[atom1_typeid]) *
-							dockpars_coeff_desolv*native_exp(-0.03858025f*atomic_distance*atomic_distance);
+						native_divide (
+								dockpars_coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)),
+								(12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2)))
+							      );
+//						dockpars_coeff_desolv*native_exp(-0.03858025f*atomic_distance*atomic_distance);
 						  // Calculating electrostatic term
-			partial_energies[tidx] += native_divide (
+/*			partial_energies[tidx] += native_divide (
 								  dockpars_coeff_elec * q1 * q2,
 								  atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + native_divide(DIEL_K,exp_el))))
 								) +
-						  desolv_energy;
+						  desolv_energy;*/
+			float dist_shift=atomic_distance+1.588f;
+			dist2=dist_shift*dist_shift;
+			float disth_shift=atomic_distance+0.794f;
+			float disth4=disth_shift*disth_shift;
+			disth4*=disth4;
+			float diel = native_divide(1.404f,dist2)+native_divide(0.072f,disth4)+0.00831f;
+			float es_energy = native_divide (
+							  dockpars_coeff_elec * q1 * q2,
+							  atomic_distance
+							);
+			partial_energies[tidx] += diel * es_energy + desolv_energy;
 
 			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_intraE[tidx] += native_divide (
+/*				partial_intraE[tidx] += native_divide (
 							       dockpars_coeff_elec * q1 * q2,
 							       atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + native_divide(DIEL_K,exp_el))))
 							      ) +
-						desolv_energy;
+						desolv_energy;*/
+			partial_intraE[tidx] += diel * es_energy + desolv_energy;
 			#endif
 
 			// http://www.wolframalpha.com/input/?i=1%2F(x*(A%2B(B%2F(1%2BK*exp(-h*B*x)))))
-			float exp_el_DIEL_K = exp_el + DIEL_K;
+/*			float exp_el_DIEL_K = exp_el + DIEL_K;
 			float upper = DIEL_A * exp_el_DIEL_K*exp_el_DIEL_K +
 				      DIEL_B * exp_el * (DIEL_B_TIMES_H_TIMES_K*atomic_distance + exp_el_DIEL_K);
 			float lower = atomic_distance * (DIEL_A * exp_el_DIEL_K + DIEL_B * exp_el);
-			lower *= lower;
+			lower *= lower;*/
 
-			priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * q1 * q2 * native_divide (upper, lower) -
-								0.077160f * atomic_distance * desolv_energy;
+//			priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * q1 * q2 * native_divide (upper, lower) -
+//								0.0771605f * atomic_distance * desolv_energy;
+			priv_gradient_per_intracontributor +=  -native_divide(es_energy,atomic_distance) * diel - es_energy * (native_divide (2.808f,dist2*dist_shift)+native_divide(0.288f,disth4*disth_shift)) -
+								0.0771605f * atomic_distance * desolv_energy; // 1/3.6^2 = 1/12.96 = 0.0771605
 		} // if cuttoff2 - internuclear-distance at 20.48A
 
 
@@ -892,9 +882,9 @@ void gpu_calc_energrad(
 
 		// This is where we are in the orientation axis-angle space
 		// Equivalent to "current_oclacube" in autodockdev/motions.py
-		float current_phi      = fmod(PI_TIMES_2 + phi, PI_TIMES_2);
-		float current_theta    = fmod(PI_TIMES_2 + theta, PI_TIMES_2);
- 		float current_rotangle = fmod(PI_TIMES_2 + genrotangle, PI_TIMES_2);
+		float current_phi      = fmod_pi2(PI_TIMES_2 + phi);
+		float current_theta    = fmod_pi2(PI_TIMES_2 + theta);
+		float current_rotangle = fmod_pi2(PI_TIMES_2 + genrotangle);
 
 		// This is where we want to be in the orientation axis-angle space
 		float target_phi, target_theta, target_rotangle;
@@ -902,11 +892,11 @@ void gpu_calc_energrad(
 		// target_oclacube = quaternion_to_oclacube(target_q, theta_larger_than_pi)
 		// Derived from autodockdev/motions.py/quaternion_to_oclacube()
 		// In our terms means quaternion_to_oclacube(target_q{w|x|y|z}, theta_larger_than_pi)
-		target_rotangle = 2.0f * acos(target_q.w); // = 2.0f * ang;
+		target_rotangle = 2.0f * fast_acos(target_q.w); // = 2.0f * ang;
 		float sin_ang = native_sqrt(1.0f-target_q.w*target_q.w); // = native_sin(ang);
 
-		target_theta = PI_TIMES_2 + is_theta_gt_pi * acos( native_divide ( target_q.z, sin_ang ) );
-		target_phi   = fmod((atan2( is_theta_gt_pi*target_q.y, is_theta_gt_pi*target_q.x) + PI_TIMES_2), PI_TIMES_2);
+		target_theta = PI_TIMES_2 + is_theta_gt_pi * fast_acos( native_divide ( target_q.z, sin_ang ) );
+		target_phi   = fmod_pi2((atan2( is_theta_gt_pi*target_q.y, is_theta_gt_pi*target_q.x) + PI_TIMES_2));
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -928,9 +918,9 @@ void gpu_calc_energrad(
 
 		// Derivates in cube3
 		float grad_phi, grad_theta, grad_rotangle;
-		grad_phi      = orientation_scaling * (fmod(target_phi      - current_phi      + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
-		grad_theta    = orientation_scaling * (fmod(target_theta    - current_theta    + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
-		grad_rotangle = orientation_scaling * (fmod(target_rotangle - current_rotangle + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
+		grad_phi      = orientation_scaling * (fmod_pi2(target_phi      - current_phi      + PI_FLOAT) - PI_FLOAT);
+		grad_theta    = orientation_scaling * (fmod_pi2(target_theta    - current_theta    + PI_FLOAT) - PI_FLOAT);
+		grad_rotangle = orientation_scaling * (fmod_pi2(target_rotangle - current_rotangle + PI_FLOAT) - PI_FLOAT);
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");

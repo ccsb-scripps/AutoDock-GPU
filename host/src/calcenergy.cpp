@@ -535,6 +535,5 @@ int gen_rotlist(Liganddata* myligand, int rotlist[MAX_NUM_OF_ROTATIONS])
 		make_reqrot_ordering(number_of_req_rotations, atom_id_of_numrots, myligand->num_of_atoms);
 		(myligand->num_of_rotcyc)++;
 	}
-
 	return 0;
 }

@@ -66,6 +66,32 @@ typedef struct
        float ref_orientation_quats_const  [4*MAX_NUM_OF_RUNS];
 } kernelconstant_conform;
 
+#define invpi2 1.0f/PI_TIMES_2
+
+inline float fmod_pi2(float x)
+{
+	return x-(int)(invpi2*x)*PI_TIMES_2;
+}
+
+#define fast_acos_a  9.78056e-05
+#define fast_acos_b -0.00104588f
+#define fast_acos_c  0.00418716f
+#define fast_acos_d -0.00314347f
+#define fast_acos_e  2.74084f
+#define fast_acos_f  0.370388f
+#define fast_acos_o -(fast_acos_a+fast_acos_b+fast_acos_c+fast_acos_d)
+
+inline float fast_acos(float cosine)
+{
+	float x=fabs(cosine);
+	float x2=x*x;
+	float x3=x2*x;
+	float x4=x3*x;
+	float ac=(((fast_acos_o*x4+fast_acos_a)*x3+fast_acos_b)*x2+fast_acos_c)*x+fast_acos_d+
+		 fast_acos_e*native_sqrt(2.0f-native_sqrt(2.0f+2.0f*x))-fast_acos_f*native_sqrt(2.0f-2.0f*x);
+	return copysign(ac,cosine) + (cosine<0.0f)*PI_FLOAT;
+}
+
 inline float4 quaternion_multiply(float4 a, float4 b)
 {
 	float4 result = { a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y, // x
@@ -427,18 +453,25 @@ if (tidx == 0) {
 		{
 			float q1 = kerconst_interintra->atom_charges_const[atom1_id];
 			float q2 = kerconst_interintra->atom_charges_const[atom2_id];
-						  // Calculating electrostatic term
-			partial_energies[tidx] += native_divide (
-								  dockpars_coeff_elec * q1 * q2,
-								  atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
-								) +
-						  // Calculating desolvation term
-						  // 1/25.92 = 0.038580246913580245
-						  ((kerconst_intra->dspars_S_const[atom1_typeid] +
-						    dockpars_qasp*fabs(q1)) * kerconst_intra->dspars_V_const[atom2_typeid] +
-						   (kerconst_intra->dspars_S_const[atom2_typeid] +
-						    dockpars_qasp*fabs(q2)) * kerconst_intra->dspars_V_const[atom1_typeid]) *
-							    dockpars_coeff_desolv*native_exp(-0.03858025f*atomic_distance*atomic_distance);
+			float dist2 = atomic_distance*atomic_distance;
+			// Calculating desolvation term
+			float desolv_energy =  ((kerconst_intra->dspars_S_const[atom1_typeid] +
+						 dockpars_qasp*fabs(q1)) * kerconst_intra->dspars_V_const[atom2_typeid] +
+						(kerconst_intra->dspars_S_const[atom2_typeid] +
+						 dockpars_qasp*fabs(q2)) * kerconst_intra->dspars_V_const[atom1_typeid]) *
+						native_divide (
+								dockpars_coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)),
+								(12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2))) // *native_exp(-0.03858025f*atomic_distance*atomic_distance);
+							      );
+			// Calculating electrostatic term
+			float dist_shift=atomic_distance+1.261f;
+			dist2=dist_shift*dist_shift;
+			float diel = native_divide(1.105f,dist2)+0.0104f;
+			float es_energy = native_divide (
+							  dockpars_coeff_elec * q1 * q2,
+							  atomic_distance
+							);
+			partial_energies[tidx] += diel * es_energy + desolv_energy;
 			#if 0
 			smoothed_intraE += native_divide (
 							  dockpars_coeff_elec * q1 * q2,

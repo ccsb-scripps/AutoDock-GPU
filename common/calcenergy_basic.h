@@ -66,18 +66,6 @@ typedef enum
 	idx_111 = 7
 } indices;
 
-/*typedef enum
-{
-	idx_000 = 0,
-	idx_100 = 1,
-	idx_010 = 2,
-	idx_110 = 3,
-	idx_001 = 4,
-	idx_101 = 5,
-	idx_011 = 6,
-	idx_111 = 7
-} indices;*/
-
 // Macro for trilinear interpolation
 #define TRILININTERPOL(cube, weights) (cube[idx_000]*weights[idx_000] + \
 				       cube[idx_010]*weights[idx_010] + \
