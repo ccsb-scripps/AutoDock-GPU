@@ -66,7 +66,7 @@ typedef struct
        float ref_orientation_quats_const  [4*MAX_NUM_OF_RUNS];
 } kernelconstant_conform;
 
-#define invpi2 1.0f/PI_TIMES_2
+#define invpi2 1.0f/(PI_TIMES_2)
 
 inline float fmod_pi2(float x)
 {

@@ -97,18 +97,22 @@ typedef struct
 // (GRID-SPACING * GRID-SPACING) / (DEG_TO_RAD * DEG_TO_RAD) = 461.644
 #define SCFACTOR_ANGSTROM_RADIAN ((0.375 * 0.375)/(DEG_TO_RAD * DEG_TO_RAD))
 
+#define INV_360 1.0f/360.0f
+
 void map_priv_angle(float* angle)
 // The GPU device function maps
 // the input parameter to the interval 0...360
 // (supposing that it is an angle).
 {
-	while (*angle >= 360.0f) {
+	*angle += ((*angle<0.0f) - (int)(INV_360*(*angle)))*360.0f;
+
+/*	while (*angle >= 360.0f) {
 		*angle -= 360.0f;
 	}
 
 	while (*angle < 0.0f) {
 		*angle += 360.0f;
-	}
+	}*/
 }
 
 #pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
