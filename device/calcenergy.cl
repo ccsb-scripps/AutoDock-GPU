@@ -110,11 +110,42 @@ inline float4 quaternion_rotate(float4 v, float4 rot)
 
 // CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 // updates calc_coords
-inline void calc_atom_pos_after_rotations(int tidx, int dockpars_rotbondlist_length, __constant kernelconstant_rotlist* kerconst_rotlist,
-                                          __constant kernelconstant_conform* kerconst_conform, __local int* run_id, float4 genrot_unitvec,
-                                          float4 genrot_movingvec, __local float* genotype,
+inline void calc_atom_pos_after_rotations(int tidx, char dockpars_num_of_atoms, int dockpars_rotbondlist_length, __constant kernelconstant_rotlist* kerconst_rotlist,
+                                          __constant kernelconstant_conform* kerconst_conform, __local int* run_id, __local float* genotype,
                                           __local float4* calc_coords)
 {
+        // Initializing gradients (forces)
+        // Derived from autodockdev/maps.py
+        for (uint atom_id = tidx;
+                  atom_id < dockpars_num_of_atoms;
+                  atom_id+= NUM_OF_THREADS_PER_BLOCK) {
+                // Initialize coordinates
+                calc_coords[atom_id] = (float4)(kerconst_conform->ref_coords_const[3*atom_id],
+                                                kerconst_conform->ref_coords_const[3*atom_id+1],
+                                                kerconst_conform->ref_coords_const[3*atom_id+2],0);
+        }
+
+        // General rotation moving vector
+        float4 genrot_movingvec;
+        genrot_movingvec.x = genotype[0];
+        genrot_movingvec.y = genotype[1];
+        genrot_movingvec.z = genotype[2];
+        genrot_movingvec.w = 0.0;
+        // Convert orientation genes from sex. to radians
+        float phi         = genotype[3] * DEG_TO_RAD;
+        float theta       = genotype[4] * DEG_TO_RAD;
+        float genrotangle = genotype[5] * DEG_TO_RAD;
+
+        float4 genrot_unitvec;
+        float sin_angle = native_sin(theta);
+        float s2 = native_sin(genrotangle*0.5f);
+        genrot_unitvec.x = s2*sin_angle*native_cos(phi);
+        genrot_unitvec.y = s2*sin_angle*native_sin(phi);
+        genrot_unitvec.z = s2*native_cos(theta);
+        genrot_unitvec.w = native_cos(genrotangle*0.5f);
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+
 	for (uint rotation_counter = tidx;
                   rotation_counter < dockpars_rotbondlist_length;
                   rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
@@ -396,45 +427,16 @@ void gpu_calc_energy(
 //determines which reference orientation should be used.
 {
 	int tidx = get_local_id(0);
-	partial_energies[tidx] = 0.0f;
-
-	// Initializing gradients (forces) 
-	// Derived from autodockdev/maps.py
-	for (uint atom_id = tidx;
-		  atom_id < dockpars_num_of_atoms;
-		  atom_id+= NUM_OF_THREADS_PER_BLOCK) {
-		// Initialize coordinates
-		calc_coords[atom_id] = (float4)(kerconst_conform->ref_coords_const[3*atom_id],
-						kerconst_conform->ref_coords_const[3*atom_id+1],
-						kerconst_conform->ref_coords_const[3*atom_id+2],0);
-	}
-
-	// General rotation moving vector
-	float4 genrot_movingvec;
-	genrot_movingvec.x = genotype[0];
-	genrot_movingvec.y = genotype[1];
-	genrot_movingvec.z = genotype[2];
-	genrot_movingvec.w = 0.0;
-	// Convert orientation genes from sex. to radians
-	float phi         = genotype[3] * DEG_TO_RAD;
-	float theta       = genotype[4] * DEG_TO_RAD;
-	float genrotangle = genotype[5] * DEG_TO_RAD;
-
-	float4 genrot_unitvec;
-	float sin_angle = native_sin(theta);
-	float s2 = native_sin(genrotangle*0.5f);
-	genrot_unitvec.x = s2*sin_angle*native_cos(phi);
-	genrot_unitvec.y = s2*sin_angle*native_sin(phi);
-	genrot_unitvec.z = s2*native_cos(theta);
-	genrot_unitvec.w = native_cos(genrotangle*0.5f);
-
-	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 	// ================================================
-	calc_atom_pos_after_rotations(tidx, dockpars_rotbondlist_length, kerconst_rotlist, kerconst_conform, run_id, genrot_unitvec,
-                                          genrot_movingvec, genotype, calc_coords);
+	calc_atom_pos_after_rotations(tidx, dockpars_num_of_atoms, dockpars_rotbondlist_length, kerconst_rotlist, kerconst_conform, run_id, genotype,
+                                      calc_coords);
+
+
+        // Initialize partial energies
+        partial_energies[tidx] = 0.0f;
 
 	// ================================================
 	// CALCULATING INTERMOLECULAR ENERGY
