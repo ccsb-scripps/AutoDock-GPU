@@ -108,6 +108,145 @@ inline float4 quaternion_rotate(float4 v, float4 rot)
 
 // All related pragmas are in defines.h (accesible by host and device code)
 
+// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
+// updates calc_coords
+inline void calc_atom_pos_after_rotations(int tidx, int dockpars_rotbondlist_length, __constant kernelconstant_rotlist* kerconst_rotlist,
+                                          __constant kernelconstant_conform* kerconst_conform, __local int* run_id, float4 genrot_unitvec,
+                                          float4 genrot_movingvec, __local float* genotype,
+                                          __local float4* calc_coords)
+{
+	for (uint rotation_counter = tidx;
+                  rotation_counter < dockpars_rotbondlist_length;
+                  rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
+        {       
+                int rotation_list_element = kerconst_rotlist->rotlist_const[rotation_counter];
+                
+                if ((rotation_list_element & RLIST_DUMMY_MASK) == 0)    // If not dummy rotation
+                {       
+                        uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
+                        
+                        // Capturing atom coordinates
+                        float4 atom_to_rotate = calc_coords[atom_id];
+                        
+                        // initialize with general rotation values
+                        float4 rotation_unitvec = genrot_unitvec;
+                        float4 rotation_movingvec = genrot_movingvec;
+                        
+                        if ((rotation_list_element & RLIST_GENROT_MASK) == 0) // If rotating around rotatable bond
+                        {       
+                                uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
+                                
+                                float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
+                                float s = native_sin(rotation_angle);
+                                rotation_unitvec = (float4)(s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id],
+                                                            s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1],
+                                                            s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2],
+                                                            native_cos(rotation_angle));
+                                rotation_movingvec = (float4)(kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id],
+                                                              kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1],
+                                                              kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2],0);
+                                // Performing additionally the first movement which
+                                // is needed only if rotating around rotatable bond
+                                atom_to_rotate -= rotation_movingvec;
+                        }
+                        
+                        float4 quatrot_left = rotation_unitvec;
+                        // Performing rotation
+                        if ((rotation_list_element & RLIST_GENROT_MASK) != 0)   // If general rotation, 
+                                                                                // two rotations should be performed
+                                                                                // (multiplying the quaternions)
+                        {       
+                                // Calculating quatrot_left*ref_orientation_quats_const,
+                                // which means that reference orientation rotation is the first
+                                uint rid4 = 4*(*run_id);
+                                quatrot_left = quaternion_multiply(quatrot_left,
+                                                                   (float4)(kerconst_conform->ref_orientation_quats_const[rid4+0],
+                                                                            kerconst_conform->ref_orientation_quats_const[rid4+1],
+                                                                            kerconst_conform->ref_orientation_quats_const[rid4+2],
+                                                                            kerconst_conform->ref_orientation_quats_const[rid4+3]));
+                        }
+                        
+                        // Performing final movement and storing values
+                        calc_coords[atom_id] = quaternion_rotate(atom_to_rotate,quatrot_left) + rotation_movingvec;
+                
+                } // End if-statement not dummy rotation
+                
+                barrier(CLK_LOCAL_MEM_FENCE);
+        
+        } // End rotation_counter for-loop
+}
+
+// CALCULATING INTERMOLECULAR ENERGY
+// updates partial_energies
+inline void calc_intermolecular_energy(int tidx,char dockpars_num_of_atoms,__constant kernelconstant_interintra* kerconst_interintra,__local float4* calc_coords,char dockpars_gridsize_x,char dockpars_gridsize_y,char dockpars_gridsize_z,
+                                   uint dockpars_gridsize_x_times_y,uint dockpars_gridsize_x_times_y_times_z,__global const float* restrict dockpars_fgrids,char dockpars_num_of_atypes,
+                                   __local float* partial_energies)
+{
+        uint g1 = dockpars_gridsize_x;
+        uint g2 = dockpars_gridsize_x_times_y;
+        uint g3 = dockpars_gridsize_x_times_y_times_z;
+
+        for (uint atom_id = tidx;
+                  atom_id < dockpars_num_of_atoms;
+                  atom_id+= NUM_OF_THREADS_PER_BLOCK)
+        {
+                uint atom_typeid = kerconst_interintra->atom_types_const[atom_id];
+                float x = calc_coords[atom_id].x;
+                float y = calc_coords[atom_id].y;
+                float z = calc_coords[atom_id].z;
+                float q = kerconst_interintra->atom_charges_const[atom_id];
+                if ((x < 0) || (y < 0) || (z < 0) || (x >= dockpars_gridsize_x-1)
+                                                  || (y >= dockpars_gridsize_y-1)
+                                                  || (z >= dockpars_gridsize_z-1)){
+                        partial_energies[tidx] += 16777216.0f; //100000.0f;
+                        continue; // get on with loop as our work here is done (we crashed into the walls)
+                }
+                // Getting coordinates
+                uint x_low  = (uint)floor(x);
+                uint y_low  = (uint)floor(y);
+                uint z_low  = (uint)floor(z);
+
+                float dx = x - x_low;
+                float omdx = 1.0 - dx;
+                float dy = y - y_low;
+                float omdy = 1.0 - dy;
+                float dz = z - z_low;
+                float omdz = 1.0 - dz;
+
+                // Calculating interpolation weights
+                float weights[8];
+                weights [idx_000] = omdx*omdy*omdz;
+                weights [idx_100] = dx*omdy*omdz;
+                weights [idx_010] = omdx*dy*omdz;
+                weights [idx_110] = dx*dy*omdz;
+                weights [idx_001] = omdx*omdy*dz;
+                weights [idx_101] = dx*omdy*dz;
+                weights [idx_011] = omdx*dy*dz;
+                weights [idx_111] = dx*dy*dz;
+
+                // Grid value at 000
+                __global const float* grid_value_000 = dockpars_fgrids + ((x_low  + y_low*g1  + z_low*g2)<<2);
+                ulong mul_tmp = atom_typeid*g3<<2;
+                // Calculating affinity energy
+                partial_energies[tidx] += TRILININTERPOL((grid_value_000+mul_tmp), weights);
+
+                // Capturing electrostatic values
+                atom_typeid = dockpars_num_of_atypes;
+
+                mul_tmp = atom_typeid*g3<<2;
+                // Calculating electrostatic energy
+                partial_energies[tidx] += q * TRILININTERPOL((grid_value_000+mul_tmp), weights);
+
+                // Capturing desolvation values
+                atom_typeid = dockpars_num_of_atypes+1;
+
+                mul_tmp = atom_typeid*g3<<2;
+                // Calculating desolvation energy
+                partial_energies[tidx] += fabs(q) * TRILININTERPOL((grid_value_000+mul_tmp), weights);
+
+        } // End atom_id for-loop (INTERMOLECULAR ENERGY)
+}
+
 void gpu_calc_energy(	    
 				int    dockpars_rotbondlist_length,
 				char   dockpars_num_of_atoms,
@@ -133,7 +272,6 @@ void gpu_calc_energy(
 		    	__local float* genotype,
 		   	__local float* energy,
 		    	__local int*   run_id,
-
 		    	__local float4* calc_coords,
 		    	__local float* partial_energies,
 
@@ -182,137 +320,20 @@ void gpu_calc_energy(
 	genrot_unitvec.z = s2*native_cos(theta);
 	genrot_unitvec.w = native_cos(genrotangle*0.5f);
 
-	uint g1 = dockpars_gridsize_x;
-	uint g2 = dockpars_gridsize_x_times_y;
-	uint g3 = dockpars_gridsize_x_times_y_times_z;
-
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 	// ================================================
-	for (uint rotation_counter = tidx;
-	          rotation_counter < dockpars_rotbondlist_length;
-	          rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
-	{
-		int rotation_list_element = kerconst_rotlist->rotlist_const[rotation_counter];
-
-		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0)	// If not dummy rotation
-		{
-			uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
-
-			// Capturing atom coordinates
-			float4 atom_to_rotate = calc_coords[atom_id];
-
-			// initialize with general rotation values
-			float4 rotation_unitvec = genrot_unitvec;
-			float4 rotation_movingvec = genrot_movingvec;
-
-			if ((rotation_list_element & RLIST_GENROT_MASK) == 0) // If rotating around rotatable bond
-			{
-				uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
-
-				float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
-				float s = native_sin(rotation_angle);
-				rotation_unitvec = (float4)(s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id],
-							    s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1],
-							    s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2],
-							    native_cos(rotation_angle));
-				rotation_movingvec = (float4)(kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id],
-							      kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1],
-							      kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2],0);
-				// Performing additionally the first movement which
-				// is needed only if rotating around rotatable bond
-				atom_to_rotate -= rotation_movingvec;
-			}
-
-			float4 quatrot_left = rotation_unitvec;
-			// Performing rotation
-			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation,
-										// two rotations should be performed
-										// (multiplying the quaternions)
-			{
-				// Calculating quatrot_left*ref_orientation_quats_const,
-				// which means that reference orientation rotation is the first
-				uint rid4 = 4*(*run_id);
-				quatrot_left = quaternion_multiply(quatrot_left,
-								   (float4)(kerconst_conform->ref_orientation_quats_const[rid4+0],
-									    kerconst_conform->ref_orientation_quats_const[rid4+1],
-									    kerconst_conform->ref_orientation_quats_const[rid4+2],
-									    kerconst_conform->ref_orientation_quats_const[rid4+3]));
-			}
-
-			// Performing final movement and storing values
-			calc_coords[atom_id] = quaternion_rotate(atom_to_rotate,quatrot_left) + rotation_movingvec;
-
-		} // End if-statement not dummy rotation
-
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-	} // End rotation_counter for-loop
+	calc_atom_pos_after_rotations(tidx, dockpars_rotbondlist_length, kerconst_rotlist, kerconst_conform, run_id, genrot_unitvec,
+                                          genrot_movingvec, genotype, calc_coords);
 
 	// ================================================
 	// CALCULATING INTERMOLECULAR ENERGY
 	// ================================================
-	for (uint atom_id = tidx;
-	          atom_id < dockpars_num_of_atoms;
-	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
-	{
-		uint atom_typeid = kerconst_interintra->atom_types_const[atom_id];
-		float x = calc_coords[atom_id].x;
-		float y = calc_coords[atom_id].y;
-		float z = calc_coords[atom_id].z;
-		float q = kerconst_interintra->atom_charges_const[atom_id];
-		if ((x < 0) || (y < 0) || (z < 0) || (x >= dockpars_gridsize_x-1)
-				                  || (y >= dockpars_gridsize_y-1)
-						  || (z >= dockpars_gridsize_z-1)){
-			partial_energies[tidx] += 16777216.0f; //100000.0f;
-			continue; // get on with loop as our work here is done (we crashed into the walls)
-		}
-		// Getting coordinates
-		uint x_low  = (uint)floor(x); 
-		uint y_low  = (uint)floor(y); 
-		uint z_low  = (uint)floor(z);
-
-		float dx = x - x_low;
-		float omdx = 1.0 - dx;
-		float dy = y - y_low; 
-		float omdy = 1.0 - dy;
-		float dz = z - z_low;
-		float omdz = 1.0 - dz;
-
-		// Calculating interpolation weights
-		float weights[8];
-		weights [idx_000] = omdx*omdy*omdz;
-		weights [idx_100] = dx*omdy*omdz;
-		weights [idx_010] = omdx*dy*omdz;
-		weights [idx_110] = dx*dy*omdz;
-		weights [idx_001] = omdx*omdy*dz;
-		weights [idx_101] = dx*omdy*dz;
-		weights [idx_011] = omdx*dy*dz;
-		weights [idx_111] = dx*dy*dz;
-
-		// Grid value at 000
-		__global const float* grid_value_000 = dockpars_fgrids + ((x_low  + y_low*g1  + z_low*g2)<<2);
-		ulong mul_tmp = atom_typeid*g3<<2;
-		// Calculating affinity energy
-		partial_energies[tidx] += TRILININTERPOL((grid_value_000+mul_tmp), weights);
-
-		// Capturing electrostatic values
-		atom_typeid = dockpars_num_of_atypes;
-
-		mul_tmp = atom_typeid*g3<<2;
-		// Calculating electrostatic energy
-		partial_energies[tidx] += q * TRILININTERPOL((grid_value_000+mul_tmp), weights);
-
-		// Capturing desolvation values
-		atom_typeid = dockpars_num_of_atypes+1;
-
-		mul_tmp = atom_typeid*g3<<2;
-		// Calculating desolvation energy
-		partial_energies[tidx] += fabs(q) * TRILININTERPOL((grid_value_000+mul_tmp), weights);
-
-	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
+	calc_intermolecular_energy(tidx,dockpars_num_of_atoms,kerconst_interintra,calc_coords,dockpars_gridsize_x,dockpars_gridsize_y,dockpars_gridsize_z,
+                                   dockpars_gridsize_x_times_y,dockpars_gridsize_x_times_y_times_z,dockpars_fgrids,dockpars_num_of_atypes,
+                                   partial_energies);
 
 	// In paper: intermolecular and internal energy calculation
 	// are independent from each other, -> NO BARRIER NEEDED
