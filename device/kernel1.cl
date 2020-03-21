@@ -64,8 +64,6 @@ gpu_calc_initpop(
 	__local int    run_id;
 
 	__local float4 calc_coords[MAX_NUM_OF_ATOMS];
-//	__local float calc_coords_y[MAX_NUM_OF_ATOMS];
-//	__local float calc_coords_z[MAX_NUM_OF_ATOMS];
 	__local float partial_energies[NUM_OF_THREADS_PER_BLOCK];
 	#if defined (DEBUG_ENERGY_KERNEL)
 	__local float partial_interE[NUM_OF_THREADS_PER_BLOCK];
@@ -114,16 +112,7 @@ gpu_calc_initpop(
 			// These local variables must be declared in a kernel, 
 			// and then passed to non-kernel functions.
 			calc_coords,
-//			calc_coords_y,
-//			calc_coords_z,
 			partial_energies,
-			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_interE,
-			partial_intraE,
-			#endif
-#if 0
-			false,
-#endif
 		   	kerconst_interintra,
 		   	kerconst_intracontrib,
 		   	kerconst_intra,
@@ -135,9 +124,5 @@ gpu_calc_initpop(
 	if (get_local_id(0) == 0) {
 		dockpars_energies_current[get_group_id(0)] = energy;
 		dockpars_evals_of_new_entities[get_group_id(0)] = 1;
-
-		#if defined (DEBUG_ENERGY_KERNEL1)
-		printf("%-18s [%-5s]---{%-5s}   [%-10.8f]---{%-10.8f}\n", "-ENERGY-KERNEL1-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
-		#endif
 	}
 }

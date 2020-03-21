@@ -24,12 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-//#define DEBUG_ENERGY_KERNEL
-
 // No needed to be included as all kernel sources are stringified
-#if 0
-#include "calcenergy_basic.h"
-#endif
 
 typedef struct
 {
@@ -142,13 +137,6 @@ void gpu_calc_energy(
 		    	__local float4* calc_coords,
 		    	__local float* partial_energies,
 
-			#if defined (DEBUG_ENERGY_KERNEL)
-			__local float* partial_interE,
-			__local float* partial_intraE,
-			#endif
-#if 0
- 				bool   debug,
-#endif
 		   __constant     kernelconstant_interintra* 		kerconst_interintra,
 		   __global const kernelconstant_intracontrib*  	kerconst_intracontrib,
 		   __constant     kernelconstant_intra*			kerconst_intra,
@@ -163,11 +151,6 @@ void gpu_calc_energy(
 {
 	int tidx = get_local_id(0);
 	partial_energies[tidx] = 0.0f;
-
-	#if defined (DEBUG_ENERGY_KERNEL)
-	partial_interE[tidx] = 0.0f;
-	partial_intraE[tidx] = 0.0f;
-	#endif
 
 	// Initializing gradients (forces) 
 	// Derived from autodockdev/maps.py
@@ -284,9 +267,6 @@ void gpu_calc_energy(
 				                  || (y >= dockpars_gridsize_y-1)
 						  || (z >= dockpars_gridsize_z-1)){
 			partial_energies[tidx] += 16777216.0f; //100000.0f;
-			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_interE[tidx] += 16777216.0f;
-			#endif
 			continue; // get on with loop as our work here is done (we crashed into the walls)
 		}
 		// Getting coordinates
@@ -318,20 +298,12 @@ void gpu_calc_energy(
 		// Calculating affinity energy
 		partial_energies[tidx] += TRILININTERPOL((grid_value_000+mul_tmp), weights);
 
-		#if defined (DEBUG_ENERGY_KERNEL)
-		partial_interE[tidx] += TRILININTERPOL((grid_value_000+mul_tmp), weights);
-		#endif
-
 		// Capturing electrostatic values
 		atom_typeid = dockpars_num_of_atypes;
 
 		mul_tmp = atom_typeid*g3<<2;
 		// Calculating electrostatic energy
 		partial_energies[tidx] += q * TRILININTERPOL((grid_value_000+mul_tmp), weights);
-
-		#if defined (DEBUG_ENERGY_KERNEL)
-		partial_interE[tidx] += q * TRILININTERPOL((grid_value_000+mul_tmp), weights);
-		#endif
 
 		// Capturing desolvation values
 		atom_typeid = dockpars_num_of_atypes+1;
@@ -340,22 +312,7 @@ void gpu_calc_energy(
 		// Calculating desolvation energy
 		partial_energies[tidx] += fabs(q) * TRILININTERPOL((grid_value_000+mul_tmp), weights);
 
-		#if defined (DEBUG_ENERGY_KERNEL)
-		partial_interE[tidx] += fabs(q) * TRILININTERPOL((grid_value_000+mul_tmp), weights);
-		#endif
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
-
-#if defined (DEBUG_ENERGY_KERNEL)
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	// reduction to calculate energy
-	for (uint off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
-	{
-		barrier(CLK_LOCAL_MEM_FENCE);
-		if (tidx < off)
-			partial_intraE[tidx] += partial_intraE[tidx+off];
-	}
-#endif
 
 	// In paper: intermolecular and internal energy calculation
 	// are independent from each other, -> NO BARRIER NEEDED
@@ -370,22 +327,7 @@ void gpu_calc_energy(
 	          contributor_counter < dockpars_num_of_intraE_contributors;
 	          contributor_counter +=NUM_OF_THREADS_PER_BLOCK)
 
-#if 0
-if (tidx == 0) {
-	for (uint contributor_counter = 0;
-	          contributor_counter < dockpars_num_of_intraE_contributors;
-	          contributor_counter ++)
-#endif
 	{
-#if 0
-		// Only for testing smoothing
-		float smoothed_intraE = 0.0f;
-		float raw_intraE_vdw_hb = 0.0f;
-		float raw_intraE_el     = 0.0f;
-		float raw_intraE_sol    = 0.0f;
-		float raw_intraE        = 0.0f;
-#endif
-
 		// Getting atom IDs
 		uint atom1_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter];
 		uint atom2_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+1];
@@ -434,17 +376,6 @@ if (tidx == 0) {
 			partial_energies[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12)) -
 						  native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
 
-			#if 0
-			smoothed_intraE = native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12)) -
-					  native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
-			raw_intraE_vdw_hb = native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(atomic_distance,12)) -
-					    native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
-			#endif
-
-			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_intraE[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12)) -
-						native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
-			#endif
 		} // if cuttoff1 - internuclear-distance at 8A
 
 		// Calculating energy contributions
@@ -472,38 +403,6 @@ if (tidx == 0) {
 							  atomic_distance
 							);
 			partial_energies[tidx] += diel * es_energy + desolv_energy;
-			#if 0
-			smoothed_intraE += native_divide (
-							  dockpars_coeff_elec * q1 * q2,
-							  atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
-							 ) +
-					   ((kerconst_intra->dspars_S_const[atom1_typeid] +
-					     dockpars_qasp*fabs(q1))*kerconst_intra->dspars_V_const[atom2_typeid] +
-					    (kerconst_intra->dspars_S_const[atom2_typeid] +
-					     dockpars_qasp*fabs(q2))*kerconst_intra->dspars_V_const[atom1_typeid]) *
-					         dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
-			raw_intraE_el = native_divide (
-						       dockpars_coeff_elec * q1 * q2,
-						       atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
-						      );
-			raw_intraE_sol = ((kerconst_intra->dspars_S_const[atom1_typeid] +
-						dockpars_qasp*fabs(q1))*kerconst_intra->dspars_V_const[atom2_typeid] +
-					  (kerconst_intra->dspars_S_const[atom2_typeid] +
-						dockpars_qasp*fabs(q2))*kerconst_intra->dspars_V_const[atom1_typeid]) *
-							dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
-			#endif
-
-			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_intraE[tidx] += native_divide (
-							       dockpars_coeff_elec * q1 * q2,
-							       atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))
-							      ) +
-						((kerconst_intra->dspars_S_const[atom1_typeid] +
-						  dockpars_qasp*fabs(q1)) * kerconst_intra->dspars_V_const[atom2_typeid] +
-						 (kerconst_intra->dspars_S_const[atom2_typeid] +
-						  dockpars_qasp*fabs(q2))*kerconst_intra->dspars_V_const[atom1_typeid]) *
-							dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
-			#endif
 		} // if cuttoff2 - internuclear-distance at 20.48A
 
 		// ------------------------------------------------
@@ -521,10 +420,6 @@ if (tidx == 0) {
 
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
 
-#if 0
-} // if (tidx) == 0) {
-#endif
-
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// reduction to calculate energy
@@ -534,26 +429,8 @@ if (tidx == 0) {
 		if (tidx < off)
 		{
 			partial_energies[tidx] += partial_energies[tidx+off];
-#if defined (DEBUG_ENERGY_KERNEL)
-			partial_intraE[tidx] += partial_intraE[tidx+off];
-#endif
 		}
 	}
 	if (tidx == 0)
 		*energy = partial_energies[0];
 }
-
-// No needed to be included as all kernel sources are stringified
-#if 0
-#include "kernel1.cl"
-#include "kernel2.cl"
-#include "auxiliary_genetic.cl"
-#include "kernel4.cl"
-#include "kernel3.cl"
-#include "calcgradient.cl"
-#include "kernel_sd.cl"
-#include "kernel_fire.cl"
-#include "kernel_ad.cl"
-#include "calcEnerGrad.cl"
-#endif
-
