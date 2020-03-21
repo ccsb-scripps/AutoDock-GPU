@@ -208,11 +208,11 @@ inline void calc_atom_pos_after_rotations(int tidx, char dockpars_num_of_atoms, 
 }
 
 // CALCULATING INTERMOLECULAR ENERGY
-// updates partial_energies
-inline void calc_intermolecular_energy(int tidx,char dockpars_num_of_atoms,__constant kernelconstant_interintra* kerconst_interintra,__local float4* calc_coords,char dockpars_gridsize_x,char dockpars_gridsize_y,char dockpars_gridsize_z,
-                                   uint dockpars_gridsize_x_times_y,uint dockpars_gridsize_x_times_y_times_z,__global const float* restrict dockpars_fgrids,char dockpars_num_of_atypes,
-                                   __local float* partial_energies)
+inline float calc_intermolecular_energy(int tidx,char dockpars_num_of_atoms,__constant kernelconstant_interintra* kerconst_interintra,__local float4* calc_coords,char dockpars_gridsize_x,char dockpars_gridsize_y,char dockpars_gridsize_z,
+                                   uint dockpars_gridsize_x_times_y,uint dockpars_gridsize_x_times_y_times_z,__global const float* restrict dockpars_fgrids,char dockpars_num_of_atypes)
 {
+	float partial_energy = 0.0f;
+
         uint g1 = dockpars_gridsize_x;
         uint g2 = dockpars_gridsize_x_times_y;
         uint g3 = dockpars_gridsize_x_times_y_times_z;
@@ -229,7 +229,7 @@ inline void calc_intermolecular_energy(int tidx,char dockpars_num_of_atoms,__con
                 if ((x < 0) || (y < 0) || (z < 0) || (x >= dockpars_gridsize_x-1)
                                                   || (y >= dockpars_gridsize_y-1)
                                                   || (z >= dockpars_gridsize_z-1)){
-                        partial_energies[tidx] += 16777216.0f; //100000.0f;
+                        partial_energy += 16777216.0f; //100000.0f;
                         continue; // get on with loop as our work here is done (we crashed into the walls)
                 }
                 // Getting coordinates
@@ -259,33 +259,35 @@ inline void calc_intermolecular_energy(int tidx,char dockpars_num_of_atoms,__con
                 __global const float* grid_value_000 = dockpars_fgrids + ((x_low  + y_low*g1  + z_low*g2)<<2);
                 ulong mul_tmp = atom_typeid*g3<<2;
                 // Calculating affinity energy
-                partial_energies[tidx] += TRILININTERPOL((grid_value_000+mul_tmp), weights);
+                partial_energy += TRILININTERPOL((grid_value_000+mul_tmp), weights);
 
                 // Capturing electrostatic values
                 atom_typeid = dockpars_num_of_atypes;
 
                 mul_tmp = atom_typeid*g3<<2;
                 // Calculating electrostatic energy
-                partial_energies[tidx] += q * TRILININTERPOL((grid_value_000+mul_tmp), weights);
+                partial_energy += q * TRILININTERPOL((grid_value_000+mul_tmp), weights);
 
                 // Capturing desolvation values
                 atom_typeid = dockpars_num_of_atypes+1;
 
                 mul_tmp = atom_typeid*g3<<2;
                 // Calculating desolvation energy
-                partial_energies[tidx] += fabs(q) * TRILININTERPOL((grid_value_000+mul_tmp), weights);
+                partial_energy += fabs(q) * TRILININTERPOL((grid_value_000+mul_tmp), weights);
 
         }
+
+	return partial_energy;
 }
 
 // CALCULATING INTRAMOLECULAR ENERGY
-inline void calc_intramolecular_energy(int tidx,float dockpars_smooth,int dockpars_num_of_intraE_contributors,
+inline float calc_intramolecular_energy(int tidx,float dockpars_smooth,int dockpars_num_of_intraE_contributors,
                                        __global const kernelconstant_intracontrib* kerconst_intracontrib,__local float4* calc_coords,
                                        float dockpars_grid_spacing,__constant kernelconstant_interintra* kerconst_interintra,
                                        __constant kernelconstant_intra* kerconst_intra, char dockpars_num_of_atypes,float dockpars_qasp,
-                                       float dockpars_coeff_desolv, float dockpars_coeff_elec,
-                                       __local float* partial_energies)
+                                       float dockpars_coeff_desolv, float dockpars_coeff_elec)
 {
+        float partial_energy = 0.0f;
         float delta_distance = 0.5f*dockpars_smooth;
 
         for (uint contributor_counter = tidx;
@@ -338,7 +340,7 @@ inline void calc_intramolecular_energy(int tidx,float dockpars_smooth,int dockpa
                         }
                         // Calculating van der Waals / hydrogen bond term
                         uint idx = atom1_typeid * dockpars_num_of_atypes + atom2_typeid;
-                        partial_energies[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12)) -
+                        partial_energy += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12)) -
                                                   native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
 
                 } // if cuttoff1 - internuclear-distance at 8A
@@ -367,7 +369,7 @@ inline void calc_intramolecular_energy(int tidx,float dockpars_smooth,int dockpa
                                                           dockpars_coeff_elec * q1 * q2,
                                                           atomic_distance
                                                         );
-                        partial_energies[tidx] += diel * es_energy + desolv_energy;
+                        partial_energy += diel * es_energy + desolv_energy;
                 } // if cuttoff2 - internuclear-distance at 20.48A
 
                 // ------------------------------------------------
@@ -379,11 +381,13 @@ inline void calc_intramolecular_energy(int tidx,float dockpars_smooth,int dockpa
                 // so no cuttoffs considered here!
                 if (((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) ||
                     ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX))) {
-                        partial_energies[tidx] += G * atomic_distance;
+                        partial_energy += G * atomic_distance;
                 }
                 // ------------------------------------------------
 
         }
+
+        return partial_energy;
 }
 
 void gpu_calc_energy(	    
@@ -441,9 +445,8 @@ void gpu_calc_energy(
 	// ================================================
 	// CALCULATING INTERMOLECULAR ENERGY
 	// ================================================
-	calc_intermolecular_energy(tidx,dockpars_num_of_atoms,kerconst_interintra,calc_coords,dockpars_gridsize_x,dockpars_gridsize_y,dockpars_gridsize_z,
-                                   dockpars_gridsize_x_times_y,dockpars_gridsize_x_times_y_times_z,dockpars_fgrids,dockpars_num_of_atypes,
-                                   partial_energies);
+	partial_energies[tidx] += calc_intermolecular_energy(tidx,dockpars_num_of_atoms,kerconst_interintra,calc_coords,dockpars_gridsize_x,dockpars_gridsize_y,dockpars_gridsize_z,
+                                   dockpars_gridsize_x_times_y,dockpars_gridsize_x_times_y_times_z,dockpars_fgrids,dockpars_num_of_atypes);
 
 	// In paper: intermolecular and internal energy calculation
 	// are independent from each other, -> NO BARRIER NEEDED
@@ -453,10 +456,9 @@ void gpu_calc_energy(
 	// ================================================
 	// CALCULATING INTRAMOLECULAR ENERGY
 	// ================================================
-	calc_intramolecular_energy(tidx,dockpars_smooth,dockpars_num_of_intraE_contributors,kerconst_intracontrib,calc_coords,
+	partial_energies[tidx] += calc_intramolecular_energy(tidx,dockpars_smooth,dockpars_num_of_intraE_contributors,kerconst_intracontrib,calc_coords,
                                    dockpars_grid_spacing,kerconst_interintra,kerconst_intra,dockpars_num_of_atypes,dockpars_qasp,
-                                   dockpars_coeff_desolv, dockpars_coeff_elec,
-                                   partial_energies);
+                                   dockpars_coeff_desolv, dockpars_coeff_elec);
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
