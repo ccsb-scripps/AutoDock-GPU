@@ -11,7 +11,9 @@
 # Choose OpenCL device
 # Valid values: CPU, GPU
 
-CPP = g++
+CPP = g++ -std=c++11 -stdlib=libc++
+#CPP = clang++ -std=c++11 -stdlib=libc++
+#g++
 LIB_OPENCL = -lOpenCL
 UNAME := $(shell uname)
 
@@ -32,6 +34,10 @@ else
 LIB_OPENCL = -framework OpenCL
 endif
 endif
+
+KOKKOS_INC_PATH=/Users/ascheinberg/Research/kokkos/install/include/
+KOKKOS_LIB_PATH=/Users/ascheinberg/Research/kokkos/install/lib/
+LIB_KOKKOS=-lkokkoscore
 
 ifeq ($(DEVICE), CPU)
 	DEV =-DCPU_DEVICE
@@ -60,8 +66,8 @@ OCL_SRC=$(wildcard $(OCL_SRC_DIR)/*.cpp)
 HOST_SRC=$(wildcard $(HOST_SRC_DIR)/*.cpp)
 SRC=$(OCL_SRC) $(HOST_SRC)
 
-IFLAGS=-I$(COMMON_DIR) -I$(OCL_INC_DIR) -I$(HOST_INC_DIR) -I$(OCLA_INC_PATH)
-LFLAGS=-L$(OCLA_LIB_PATH)
+IFLAGS=-I$(COMMON_DIR) -I$(OCL_INC_DIR) -I$(HOST_INC_DIR) -I$(OCLA_INC_PATH) -I$(KOKKOS_INC_PATH)
+LFLAGS=-L$(OCLA_LIB_PATH) $(KOKKOS_LIB_PATH) $(LIB_KOKKOS)
 CFLAGS=$(IFLAGS) $(LFLAGS)
 
 # Device sources
