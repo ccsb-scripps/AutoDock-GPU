@@ -66,7 +66,8 @@ double myrand(void)
 
 	if (first_call == 0)
 	{
-		srand((unsigned int) time(NULL));
+		srand(0u); // TEMPORARY: Use 0 as the randomization seed - ALS
+		//srand((unsigned int) time(NULL)); // Use time as the randomization seed
 		first_call++;
 	}
 

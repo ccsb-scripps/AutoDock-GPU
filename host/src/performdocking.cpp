@@ -309,7 +309,8 @@ filled with clock() */
 	size_prng_seeds = blocksPerGridForEachEntity * threadsPerBlock * sizeof(unsigned int);
 	cpu_prng_seeds = (unsigned int*) malloc(size_prng_seeds);
 
-	genseed(time(NULL));	//initializing seed generator
+	//genseed(time(NULL));	//initializing seed generator
+	genseed(0u);    // TEMPORARY: removing randomness for consistent debugging - ALS
 
 	for (i=0; i<blocksPerGridForEachEntity*threadsPerBlock; i++)
 #if defined (REPRO)
