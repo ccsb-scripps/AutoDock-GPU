@@ -45,12 +45,13 @@ struct DockingParams
         float           qasp;
 
 	// Constructor
-	DockingParams(const Liganddata& myligand_reference, const Gridinfo* mygrid, const Dockpars* mypars, const float* cpu_floatgrids, const float* cpu_init_populations)
+	DockingParams(const Liganddata& myligand_reference, const Gridinfo* mygrid, const Dockpars* mypars, float* cpu_floatgrids, float* cpu_init_populations)
 		: fgrids("fgrids", 4 * (mygrid->num_of_atypes+2) * (mygrid->size_xyz[0]) * (mygrid->size_xyz[1]) * (mygrid->size_xyz[2])),
 		  conformations_current("conformations_current", mypars->pop_size * mypars->num_of_runs * GENOTYPE_LENGTH_IN_GLOBMEM),
 		  energies_current("energies_current", mypars->pop_size * mypars->num_of_runs),
 		  evals_of_new_entities("evals_of_new_entities", mypars->pop_size * mypars->num_of_runs)
 	{
+		// Copy in scalars
 		num_of_atoms  = ((char)  myligand_reference.num_of_atoms);
 		num_of_atypes = ((char)  myligand_reference.num_of_atypes);
 		num_of_intraE_contributors = ((int) myligand_reference.num_of_intraE_contributors);
@@ -67,6 +68,17 @@ struct DockingParams
 		pop_size      = mypars->pop_size;
 		qasp            = mypars->qasp;
 		smooth          = mypars->smooth;
+
+		// Note kokkos views are initialized to zero by default
+
+                // Copy arrays
+		// First wrap the C style arrays with an unmanaged kokkos view, then deep copy to the device
+		typedef Kokkos::View<float*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> FloatView1D;
+		FloatView1D fgrids_view(cpu_floatgrids, fgrids.extent(0));
+		Kokkos::deep_copy(fgrids, fgrids_view);
+
+                FloatView1D init_pop_view(cpu_init_populations, conformations_current.extent(0));
+                Kokkos::deep_copy(conformations_current, init_pop_view);
 	}
 };
 
