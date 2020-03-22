@@ -798,6 +798,19 @@ filled with clock() */
 	memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
 	memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
 
+	// Print outputs
+	printf("\n\nEnergies:");fflush(stdout);
+	for (int ik1o = 0; ik1o<mypars->pop_size*mypars->num_of_runs; ik1o++)
+	{
+		printf("\n%d : %.15e", ik1o, cpu_energies_kokkos[ik1o]);fflush(stdout);
+	}
+	printf("\n\nEntities:");fflush(stdout);
+        for (int ik1o = 0; ik1o<mypars->pop_size*mypars->num_of_runs; ik1o++)
+        {
+                printf("\n%d : %d", ik1o, cpu_new_entities_kokkos[ik1o]);fflush(stdout);
+        }
+	printf("\n\n");
+
 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
 
