@@ -827,12 +827,19 @@ filled with clock() */
                 return 1;
         }
 
+	// Declare on device
+        InterIntra<DeviceType> interintra;
+        IntraContrib<DeviceType> intracontrib;
+        Intra<DeviceType> intra;
+        RotList<DeviceType> rotlist;
+        Conform<DeviceType> conform;
+
 	// Copy to device
-	InterIntra<DeviceType> interintra;
-	IntraContrib<DeviceType> intracontrib;
-	Intra<DeviceType> intra;
-	RotList<DeviceType> rotlist;
-	Conform<DeviceType> conform;
+	interintra.deep_copy(interintra_h);
+	intracontrib.deep_copy(intracontrib_h);
+	intra.deep_copy(intra_h);
+	rotlist.deep_copy(rotlist_h);
+	conform.deep_copy(conform_h);
 
 	// Outer loop over mypars->pop_size * mypars->num_of_runs
 	int league_size = mypars->pop_size * mypars->num_of_runs;
