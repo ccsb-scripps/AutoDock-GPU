@@ -284,65 +284,8 @@ void gpu_calc_energrad(
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 	// ================================================
-	for (uint rotation_counter = tidx;
-	          rotation_counter < dockpars_rotbondlist_length;
-	          rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
-	{
-		int rotation_list_element = kerconst_rotlist->rotlist_const[rotation_counter];
-
-		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0)	// If not dummy rotation
-		{
-			uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
-
-			// Capturing atom coordinates
-			float4 atom_to_rotate = calc_coords[atom_id];
-
-			// initialize with general rotation values
-			float4 rotation_unitvec = genrot_unitvec;
-			float4 rotation_movingvec = genrot_movingvec;
-
-			if ((rotation_list_element & RLIST_GENROT_MASK) == 0) // If rotating around rotatable bond
-			{
-				uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
-
-				float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
-				float s = native_sin(rotation_angle);
-				rotation_unitvec = (float4)(s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id],
-							    s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1],
-							    s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2],
-							    native_cos(rotation_angle));
-				rotation_movingvec = (float4)(kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id],
-							      kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1],
-							      kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2],0);
-				// Performing additionally the first movement which
-				// is needed only if rotating around rotatable bond
-				atom_to_rotate -= rotation_movingvec;
-			}
-
-			float4 quatrot_left = rotation_unitvec;
-			// Performing rotation
-			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation,
-										// two rotations should be performed
-										// (multiplying the quaternions)
-			{
-				// Calculating quatrot_left*ref_orientation_quats_const,
-				// which means that reference orientation rotation is the first
-				uint rid4 = (*run_id)<<2;
-				quatrot_left = quaternion_multiply(quatrot_left,
-								   (float4)(kerconst_conform->ref_orientation_quats_const[rid4+0],
-									    kerconst_conform->ref_orientation_quats_const[rid4+1],
-									    kerconst_conform->ref_orientation_quats_const[rid4+2],
-									    kerconst_conform->ref_orientation_quats_const[rid4+3]));
-			}
-
-			// Performing final movement and storing values
-			calc_coords[atom_id] = quaternion_rotate(atom_to_rotate,quatrot_left) + rotation_movingvec;
-
-		} // End if-statement not dummy rotation
-
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-	} // End rotation_counter for-loop
+	calc_atom_pos_after_rotations(tidx, dockpars_num_of_atoms, dockpars_rotbondlist_length, kerconst_rotlist, kerconst_conform, run_id, genotype,
+                                      calc_coords);
 
 	// ================================================
 	// CALCULATING INTERMOLECULAR GRADIENTS
