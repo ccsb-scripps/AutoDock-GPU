@@ -247,6 +247,10 @@ filled with clock() */
 
 	Liganddata myligand_reference;
 
+	// TEMPORARY - ALS
+	float* cpu_energies_kokkos;
+	int* cpu_new_entities_kokkos;
+
 	float* cpu_init_populations;
 	float* cpu_final_populations;
 	float* cpu_energies;
@@ -260,6 +264,7 @@ filled with clock() */
 	size_t size_populations;
 	size_t size_energies;
 	size_t size_prng_seeds;
+	size_t size_evals_of_new_entities;
 	size_t size_evals_of_runs;
 
 	int threadsPerBlock;
@@ -318,6 +323,13 @@ filled with clock() */
 #else
 		cpu_prng_seeds[i] = genseed(0u);
 #endif
+
+	//Set size for evals_of_new_entities
+	size_evals_of_new_entities = mypars->pop_size*mypars->num_of_runs*sizeof(int);
+
+	// TEMPORARY - ALS
+	cpu_energies_kokkos = (float*) malloc(size_energies);
+	cpu_new_entities_kokkos = (int*) malloc(size_evals_of_new_entities);
 
 	//allocating memory in CPU for evaluation counters
 	size_evals_of_runs = mypars->num_of_runs*sizeof(int);
@@ -509,7 +521,7 @@ filled with clock() */
 	mallocBufferObject(context,CL_MEM_READ_WRITE,size_energies,           			&mem_dockpars_energies_current);
 	mallocBufferObject(context,CL_MEM_READ_WRITE,size_populations,        			&mem_dockpars_conformations_next);
 	mallocBufferObject(context,CL_MEM_READ_WRITE,size_energies,    	      			&mem_dockpars_energies_next);
-	mallocBufferObject(context,CL_MEM_READ_WRITE,mypars->pop_size*mypars->num_of_runs*sizeof(int), 	&mem_dockpars_evals_of_new_entities);
+	mallocBufferObject(context,CL_MEM_READ_WRITE,size_evals_of_new_entities,		&mem_dockpars_evals_of_new_entities);
 
 	// -------- Replacing with memory maps! ------------
 #if defined (MAPPED_COPY)
@@ -772,24 +784,31 @@ filled with clock() */
 	} // End if (dockpars.lsearch_rate != 0.0f)
 
 	// Kernel1
-	#ifdef DOCK_DEBUG
+//	#ifdef DOCK_DEBUG
 		printf("\nExecution starts:\n\n");
 		printf("%-25s", "\tK_INIT");fflush(stdout);
-	#endif
+//	#endif
 	runKernel1D(command_queue,kernel1,kernel1_gxsize,kernel1_lxsize,&time_start_kernel,&time_end_kernel);
-	#ifdef DOCK_DEBUG
+//	#ifdef DOCK_DEBUG
 		printf("%15s" ," ... Finished\n");fflush(stdout);
-	#endif
+//	#endif
 	// End of Kernel1
 
+	// Copy outputs of kernel1 to Host and back, in preparation for converting it to Kokkos
+	memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
+	memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
+
+	memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
+	memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
+
 	// Kernel2
-	#ifdef DOCK_DEBUG
+//	#ifdef DOCK_DEBUG
 		printf("%-25s", "\tK_EVAL");fflush(stdout);
-	#endif
+//	#endif
 	runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
-	#ifdef DOCK_DEBUG
+//	#ifdef DOCK_DEBUG
 		printf("%15s" ," ... Finished\n");fflush(stdout);
-	#endif
+//	#endif
 	// End of Kernel2
 	// ===============================================================================
 
@@ -954,13 +973,13 @@ filled with clock() */
 			}
 		}
 		// Kernel4
-		#ifdef DOCK_DEBUG
+//		#ifdef DOCK_DEBUG
 			printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
-		#endif
+//		#endif
 		runKernel1D(command_queue,kernel4,kernel4_gxsize,kernel4_lxsize,&time_start_kernel,&time_end_kernel);
-		#ifdef DOCK_DEBUG
+//		#ifdef DOCK_DEBUG
 			printf("%15s", " ... Finished\n");fflush(stdout);
-		#endif
+//		#endif
 		// End of Kernel4
 		if (dockpars.lsearch_rate != 0.0f) {
 			if (strcmp(mypars->ls_method, "sw") == 0) {
@@ -971,13 +990,13 @@ filled with clock() */
 				// Kernel6 NOT SUPPORTED - ALS
 			} else if (strcmp(mypars->ls_method, "ad") == 0) {
 				// Kernel7
-				#ifdef DOCK_DEBUG
+//				#ifdef DOCK_DEBUG
 					printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
-				#endif
+//				#endif
 				runKernel1D(command_queue,kernel7,kernel7_gxsize,kernel7_lxsize,&time_start_kernel,&time_end_kernel);
-				#ifdef DOCK_DEBUG
+//				#ifdef DOCK_DEBUG
 					printf("%15s" ," ... Finished\n");fflush(stdout);
-				#endif
+//				#endif
 				// End of Kernel7
 			}
 		} // End if (dockpars.lsearch_rate != 0.0f)
@@ -987,13 +1006,13 @@ filled with clock() */
 		#endif
 		// -------- Replacing with memory maps! ------------
 		// Kernel2
-		#ifdef DOCK_DEBUG
+//		#ifdef DOCK_DEBUG
 			printf("%-25s", "\tK_EVAL");fflush(stdout);
-		#endif
+//		#endif
 		runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
-		#ifdef DOCK_DEBUG
+//		#ifdef DOCK_DEBUG
 			printf("%15s" ," ... Finished\n");fflush(stdout);
-		#endif
+//		#endif
 		// End of Kernel2
 		// ===============================================================================
 		// -------- Replacing with memory maps! ------------

@@ -390,6 +390,7 @@ inline float calc_intramolecular_energy(int tidx,float dockpars_smooth,int dockp
         return partial_energy;
 }
 
+// Outputs calc_coords, partial_energies, and energy
 void gpu_calc_energy(	    
 				int    dockpars_rotbondlist_length,
 				char   dockpars_num_of_atoms,

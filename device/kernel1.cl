@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 //#define DEBUG_ENERGY_KERNEL1
 
+// sets dockpars_energies_current[get_group_id(0)] and dockpars_evals_of_new_entities[get_group_id(0)]
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gpu_calc_initpop(	
 			char   dockpars_num_of_atoms,
