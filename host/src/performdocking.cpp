@@ -804,8 +804,8 @@ filled with clock() */
 	// End of Kernel1
 
 	// Copy outputs of kernel1 to Host and back, in preparation for converting it to Kokkos
-	memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
-	memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
+//	memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
+//	memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
 
 	// KOKKOS kernel1: kokkos_calc_initpop
 	// Initialize DockingParams
@@ -934,7 +934,7 @@ filled with clock() */
 	});
 
 	// Print outputs
-	printf("\n\nEnergies:");fflush(stdout);
+/*	printf("\n\nEnergies:");fflush(stdout);
 	for (int ik1o = 0; ik1o<mypars->pop_size*mypars->num_of_runs; ik1o++)
 	{
 		printf("\n%d : %.15e", ik1o, cpu_energies_kokkos[ik1o]);fflush(stdout);
@@ -945,7 +945,7 @@ filled with clock() */
                 printf("\n%d : %d", ik1o, cpu_new_entities_kokkos[ik1o]);fflush(stdout);
         }
 	printf("\n\n");
-
+*/
 	// Copy back from device
         // First wrap the C style arrays with an unmanaged kokkos view, then deep copy from the device
         typedef Kokkos::View<float*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> FloatView1D;
@@ -955,6 +955,20 @@ filled with clock() */
 	typedef Kokkos::View<int*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> IntView1D;
         IntView1D cpu_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
         Kokkos::deep_copy(cpu_new_entities_view, docking_params.evals_of_new_entities);
+
+        // Print outputs
+        printf("\n\nEnergies:");fflush(stdout);
+        for (int ik1o = 0; ik1o<mypars->pop_size*mypars->num_of_runs; ik1o++)
+        {
+                printf("\n%d : %.15e", ik1o, cpu_energies_kokkos[ik1o]);fflush(stdout);
+        }
+        printf("\n\nEntities:");fflush(stdout);
+        for (int ik1o = 0; ik1o<mypars->pop_size*mypars->num_of_runs; ik1o++)
+        {
+                printf("\n%d : %d", ik1o, cpu_new_entities_kokkos[ik1o]);fflush(stdout);
+        }
+        printf("\n\n");
+
 
 	// Copy from temporary cpu array back to gpu for the remaining openCL kernels
 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
