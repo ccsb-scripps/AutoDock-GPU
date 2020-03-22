@@ -114,6 +114,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "space_settings.hpp"
 #include "dockingparams.hpp"
 #include "kernelconsts.hpp"
+#include "calcenergy.hpp"
 
 inline float average(float* average_sd2_N)
 {
@@ -808,6 +809,30 @@ filled with clock() */
 	// KOKKOS kernel1: kokkos_calc_initpop
 	// Initialize DockingParams
 	DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids, cpu_init_populations);
+
+	// Declare these constant arrays on host
+	InterIntra<HostType> interintra_h;
+        IntraContrib<HostType> intracontrib_h;
+        Intra<HostType> intra_h;
+        RotList<HostType> rotlist_h;
+        Conform<HostType> conform_h;
+
+	// Initialize them
+	if (kokkos_prepare_const_fields(&myligand_reference, mypars, cpu_ref_ori_angles,
+                                         interintra_h,
+                                         intracontrib_h,
+                                         intra_h,
+                                         rotlist_h,
+                                         conform_h) == 1) {
+                return 1;
+        }
+
+	// Copy to device
+	InterIntra<DeviceType> interintra;
+	IntraContrib<DeviceType> intracontrib;
+	Intra<DeviceType> intra;
+	RotList<DeviceType> rotlist;
+	Conform<DeviceType> conform;
 
 	// Outer loop over mypars->pop_size * mypars->num_of_runs
 	int league_size = mypars->pop_size * mypars->num_of_runs;

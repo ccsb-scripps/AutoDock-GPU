@@ -6,17 +6,25 @@
 #if USE_GPU == 1
 using MemSpace = Kokkos::CudaSpace;
 using ExSpace = Kokkos::Cuda;
-shouldnt be here yet
 #else
 using MemSpace = Kokkos::HostSpace;
 #if USE_OMP == 1
 using ExSpace = Kokkos::OpenMP;
-shouldnt be here yet
 #else
 using ExSpace = Kokkos::Serial;
 #endif
 #endif
-
 using DeviceType = Kokkos::Device<ExSpace,MemSpace>;
+
+
+// Designate a CPU-specific Memory and Execution space (currently just used for the copy/restore)
+using CPUSpace = Kokkos::HostSpace;
+#if USE_OMP == 1
+using CPUExec = Kokkos::OpenMP;
+#else
+using CPUExec = Kokkos::Serial;
+#endif
+using HostType = Kokkos::Device<CPUExec,CPUSpace>;
+
 
 #endif
