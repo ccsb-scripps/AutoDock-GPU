@@ -132,17 +132,6 @@ inline void calc_atom_pos_after_rotations(int tidx, char dockpars_num_of_atoms, 
                                           __constant kernelconstant_conform* kerconst_conform, __local int* run_id, __local float* genotype,
                                           __local float4* calc_coords)
 {
-        // Initializing gradients (forces)
-        // Derived from autodockdev/maps.py
-        for (uint atom_id = tidx;
-                  atom_id < dockpars_num_of_atoms;
-                  atom_id+= NUM_OF_THREADS_PER_BLOCK) {
-                // Initialize coordinates
-                calc_coords[atom_id] = (float4)(kerconst_conform->ref_coords_const[3*atom_id],
-                                                kerconst_conform->ref_coords_const[3*atom_id+1],
-                                                kerconst_conform->ref_coords_const[3*atom_id+2],0);
-        }
-
         // General rotation moving vector
         float4 genrot_movingvec;
         genrot_movingvec.x = genotype[0];
