@@ -900,7 +900,7 @@ filled with clock() */
 		// Loop over the rot bond list and carry out all the rotations
 		Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, docking_params.rotbondlist_length),
                 [=] (int& idx) {
-//                        kokkos_rotate_atoms(idx, conform, rotlist, run_id, genotype, calc_coords);
+                        kokkos_rotate_atoms(idx, conform, rotlist, run_id, genotype, genrot_movingvec, genrot_unitvec, calc_coords);
                 });
 
 		team_member.team_barrier();

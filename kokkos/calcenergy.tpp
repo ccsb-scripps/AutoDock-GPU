@@ -22,92 +22,37 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
-
-
-// No needed to be included as all kernel sources are stringified
-/*
-typedef struct
+KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_cross(const float4struct a, const float4struct b)
 {
-       float atom_charges_const[MAX_NUM_OF_ATOMS];
-       char  atom_types_const  [MAX_NUM_OF_ATOMS];
-} kernelconstant_interintra;
-
-typedef struct
-{
-       char  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
-} kernelconstant_intracontrib;
-
-typedef struct
-{
-       float reqm_const [2*ATYPE_NUM]; // 1st ATYPE_NUM entries = vdW, 2nd ATYPE_NUM entries = hbond
-       unsigned int  atom1_types_reqm_const [ATYPE_NUM];
-       unsigned int  atom2_types_reqm_const [ATYPE_NUM];
-       float VWpars_AC_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
-       float VWpars_BD_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
-       float dspars_S_const    [MAX_NUM_OF_ATYPES];
-       float dspars_V_const    [MAX_NUM_OF_ATYPES];
-} kernelconstant_intra;
-
-typedef struct
-{
-       int   rotlist_const     [MAX_NUM_OF_ROTATIONS];
-} kernelconstant_rotlist;
-
-typedef struct
-{
-       float ref_coords_const[3*MAX_NUM_OF_ATOMS];
-       float rotbonds_moving_vectors_const[3*MAX_NUM_OF_ROTBONDS];
-       float rotbonds_unit_vectors_const  [3*MAX_NUM_OF_ROTBONDS];
-       float ref_orientation_quats_const  [4*MAX_NUM_OF_RUNS];
-} kernelconstant_conform;
-
-#define invpi2 1.0f/(PI_TIMES_2)
-
-inline float fmod_pi2(float x)
-{
-	return x-(int)(invpi2*x)*PI_TIMES_2;
-}
-
-#define fast_acos_a  9.78056e-05
-#define fast_acos_b -0.00104588f
-#define fast_acos_c  0.00418716f
-#define fast_acos_d -0.00314347f
-#define fast_acos_e  2.74084f
-#define fast_acos_f  0.370388f
-#define fast_acos_o -(fast_acos_a+fast_acos_b+fast_acos_c+fast_acos_d)
-
-inline float fast_acos(float cosine)
-{
-	float x=fabs(cosine);
-	float x2=x*x;
-	float x3=x2*x;
-	float x4=x3*x;
-	float ac=(((fast_acos_o*x4+fast_acos_a)*x3+fast_acos_b)*x2+fast_acos_c)*x+fast_acos_d+
-		 fast_acos_e*native_sqrt(2.0f-native_sqrt(2.0f+2.0f*x))-fast_acos_f*native_sqrt(2.0f-2.0f*x);
-	return copysign(ac,cosine) + (cosine<0.0f)*PI_FLOAT;
-}
-
-inline float4 quaternion_multiply(float4 a, float4 b)
-{
-	float4 result = { a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y, // x
-			  a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x, // y
-			  a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w, // z
-			  a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z }; // w
+	float4struct result;
+	result.x = a.y * b.z - a.z * b.y;
+	result.y = a.z * b.x - a.x * b.z;
+	result.z = a.x * b.y - a.y * b.x;
+	result.w = 0.0f;
 	return result;
 }
 
-inline float4 quaternion_rotate(float4 v, float4 rot)
+KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_multiply(const float4struct a, const float4struct b)
 {
-	float4 result;
-	
-	float4 z=cross(rot,v) * 2.0f;
-	result = v + z*rot.w + cross(rot,z);
-	
+	float4struct result;
+	result.x = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y;
+	result.y = a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x;
+	result.z = a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w;
+	result.w = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z;
 	return result;
 }
 
-// All related pragmas are in defines.h (accesible by host and device code)
-*/
+KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_rotate(const float4struct v, const float4struct rot)
+{
+	float4struct qcross = kokkos_quaternion_cross(rot,v);
+	float4struct qcross2 = kokkos_quaternion_cross(rot,qcross);
+	float4struct result;
+	result.x = v.x + 2.0f*qcross.x*rot.w + 2.0f*qcross2.x;
+	result.y = v.y + 2.0f*qcross.y*rot.w + 2.0f*qcross2.y;
+	result.z = v.z + 2.0f*qcross.z*rot.w + 2.0f*qcross2.z;
+	result.w = v.w + 2.0f*qcross.w*rot.w + 2.0f*qcross2.w;
+	return result;
+}
 
 // GETTING ATOMIC POSITIONS
 template<class Device>
@@ -119,98 +64,69 @@ KOKKOS_INLINE_FUNCTION void kokkos_get_atom_pos(const int atom_id, const Conform
         calc_coords(atom_id).x = conform.ref_coords_const[3*atom_id];
         calc_coords(atom_id).y = conform.ref_coords_const[3*atom_id+1];
         calc_coords(atom_id).z = conform.ref_coords_const[3*atom_id+2];
-	calc_coords(atom_id).w = 0;
+	calc_coords(atom_id).w = 0.0f;
 }
 
-/*
 // CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
-// updates calc_coords
-inline void calc_atom_pos_after_rotations(int tidx, char dockpars_num_of_atoms, int dockpars_rotbondlist_length, __constant kernelconstant_rotlist* kerconst_rotlist,
-                                          __constant kernelconstant_conform* kerconst_conform, __local int* run_id, __local float* genotype,
-                                          __local float4* calc_coords)
+template<class Device>
+KOKKOS_INLINE_FUNCTION void kokkos_rotate_atoms(const int rotation_counter, const Conform<Device>& conform, const RotList<Device>& rotlist, const int run_id, const float* genotype, const float4struct& genrot_movingvec, const float4struct& genrot_unitvec, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)
 {
-        // General rotation moving vector
-        float4 genrot_movingvec;
-        genrot_movingvec.x = genotype[0];
-        genrot_movingvec.y = genotype[1];
-        genrot_movingvec.z = genotype[2];
-        genrot_movingvec.w = 0.0;
-        // Convert orientation genes from sex. to radians
-        float phi         = genotype[3] * DEG_TO_RAD;
-        float theta       = genotype[4] * DEG_TO_RAD;
-        float genrotangle = genotype[5] * DEG_TO_RAD;
-
-        float4 genrot_unitvec;
-        float sin_angle = native_sin(theta);
-        float s2 = native_sin(genrotangle*0.5f);
-        genrot_unitvec.x = s2*sin_angle*native_cos(phi);
-        genrot_unitvec.y = s2*sin_angle*native_sin(phi);
-        genrot_unitvec.z = s2*native_cos(theta);
-        genrot_unitvec.w = native_cos(genrotangle*0.5f);
-
-        barrier(CLK_LOCAL_MEM_FENCE);
-
-	for (uint rotation_counter = tidx;
-                  rotation_counter < dockpars_rotbondlist_length;
-                  rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
+        int rotation_list_element = rotlist.rotlist_const[rotation_counter];
+                
+        if ((rotation_list_element & RLIST_DUMMY_MASK) == 0)    // If not dummy rotation
         {       
-                int rotation_list_element = kerconst_rotlist->rotlist_const[rotation_counter];
-                
-                if ((rotation_list_element & RLIST_DUMMY_MASK) == 0)    // If not dummy rotation
+                uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
+                        
+                // Capturing atom coordinates
+                float4struct atom_to_rotate = calc_coords(atom_id);
+                        
+                // initialize with general rotation values
+                float4struct rotation_unitvec = genrot_unitvec;
+                float4struct rotation_movingvec = genrot_movingvec;
+                        
+                if ((rotation_list_element & RLIST_GENROT_MASK) == 0) // If rotating around rotatable bond
                 {       
-                        uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
+                        uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
                         
-                        // Capturing atom coordinates
-                        float4 atom_to_rotate = calc_coords[atom_id];
-                        
-                        // initialize with general rotation values
-                        float4 rotation_unitvec = genrot_unitvec;
-                        float4 rotation_movingvec = genrot_movingvec;
-                        
-                        if ((rotation_list_element & RLIST_GENROT_MASK) == 0) // If rotating around rotatable bond
-                        {       
-                                uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
-                                
-                                float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
-                                float s = native_sin(rotation_angle);
-                                rotation_unitvec = (float4)(s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id],
-                                                            s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1],
-                                                            s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2],
-                                                            native_cos(rotation_angle));
-                                rotation_movingvec = (float4)(kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id],
-                                                              kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1],
-                                                              kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2],0);
-                                // Performing additionally the first movement which
-                                // is needed only if rotating around rotatable bond
-                                atom_to_rotate -= rotation_movingvec;
-                        }
-                        
-                        float4 quatrot_left = rotation_unitvec;
-                        // Performing rotation
-                        if ((rotation_list_element & RLIST_GENROT_MASK) != 0)   // If general rotation, 
-                                                                                // two rotations should be performed
-                                                                                // (multiplying the quaternions)
-                        {       
-                                // Calculating quatrot_left*ref_orientation_quats_const,
-                                // which means that reference orientation rotation is the first
-                                uint rid4 = 4*(*run_id);
-                                quatrot_left = quaternion_multiply(quatrot_left,
-                                                                   (float4)(kerconst_conform->ref_orientation_quats_const[rid4+0],
-                                                                            kerconst_conform->ref_orientation_quats_const[rid4+1],
-                                                                            kerconst_conform->ref_orientation_quats_const[rid4+2],
-                                                                            kerconst_conform->ref_orientation_quats_const[rid4+3]));
-                        }
-                        
-                        // Performing final movement and storing values
-                        calc_coords[atom_id] = quaternion_rotate(atom_to_rotate,quatrot_left) + rotation_movingvec;
+                        float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
+                        float s = sin(rotation_angle);
+                        rotation_unitvec.x = s*conform.rotbonds_unit_vectors_const[3*rotbond_id];
+                        rotation_unitvec.y = s*conform.rotbonds_unit_vectors_const[3*rotbond_id+1];
+                        rotation_unitvec.z = s*conform.rotbonds_unit_vectors_const[3*rotbond_id+2];
+                        rotation_unitvec.w = cos(rotation_angle);
+                        rotation_movingvec.x = conform.rotbonds_moving_vectors_const[3*rotbond_id];
+                        rotation_movingvec.y = conform.rotbonds_moving_vectors_const[3*rotbond_id+1];
+                        rotation_movingvec.z = conform.rotbonds_moving_vectors_const[3*rotbond_id+2];
+			rotation_movingvec.w = 0;
+                        // Performing additionally the first movement which
+                        // is needed only if rotating around rotatable bond
+                        atom_to_rotate = atom_to_rotate - rotation_movingvec;
+                }
                 
-                } // End if-statement not dummy rotation
+                float4struct quatrot_left = rotation_unitvec;
+                // Performing rotation
+                if ((rotation_list_element & RLIST_GENROT_MASK) != 0)   // If general rotation, 
+                                                                        // two rotations should be performed
+                                                                        // (multiplying the quaternions)
+                {       
+                        // Calculating quatrot_left*ref_orientation_quats_const,
+                        // which means that reference orientation rotation is the first
+                        uint rid4 = 4*run_id;
+			float4struct ref_orientation;
+			ref_orientation.x = conform.ref_orientation_quats_const[rid4+0];
+			ref_orientation.y = conform.ref_orientation_quats_const[rid4+1];
+			ref_orientation.z = conform.ref_orientation_quats_const[rid4+2];
+			ref_orientation.w = conform.ref_orientation_quats_const[rid4+3];
+                        quatrot_left = kokkos_quaternion_multiply(quatrot_left, ref_orientation);
+                }
                 
-                barrier(CLK_LOCAL_MEM_FENCE);
-        
+                // Performing final movement and storing values
+                calc_coords(atom_id) = kokkos_quaternion_rotate(atom_to_rotate,quatrot_left) + rotation_movingvec;
+                
         }
 }
 
+/*
 // CALCULATING INTERMOLECULAR ENERGY
 inline float calc_intermolecular_energy(int tidx,char dockpars_num_of_atoms,__constant kernelconstant_interintra* kerconst_interintra,__local float4* calc_coords,char dockpars_gridsize_x,char dockpars_gridsize_y,char dockpars_gridsize_z,
                                    uint dockpars_gridsize_x_times_y,uint dockpars_gridsize_x_times_y_times_z,__global const float* restrict dockpars_fgrids,char dockpars_num_of_atypes)
