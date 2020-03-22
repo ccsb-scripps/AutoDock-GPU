@@ -1,7 +1,7 @@
 #ifndef KERNELCONSTS_HPP
 #define KERNELCONSTS_HPP
 
-#include "defines.h"
+//#include "defines.h"
 
 // Constants used on the device for Kokkos implementation
 template<class Device>

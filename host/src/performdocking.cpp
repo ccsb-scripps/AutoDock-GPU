@@ -106,14 +106,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <Kokkos_Core.hpp>
 
+#include "performdocking.h"
+#include "stringify.h"
+#include "correct_grad_axisangle.h"
+
 // From ./kokkos
 #include "space_settings.hpp"
 #include "dockingparams.hpp"
 #include "kernelconsts.hpp"
-
-#include "performdocking.h"
-#include "stringify.h"
-#include "correct_grad_axisangle.h"
 
 inline float average(float* average_sd2_N)
 {
@@ -806,6 +806,9 @@ filled with clock() */
 	memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
 
 	// KOKKOS kernel1: kokkos_calc_initpop
+	// Initialize DockingParams
+	DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids, cpu_init_populations);
+
 	// Outer loop over mypars->pop_size * mypars->num_of_runs
 	int league_size = mypars->pop_size * mypars->num_of_runs;
 	typedef Kokkos::TeamPolicy<ExSpace>::member_type member_type;
