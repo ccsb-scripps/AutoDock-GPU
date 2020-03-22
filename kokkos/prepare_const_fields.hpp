@@ -25,8 +25,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-#ifndef CALCENERGY_HPP
-#define CALCENERGY_HPP
+#ifndef PREPARE_CONST_FIELDS_HPP
+#define PREPARE_CONST_FIELDS_HPP
 
 #include <math.h>
 #include <stdio.h>
@@ -48,6 +48,6 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
 			         Conform<Device>& conform);
 //				 kernelconstant_grads*          KerConst_grads);
 
-#include "calcenergy.tpp"
+#include "prepare_const_fields.tpp"
 
 #endif

@@ -114,7 +114,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "space_settings.hpp"
 #include "dockingparams.hpp"
 #include "kernelconsts.hpp"
-#include "calcenergy.hpp"
+#include "prepare_const_fields.hpp"
 
 inline float average(float* average_sd2_N)
 {
