@@ -819,11 +819,7 @@ filled with clock() */
 
 	// Initialize them
 	if (kokkos_prepare_const_fields(&myligand_reference, mypars, cpu_ref_ori_angles,
-                                         interintra_h,
-                                         intracontrib_h,
-                                         intra_h,
-                                         rotlist_h,
-                                         conform_h) == 1) {
+                                         interintra_h, intracontrib_h, intra_h, rotlist_h, conform_h) == 1) {
                 return 1;
         }
 
@@ -873,6 +869,17 @@ filled with clock() */
         }
 	printf("\n\n");
 
+	// Copy back from device
+        // First wrap the C style arrays with an unmanaged kokkos view, then deep copy from the device
+        typedef Kokkos::View<float*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> FloatView1D;
+        FloatView1D cpu_energies_view(cpu_energies_kokkos, docking_params.energies_current.extent(0));
+        Kokkos::deep_copy(cpu_energies_view, docking_params.energies_current);
+
+	typedef Kokkos::View<int*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> IntView1D;
+        IntView1D cpu_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
+        Kokkos::deep_copy(cpu_new_entities_view, docking_params.evals_of_new_entities);
+
+	// Copy from temporary cpu array back to gpu for the remaining openCL kernels
 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
 
