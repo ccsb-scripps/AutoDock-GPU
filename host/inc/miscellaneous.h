@@ -49,6 +49,15 @@ typedef struct
 	double z;
 } Quaternion;
 
+struct float4struct
+//Quarternion struct for floats (float4 equivalent for kokkos kernels)
+{
+	float x;
+	float y;
+	float z;
+	float w;
+};
+
 #define trilin_interpol(cube, weights) (cube[0][0][0]*weights[0][0][0] +cube[1][0][0]*weights[1][0][0] +cube[0][1][0]*weights[0][1][0] +cube[1][1][0]*weights[1][1][0] +cube[0][0][1]*weights[0][0][1] +cube[1][0][1]*weights[1][0][1] +cube[0][1][1]*weights[0][1][1] +cube[1][1][1]*weights[1][1][1])
 //macro that calculates the trilinear interpolation,
 //the first parameter is a 2*2*2 array of the values of the function
