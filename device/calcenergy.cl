@@ -108,6 +108,24 @@ inline float4 quaternion_rotate(float4 v, float4 rot)
 
 // All related pragmas are in defines.h (accesible by host and device code)
 
+
+// GETTING ATOMIC POSITIONS
+// sets calc_coords
+inline void get_atom_pos(int tidx, char dockpars_num_of_atoms, __constant kernelconstant_conform* kerconst_conform,
+                         __local float4* calc_coords)
+{
+        // Initializing gradients (forces)
+        // Derived from autodockdev/maps.py
+        for (uint atom_id = tidx;
+                  atom_id < dockpars_num_of_atoms;
+                  atom_id+= NUM_OF_THREADS_PER_BLOCK) {
+                // Initialize coordinates
+                calc_coords[atom_id] = (float4)(kerconst_conform->ref_coords_const[3*atom_id],
+                                                kerconst_conform->ref_coords_const[3*atom_id+1],
+                                                kerconst_conform->ref_coords_const[3*atom_id+2],0);
+        }
+}
+
 // CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 // updates calc_coords
 inline void calc_atom_pos_after_rotations(int tidx, char dockpars_num_of_atoms, int dockpars_rotbondlist_length, __constant kernelconstant_rotlist* kerconst_rotlist,
@@ -432,6 +450,12 @@ void gpu_calc_energy(
 //determines which reference orientation should be used.
 {
 	int tidx = get_local_id(0);
+
+        // ================================================
+	// GETTING ATOMIC POSITIONS
+        // ================================================
+	get_atom_pos(tidx, dockpars_num_of_atoms, kerconst_conform, 
+                         calc_coords);
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
