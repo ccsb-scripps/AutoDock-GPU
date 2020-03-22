@@ -910,7 +910,7 @@ filled with clock() */
 		// loop over atoms
 		Kokkos::parallel_reduce (Kokkos::TeamThreadRange (team_member, (int)(docking_params.num_of_atoms)),
 		[=] (int& idx, float& l_energy_inter) {
-//			l_energy_inter += kokkos_calc_intermolecular_energy(idx, dock_params, interintra, calc_coords);
+			l_energy_inter += kokkos_calc_intermolecular_energy(idx, docking_params, interintra, calc_coords);
 		}, energy_inter);
 
 		// CALCULATING INTRAMOLECULAR ENERGY
@@ -918,7 +918,7 @@ filled with clock() */
                 // loop over intraE contributors
                 Kokkos::parallel_reduce (Kokkos::TeamThreadRange (team_member, docking_params.num_of_intraE_contributors),
                 [=] (int& idx, float& l_energy_intra) {
-//                        l_energy_intra += kokkos_calc_intramolecular_energy(idx, dock_params, intracontrib, interintra, intra, calc_coords);
+                        l_energy_intra += kokkos_calc_intramolecular_energy(idx, docking_params, intracontrib, interintra, intra, calc_coords);
                 }, energy_intra);
 
 		team_member.team_barrier();
