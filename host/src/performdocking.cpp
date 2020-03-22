@@ -115,6 +115,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "dockingparams.hpp"
 #include "kernelconsts.hpp"
 #include "prepare_const_fields.hpp"
+#include "calcenergy.hpp"
 
 inline float average(float* average_sd2_N)
 {
@@ -866,10 +867,11 @@ filled with clock() */
 		// This section was gpu_calc_energy. Break it out again later for reuse in other kernels - ALS
 
 		// GETTING ATOMIC POSITIONS
-                float4struct calc_coords[MAX_NUM_OF_ATOMS];
+		// ALS - This view needs to be in scratch space FIX ME
+		Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords("calc_coords");
 		Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, (int)(docking_params.num_of_atoms)),
                 [=] (int& idx) {
-//                        kokkos_get_atom_pos(idx, conform, calc_coords);
+                        kokkos_get_atom_pos(idx, conform, calc_coords);
                 });
 
 		// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
