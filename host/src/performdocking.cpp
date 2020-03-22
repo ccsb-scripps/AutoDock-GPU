@@ -104,6 +104,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define OPT_PROG INC KNWI REP KGDB
 
+#include <Kokkos_Core.hpp>
+
+// From ./kokkos
+#include "space_settings.hpp"
+#include "dockingparams.hpp"
+#include "kernelconsts.hpp"
+
 #include "performdocking.h"
 #include "stringify.h"
 #include "correct_grad_axisangle.h"
@@ -797,6 +804,26 @@ filled with clock() */
 	// Copy outputs of kernel1 to Host and back, in preparation for converting it to Kokkos
 	memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
 	memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
+
+	// KOKKOS kernel1: kokkos_calc_initpop
+	// Outer loop over mypars->pop_size * mypars->num_of_runs
+	int league_size = mypars->pop_size * mypars->num_of_runs;
+	typedef Kokkos::TeamPolicy<ExSpace>::member_type member_type;
+	Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, Kokkos::AUTO() ),
+			KOKKOS_LAMBDA (member_type team_member) {
+		// The default reduction uses Scalar's += operator
+		// to combine thread contributions.
+		int sum;
+		int loop_count=100;
+		Kokkos::parallel_reduce (Kokkos::TeamThreadRange (team_member, loop_count),
+		[=] (int& i, int& lsum) {
+			lsum += 1;
+		}, sum);
+
+		// Introduce a team barrier here to synchronize threads
+		team_member.team_barrier();
+		printf("\n stupid reduce example: %d \n", sum);
+	});
 
 	// Print outputs
 	printf("\n\nEnergies:");fflush(stdout);
