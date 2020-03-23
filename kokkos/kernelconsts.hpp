@@ -132,4 +132,24 @@ struct Grads
         };
 };
 
+template<class Device>
+struct AxisCorrection
+{       
+        Kokkos::View<float[NUM_AXIS_CORRECTION],Device> angle;
+        Kokkos::View<float[NUM_AXIS_CORRECTION],Device> dependence_on_theta;
+        Kokkos::View<float[NUM_AXIS_CORRECTION],Device> dependence_on_rotangle;
+        
+        AxisCorrection() : angle("angle"),
+       			   dependence_on_theta("dependence_on_theta"),
+			   dependence_on_rotangle("dependence_on_rotangle")	{};
+        
+        // Copy from a host version
+        void deep_copy(AxisCorrection<HostType> axis_correction_h)
+        {       
+                Kokkos::deep_copy(angle,axis_correction_h.angle);
+                Kokkos::deep_copy(dependence_on_theta,axis_correction_h.dependence_on_theta);
+                Kokkos::deep_copy(dependence_on_rotangle,axis_correction_h.dependence_on_rotangle);
+        };
+};
+
 #endif

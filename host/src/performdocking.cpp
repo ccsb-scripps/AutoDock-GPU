@@ -840,12 +840,15 @@ filled with clock() */
         RotList<HostType> rotlist_h;
         Conform<HostType> conform_h;
 	Grads<HostType> grads_h;
+	AxisCorrection<HostType> axis_correction_h;
 
 	// Initialize them
 	if (kokkos_prepare_const_fields(&myligand_reference, mypars, cpu_ref_ori_angles,
                                          interintra_h, intracontrib_h, intra_h, rotlist_h, conform_h, grads_h) == 1) {
                 return 1;
         }
+	kokkos_prepare_axis_correction(angle, dependence_on_theta, dependence_on_rotangle,
+                                        axis_correction_h);
 
 	// Declare on device
         InterIntra<DeviceType> interintra;
@@ -853,7 +856,8 @@ filled with clock() */
         Intra<DeviceType> intra;
         RotList<DeviceType> rotlist;
         Conform<DeviceType> conform;
-	Grads<HostType> grads;
+	Grads<DeviceType> grads;
+	AxisCorrection<DeviceType> axis_correction;
 
 	// Copy to device
 	interintra.deep_copy(interintra_h);

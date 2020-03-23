@@ -48,6 +48,10 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
 			         Conform<Device>& conform,
 				 Grads<Device>& grads);
 
+template<class Device>
+void kokkos_prepare_axis_correction( float* angle, float* dependence_on_theta, float* dependence_on_rotangle,
+                                 AxisCorrection<Device>& axis_correction);
+
 #include "prepare_const_fields.tpp"
 
 #endif

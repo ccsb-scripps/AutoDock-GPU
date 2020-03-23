@@ -369,3 +369,15 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
 	for (m=0;m<MAX_NUM_OF_ROTBONDS;m++) 			{ grads.num_rotating_atoms_per_rotbond[m] = num_rotating_atoms_per_rotbond[m]; }
 	return 0;
 }
+
+template<class Device>
+void kokkos_prepare_axis_correction( float* angle, float* dependence_on_theta, float* dependence_on_rotangle,
+                                 AxisCorrection<Device>& axis_correction)
+{
+	for (int m=0;m<NUM_AXIS_CORRECTION;m++)
+	{
+		axis_correction.angle(m) = angle[m];
+		axis_correction.dependence_on_theta(m) = dependence_on_theta[m];
+		axis_correction.dependence_on_rotangle(m) = dependence_on_rotangle[m];
+	}
+}

@@ -83,6 +83,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define LS_EXP_FACTOR 		2.0f
 #define LS_CONT_FACTOR 		0.5f
 
+// Resolution of axis correction
+#define NUM_AXIS_CORRECTION     1000
+
 // Improvements over Pechan's implementation
 #define MAPPED_COPY
 
