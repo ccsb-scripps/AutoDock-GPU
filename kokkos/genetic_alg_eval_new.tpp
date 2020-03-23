@@ -72,11 +72,11 @@ void kokkos_gen_alg_eval_new(Dockpars* mypars,DockingParams<Device>& docking_par
 
 			team_member.team_barrier();
 
-//			crossover();
+			crossover(team_member, docking_params, genetic_params, run_id, randnums, parents, offspring_genotype);
 
 			team_member.team_barrier();
 
-//			mutation();
+			mutation(team_member, docking_params, genetic_params, offspring_genotype);
 
 			team_member.team_barrier();
 

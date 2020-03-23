@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
+#include "random.hpp"
+
 //The GPU device function performs elitist selection,
 //that is, it looks for the best entity in conformations_current and
 //energies_current of the run that corresponds to the block ID,
@@ -94,4 +96,105 @@ KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_me
 		     = docking_params.conformations_current(GENOTYPE_LENGTH_IN_GLOBMEM*lidx + GENOTYPE_LENGTH_IN_GLOBMEM*best_ID+gene_counter);
         }
 
+}
+
+
+template<class Device>
+KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const DockingParams<Device>& docking_params, const GeneticParams& genetic_params, const int run_id, const float* randnums, const int* parents,
+					float* offspring_genotype)
+{
+        // Get team and league ranks
+        int tidx = team_member.team_rank();
+        int lidx = team_member.league_rank();
+        int team_size = team_member.team_size();
+
+	int covr_point[2];
+
+	// Notice: dockpars_crossover_rate was scaled down to [0,1] in host
+	// to reduce number of operations in device
+	if (/*100.0f**/randnums[6] < genetic_params.crossover_rate)   // Using randnums[6]
+	{
+		if (tidx < 2) {
+			// Using randnum[7..8]
+			covr_point[tidx] = (int) ((docking_params.num_of_genes-1)*randnums[7+tidx]);
+		}
+
+		team_member.team_barrier();
+
+		// covr_point[0] should store the lower crossover-point
+		if (tidx == 0) {
+			if (covr_point[1] < covr_point[0]) {
+				int temp_covr_point = covr_point[1];
+				covr_point[1]   = covr_point[0];
+				covr_point[0]   = temp_covr_point;
+			}
+		}
+
+		team_member.team_barrier();
+
+		for (int gene_counter = tidx;
+		     gene_counter < docking_params.num_of_genes;
+		     gene_counter+= team_size)
+		{
+			// Two-point crossover
+			if (covr_point[0] != covr_point[1])
+			{
+				if ((gene_counter <= covr_point[0]) || (gene_counter > covr_point[1]))
+					offspring_genotype[gene_counter] = docking_params.conformations_current((run_id*docking_params.pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter);
+				else
+					offspring_genotype[gene_counter] = docking_params.conformations_current((run_id*docking_params.pop_size+parents[1])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter);
+			}
+			// Single-point crossover
+			else
+			{
+				if (gene_counter <= covr_point[0])
+					offspring_genotype[gene_counter] = docking_params.conformations_current((run_id*docking_params.pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter);
+				else
+					offspring_genotype[gene_counter] = docking_params.conformations_current((run_id*docking_params.pop_size+parents[1])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter);
+			}
+		}
+
+	}
+	else    //no crossover
+	{
+		// FIX ME Copying new offspring to next generation, maybe parallelizable - ALS
+                for (int i_geno = 0; i_geno<docking_params.num_of_genes; i_geno++) {
+                        offspring_genotype[i_geno] = docking_params.conformations_current(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*(run_id*docking_params.pop_size+parents[0]));
+                }
+
+                team_member.team_barrier();
+	}
+}
+
+template<class Device>
+KOKKOS_INLINE_FUNCTION void mutation(const member_type& team_member, const DockingParams<Device>& docking_params, const GeneticParams& genetic_params,
+		                     float* offspring_genotype)
+{
+        // Get team and league ranks
+        int tidx = team_member.team_rank();
+        int team_size = team_member.team_size();
+
+	for (int gene_counter = tidx;
+	     gene_counter < docking_params.num_of_genes;
+	     gene_counter+= team_size)
+	{
+		// Notice: dockpars_mutation_rate was scaled down to [0,1] in host
+		// to reduce number of operations in device
+		if (/*100.0f**/rand_float(team_member, docking_params) < genetic_params.mutation_rate)
+		{
+			// Translation genes
+			if (gene_counter < 3) {
+				offspring_genotype[gene_counter] += genetic_params.abs_max_dmov*(2*rand_float(team_member, docking_params)-1);
+			}
+			// Orientation and torsion genes
+			else {
+				offspring_genotype[gene_counter] += genetic_params.abs_max_dang*(2*rand_float(team_member, docking_params)-1);
+
+				// Quick modulo
+				while (offspring_genotype[gene_counter] >= 360.0f) { offspring_genotype[gene_counter] -= 360.0f; }
+				while (offspring_genotype[gene_counter] < 0.0f   ) { offspring_genotype[gene_counter] += 360.0f; }
+			}
+
+		}
+	}
 }
