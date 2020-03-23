@@ -113,6 +113,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // From ./kokkos
 #include "space_settings.hpp"
 #include "dockingparams.hpp"
+#include "geneticparams.hpp"
 #include "kernelconsts.hpp"
 #include "prepare_const_fields.hpp"
 #include "calc_init_pop.hpp"
@@ -820,6 +821,9 @@ filled with clock() */
 	// KOKKOS kernel1: kokkos_calc_initpop
 	// Initialize DockingParams
 	DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids, cpu_init_populations);
+
+	// Initialize GeneticParams (broken out of docking params since they relate to the genetic algorithm, not the docking per se
+	GeneticParams genetic_params(mypars);
 
 	// Evals of runs on device (for kernel2)
 	Kokkos::View<int*,DeviceType> evals_of_runs("evals_of_runs",mypars->num_of_runs);

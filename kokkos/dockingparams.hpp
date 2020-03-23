@@ -27,11 +27,6 @@ struct DockingParams
 //        unsigned int*   prng_states;
         int             pop_size;
 /*        int             num_of_genes;
-        float           tournament_rate;
-        float           crossover_rate;
-        float           mutation_rate;
-        float           abs_max_dmov;
-        float           abs_max_dang;
         float           lsearch_rate;
 */
         float           smooth;
