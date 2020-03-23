@@ -1,4 +1,6 @@
 #include "calcenergy.hpp"
+#include "gen_alg_functions.hpp"
+#include "random.hpp"
 
 // TODO - templatize ExSpace - ALS
 template<class Device>
@@ -15,8 +17,8 @@ void kokkos_gen_alg_eval_new(Dockpars* mypars,DockingParams<Device>& docking_par
 
 		// This compute-unit is responsible for elitist selection
 	        if ((lidx % docking_params.pop_size) == 0) {
-//			perform_elitist_selection(docking_params);
-		}else{
+			perform_elitist_selection(team_member, docking_params);
+        	}else{
 			// Some local arrays
 			float offspring_genotype[ACTUAL_GENOTYPE_LENGTH];
 			float randnums[10];
@@ -28,7 +30,11 @@ void kokkos_gen_alg_eval_new(Dockpars* mypars,DockingParams<Device>& docking_par
                 	// [0..3] for parent candidates,
                 	// [4..5] for binary tournaments, [6] for deciding crossover,
                 	// [7..8] for crossover points, [9] for local search
-//			get_randnums();
+			for (int gene_counter = tidx;
+				gene_counter < 10;
+				gene_counter+= team_member.team_size()) {
+				randnums[gene_counter] = rand_float(team_member, docking_params);
+			}
 
 			// Determine which run this team is doing
         		int run_id;
