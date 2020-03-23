@@ -27,16 +27,11 @@ struct DockingParams
 	float           smooth;
 	float           qasp;
 
-// COMMENTED PARAMETERS MAY BE ADDED LATER OR ELSEWHERE - ALS 
-/*        int             num_of_genes;
+	// Used in ADA kernel
+        int             num_of_genes;
         float           lsearch_rate;
         unsigned int    num_of_lsentities;
-        float           rho_lower_bound;
-        float           base_dmov_mul_sqrt3;
-        float           base_dang_mul_sqrt3;
-        unsigned int    cons_limit;
         unsigned int    max_num_of_iters;
-*/
 
 	// Constructor
 	DockingParams(const Liganddata& myligand_reference, const Gridinfo* mygrid, const Dockpars* mypars, float* cpu_floatgrids, float* cpu_init_populations, unsigned int* cpu_prng_seeds)
@@ -65,6 +60,14 @@ struct DockingParams
 		pop_size      = mypars->pop_size;
 		qasp            = mypars->qasp;
 		smooth          = mypars->smooth;
+
+		num_of_genes  = myligand_reference.num_of_rotbonds + 6;
+		lsearch_rate    = mypars->lsearch_rate;
+		if (lsearch_rate != 0.0f)
+        	{
+                	num_of_lsentities = (unsigned int) (mypars->lsearch_rate/100.0*mypars->pop_size + 0.5);
+                	max_num_of_iters  = (unsigned int) mypars->max_num_of_iters;
+        	}
 
 		// Note kokkos views are initialized to zero by default
 
