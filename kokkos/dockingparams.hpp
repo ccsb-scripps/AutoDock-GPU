@@ -19,25 +19,24 @@ struct DockingParams
         float           coeff_desolv;
         Kokkos::View<float*,Device> conformations_current;
         Kokkos::View<float*,Device> energies_current;
-
-// COMMENTED PARAMETERS MAY BE ADDED LATER OR ELSEWHERE - ALS	
-//        float*          conformations_next;
-//        float*          energies_next;
+        Kokkos::View<float*,Device> conformations_next;
+        Kokkos::View<float*,Device> energies_next;
         Kokkos::View<int*,Device> evals_of_new_entities;
-//        unsigned int*   prng_states;
+        Kokkos::View<unsigned int*,Device> prng_states;
         int             pop_size;
+	float           smooth;
+	float           qasp;
+
+// COMMENTED PARAMETERS MAY BE ADDED LATER OR ELSEWHERE - ALS 
 /*        int             num_of_genes;
         float           lsearch_rate;
-*/
-        float           smooth;
-/*        unsigned int    num_of_lsentities;
+        unsigned int    num_of_lsentities;
         float           rho_lower_bound;
         float           base_dmov_mul_sqrt3;
         float           base_dang_mul_sqrt3;
         unsigned int    cons_limit;
         unsigned int    max_num_of_iters;
 */
-        float           qasp;
 
 	// Constructor
 	DockingParams(const Liganddata& myligand_reference, const Gridinfo* mygrid, const Dockpars* mypars, float* cpu_floatgrids, float* cpu_init_populations)
