@@ -1208,7 +1208,7 @@ filled with clock() */
 */
 
 				// Perform gradient_minAD, formerly known as kernel7
-				kokkos_gradient_minAD(mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);
+				kokkos_gradient_minAD(mypars, docking_params, conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
 				Kokkos::fence();
 
 				// Copy output from kokkos kernel4 to CPU
