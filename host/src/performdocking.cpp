@@ -830,10 +830,11 @@ filled with clock() */
         Intra<HostType> intra_h;
         RotList<HostType> rotlist_h;
         Conform<HostType> conform_h;
+	Grads<HostType> grads_h;
 
 	// Initialize them
 	if (kokkos_prepare_const_fields(&myligand_reference, mypars, cpu_ref_ori_angles,
-                                         interintra_h, intracontrib_h, intra_h, rotlist_h, conform_h) == 1) {
+                                         interintra_h, intracontrib_h, intra_h, rotlist_h, conform_h, grads_h) == 1) {
                 return 1;
         }
 
@@ -843,6 +844,7 @@ filled with clock() */
         Intra<DeviceType> intra;
         RotList<DeviceType> rotlist;
         Conform<DeviceType> conform;
+	Grads<HostType> grads;
 
 	// Copy to device
 	interintra.deep_copy(interintra_h);
@@ -850,6 +852,7 @@ filled with clock() */
 	intra.deep_copy(intra_h);
 	rotlist.deep_copy(rotlist_h);
 	conform.deep_copy(conform_h);
+	grads.deep_copy(grads_h);
 
 	// Perform the kernel formerly known as kernel1
 	kokkos_calc_init_pop(mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);

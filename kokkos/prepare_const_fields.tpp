@@ -33,8 +33,8 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
                                  IntraContrib<Device>& intracontrib,
                                  Intra<Device>& intra,
                                  RotList<Device>& rotlist_out,
-                                 Conform<Device>& conform)
-//				 kernelconstant_grads*          KerConst_grads)
+                                 Conform<Device>& conform,
+				 Grads<Device>& grads)
 
 //The function fills the constant memory field of the GPU (ADM FPGA)
 //defined above (erased from here) and used during GPU docking,
@@ -327,27 +327,6 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
 
 	int m;
 
-	/*
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst->atom_charges_const[m] = atom_charges[m]; }
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst->atom_types_const[m]   = atom_types[m]; }
-	for (m=0;m<3*MAX_INTRAE_CONTRIBUTORS;m++){ KerConst->intraE_contributors_const[m]   = intraE_contributors[m]; }
-	for (m=0;m<ATYPE_NUM;m++){ KerConst->reqm_const[m] = reqm[m]; }
-	for (m=0;m<ATYPE_NUM;m++){ KerConst->reqm_hbond_const[m] = reqm_hbond[m]; }
-	for (m=0;m<ATYPE_NUM;m++){ KerConst->atom1_types_reqm_const[m] = atom1_types_reqm[m]; }
-	for (m=0;m<ATYPE_NUM;m++){ KerConst->atom2_types_reqm_const[m] = atom2_types_reqm[m]; }
-	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++){ KerConst->VWpars_AC_const[m]   = VWpars_AC[m]; }
-	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++){ KerConst->VWpars_BD_const[m]   = VWpars_BD[m]; }
-	for (m=0;m<MAX_NUM_OF_ATYPES;m++)		   { KerConst->dspars_S_const[m]    = dspars_S[m]; }
-	for (m=0;m<MAX_NUM_OF_ATYPES;m++)		   { KerConst->dspars_V_const[m]    = dspars_V[m]; }
-	for (m=0;m<MAX_NUM_OF_ROTATIONS;m++)		   { KerConst->rotlist_const[m]     = rotlist[m]; }
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++)		   { KerConst->ref_coords_x_const[m]= ref_coords_x[m]; }
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++)		   { KerConst->ref_coords_y_const[m]= ref_coords_y[m]; }
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++)		   { KerConst->ref_coords_z_const[m]= ref_coords_z[m]; }
-	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst->rotbonds_moving_vectors_const[m]= rotbonds_moving_vectors[m]; }
-	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst->rotbonds_unit_vectors_const[m]  = rotbonds_unit_vectors[m]; }
-	for (m=0;m<4*MAX_NUM_OF_RUNS;m++)    { KerConst->ref_orientation_quats_const[m]  = ref_orientation_quats[m]; }
-	*/
-
 	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ interintra.atom_charges_const[m] = atom_charges[m]; }
 	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ interintra.atom_types_const[m]   = atom_types[m];   }
 
@@ -385,8 +364,8 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
 	// Added for calculating torsion-related gradients.
 	// Passing list of rotbond-atoms ids to the GPU.
 	// Contains the same information as processligand.h/Liganddata->rotbonds
-//	for (m=0;m<2*MAX_NUM_OF_ROTBONDS;m++) 			{ KerConst_grads->rotbonds[m] 			    = rotbonds[m]; }
-//	for (m=0;m<MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS;m++) 	{ KerConst_grads->rotbonds_atoms[m]                 = rotbonds_atoms[m]; }
-//	for (m=0;m<MAX_NUM_OF_ROTBONDS;m++) 			{ KerConst_grads->num_rotating_atoms_per_rotbond[m] = num_rotating_atoms_per_rotbond[m]; }
+	for (m=0;m<2*MAX_NUM_OF_ROTBONDS;m++) 			{ grads.rotbonds[m] 			  = rotbonds[m]; }
+	for (m=0;m<MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS;m++) 	{ grads.rotbonds_atoms[m]                 = rotbonds_atoms[m]; }
+	for (m=0;m<MAX_NUM_OF_ROTBONDS;m++) 			{ grads.num_rotating_atoms_per_rotbond[m] = num_rotating_atoms_per_rotbond[m]; }
 	return 0;
 }

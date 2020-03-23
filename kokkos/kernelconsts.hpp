@@ -104,4 +104,32 @@ struct Conform
         };
 };
 
+template<class Device>
+struct Grads
+{
+        // Added for calculating torsion-related gradients.
+        // Passing list of rotbond-atoms ids to the GPU.
+        // Contains the same information as processligand.h/Liganddata->rotbonds 
+        Kokkos::View<int[2*MAX_NUM_OF_ROTBONDS],Device> rotbonds;
+
+        // Contains the same information as processligand.h/Liganddata->atom_rotbonds
+        // "atom_rotbonds": array that contains the rotatable bonds - atoms assignment.
+        // If the element atom_rotbonds[atom index][rotatable bond index] is equal to 1,
+        // it means,that the atom must be rotated if the bond rotates. A 0 means the opposite.
+        Kokkos::View<int[MAX_NUM_OF_ATOMS * MAX_NUM_OF_ROTBONDS],Device> rotbonds_atoms;
+        Kokkos::View<int[MAX_NUM_OF_ROTBONDS],Device> num_rotating_atoms_per_rotbond;
+
+        Grads() : rotbonds("rotbonds"),
+       		  rotbonds_atoms("rotbonds_atoms"),
+		  num_rotating_atoms_per_rotbond("num_rotating_atoms_per_rotbond") {};
+
+        // Copy from a host version
+        void deep_copy(Grads<HostType> grads_h)
+        {
+                Kokkos::deep_copy(rotbonds,grads_h.rotbonds);
+                Kokkos::deep_copy(rotbonds_atoms,grads_h.rotbonds_atoms);
+                Kokkos::deep_copy(num_rotating_atoms_per_rotbond,grads_h.num_rotating_atoms_per_rotbond);
+        };
+};
+
 #endif

@@ -45,8 +45,8 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
 			         IntraContrib<Device>& intracontrib,
 			         Intra<Device>& intra,
 			         RotList<Device>& rotlist,
-			         Conform<Device>& conform);
-//				 kernelconstant_grads*          KerConst_grads);
+			         Conform<Device>& conform,
+				 Grads<Device>& grads);
 
 #include "prepare_const_fields.tpp"
 
