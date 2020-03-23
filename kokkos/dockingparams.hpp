@@ -39,11 +39,14 @@ struct DockingParams
 */
 
 	// Constructor
-	DockingParams(const Liganddata& myligand_reference, const Gridinfo* mygrid, const Dockpars* mypars, float* cpu_floatgrids, float* cpu_init_populations)
+	DockingParams(const Liganddata& myligand_reference, const Gridinfo* mygrid, const Dockpars* mypars, float* cpu_floatgrids, float* cpu_init_populations, unsigned int* cpu_prng_seeds)
 		: fgrids("fgrids", 4 * (mygrid->num_of_atypes+2) * (mygrid->size_xyz[0]) * (mygrid->size_xyz[1]) * (mygrid->size_xyz[2])),
 		  conformations_current("conformations_current", mypars->pop_size * mypars->num_of_runs * GENOTYPE_LENGTH_IN_GLOBMEM),
 		  energies_current("energies_current", mypars->pop_size * mypars->num_of_runs),
-		  evals_of_new_entities("evals_of_new_entities", mypars->pop_size * mypars->num_of_runs)
+                  conformations_next("conformations_next", mypars->pop_size * mypars->num_of_runs * GENOTYPE_LENGTH_IN_GLOBMEM),
+                  energies_next("energies_next", mypars->pop_size * mypars->num_of_runs),
+		  evals_of_new_entities("evals_of_new_entities", mypars->pop_size * mypars->num_of_runs),
+		  prng_states("prng_states",mypars->pop_size * mypars->num_of_runs * NUM_OF_THREADS_PER_BLOCK)
 	{
 		// Copy in scalars
 		num_of_atoms  = ((char)  myligand_reference.num_of_atoms);
@@ -73,6 +76,10 @@ struct DockingParams
 
                 FloatView1D init_pop_view(cpu_init_populations, conformations_current.extent(0));
                 Kokkos::deep_copy(conformations_current, init_pop_view);
+
+		typedef Kokkos::View<unsigned int*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> UnsignedIntView1D;
+                UnsignedIntView1D prng_view(cpu_prng_seeds, prng_states.extent(0));
+                Kokkos::deep_copy(prng_states, prng_view);
 	}
 };
 

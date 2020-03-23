@@ -118,6 +118,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "prepare_const_fields.hpp"
 #include "calc_init_pop.hpp"
 #include "sum_evals.hpp"
+#include "genetic_alg_eval_new.hpp"
 
 inline float average(float* average_sd2_N)
 {
@@ -261,6 +262,8 @@ filled with clock() */
 	// TEMPORARY - ALS
 	float* cpu_energies_kokkos;
 	int* cpu_new_entities_kokkos;
+	unsigned int* cpu_prng_kokkos;
+	float* cpu_conforms_kokkos;
 
 	float* cpu_init_populations;
 	float* cpu_final_populations;
@@ -341,6 +344,8 @@ filled with clock() */
 	// TEMPORARY - ALS
 	cpu_energies_kokkos = (float*) malloc(size_energies);
 	cpu_new_entities_kokkos = (int*) malloc(size_evals_of_new_entities);
+	cpu_prng_kokkos = (unsigned int*) malloc(size_prng_seeds);
+	cpu_conforms_kokkos = (float *) malloc(size_populations);
 
 	//allocating memory in CPU for evaluation counters
 	size_evals_of_runs = mypars->num_of_runs*sizeof(int);
@@ -820,7 +825,7 @@ filled with clock() */
 
 	// KOKKOS kernel1: kokkos_calc_initpop
 	// Initialize DockingParams
-	DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids, cpu_init_populations);
+	DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids, cpu_init_populations, cpu_prng_seeds);
 
 	// Initialize GeneticParams (broken out of docking params since they relate to the genetic algorithm, not the docking per se
 	GeneticParams genetic_params(mypars);
@@ -1091,15 +1096,75 @@ filled with clock() */
 				fflush(stdout);
 			}
 		}
+
+		//////////////////////////////////////////
 		// Kernel4
+
+
+		// Copy input to kernel4 to cpu, then into device view
+                // conformations_current
+                memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
+                FloatView1D conforms_view(cpu_conforms_kokkos, docking_params.conformations_current.extent(0));
+                Kokkos::deep_copy(docking_params.conformations_current, conforms_view);
+		// energies_current
+                memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
+                FloatView1D energies_view(cpu_energies_kokkos, docking_params.energies_current.extent(0));
+                Kokkos::deep_copy(docking_params.energies_current, energies_view);
+		// prng_states
+                memcopyBufferObjectFromDevice(command_queue,cpu_prng_kokkos,mem_dockpars_prng_states,size_prng_seeds);
+		typedef Kokkos::View<unsigned int*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> UnsignedIntView1D;
+                UnsignedIntView1D prng_view(cpu_prng_kokkos, docking_params.prng_states.extent(0));
+                Kokkos::deep_copy(docking_params.prng_states, prng_view);
+
 //		#ifdef DOCK_DEBUG
 			printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 //		#endif
 		runKernel1D(command_queue,kernel4,kernel4_gxsize,kernel4_lxsize,&time_start_kernel,&time_end_kernel);
-//		#ifdef DOCK_DEBUG
-			printf("%15s", " ... Finished\n");fflush(stdout);
-//		#endif
+
+/*	        // Copy output from original kernel4
+                memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
+
+                printf("\n\nEvals_old:");fflush(stdout);
+                for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
+                {       
+                        printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
+                }
+                printf("\n\n");
+*/
+
+                // Perform sum_evals, formerly known as kernel2
+                kokkos_gen_alg_eval_new(mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);
+                Kokkos::fence();
+
+                // Copy output from kokkos kernel2 to CPU
+                // evals_of_new_entities
+                IntView1D evals_of_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
+                Kokkos::deep_copy(evals_of_new_entities_view,docking_params.evals_of_new_entities);
+		// conformations_next
+                Kokkos::deep_copy(conforms_view,docking_params.conformations_next);
+                // energies_next
+                Kokkos::deep_copy(energies_view,docking_params.energies_next);
+                // prng_states
+                Kokkos::deep_copy(prng_view,docking_params.prng_states);
+
+/*              
+                printf("\n\nEvals_new:");fflush(stdout);
+                for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
+                {
+                        printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
+                }
+                printf("\n\n");
+*/
+
+                // Copy kokkos output from CPU to OpenCL format
+//                memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
+//                memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_conforms_kokkos,size_populations);
+//                memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_energies_kokkos,size_energies);
+//                memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,true,cpu_prng_kokkos,size_prng_seeds);	
+
+		printf("%15s", " ... Finished\n");fflush(stdout);
 		// End of Kernel4
+
 		if (dockpars.lsearch_rate != 0.0f) {
 			if (strcmp(mypars->ls_method, "sw") == 0) {
 				// Kernel3 NOT SUPPORTED - ALS
@@ -1141,7 +1206,6 @@ filled with clock() */
 
 	        // Copy input to kernel2 to cpu, then into device view
 	        memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
-	        IntView1D evals_of_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
 	        Kokkos::deep_copy(docking_params.evals_of_new_entities, evals_of_new_entities_view);
 	
 	        // Perform sum_evals, formerly known as kernel2
@@ -1360,6 +1424,12 @@ filled with clock() */
 	free(cpu_prng_seeds);
 	free(cpu_evals_of_runs);
 	free(cpu_ref_ori_angles);
+
+	// TEMPORARY - ALS
+        free(cpu_energies_kokkos);
+        free(cpu_new_entities_kokkos);
+        free(cpu_prng_kokkos);
+        free(cpu_conforms_kokkos);
 	return 0;
 }
 
