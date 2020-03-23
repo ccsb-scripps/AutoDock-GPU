@@ -116,6 +116,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "kernelconsts.hpp"
 #include "prepare_const_fields.hpp"
 #include "calcenergy.hpp"
+#include "calc_init_pop.hpp"
+#include "sum_evals.hpp"
 
 inline float average(float* average_sd2_N)
 {
@@ -793,19 +795,28 @@ filled with clock() */
 	} // End if (dockpars.lsearch_rate != 0.0f)
 
 	// Kernel1
-//	#ifdef DOCK_DEBUG
-		printf("\nExecution starts:\n\n");
-		printf("%-25s", "\tK_INIT");fflush(stdout);
-//	#endif
+	printf("\nExecution starts:\n\n");
+	printf("%-25s", "\tK_INIT");fflush(stdout);
+/*
 	runKernel1D(command_queue,kernel1,kernel1_gxsize,kernel1_lxsize,&time_start_kernel,&time_end_kernel);
-//	#ifdef DOCK_DEBUG
-		printf("%15s" ," ... Finished\n");fflush(stdout);
-//	#endif
-	// End of Kernel1
 
-	// Copy outputs of kernel1 to Host and back, in preparation for converting it to Kokkos
-//	memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
-//	memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
+	// Copy outputs of kernel1 to Host and print output
+	memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
+	memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
+
+	// Print outputs
+        printf("\n\nEnergies:");fflush(stdout);
+        for (int ik1o = 0; ik1o<mypars->pop_size*mypars->num_of_runs; ik1o++)
+        {
+                printf("\n%d : %.15e", ik1o, cpu_energies_kokkos[ik1o]);fflush(stdout);
+        }
+        printf("\n\nEntities:");fflush(stdout);
+        for (int ik1o = 0; ik1o<mypars->pop_size*mypars->num_of_runs; ik1o++)
+        {
+                printf("\n%d : %d", ik1o, cpu_new_entities_kokkos[ik1o]);fflush(stdout);
+        }
+        printf("\n\n");
+*/
 
 	// KOKKOS kernel1: kokkos_calc_initpop
 	// Initialize DockingParams
@@ -842,113 +853,9 @@ filled with clock() */
 	conform.deep_copy(conform_h);
 
 	// Perform the kernel formerly known as kernel1
-	// Outer loop over mypars->pop_size * mypars->num_of_runs
-	int league_size = mypars->pop_size * mypars->num_of_runs;
-	typedef Kokkos::TeamPolicy<ExSpace>::member_type member_type;
-	Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, Kokkos::AUTO() ),
-			KOKKOS_LAMBDA (member_type team_member)
-	{
-		// Get team and league ranks
-		int tidx = team_member.team_rank();
-		int lidx = team_member.league_rank();
-
-		// Determine which run this team is doing
-		int run_id;
-		if (tidx == 0) {
-                	run_id = lidx/docking_params.pop_size;
-        	}
-
-		// Copy this genotype to local memory, maybe unnecessary - ALS
-		float genotype[ACTUAL_GENOTYPE_LENGTH];
-		for (int i_geno = 0; i_geno<ACTUAL_GENOTYPE_LENGTH; i_geno++) {
-			genotype[i_geno] = docking_params.conformations_current
-						(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*lidx);
-		}
-
-		team_member.team_barrier();
-
-		// This section was gpu_calc_energy. Break it out again later for reuse in other kernels - ALS
-
-		// GETTING ATOMIC POSITIONS
-		// ALS - This view needs to be in scratch space FIX ME
-		Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords("calc_coords");
-		Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, (int)(docking_params.num_of_atoms)),
-                [=] (int& idx) {
-                        kokkos_get_atom_pos(idx, conform, calc_coords);
-                });
-
-		// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
-		// General rotation moving vector
-        	float4struct genrot_movingvec;
-        	genrot_movingvec.x = genotype[0];
-        	genrot_movingvec.y = genotype[1];
-        	genrot_movingvec.z = genotype[2];
-        	genrot_movingvec.w = 0.0;
-
-        	// Convert orientation genes from sex. to radians
-        	float phi         = genotype[3] * DEG_TO_RAD;
-        	float theta       = genotype[4] * DEG_TO_RAD;
-        	float genrotangle = genotype[5] * DEG_TO_RAD;
-        	float4struct genrot_unitvec;
-        	float sin_angle = sin(theta);
-        	float s2 = sin(genrotangle*0.5f);
-        	genrot_unitvec.x = s2*sin_angle*cos(phi);
-        	genrot_unitvec.y = s2*sin_angle*sin(phi);
-        	genrot_unitvec.z = s2*cos(theta);
-        	genrot_unitvec.w = cos(genrotangle*0.5f);
-
-		team_member.team_barrier();
-
-		// FIX ME This will break once multi-threading - ALS
-		// Loop over the rot bond list and carry out all the rotations
-		Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, docking_params.rotbondlist_length),
-                [=] (int& idx) {
-                        kokkos_rotate_atoms(idx, conform, rotlist, run_id, genotype, genrot_movingvec, genrot_unitvec, calc_coords);
-                });
-
-		team_member.team_barrier();
-
-		// CALCULATING INTERMOLECULAR ENERGY
-		float energy_inter;
-		// loop over atoms
-		Kokkos::parallel_reduce (Kokkos::TeamThreadRange (team_member, (int)(docking_params.num_of_atoms)),
-		[=] (int& idx, float& l_energy_inter) {
-			l_energy_inter += kokkos_calc_intermolecular_energy(idx, docking_params, interintra, calc_coords);
-		}, energy_inter);
-
-		// CALCULATING INTRAMOLECULAR ENERGY
-                float energy_intra;
-                // loop over intraE contributors
-                Kokkos::parallel_reduce (Kokkos::TeamThreadRange (team_member, docking_params.num_of_intraE_contributors),
-                [=] (int& idx, float& l_energy_intra) {
-                        l_energy_intra += kokkos_calc_intramolecular_energy(idx, docking_params, intracontrib, interintra, intra, calc_coords);
-                }, energy_intra);
-
-		team_member.team_barrier();
-
-		// End of gpu_calc_energy
-
-		// Copy to global views
-		if( tidx == 0 ) {
-			docking_params.energies_current(lidx) = energy_inter + energy_intra;
-			docking_params.evals_of_new_entities(lidx) = 1;
-		}
-	});
+	kokkos_calc_init_pop(mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);
 	Kokkos::fence();
 
-	// Print outputs
-/*	printf("\n\nEnergies:");fflush(stdout);
-	for (int ik1o = 0; ik1o<mypars->pop_size*mypars->num_of_runs; ik1o++)
-	{
-		printf("\n%d : %.15e", ik1o, cpu_energies_kokkos[ik1o]);fflush(stdout);
-	}
-	printf("\n\nEntities:");fflush(stdout);
-        for (int ik1o = 0; ik1o<mypars->pop_size*mypars->num_of_runs; ik1o++)
-        {
-                printf("\n%d : %d", ik1o, cpu_new_entities_kokkos[ik1o]);fflush(stdout);
-        }
-	printf("\n\n");
-*/
 	// Copy back from device
         // First wrap the C style arrays with an unmanaged kokkos view, then deep copy from the device
         typedef Kokkos::View<float*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> FloatView1D;
@@ -978,14 +885,12 @@ filled with clock() */
 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
 
+	printf("%15s" ," ... Finished\n");fflush(stdout); // Finished kernel1
+
 	// Kernel2
-//	#ifdef DOCK_DEBUG
-		printf("%-25s", "\tK_EVAL");fflush(stdout);
-//	#endif
-	runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
-//	#ifdef DOCK_DEBUG
-		printf("%15s" ," ... Finished\n");fflush(stdout);
-//	#endif
+	printf("%-25s", "\tK_EVAL");fflush(stdout);
+/*	runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
+
 	memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
 
         printf("\n\nEvals_old0:");fflush(stdout);
@@ -994,49 +899,29 @@ filled with clock() */
                 printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
         }
         printf("\n\n");
-
+*/
 	// Copy input to kernel2 to cpu, then into device view
         memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
         IntView1D evals_of_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
         Kokkos::deep_copy(docking_params.evals_of_new_entities, evals_of_new_entities_view);
 
-	// Perform the kernel formerly known as kernel2
-        // Outer loop over mypars->num_of_runs
-        league_size = mypars->num_of_runs;
-        Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, Kokkos::AUTO() ),
-                        KOKKOS_LAMBDA (member_type team_member)
-        {
-                // Get team and league ranks
-                int tidx = team_member.team_rank();
-                int lidx = team_member.league_rank();
-
-		// Reduce new_entities
-                int sum_evals;
-                Kokkos::parallel_reduce (Kokkos::TeamThreadRange (team_member, docking_params.pop_size),
-                [=] (int& idx, int& l_evals) {
-                        l_evals += docking_params.evals_of_new_entities(lidx*docking_params.pop_size + idx);
-                }, sum_evals);
-
-                team_member.team_barrier();
-
-                // Add to global view
-                if( tidx == 0 ) {
-                        evals_of_runs(lidx) += sum_evals;
-                }
-	});
+	// Perform sum_evals, formerly known as kernel2
+	kokkos_sum_evals(mypars, docking_params, evals_of_runs);
 	Kokkos::fence();
 
         IntView1D cpu_evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0));
         Kokkos::deep_copy(cpu_evals_of_runs_view, evals_of_runs);
-
+/*
 	printf("\n\nEvals_new0:");fflush(stdout);
         for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
         {
                 printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
         }
         printf("\n\n");
+*/
 	memcopyBufferObjectToDevice(command_queue,mem_gpu_evals_of_runs,true,cpu_evals_of_runs,size_evals_of_runs);
 
+	printf("%15s" ," ... Finished\n");fflush(stdout);
         // End of Kernel2
 	// ===============================================================================
 
@@ -1234,68 +1119,46 @@ filled with clock() */
 		#endif
 		// -------- Replacing with memory maps! ------------
 		// Kernel2
-//		#ifdef DOCK_DEBUG
-			printf("%-25s", "\tK_EVAL");fflush(stdout);
-//		#endif
-		runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
-//		#ifdef DOCK_DEBUG
-			printf("%15s" ," ... Finished\n");fflush(stdout);
-//		#endif
-	// Copy output from original kernel2
-	memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
+		printf("%-25s", "\tK_EVAL");fflush(stdout);
+/*		runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
 
-        printf("\n\nEvals_old:");fflush(stdout);
-        for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
-        {       
-                printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
-        }
-        printf("\n\n");
+		// Copy output from original kernel2
+		memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
 
-        // Copy input to kernel2 to cpu, then into device view
-        memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
-        IntView1D evals_of_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
-        Kokkos::deep_copy(docking_params.evals_of_new_entities, evals_of_new_entities_view);
+	        printf("\n\nEvals_old:");fflush(stdout);
+	        for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
+	        {       
+	                printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
+	        }
+	        printf("\n\n");
+*/
+
+	        // Copy input to kernel2 to cpu, then into device view
+	        memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
+	        IntView1D evals_of_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
+	        Kokkos::deep_copy(docking_params.evals_of_new_entities, evals_of_new_entities_view);
 	
-        // Perform the kernel formerly known as kernel2
-        // Outer loop over mypars->num_of_runs
-        league_size = mypars->num_of_runs;
-        Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, Kokkos::AUTO() ),
-                        KOKKOS_LAMBDA (member_type team_member)
-        {
-                // Get team and league ranks
-                int tidx = team_member.team_rank();
-                int lidx = team_member.league_rank();
+	        // Perform sum_evals, formerly known as kernel2
+	        kokkos_sum_evals(mypars, docking_params, evals_of_runs);
+	        Kokkos::fence();
 
-                // Reduce new_entities
-                int sum_evals;
-                Kokkos::parallel_reduce (Kokkos::TeamThreadRange (team_member, docking_params.pop_size),
-                [=] (int& idx, int& l_evals) {
-                        l_evals += docking_params.evals_of_new_entities(lidx*docking_params.pop_size + idx);
-                }, sum_evals);
+		// Copy output from kokkos kernel2 to CPU
+	        IntView1D cpu_evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0));
+	        Kokkos::deep_copy(cpu_evals_of_runs_view, evals_of_runs);
 
-                team_member.team_barrier();
+/*		
+	        printf("\n\nEvals_new:");fflush(stdout);
+	        for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
+	        {
+	                printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
+	        }
+	        printf("\n\n");
+*/
 
-                // Add to global view
-                if( tidx == 0 ) {
-                        evals_of_runs(lidx) += sum_evals;
-                }
-        });
-        Kokkos::fence();
+		// Copy kokkos output from CPU to OpenCL format
+	        memcopyBufferObjectToDevice(command_queue,mem_gpu_evals_of_runs,true,cpu_evals_of_runs,size_evals_of_runs);
 
-	// Copy output from kokkos kernel2 to CPU
-        IntView1D cpu_evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0));
-        Kokkos::deep_copy(cpu_evals_of_runs_view, evals_of_runs);
-
-        printf("\n\nEvals_new:");fflush(stdout);
-        for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
-        {
-                printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
-        }
-        printf("\n\n");
-
-	// Copy kokkos output from CPU to OpenCL format
-        memcopyBufferObjectToDevice(command_queue,mem_gpu_evals_of_runs,true,cpu_evals_of_runs,size_evals_of_runs);
-
+		printf("%15s" ," ... Finished\n");fflush(stdout);
 		// End of Kernel2
 		// ===============================================================================
 		// -------- Replacing with memory maps! ------------
