@@ -111,7 +111,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "correct_grad_axisangle.h"
 
 // From ./kokkos
-#include "space_settings.hpp"
+#include "kokkos_settings.hpp"
 #include "dockingparams.hpp"
 #include "geneticparams.hpp"
 #include "kernelconsts.hpp"
