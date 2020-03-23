@@ -4,7 +4,6 @@ void kokkos_sum_evals(Dockpars* mypars,DockingParams<Device>& docking_params,Kok
 {
         // Outer loop over mypars->num_of_runs
         int league_size = mypars->num_of_runs;
-        typedef Kokkos::TeamPolicy<ExSpace>::member_type member_type;
         Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, Kokkos::AUTO() ),
                         KOKKOS_LAMBDA (member_type team_member)
         {

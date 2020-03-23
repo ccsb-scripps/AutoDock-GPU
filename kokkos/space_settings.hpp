@@ -26,5 +26,7 @@ using CPUExec = Kokkos::Serial;
 #endif
 using HostType = Kokkos::Device<CPUExec,CPUSpace>;
 
+// Set up member_type for device here so it can be passed as function argument
+typedef Kokkos::TeamPolicy<ExSpace>::member_type member_type;
 
 #endif

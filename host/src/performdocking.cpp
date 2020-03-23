@@ -115,7 +115,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "dockingparams.hpp"
 #include "kernelconsts.hpp"
 #include "prepare_const_fields.hpp"
-#include "calcenergy.hpp"
 #include "calc_init_pop.hpp"
 #include "sum_evals.hpp"
 
