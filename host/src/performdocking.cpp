@@ -119,6 +119,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "calc_init_pop.hpp"
 #include "sum_evals.hpp"
 #include "genetic_alg_eval_new.hpp"
+#include "gradient_minAD.hpp"
 
 inline float average(float* average_sd2_N)
 {
@@ -1106,6 +1107,10 @@ filled with clock() */
 
 
 		// Copy input to kernel4 to cpu, then into device view
+		// evals_of_new_entities
+		memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
+                IntView1D evals_of_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
+                Kokkos::deep_copy(docking_params.evals_of_new_entities, evals_of_new_entities_view);
                 // conformations_current
                 memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
                 FloatView1D conforms_view(cpu_conforms_kokkos, docking_params.conformations_current.extent(0));
@@ -1136,13 +1141,12 @@ filled with clock() */
                 printf("\n\n");
 */
 
-                // Perform sum_evals, formerly known as kernel2
+                // Perform gen_alg_eval_new, formerly known as kernel4
                 kokkos_gen_alg_eval_new(mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);
                 Kokkos::fence();
 
-                // Copy output from kokkos kernel2 to CPU
+                // Copy output from kokkos kernel4 to CPU
                 // evals_of_new_entities
-                IntView1D evals_of_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
                 Kokkos::deep_copy(evals_of_new_entities_view,docking_params.evals_of_new_entities);
 		// conformations_next
                 Kokkos::deep_copy(conforms_view,docking_params.conformations_next);
@@ -1177,14 +1181,73 @@ filled with clock() */
 			} else if (strcmp(mypars->ls_method, "fire") == 0) {
 				// Kernel6 NOT SUPPORTED - ALS
 			} else if (strcmp(mypars->ls_method, "ad") == 0) {
-				// Kernel7
-//				#ifdef DOCK_DEBUG
-					printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
-//				#endif
+	                	//////////////////////////////////////////
+                		// Kernel7
+
+
+                		// Copy input to kernel4 to cpu, then into device view
+                		// evals_of_new_entities
+                		memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
+                		IntView1D evals_of_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
+                		Kokkos::deep_copy(docking_params.evals_of_new_entities, evals_of_new_entities_view);
+                		// conformations_next
+                		memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_next,size_populations);
+                		FloatView1D conforms_view(cpu_conforms_kokkos, docking_params.conformations_next.extent(0));
+                		Kokkos::deep_copy(docking_params.conformations_next, conforms_view);
+                		// energies_next
+                		memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_next,size_energies);
+                		FloatView1D energies_view(cpu_energies_kokkos, docking_params.energies_next.extent(0));
+                		Kokkos::deep_copy(docking_params.energies_next, energies_view);
+                		// prng_states
+                		memcopyBufferObjectFromDevice(command_queue,cpu_prng_kokkos,mem_dockpars_prng_states,size_prng_seeds);
+                		typedef Kokkos::View<unsigned int*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> UnsignedIntView1D;
+                		UnsignedIntView1D prng_view(cpu_prng_kokkos, docking_params.prng_states.extent(0));
+                		Kokkos::deep_copy(docking_params.prng_states, prng_view);
+
+				printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
 				runKernel1D(command_queue,kernel7,kernel7_gxsize,kernel7_lxsize,&time_start_kernel,&time_end_kernel);
-//				#ifdef DOCK_DEBUG
-					printf("%15s" ," ... Finished\n");fflush(stdout);
-//				#endif
+
+/*       		       // Copy output from original kernel4
+				memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
+
+				printf("\n\nEvals_old:");fflush(stdout);
+				for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
+				{
+					printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
+				}
+				printf("\n\n");
+*/
+
+				// Perform gradient_minAD, formerly known as kernel7
+				kokkos_gradient_minAD(mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);
+				Kokkos::fence();
+
+				// Copy output from kokkos kernel4 to CPU
+				// evals_of_new_entities
+				Kokkos::deep_copy(evals_of_new_entities_view,docking_params.evals_of_new_entities);
+				// conformations_next
+				Kokkos::deep_copy(conforms_view,docking_params.conformations_next);
+				// energies_next
+				Kokkos::deep_copy(energies_view,docking_params.energies_next);
+				// prng_states
+				Kokkos::deep_copy(prng_view,docking_params.prng_states);
+
+/*
+				printf("\n\nEvals_new:");fflush(stdout);
+				for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
+				{
+					printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
+				}
+		                printf("\n\n");
+*/
+
+                		// Copy kokkos output from CPU to OpenCL format
+				//memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
+				//memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_conforms_kokkos,size_populations);
+				//memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_energies_kokkos,size_energies);
+				//memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,true,cpu_prng_kokkos,size_prng_seeds);
+
+				printf("%15s" ," ... Finished\n");fflush(stdout);
 				// End of Kernel7
 			}
 		} // End if (dockpars.lsearch_rate != 0.0f)
