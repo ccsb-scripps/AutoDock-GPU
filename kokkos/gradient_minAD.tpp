@@ -14,7 +14,7 @@ void kokkos_gradient_minAD(Dockpars* mypars,DockingParams<Device>& docking_param
                 int lidx = team_member.league_rank();
 
 		// Get the current energy for each run
-		float energy = kokkos_calc_energy(team_member, docking_params,conform, rotlist, intracontrib, interintra, intra);
+		float energy = 0;//kokkos_calc_energy(team_member, docking_params,conform, rotlist, intracontrib, interintra, intra);
 
 		// Copy to global views
                 if( tidx == 0 ) {

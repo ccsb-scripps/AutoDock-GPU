@@ -1136,7 +1136,7 @@ filled with clock() */
 */
 
                 // Perform gen_alg_eval_new, formerly known as kernel4
-                kokkos_gen_alg_eval_new(mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);
+                kokkos_gen_alg_eval_new(mypars, docking_params, genetic_params, conform, rotlist, intracontrib, interintra, intra);
                 Kokkos::fence();
 
                 // Copy output from kokkos kernel4 to CPU

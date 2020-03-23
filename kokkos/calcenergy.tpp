@@ -302,7 +302,7 @@ KOKKOS_INLINE_FUNCTION float kokkos_calc_intramolecular_energy(const int contrib
 }
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION float kokkos_calc_energy(const member_type& team_member, const DockingParams<Device>& docking_params,const Conform<Device>& conform, const RotList<Device>& rotlist, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra)
+KOKKOS_INLINE_FUNCTION float kokkos_calc_energy(const member_type& team_member, const DockingParams<Device>& docking_params,const Conform<Device>& conform, const RotList<Device>& rotlist, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, const float* genotype)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();
@@ -312,13 +312,6 @@ KOKKOS_INLINE_FUNCTION float kokkos_calc_energy(const member_type& team_member, 
         int run_id;
         if (tidx == 0) {
                 run_id = lidx/docking_params.pop_size;
-        }
-
-        // Copy this genotype to local memory, maybe unnecessary - ALS
-        float genotype[ACTUAL_GENOTYPE_LENGTH];
-        for (int i_geno = 0; i_geno<ACTUAL_GENOTYPE_LENGTH; i_geno++) {
-                genotype[i_geno] = docking_params.conformations_current
-                                        (i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*lidx);
         }
 
         team_member.team_barrier();
