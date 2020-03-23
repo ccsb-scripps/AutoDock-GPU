@@ -73,14 +73,12 @@ struct DockingParams
 
                 // Copy arrays
 		// First wrap the C style arrays with an unmanaged kokkos view, then deep copy to the device
-		typedef Kokkos::View<float*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> FloatView1D;
 		FloatView1D fgrids_view(cpu_floatgrids, fgrids.extent(0));
 		Kokkos::deep_copy(fgrids, fgrids_view);
 
                 FloatView1D init_pop_view(cpu_init_populations, conformations_current.extent(0));
                 Kokkos::deep_copy(conformations_current, init_pop_view);
 
-		typedef Kokkos::View<unsigned int*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> UnsignedIntView1D;
                 UnsignedIntView1D prng_view(cpu_prng_seeds, prng_states.extent(0));
                 Kokkos::deep_copy(prng_states, prng_view);
 	}

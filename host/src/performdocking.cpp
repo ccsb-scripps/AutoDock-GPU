@@ -834,6 +834,13 @@ filled with clock() */
 	// Evals of runs on device (for kernel2)
 	Kokkos::View<int*,DeviceType> evals_of_runs("evals_of_runs",mypars->num_of_runs);
 
+	// Wrap the C style arrays with an unmanaged kokkos view for easy deep copies (done after view initializations for easy sizing)
+        FloatView1D energies_view(cpu_energies_kokkos, docking_params.energies_current.extent(0));
+        IntView1D new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
+        FloatView1D conforms_view(cpu_conforms_kokkos, docking_params.conformations_current.extent(0));
+        UnsignedIntView1D prng_view(cpu_prng_kokkos, docking_params.prng_states.extent(0));
+        IntView1D evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0)); // Note this array was prexisting
+
 	// Declare these constant arrays on host
 	InterIntra<HostType> interintra_h;
         IntraContrib<HostType> intracontrib_h;
@@ -873,14 +880,8 @@ filled with clock() */
 	Kokkos::fence();
 
 	// Copy back from device
-        // First wrap the C style arrays with an unmanaged kokkos view, then deep copy from the device
-        typedef Kokkos::View<float*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> FloatView1D;
-        FloatView1D cpu_energies_view(cpu_energies_kokkos, docking_params.energies_current.extent(0));
-        Kokkos::deep_copy(cpu_energies_view, docking_params.energies_current);
-
-	typedef Kokkos::View<int*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> IntView1D;
-        IntView1D cpu_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
-        Kokkos::deep_copy(cpu_new_entities_view, docking_params.evals_of_new_entities);
+        Kokkos::deep_copy(energies_view, docking_params.energies_current);
+        Kokkos::deep_copy(new_entities_view, docking_params.evals_of_new_entities);
 
 /*
         // Print outputs
@@ -918,15 +919,13 @@ filled with clock() */
 */
 	// Copy input to kernel2 to cpu, then into device view
         memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
-        IntView1D evals_of_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
-        Kokkos::deep_copy(docking_params.evals_of_new_entities, evals_of_new_entities_view);
+        Kokkos::deep_copy(docking_params.evals_of_new_entities, new_entities_view);
 
 	// Perform sum_evals, formerly known as kernel2
 	kokkos_sum_evals(mypars, docking_params, evals_of_runs);
 	Kokkos::fence();
 
-        IntView1D cpu_evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0));
-        Kokkos::deep_copy(cpu_evals_of_runs_view, evals_of_runs);
+        Kokkos::deep_copy(evals_of_runs_view, evals_of_runs);
 /*
 	printf("\n\nEvals_new0:");fflush(stdout);
         for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
@@ -1109,20 +1108,15 @@ filled with clock() */
 		// Copy input to kernel4 to cpu, then into device view
 		// evals_of_new_entities
 		memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
-                IntView1D evals_of_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
-                Kokkos::deep_copy(docking_params.evals_of_new_entities, evals_of_new_entities_view);
+                Kokkos::deep_copy(docking_params.evals_of_new_entities, new_entities_view);
                 // conformations_current
                 memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
-                FloatView1D conforms_view(cpu_conforms_kokkos, docking_params.conformations_current.extent(0));
                 Kokkos::deep_copy(docking_params.conformations_current, conforms_view);
 		// energies_current
                 memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
-                FloatView1D energies_view(cpu_energies_kokkos, docking_params.energies_current.extent(0));
                 Kokkos::deep_copy(docking_params.energies_current, energies_view);
 		// prng_states
                 memcopyBufferObjectFromDevice(command_queue,cpu_prng_kokkos,mem_dockpars_prng_states,size_prng_seeds);
-		typedef Kokkos::View<unsigned int*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> UnsignedIntView1D;
-                UnsignedIntView1D prng_view(cpu_prng_kokkos, docking_params.prng_states.extent(0));
                 Kokkos::deep_copy(docking_params.prng_states, prng_view);
 
 //		#ifdef DOCK_DEBUG
@@ -1147,7 +1141,7 @@ filled with clock() */
 
                 // Copy output from kokkos kernel4 to CPU
                 // evals_of_new_entities
-                Kokkos::deep_copy(evals_of_new_entities_view,docking_params.evals_of_new_entities);
+                Kokkos::deep_copy(new_entities_view,docking_params.evals_of_new_entities);
 		// conformations_next
                 Kokkos::deep_copy(conforms_view,docking_params.conformations_next);
                 // energies_next
@@ -1188,20 +1182,15 @@ filled with clock() */
                 		// Copy input to kernel4 to cpu, then into device view
                 		// evals_of_new_entities
                 		memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
-                		IntView1D evals_of_new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
-                		Kokkos::deep_copy(docking_params.evals_of_new_entities, evals_of_new_entities_view);
+                		Kokkos::deep_copy(docking_params.evals_of_new_entities, new_entities_view);
                 		// conformations_next
                 		memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_next,size_populations);
-                		FloatView1D conforms_view(cpu_conforms_kokkos, docking_params.conformations_next.extent(0));
                 		Kokkos::deep_copy(docking_params.conformations_next, conforms_view);
                 		// energies_next
                 		memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_next,size_energies);
-                		FloatView1D energies_view(cpu_energies_kokkos, docking_params.energies_next.extent(0));
                 		Kokkos::deep_copy(docking_params.energies_next, energies_view);
                 		// prng_states
                 		memcopyBufferObjectFromDevice(command_queue,cpu_prng_kokkos,mem_dockpars_prng_states,size_prng_seeds);
-                		typedef Kokkos::View<unsigned int*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> UnsignedIntView1D;
-                		UnsignedIntView1D prng_view(cpu_prng_kokkos, docking_params.prng_states.extent(0));
                 		Kokkos::deep_copy(docking_params.prng_states, prng_view);
 
 				printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
@@ -1224,7 +1213,7 @@ filled with clock() */
 
 				// Copy output from kokkos kernel4 to CPU
 				// evals_of_new_entities
-				Kokkos::deep_copy(evals_of_new_entities_view,docking_params.evals_of_new_entities);
+				Kokkos::deep_copy(new_entities_view,docking_params.evals_of_new_entities);
 				// conformations_next
 				Kokkos::deep_copy(conforms_view,docking_params.conformations_next);
 				// energies_next
@@ -1273,15 +1262,14 @@ filled with clock() */
 
 	        // Copy input to kernel2 to cpu, then into device view
 	        memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
-	        Kokkos::deep_copy(docking_params.evals_of_new_entities, evals_of_new_entities_view);
+	        Kokkos::deep_copy(docking_params.evals_of_new_entities, new_entities_view);
 	
 	        // Perform sum_evals, formerly known as kernel2
 	        kokkos_sum_evals(mypars, docking_params, evals_of_runs);
 	        Kokkos::fence();
 
 		// Copy output from kokkos kernel2 to CPU
-	        IntView1D cpu_evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0));
-	        Kokkos::deep_copy(cpu_evals_of_runs_view, evals_of_runs);
+	        Kokkos::deep_copy(evals_of_runs_view, evals_of_runs);
 
 /*		
 	        printf("\n\nEvals_new:");fflush(stdout);
