@@ -1110,10 +1110,16 @@ filled with clock() */
 		memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
                 Kokkos::deep_copy(docking_params.evals_of_new_entities, new_entities_view);
                 // conformations_current
-                memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
+		if (generation_cnt % 2 == 0)
+                	memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
+		if (generation_cnt % 2 == 1)
+			memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_next,size_populations);
                 Kokkos::deep_copy(docking_params.conformations_current, conforms_view);
 		// energies_current
-                memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
+		if (generation_cnt % 2 == 0)
+	                memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
+		if (generation_cnt % 2 == 1)
+			memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_next,size_energies);
                 Kokkos::deep_copy(docking_params.energies_current, energies_view);
 		// prng_states
                 memcopyBufferObjectFromDevice(command_queue,cpu_prng_kokkos,mem_dockpars_prng_states,size_prng_seeds);
@@ -1124,17 +1130,20 @@ filled with clock() */
 //		#endif
 		runKernel1D(command_queue,kernel4,kernel4_gxsize,kernel4_lxsize,&time_start_kernel,&time_end_kernel);
 
-/*	        // Copy output from original kernel4
-                memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
-
-                printf("\n\nEvals_old:");fflush(stdout);
-                for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
-                {       
-                        printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
-                }
-                printf("\n\n");
-*/
-
+#ifdef TEST_KOKKOS
+	        // Copy output from original kernel4
+		memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
+                if (generation_cnt % 2 == 0)
+			memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_next,size_populations);
+		if (generation_cnt % 2 == 1)
+                        memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
+                if (generation_cnt % 2 == 0)
+                        memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_next,size_energies);
+                if (generation_cnt % 2 == 1)
+			memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
+                memcopyBufferObjectFromDevice(command_queue,cpu_prng_kokkos,mem_dockpars_prng_states,size_prng_seeds);
+		printf("\n\nEvals_old:");
+#else
                 // Perform gen_alg_eval_new, formerly known as kernel4
                 kokkos_gen_alg_eval_new(mypars, docking_params, genetic_params, conform, rotlist, intracontrib, interintra, intra);
                 Kokkos::fence();
@@ -1149,14 +1158,17 @@ filled with clock() */
                 // prng_states
                 Kokkos::deep_copy(prng_view,docking_params.prng_states);
 
-/*              
-                printf("\n\nEvals_new:");fflush(stdout);
-                for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
-                {
-                        printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
-                }
-                printf("\n\n");
-*/
+                printf("\n\nEvals_new:");
+#endif
+                for (int ik2o = 0; ik2o<new_entities_view.extent(0); ik2o+=99){
+			printf("\n%d : %d", ik2o, new_entities_view(ik2o));
+			for (int jk2o = 0; jk2o<docking_params.num_of_genes; jk2o++){
+				printf("\n  %d : %15.15f", jk2o, conforms_view(ik2o*GENOTYPE_LENGTH_IN_GLOBMEM+jk2o));
+			}
+                	printf("\n%d : %15.15f", ik2o, energies_view(ik2o));
+                	printf("\n%d : %u", ik2o, prng_view(ik2o));
+		}
+                printf("\n\n");fflush(stdout);
 
                 // Copy kokkos output from CPU to OpenCL format
 //                memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
