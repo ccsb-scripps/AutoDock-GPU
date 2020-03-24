@@ -32,13 +32,12 @@ KOKKOS_INLINE_FUNCTION unsigned int my_rand(const member_type& team_member, cons
 //The random number generator uses the gcc linear congruential generator constants.
 {
         unsigned int state;
+	// Global ID
+	int gidx = team_member.league_rank () * team_member.team_size () + team_member.team_rank ();
 
 #if defined (REPRO)
         state = 1;
 #else
-	// Global ID
-	int gidx = team_member.league_rank () * team_member.team_size () + team_member.team_rank ();
-
         // Current state of the threads own PRNG
         state = docking_params.prng_states(gidx);
 
