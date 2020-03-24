@@ -396,18 +396,19 @@ int tidx = team_member.team_rank();
 
                 #if defined (PRINT_GRAD_TRANSLATION_GENES)
                 printf("\n%s\n", "----------------------------------------------------------");
-                printf("gradient_x:%f\n", gradient_genotype [0]);
-                printf("gradient_y:%f\n", gradient_genotype [1]);
-                printf("gradient_z:%f\n", gradient_genotype [2]);
+                printf("gradient_x:%f\n", gradient[0]);
+                printf("gradient_y:%f\n", gradient[1]);
+                printf("gradient_z:%f\n", gradient[2]);
                 #endif
         }
 }
-/*
+
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const AxisCorrection<Device>& axis_correction, float& energy, float* gradient)
+KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const AxisCorrection<Device>& axis_correction,float4struct& genrot_movingvec, float4struct& genrot_unitvec, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords, const float phi, const float theta, const float genrotangle, const bool is_theta_gt_pi, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z, float* gradient)
 {
-	        // Transform gradients_inter_{x|y|z}
+int tidx = team_member.team_rank();
+	// Transform gradients_inter_{x|y|z}
         // into local_gradients[i] (with four quaternion genes)
         // Derived from autodockdev/motions.py/forces_to_delta_genes()
 
@@ -423,14 +424,17 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& te
         for (int atom_cnt = tidx;
                   atom_cnt < docking_params.num_of_atoms;
                   atom_cnt+= team_member.team_size()) {
-                float4 r = (calc_coords[atom_cnt] - genrot_movingvec) * docking_params.grid_spacing;
+                float4struct r = calc_coords[atom_cnt] - genrot_movingvec;
+	        r.x = r.x * docking_params.grid_spacing;
+		r.y = r.y * docking_params.grid_spacing;
+		r.z = r.z * docking_params.grid_spacing;
                 // Re-using "gradient_inter_*" for total gradient (inter+intra)
-                float4 force;
+                float4struct force;
                 force.x = gradient_inter_x[atom_cnt];
                 force.y = gradient_inter_y[atom_cnt];
                 force.z = gradient_inter_z[atom_cnt];
                 force.w = 0.0;
-                float4 torque_rot = cross(r, force);
+                float4struct torque_rot = kokkos_quaternion_cross(r, force);
                 gradient_intra_x[tidx] += torque_rot.x;
                 gradient_intra_y[tidx] += torque_rot.y;
                 gradient_intra_z[tidx] += torque_rot.z;
@@ -438,7 +442,7 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& te
         // do a reduction over the total gradient containing prepared "gradient_intra_*" values
         for (int off=(team_member.team_size())>>1; off>0; off >>= 1)
         {
-                barrier(CLK_LOCAL_MEM_FENCE);
+                team_member.team_barrier();
                 if (tidx < off)
                 {
                         gradient_intra_x[tidx] += gradient_intra_x[tidx+off];
@@ -447,60 +451,49 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& te
                 }
         }
         if (tidx == 0) {
-                float4 torque_rot;
+                float4struct torque_rot;
                 torque_rot.x = gradient_intra_x[0];
                 torque_rot.y = gradient_intra_y[0];
                 torque_rot.z = gradient_intra_z[0];
 
-                #if defined (PRINT_GRAD_ROTATION_GENES)
-                printf("\n%s\n", "----------------------------------------------------------");
-                printf("%-20s %-10.6f %-10.6f %-10.6f\n", "final torque: ", torque_rot.x, torque_rot.y, torque_rot.z);
-                #endif
-
                 // Derived from rotation.py/axisangle_to_q()
                 // genes[3:7] = rotation.axisangle_to_q(torque, rad)
-                float torque_length = fast_length(torque_rot);
-
-                #if defined (PRINT_GRAD_ROTATION_GENES)
-                printf("\n%s\n", "----------------------------------------------------------");
-                printf("%-20s %-10.6f\n", "torque length: ", torque_length);
-                #endif
+                float torque_length = kokkos_quaternion_length(torque_rot);
+		float inv_torque_len_SHIR = (SIN_HALF_INFINITESIMAL_RADIAN / torque_length);
 
                 // Infinitesimal rotation in radians
                 //const float infinitesimal_radian = 1E-5;
 
                 // Finding the quaternion that performs
                 // the infinitesimal rotation around torque axis
-                float4 quat_torque = torque_rot * native_divide (SIN_HALF_INFINITESIMAL_RADIAN, torque_length);
+                float4struct quat_torque;
+		quat_torque.x = torque_rot.x * inv_torque_len_SHIR;
+                quat_torque.y = torque_rot.y * inv_torque_len_SHIR;
+                quat_torque.z = torque_rot.z * inv_torque_len_SHIR;
                 quat_torque.w = COS_HALF_INFINITESIMAL_RADIAN;
-
-                #if defined (PRINT_GRAD_ROTATION_GENES)
-                printf("\n%s\n", "----------------------------------------------------------");
-                printf("%-20s %-10.6f\n", "INFINITESIMAL_RADIAN: ", INFINITESIMAL_RADIAN);
-                printf("%-20s %-10.6f %-10.6f %-10.6f %-10.6f\n", "quat_torque (w,x,y,z): ", quat_torque.w, quat_torque.x, quat_torque.y, quat_torque.z);
-                #endif
-
-                // Converting quaternion gradients into orientation gradients 
-                // Derived from autodockdev/motion.py/_get_cube3_gradient
-                #if defined (PRINT_GRAD_ROTATION_GENES)
-                printf("\n%s\n", "----------------------------------------------------------");
-                printf("%-30s %-10.6f %-10.6f %-10.6f %-10.6f\n", "current_q (w,x,y,z): ", genrot_unitvec.w, genrot_unitvec.x, genrot_unitvec.y, genrot_unitvec.z);
-                #endif
 
                 // This is where we want to be in quaternion space
                 // target_q = rotation.q_mult(q, current_q)
-                float4 target_q = quaternion_multiply(quat_torque, genrot_unitvec);
+                float4struct target_q = kokkos_quaternion_multiply(quat_torque, genrot_unitvec);
 
                 #if defined (PRINT_GRAD_ROTATION_GENES)
-                printf("\n%s\n", "----------------------------------------------------------");
+		printf("\n%s\n", "----------------------------------------------------------");
+                printf("%-20s %-10.6f %-10.6f %-10.6f\n", "final torque: ", torque_rot.x, torque_rot.y, torque_rot.z);
+                printf("%-20s %-10.6f\n", "torque length: ", torque_length);
+                printf("%-20s %-10.6f\n", "INFINITESIMAL_RADIAN: ", INFINITESIMAL_RADIAN);
+                printf("%-20s %-10.6f %-10.6f %-10.6f %-10.6f\n", "quat_torque (w,x,y,z): ", quat_torque.w, quat_torque.x, quat_torque.y, quat_torque.z);
+
+                // Converting quaternion gradients into orientation gradients
+                // Derived from autodockdev/motion.py/_get_cube3_gradient
+                printf("%-30s %-10.6f %-10.6f %-10.6f %-10.6f\n", "current_q (w,x,y,z): ", genrot_unitvec.w, genrot_unitvec.x, genrot_unitvec.y, genrot_unitvec.z);
                 printf("%-30s %-10.6f %-10.6f %-10.6f %-10.6f\n", "target_q (w,x,y,z): ", target_q.w, target_q.x, target_q.y, target_q.z);
                 #endif
 
 		// This is where we are in the orientation axis-angle space
                 // Equivalent to "current_oclacube" in autodockdev/motions.py
-                float current_phi      = fmod_pi2(PI_TIMES_2 + phi);
-                float current_theta    = fmod_pi2(PI_TIMES_2 + theta);
-                float current_rotangle = fmod_pi2(PI_TIMES_2 + genrotangle);
+                float current_phi      = kokkos_fmod_two_pi(PI_TIMES_2 + phi);
+                float current_theta    = kokkos_fmod_two_pi(PI_TIMES_2 + theta);
+                float current_rotangle = kokkos_fmod_two_pi(PI_TIMES_2 + genrotangle);
 
                 // This is where we want to be in the orientation axis-angle space
                 float target_phi, target_theta, target_rotangle;
@@ -508,38 +501,30 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& te
                 // target_oclacube = quaternion_to_oclacube(target_q, theta_larger_than_pi)
                 // Derived from autodockdev/motions.py/quaternion_to_oclacube()
                 // In our terms means quaternion_to_oclacube(target_q{w|x|y|z}, theta_larger_than_pi)
-                target_rotangle = 2.0f * fast_acos(target_q.w); // = 2.0f * ang;
-                float sin_ang = native_sqrt(1.0f-target_q.w*target_q.w); // = native_sin(ang);
+                target_rotangle = 2.0f * kokkos_fast_acos(target_q.w); // = 2.0f * ang;
+                float sin_ang = sqrt(1.0f-target_q.w*target_q.w); // = native_sin(ang);
 
-                target_theta = PI_TIMES_2 + is_theta_gt_pi * fast_acos( native_divide ( target_q.z, sin_ang ) );
-                target_phi   = fmod_pi2((atan2( is_theta_gt_pi*target_q.y, is_theta_gt_pi*target_q.x) + PI_TIMES_2));
-
-                #if defined (PRINT_GRAD_ROTATION_GENES)
-                printf("\n%s\n", "----------------------------------------------------------");
-                printf("%-30s %-10.6f %-10.6f %-10.6f\n", "target_axisangle (1,2,3): ", target_phi, target_theta, target_rotangle);
-                #endif
+                target_theta = PI_TIMES_2 + is_theta_gt_pi * kokkos_fast_acos( target_q.z / sin_ang );
+                target_phi   = kokkos_fmod_two_pi((atan2( is_theta_gt_pi*target_q.y, is_theta_gt_pi*target_q.x) + PI_TIMES_2));
 
                 // The infinitesimal rotation will produce an infinitesimal displacement
                 // in shoemake space. This is to guarantee that the direction of
                 // the displacement in shoemake space is not distorted.
                 // The correct amount of displacement in shoemake space is obtained
                 // by multiplying the infinitesimal displacement by shoemake_scaling:
-                //float shoemake_scaling = native_divide(torque_length, INFINITESIMAL_RADIAN/*infinitesimal_radian*/ //);
-/*                float orientation_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
-
-                #if defined (PRINT_GRAD_ROTATION_GENES)
-                printf("\n%s\n", "----------------------------------------------------------");
-                printf("%-30s %-10.6f\n", "orientation_scaling: ", orientation_scaling);
-                #endif
+                //float shoemake_scaling = native_divide(torque_length, INFINITESIMAL_RADIAN/*infinitesimal_radian*/);
+                float orientation_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
 
                 // Derivates in cube3
                 float grad_phi, grad_theta, grad_rotangle;
-                grad_phi      = orientation_scaling * (fmod_pi2(target_phi      - current_phi      + PI_FLOAT) - PI_FLOAT);
-                grad_theta    = orientation_scaling * (fmod_pi2(target_theta    - current_theta    + PI_FLOAT) - PI_FLOAT);
-                grad_rotangle = orientation_scaling * (fmod_pi2(target_rotangle - current_rotangle + PI_FLOAT) - PI_FLOAT);
+                grad_phi      = orientation_scaling * (kokkos_fmod_two_pi(target_phi      - current_phi      + PI_FLOAT) - PI_FLOAT);
+                grad_theta    = orientation_scaling * (kokkos_fmod_two_pi(target_theta    - current_theta    + PI_FLOAT) - PI_FLOAT);
+                grad_rotangle = orientation_scaling * (kokkos_fmod_two_pi(target_rotangle - current_rotangle + PI_FLOAT) - PI_FLOAT);
 
                 #if defined (PRINT_GRAD_ROTATION_GENES)
-                printf("\n%s\n", "----------------------------------------------------------");
+		printf("\n%s\n", "----------------------------------------------------------");
+                printf("%-30s %-10.6f %-10.6f %-10.6f\n", "target_axisangle (1,2,3): ", target_phi, target_theta, target_rotangle);
+                printf("%-30s %-10.6f\n", "orientation_scaling: ", orientation_scaling);
                 printf("%-30s \n", "grad_axisangle (1,2,3) - before empirical scaling: ");
                 printf("%-13s %-13s %-13s \n", "grad_phi", "grad_theta", "grad_rotangle");
                 printf("%-13.6f %-13.6f %-13.6f\n", grad_phi, grad_theta, grad_rotangle);
@@ -550,7 +535,7 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& te
                 // (X0,Y0) and (X1,Y1) are known points
                 // How to find the Y value in the straight line between Y0 and Y1,
                 // corresponding to a certain X?
-//		/*
+		/*
                         | dependence_on_theta_const
                         | dependence_on_rotangle_const
                         |
@@ -562,7 +547,7 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& te
                         |_________________________________ angle_const
                              X0         X        X1
                 */
-/*
+
                 // Finding the index-position of "grad_delta" in the "angle_const" array
                 int index_theta    = floor((current_theta    - axis_correction.angle(0)) * inv_angle_delta);
                 int index_rotangle = floor((current_rotangle - axis_correction.angle(0)) * inv_angle_delta);
@@ -594,11 +579,6 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& te
                         dependence_on_theta = (Y0 * (X1-current_theta) + Y1 * (current_theta-X0)) * inv_angle_delta;
                 }
 
-                #if defined (PRINT_GRAD_ROTATION_GENES)
-                printf("\n%s\n", "----------------------------------------------------------");
-                printf("%-30s %-10.6f\n", "dependence_on_theta: ", dependence_on_theta);
-                #endif
-
                 // Interpolating rotangle values
                 float dependence_on_rotangle;   //Y = dependence_on_rotangle
                 // Using interpolation on previous and/or next elements results in hang
@@ -614,26 +594,25 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& te
                         Y1 = axis_correction.dependence_on_rotangle(index_rotangle+1);
                         dependence_on_rotangle = (Y0 * (X1-current_rotangle) + Y1 * (current_rotangle-X0)) * inv_angle_delta;
                 }
-		#if defined (PRINT_GRAD_ROTATION_GENES)
-                printf("\n%s\n", "----------------------------------------------------------");
-                printf("%-30s %-10.6f\n", "dependence_on_rotangle: ", dependence_on_rotangle);
-                #endif
 
                 // Setting gradient rotation-related genotypes in cube
                 // Multiplicating by DEG_TO_RAD is to make it uniform to DEG (see torsion gradients)
-                gradient_genotype[3] = native_divide(grad_phi, (dependence_on_theta * dependence_on_rotangle))  * DEG_TO_RAD;
-                gradient_genotype[4] = native_divide(grad_theta, dependence_on_rotangle)                        * DEG_TO_RAD;
-                gradient_genotype[5] = grad_rotangle                                                            * DEG_TO_RAD;
+                gradient[3] = (grad_phi / (dependence_on_theta * dependence_on_rotangle))  * DEG_TO_RAD;
+                gradient[4] = (grad_theta / dependence_on_rotangle)                        * DEG_TO_RAD;
+                gradient[5] = grad_rotangle                                                * DEG_TO_RAD;
                 #if defined (PRINT_GRAD_ROTATION_GENES)
+		printf("\n%s\n", "----------------------------------------------------------");
+                printf("%-30s %-10.6f\n", "dependence_on_theta: ", dependence_on_theta);
+                printf("%-30s %-10.6f\n", "dependence_on_rotangle: ", dependence_on_rotangle);
                 printf("\n%s\n", "----------------------------------------------------------");
                 printf("%-30s \n", "grad_axisangle (1,2,3) - after empirical scaling: ");
                 printf("%-13s %-13s %-13s \n", "grad_phi", "grad_theta", "grad_rotangle");
-                printf("%-13.6f %-13.6f %-13.6f\n", gradient_genotype[3], gradient_genotype[4], gradient_genotype[5]);
+                printf("%-13.6f %-13.6f %-13.6f\n", gradient[3], gradient[4], gradient[5]);
                 #endif
         }
 }
 
-*/
+
 template<class Device>
 KOKKOS_INLINE_FUNCTION void kokkos_calc_torsion_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const Grads<Device>& grads, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, float* gradient)
 {
@@ -790,7 +769,7 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member,
 	team_member.team_barrier();
 
 	// Obtaining rotation-related gradients
-//	kokkos_calc_rotation_gradients();
+	kokkos_calc_rotation_gradients(team_member, docking_params, axis_correction,genrot_movingvec, genrot_unitvec, calc_coords, phi, theta, genrotangle, is_theta_gt_pi, gradient_inter_x, gradient_inter_y, gradient_inter_z, gradient_intra_x, gradient_intra_y, gradient_intra_z, gradient);
 
 	team_member.team_barrier();
 

@@ -22,6 +22,31 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
+#define INV_TWO_PI 1.0f/(PI_TIMES_2)
+#define FAST_ACOS_a  9.78056e-05
+#define FAST_ACOS_b -0.00104588f
+#define FAST_ACOS_c  0.00418716f
+#define FAST_ACOS_d -0.00314347f
+#define FAST_ACOS_e  2.74084f
+#define FAST_ACOS_f  0.370388f
+#define FAST_ACOS_o -(FAST_ACOS_a+FAST_ACOS_b+FAST_ACOS_c+FAST_ACOS_d)
+
+KOKKOS_INLINE_FUNCTION float kokkos_fast_acos(float cosine)
+{
+        float x=fabs(cosine);
+        float x2=x*x;
+        float x3=x2*x;
+        float x4=x3*x;
+        float ac=(((FAST_ACOS_o*x4+FAST_ACOS_a)*x3+FAST_ACOS_b)*x2+FAST_ACOS_c)*x+FAST_ACOS_d+
+                 FAST_ACOS_e*sqrt(2.0f-sqrt(2.0f+2.0f*x))-FAST_ACOS_f*sqrt(2.0f-2.0f*x);
+        return copysign(ac,cosine) + (cosine<0.0f)*PI_FLOAT;
+}
+
+KOKKOS_INLINE_FUNCTION float kokkos_fmod_two_pi(float x)
+{
+        return x-(int)(INV_TWO_PI*x)*PI_TIMES_2;
+}
+
 KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_cross(const float4struct a, const float4struct b)
 {
 	float4struct result;
@@ -69,6 +94,11 @@ KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_normalize(const float4stru
 KOKKOS_INLINE_FUNCTION float kokkos_quaternion_dot(const float4struct a, const float4struct b)
 {
         return (a.x*b.x + a.y*b.y + a.z*b.z);
+}
+
+KOKKOS_INLINE_FUNCTION float kokkos_quaternion_length(const float4struct v)
+{
+        return sqrt(pow(v.x,2) + pow(v.y,2) + pow(v.z,2));
 }
 
 // trilinear interpolation
