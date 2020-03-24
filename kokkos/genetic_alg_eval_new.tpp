@@ -45,28 +45,33 @@ void kokkos_gen_alg_eval_new(Dockpars* mypars,DockingParams<Device>& docking_par
 			team_member.team_barrier();
 
 			// Binary tournament selection
-			if (tidx < 4) {        //it is not ensured that the four candidates will be different...
-                        	parent_candidates[tidx]  = (int) (docking_params.pop_size*randnums[tidx]); //using randnums[0..3]
-                        	candidate_energies[tidx] = docking_params.energies_current(run_id*docking_params.pop_size+parent_candidates[tidx]);
+			// it is not ensured that the four candidates will be different...
+			for (int parent_counter = tidx;
+                              parent_counter < 4;
+                              parent_counter+= team_member.team_size()){
+                        	parent_candidates[parent_counter]  = (int) (docking_params.pop_size*randnums[parent_counter]); //using randnums[0..3]
+                        	candidate_energies[parent_counter] = docking_params.energies_current(run_id*docking_params.pop_size+parent_candidates[parent_counter]);
                 	}
 
 			team_member.team_barrier();
 
 			// Choose parents
-			if (tidx < 2) {
+			for (int parent_counter = tidx;
+                              parent_counter < 2;
+                              parent_counter+= team_member.team_size()) {
 				// Notice: dockpars_tournament_rate was scaled down to [0,1] in host
 				// to reduce number of operations in device
-				if (candidate_energies[2*tidx] < candidate_energies[2*tidx+1])
-					if (/*100.0f**/randnums[4+tidx] < genetic_params.tournament_rate) {                //using randnum[4..5]
-						parents[tidx] = parent_candidates[2*tidx];
+				if (candidate_energies[2*parent_counter] < candidate_energies[2*parent_counter+1])
+					if (/*100.0f**/randnums[4+parent_counter] < genetic_params.tournament_rate) {                //using randnum[4..5]
+						parents[parent_counter] = parent_candidates[2*parent_counter];
 					} else {
-						parents[tidx] = parent_candidates[2*tidx+1];
+						parents[parent_counter] = parent_candidates[2*parent_counter+1];
 					}
 				else
-					if (/*100.0f**/randnums[4+tidx] < genetic_params.tournament_rate) {
-						parents[tidx] = parent_candidates[2*tidx+1];
+					if (/*100.0f**/randnums[4+parent_counter] < genetic_params.tournament_rate) {
+						parents[parent_counter] = parent_candidates[2*parent_counter+1];
 					} else {
-						parents[tidx] = parent_candidates[2*tidx];
+						parents[parent_counter] = parent_candidates[2*parent_counter];
 					}
 			}
 

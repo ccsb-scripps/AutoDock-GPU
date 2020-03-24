@@ -114,9 +114,11 @@ KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const Dock
 	// to reduce number of operations in device
 	if (/*100.0f**/randnums[6] < genetic_params.crossover_rate)   // Using randnums[6]
 	{
-		if (tidx < 2) {
+		for (int covr_counter = tidx;
+                              covr_counter < 2;
+                              covr_counter+= team_member.team_size()){
 			// Using randnum[7..8]
-			covr_point[tidx] = (int) ((docking_params.num_of_genes-1)*randnums[7+tidx]);
+			covr_point[covr_counter] = (int) ((docking_params.num_of_genes-1)*randnums[7+covr_counter]);
 		}
 
 		team_member.team_barrier();
