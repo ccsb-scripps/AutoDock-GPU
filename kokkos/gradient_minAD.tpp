@@ -1,4 +1,4 @@
-//#include "calcenergrad.hpp"
+#include "calcenergrad.hpp"
 #include "ada_functions.hpp"
 #include "random.hpp"
 
@@ -96,8 +96,9 @@ void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingPar
         // (IEEE-754 single float has a precision of about 6 decimal digits)
         do {
 		// Calculating energy & gradient
-//                kokkos_calc_energrad(docking_params, genotype, run_id, interintra, intracontrib, intra, rotlist, conform, grads, axis_correction,
-//                                energy, gradient);
+                kokkos_calc_energrad(team_member, docking_params, genotype,
+				conform, rotlist, intracontrib, interintra, intra, grads, axis_correction,
+                                energy, gradient);
 
 		team_member.team_barrier();
 
