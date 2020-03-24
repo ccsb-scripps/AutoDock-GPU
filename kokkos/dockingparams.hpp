@@ -17,10 +17,6 @@ struct DockingParams
         int             rotbondlist_length;
         float           coeff_elec;
         float           coeff_desolv;
-        Kokkos::View<float*,Device> conformations_current;
-        Kokkos::View<float*,Device> energies_current;
-        Kokkos::View<float*,Device> conformations_next;
-        Kokkos::View<float*,Device> energies_next;
         Kokkos::View<int*,Device> evals_of_new_entities;
         Kokkos::View<unsigned int*,Device> prng_states;
         int             pop_size;
@@ -34,12 +30,8 @@ struct DockingParams
         unsigned int    max_num_of_iters;
 
 	// Constructor
-	DockingParams(const Liganddata& myligand_reference, const Gridinfo* mygrid, const Dockpars* mypars, float* cpu_floatgrids, float* cpu_init_populations, unsigned int* cpu_prng_seeds)
+	DockingParams(const Liganddata& myligand_reference, const Gridinfo* mygrid, const Dockpars* mypars, float* cpu_floatgrids, unsigned int* cpu_prng_seeds)
 		: fgrids("fgrids", 4 * (mygrid->num_of_atypes+2) * (mygrid->size_xyz[0]) * (mygrid->size_xyz[1]) * (mygrid->size_xyz[2])),
-		  conformations_current("conformations_current", mypars->pop_size * mypars->num_of_runs * GENOTYPE_LENGTH_IN_GLOBMEM),
-		  energies_current("energies_current", mypars->pop_size * mypars->num_of_runs),
-                  conformations_next("conformations_next", mypars->pop_size * mypars->num_of_runs * GENOTYPE_LENGTH_IN_GLOBMEM),
-                  energies_next("energies_next", mypars->pop_size * mypars->num_of_runs),
 		  evals_of_new_entities("evals_of_new_entities", mypars->pop_size * mypars->num_of_runs),
 		  prng_states("prng_states",mypars->pop_size * mypars->num_of_runs * NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -75,9 +67,6 @@ struct DockingParams
 		// First wrap the C style arrays with an unmanaged kokkos view, then deep copy to the device
 		FloatView1D fgrids_view(cpu_floatgrids, fgrids.extent(0));
 		Kokkos::deep_copy(fgrids, fgrids_view);
-
-                FloatView1D init_pop_view(cpu_init_populations, conformations_current.extent(0));
-                Kokkos::deep_copy(conformations_current, init_pop_view);
 
                 UnsignedIntView1D prng_view(cpu_prng_seeds, prng_states.extent(0));
                 Kokkos::deep_copy(prng_states, prng_view);

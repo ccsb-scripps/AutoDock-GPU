@@ -115,6 +115,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "dockingparams.hpp"
 #include "geneticparams.hpp"
 #include "kernelconsts.hpp"
+#include "generation.hpp"
 #include "prepare_const_fields.hpp"
 #include "calc_init_pop.hpp"
 #include "sum_evals.hpp"
@@ -826,18 +827,23 @@ filled with clock() */
 
 	// KOKKOS kernel1: kokkos_calc_initpop
 	// Initialize DockingParams
-	DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids, cpu_init_populations, cpu_prng_seeds);
+	DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids, cpu_prng_seeds);
 
 	// Initialize GeneticParams (broken out of docking params since they relate to the genetic algorithm, not the docking per se
 	GeneticParams genetic_params(mypars);
+
+	// Initialize the structs containing the two alternating generations
+	// Odd generation gets the initial population copied in
+	Generation<DeviceType> odd_generation(mypars->pop_size * mypars->num_of_runs, cpu_init_populations);
+	Generation<DeviceType> even_generation(mypars->pop_size * mypars->num_of_runs);
 
 	// Evals of runs on device (for kernel2)
 	Kokkos::View<int*,DeviceType> evals_of_runs("evals_of_runs",mypars->num_of_runs);
 
 	// Wrap the C style arrays with an unmanaged kokkos view for easy deep copies (done after view initializations for easy sizing)
-        FloatView1D energies_view(cpu_energies_kokkos, docking_params.energies_current.extent(0));
+        FloatView1D energies_view(cpu_energies_kokkos, odd_generation.energies.extent(0));
         IntView1D new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
-        FloatView1D conforms_view(cpu_conforms_kokkos, docking_params.conformations_current.extent(0));
+        FloatView1D conforms_view(cpu_conforms_kokkos, odd_generation.conformations.extent(0));
         UnsignedIntView1D prng_view(cpu_prng_kokkos, docking_params.prng_states.extent(0));
         IntView1D evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0)); // Note this array was prexisting
 
@@ -876,11 +882,11 @@ filled with clock() */
 	grads.deep_copy(grads_h);
 
 	// Perform the kernel formerly known as kernel1
-	kokkos_calc_init_pop(mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);
+	kokkos_calc_init_pop(odd_generation, mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);
 	Kokkos::fence();
 
 	// Copy back from device
-        Kokkos::deep_copy(energies_view, docking_params.energies_current);
+        Kokkos::deep_copy(energies_view, odd_generation.energies);
         Kokkos::deep_copy(new_entities_view, docking_params.evals_of_new_entities);
 
 /*
@@ -1114,13 +1120,13 @@ filled with clock() */
                 	memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
 		if (generation_cnt % 2 == 1)
 			memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_next,size_populations);
-                Kokkos::deep_copy(docking_params.conformations_current, conforms_view);
+                Kokkos::deep_copy(odd_generation.conformations, conforms_view);
 		// energies_current
 		if (generation_cnt % 2 == 0)
 	                memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
 		if (generation_cnt % 2 == 1)
 			memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_next,size_energies);
-                Kokkos::deep_copy(docking_params.energies_current, energies_view);
+                Kokkos::deep_copy(odd_generation.energies, energies_view);
 		// prng_states
                 memcopyBufferObjectFromDevice(command_queue,cpu_prng_kokkos,mem_dockpars_prng_states,size_prng_seeds);
                 Kokkos::deep_copy(docking_params.prng_states, prng_view);
@@ -1145,16 +1151,16 @@ filled with clock() */
 		printf("\n\nEvals_old:");
 #else
                 // Perform gen_alg_eval_new, formerly known as kernel4
-                kokkos_gen_alg_eval_new(mypars, docking_params, genetic_params, conform, rotlist, intracontrib, interintra, intra);
+                kokkos_gen_alg_eval_new(odd_generation, even_generation, mypars, docking_params, genetic_params, conform, rotlist, intracontrib, interintra, intra);
                 Kokkos::fence();
 
                 // Copy output from kokkos kernel4 to CPU
                 // evals_of_new_entities
                 Kokkos::deep_copy(new_entities_view,docking_params.evals_of_new_entities);
 		// conformations_next
-                Kokkos::deep_copy(conforms_view,docking_params.conformations_next);
+                Kokkos::deep_copy(conforms_view,even_generation.conformations);
                 // energies_next
-                Kokkos::deep_copy(energies_view,docking_params.energies_next);
+                Kokkos::deep_copy(energies_view,even_generation.energies);
                 // prng_states
                 Kokkos::deep_copy(prng_view,docking_params.prng_states);
 
@@ -1202,10 +1208,10 @@ filled with clock() */
                 		Kokkos::deep_copy(docking_params.evals_of_new_entities, new_entities_view);
                 		// conformations_next
                 		memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_next,size_populations);
-                		Kokkos::deep_copy(docking_params.conformations_next, conforms_view);
+                		Kokkos::deep_copy(even_generation.conformations, conforms_view);
                 		// energies_next
                 		memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_next,size_energies);
-                		Kokkos::deep_copy(docking_params.energies_next, energies_view);
+                		Kokkos::deep_copy(even_generation.energies, energies_view);
                 		// prng_states
                 		memcopyBufferObjectFromDevice(command_queue,cpu_prng_kokkos,mem_dockpars_prng_states,size_prng_seeds);
                 		Kokkos::deep_copy(docking_params.prng_states, prng_view);
@@ -1232,9 +1238,9 @@ filled with clock() */
 				// evals_of_new_entities
 				Kokkos::deep_copy(new_entities_view,docking_params.evals_of_new_entities);
 				// conformations_next
-				Kokkos::deep_copy(conforms_view,docking_params.conformations_next);
+				Kokkos::deep_copy(conforms_view,even_generation.conformations);
 				// energies_next
-				Kokkos::deep_copy(energies_view,docking_params.energies_next);
+				Kokkos::deep_copy(energies_view,even_generation.energies);
 				// prng_states
 				Kokkos::deep_copy(prng_view,docking_params.prng_states);
 

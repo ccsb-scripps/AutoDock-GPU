@@ -4,7 +4,7 @@
 
 // TODO - templatize ExSpace - ALS
 template<class Device>
-void kokkos_gen_alg_eval_new(Dockpars* mypars,DockingParams<Device>& docking_params,GeneticParams& genetic_params,Conform<Device>& conform, RotList<Device>& rotlist, IntraContrib<Device>& intracontrib, InterIntra<Device>& interintra, Intra<Device>& intra)
+void kokkos_gen_alg_eval_new(Generation<Device>& current, Generation<Device>& next, Dockpars* mypars,DockingParams<Device>& docking_params,GeneticParams& genetic_params,Conform<Device>& conform, RotList<Device>& rotlist, IntraContrib<Device>& intracontrib, InterIntra<Device>& interintra, Intra<Device>& intra)
 {
 	// Outer loop over mypars->pop_size * mypars->num_of_runs
         int league_size = mypars->pop_size * mypars->num_of_runs;
@@ -17,7 +17,7 @@ void kokkos_gen_alg_eval_new(Dockpars* mypars,DockingParams<Device>& docking_par
 
 		// This compute-unit is responsible for elitist selection
 	        if ((lidx % docking_params.pop_size) == 0) {
-			perform_elitist_selection(team_member, docking_params);
+			perform_elitist_selection(team_member, current, next, docking_params);
         	}else{
 			// Some local arrays
 			float offspring_genotype[ACTUAL_GENOTYPE_LENGTH];
@@ -50,7 +50,7 @@ void kokkos_gen_alg_eval_new(Dockpars* mypars,DockingParams<Device>& docking_par
                               parent_counter < 4;
                               parent_counter+= team_member.team_size()){
                         	parent_candidates[parent_counter]  = (int) (docking_params.pop_size*randnums[parent_counter]); //using randnums[0..3]
-                        	candidate_energies[parent_counter] = docking_params.energies_current(run_id*docking_params.pop_size+parent_candidates[parent_counter]);
+                        	candidate_energies[parent_counter] = current.energies(run_id*docking_params.pop_size+parent_candidates[parent_counter]);
                 	}
 
 			team_member.team_barrier();
@@ -77,7 +77,7 @@ void kokkos_gen_alg_eval_new(Dockpars* mypars,DockingParams<Device>& docking_par
 
 			team_member.team_barrier();
 
-			crossover(team_member, docking_params, genetic_params, run_id, randnums, parents, offspring_genotype);
+			crossover(team_member, current, docking_params, genetic_params, run_id, randnums, parents, offspring_genotype);
 
 			team_member.team_barrier();
 
@@ -90,14 +90,13 @@ void kokkos_gen_alg_eval_new(Dockpars* mypars,DockingParams<Device>& docking_par
 
 			// Copy to global views
 			if( tidx == 0 ) {
-				docking_params.energies_next(lidx) = energy;
+				next.energies(lidx) = energy;
 				docking_params.evals_of_new_entities(lidx) = 1;
 			}
 
 			// FIX ME Copying new offspring to next generation, maybe parallelizable - ALS
 			for (int i_geno = 0; i_geno<docking_params.num_of_genes; i_geno++) {
-				docking_params.conformations_next(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*lidx)
-						= offspring_genotype[i_geno];
+				next.conformations(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*lidx) = offspring_genotype[i_geno];
 			}
 
 			team_member.team_barrier();

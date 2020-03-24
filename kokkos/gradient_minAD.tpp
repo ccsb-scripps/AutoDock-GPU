@@ -18,8 +18,8 @@ void kokkos_gradient_minAD(Dockpars* mypars,DockingParams<Device>& docking_param
 
 		// Copy to global views
                 if( tidx == 0 ) {
-                        docking_params.energies_current(lidx) = energy;
-                        docking_params.evals_of_new_entities(lidx) = 1;
+//                        docking_params.energies_current(lidx) = energy;
+//                        docking_params.evals_of_new_entities(lidx) = 1;
                 }
         });
 }

@@ -2,10 +2,10 @@
 #define GEN_ALG_FUNCTIONS_HPP
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_member, const DockingParams<Device>& docking_params);
+KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_member, const Generation<Device>& current, const Generation<Device>& next, const DockingParams<Device>& docking_params);
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const DockingParams<Device>& docking_params, const GeneticParams& genetic_params, const int run_id, const float* randnums, const int* parents,
+KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const Generation<Device>& current, const DockingParams<Device>& docking_params, const GeneticParams& genetic_params, const int run_id, const float* randnums, const int* parents,
                                         float* offspring_genotype);
 
 template<class Device>

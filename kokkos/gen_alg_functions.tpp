@@ -25,12 +25,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "random.hpp"
 
 //The GPU device function performs elitist selection,
-//that is, it looks for the best entity in conformations_current and
-//energies_current of the run that corresponds to the block ID,
+//that is, it looks for the best entity in current.conformations and
+//current.energies of the run that corresponds to the block ID,
 //and copies it to the place of the first entity in
-//conformations_next and energies_next.
+//next.conformations and next.energies
 template<class Device>
-KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_member, const DockingParams<Device>& docking_params)
+KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_member, const Generation<Device>& current, const Generation<Device>& next, const DockingParams<Device>& docking_params)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();
@@ -46,7 +46,7 @@ KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_me
         float best_energy;
 
         if (tidx < docking_params.pop_size) {
-                best_energies[tidx] = docking_params.energies_current(lidx+tidx);
+                best_energies[tidx] = current.energies(lidx+tidx);
                 best_IDs[tidx] = tidx;
         }
 
@@ -54,8 +54,8 @@ KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_me
              entity_counter < docking_params.pop_size;
              entity_counter+= team_size) {
 
-             if (docking_params.energies_current(lidx+entity_counter) < best_energies[tidx]) {
-                best_energies[tidx] = docking_params.energies_current(lidx+entity_counter);
+             if (current.energies(lidx+entity_counter) < best_energies[tidx]) {
+                best_energies[tidx] = current.energies(lidx+entity_counter);
                 best_IDs[tidx] = entity_counter;
              }
         }
@@ -79,7 +79,7 @@ KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_me
                 }
 
                 // Setting energy value of new entity
-                docking_params.energies_next(lidx) = best_energy;
+                next.energies(lidx) = best_energy;
 
                 // Zero (0) evals were performed for entity selected with elitism (since it was copied only)
                 docking_params.evals_of_new_entities(lidx) = 0;
@@ -92,15 +92,15 @@ KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_me
         for (gene_counter = tidx;
              gene_counter < docking_params.num_of_genes;
              gene_counter+= team_size) {
-             docking_params.conformations_next(GENOTYPE_LENGTH_IN_GLOBMEM*lidx+gene_counter)
-		     = docking_params.conformations_current(GENOTYPE_LENGTH_IN_GLOBMEM*lidx + GENOTYPE_LENGTH_IN_GLOBMEM*best_ID+gene_counter);
+             next.conformations(GENOTYPE_LENGTH_IN_GLOBMEM*lidx+gene_counter)
+		     = current.conformations(GENOTYPE_LENGTH_IN_GLOBMEM*lidx + GENOTYPE_LENGTH_IN_GLOBMEM*best_ID+gene_counter);
         }
 
 }
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const DockingParams<Device>& docking_params, const GeneticParams& genetic_params, const int run_id, const float* randnums, const int* parents,
+KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const Generation<Device>& current, const DockingParams<Device>& docking_params, const GeneticParams& genetic_params, const int run_id, const float* randnums, const int* parents,
 					float* offspring_genotype)
 {
         // Get team and league ranks
@@ -142,17 +142,17 @@ KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const Dock
 			if (covr_point[0] != covr_point[1])
 			{
 				if ((gene_counter <= covr_point[0]) || (gene_counter > covr_point[1]))
-					offspring_genotype[gene_counter] = docking_params.conformations_current((run_id*docking_params.pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter);
+					offspring_genotype[gene_counter] = current.conformations((run_id*docking_params.pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter);
 				else
-					offspring_genotype[gene_counter] = docking_params.conformations_current((run_id*docking_params.pop_size+parents[1])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter);
+					offspring_genotype[gene_counter] = current.conformations((run_id*docking_params.pop_size+parents[1])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter);
 			}
 			// Single-point crossover
 			else
 			{
 				if (gene_counter <= covr_point[0])
-					offspring_genotype[gene_counter] = docking_params.conformations_current((run_id*docking_params.pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter);
+					offspring_genotype[gene_counter] = current.conformations((run_id*docking_params.pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter);
 				else
-					offspring_genotype[gene_counter] = docking_params.conformations_current((run_id*docking_params.pop_size+parents[1])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter);
+					offspring_genotype[gene_counter] = current.conformations((run_id*docking_params.pop_size+parents[1])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter);
 			}
 		}
 
@@ -161,7 +161,7 @@ KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const Dock
 	{
 		// FIX ME Copying new offspring to next generation, maybe parallelizable - ALS
                 for (int i_geno = 0; i_geno<docking_params.num_of_genes; i_geno++) {
-                        offspring_genotype[i_geno] = docking_params.conformations_current(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*(run_id*docking_params.pop_size+parents[0]));
+                        offspring_genotype[i_geno] = current.conformations(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*(run_id*docking_params.pop_size+parents[0]));
                 }
 
                 team_member.team_barrier();

@@ -2,7 +2,7 @@
 
 // TODO - templatize ExSpace - ALS
 template<class Device>
-void kokkos_calc_init_pop(Dockpars* mypars,DockingParams<Device>& docking_params,Conform<Device>& conform, RotList<Device>& rotlist, IntraContrib<Device>& intracontrib, InterIntra<Device>& interintra, Intra<Device>& intra)
+void kokkos_calc_init_pop(Generation<Device>& current, Dockpars* mypars,DockingParams<Device>& docking_params,Conform<Device>& conform, RotList<Device>& rotlist, IntraContrib<Device>& intracontrib, InterIntra<Device>& interintra, Intra<Device>& intra)
 {
 	// Outer loop over mypars->pop_size * mypars->num_of_runs
         int league_size = mypars->pop_size * mypars->num_of_runs;
@@ -16,8 +16,7 @@ void kokkos_calc_init_pop(Dockpars* mypars,DockingParams<Device>& docking_params
 		// FIX ME Copy this genotype to local memory, maybe unnecessary, maybe parallelizable - ALS
         	float genotype[ACTUAL_GENOTYPE_LENGTH];
         	for (int i_geno = 0; i_geno<ACTUAL_GENOTYPE_LENGTH; i_geno++) {
-        	        genotype[i_geno] = docking_params.conformations_current
-        	                                (i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*lidx);
+        	        genotype[i_geno] = current.conformations(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*lidx);
         	}
 
 		// Get the current energy for each run
@@ -25,7 +24,7 @@ void kokkos_calc_init_pop(Dockpars* mypars,DockingParams<Device>& docking_params
 
 		// Copy to global views
                 if( tidx == 0 ) {
-                        docking_params.energies_current(lidx) = energy;
+                        current.energies(lidx) = energy;
                         docking_params.evals_of_new_entities(lidx) = 1;
                 }
         });
