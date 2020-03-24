@@ -125,31 +125,36 @@ gpu_gen_and_eval_newpops(
 		// Performing binary tournament selection
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (get_local_id(0) < 4)	//it is not ensured that the four candidates will be different...
+		//it is not ensured that the four candidates will be different...
+		for (int parent_counter = get_local_id(0);
+                     parent_counter < 4;
+                     parent_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
-			parent_candidates[get_local_id(0)]  = (int) (dockpars_pop_size*randnums[get_local_id(0)]); //using randnums[0..3]
-			candidate_energies[get_local_id(0)] = dockpars_energies_current[run_id*dockpars_pop_size+parent_candidates[get_local_id(0)]];
+			parent_candidates[parent_counter]  = (int) (dockpars_pop_size*randnums[parent_counter]); //using randnums[0..3]
+			candidate_energies[parent_counter] = dockpars_energies_current[run_id*dockpars_pop_size+parent_candidates[parent_counter]];
 		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (get_local_id(0) < 2) 
+		for (int parent_counter = get_local_id(0);
+                     parent_counter < 2;
+                     parent_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
 			// Notice: dockpars_tournament_rate was scaled down to [0,1] in host
 			// to reduce number of operations in device
-			if (candidate_energies[2*get_local_id(0)] < candidate_energies[2*get_local_id(0)+1])
-				if (/*100.0f**/randnums[4+get_local_id(0)] < dockpars_tournament_rate) {		//using randnum[4..5]
-					parents[get_local_id(0)] = parent_candidates[2*get_local_id(0)];
+			if (candidate_energies[2*parent_counter] < candidate_energies[2*parent_counter+1])
+				if (/*100.0f**/randnums[4+parent_counter] < dockpars_tournament_rate) {		//using randnum[4..5]
+					parents[parent_counter] = parent_candidates[2*parent_counter];
 				}
 				else {
-					parents[get_local_id(0)] = parent_candidates[2*get_local_id(0)+1];
+					parents[parent_counter] = parent_candidates[2*parent_counter+1];
 				}
 			else
-				if (/*100.0f**/randnums[4+get_local_id(0)] < dockpars_tournament_rate) {
-					parents[get_local_id(0)] = parent_candidates[2*get_local_id(0)+1];
+				if (/*100.0f**/randnums[4+parent_counter] < dockpars_tournament_rate) {
+					parents[parent_counter] = parent_candidates[2*parent_counter+1];
 				}
 				else {
-					parents[get_local_id(0)] = parent_candidates[2*get_local_id(0)];
+					parents[parent_counter] = parent_candidates[2*parent_counter];
 				}
 		}
 
@@ -160,9 +165,12 @@ gpu_gen_and_eval_newpops(
 		// to reduce number of operations in device
 		if (/*100.0f**/randnums[6] < dockpars_crossover_rate)	// Using randnums[6]
 		{
-			if (get_local_id(0) < 2) {
+			for (int covr_counter = get_local_id(0);
+                     		covr_counter < 2;
+                     		covr_counter+= NUM_OF_THREADS_PER_BLOCK)
+		       	{
 				// Using randnum[7..8]
-				covr_point[get_local_id(0)] = (int) ((dockpars_num_of_genes-1)*randnums[7+get_local_id(0)]);
+				covr_point[covr_counter] = (int) ((dockpars_num_of_genes-1)*randnums[7+covr_counter]);
 			}
 
 			barrier(CLK_LOCAL_MEM_FENCE);
