@@ -1128,9 +1128,9 @@ filled with clock() */
 //		#ifdef DOCK_DEBUG
 			printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 //		#endif
+#ifdef NO_KOKKOS
 		runKernel1D(command_queue,kernel4,kernel4_gxsize,kernel4_lxsize,&time_start_kernel,&time_end_kernel);
 
-#ifdef TEST_KOKKOS
 	        // Copy output from original kernel4
 		memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
                 if (generation_cnt % 2 == 0)
@@ -1171,10 +1171,15 @@ filled with clock() */
                 printf("\n\n");fflush(stdout);
 
                 // Copy kokkos output from CPU to OpenCL format
-//                memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
-//                memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_conforms_kokkos,size_populations);
-//                memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_energies_kokkos,size_energies);
-//                memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,true,cpu_prng_kokkos,size_prng_seeds);	
+                memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
+		if (generation_cnt % 2 == 0){
+                	memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_conforms_kokkos,size_populations);
+                	memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_energies_kokkos,size_energies);
+		} else {
+			memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_current,true,cpu_conforms_kokkos,size_populations);
+                	memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
+		}
+                memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,true,cpu_prng_kokkos,size_prng_seeds);
 
 		printf("%15s", " ... Finished\n");fflush(stdout);
 		// End of Kernel4
