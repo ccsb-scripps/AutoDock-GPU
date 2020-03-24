@@ -323,7 +323,6 @@ inline float calc_intramolecular_energy(int tidx,float dockpars_smooth,int dockp
                 uint atom1_type_vdw_hb = kerconst_intra->atom1_types_reqm_const [atom1_typeid];
                 uint atom2_type_vdw_hb = kerconst_intra->atom2_types_reqm_const [atom2_typeid];
 
-
                 // Calculating energy contributions
                 // Cuttoff1: internuclear-distance at 8A only for vdw and hbond.
                 if (atomic_distance < 8.0f)
@@ -347,9 +346,8 @@ inline float calc_intramolecular_energy(int tidx,float dockpars_smooth,int dockp
                         }
                         // Calculating van der Waals / hydrogen bond term
                         uint idx = atom1_typeid * dockpars_num_of_atypes + atom2_typeid;
-                        partial_energy += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12)) -
-                                                  native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
-
+                        partial_energy += native_divide(kerconst_intra->VWpars_AC_const[idx],pow(smoothed_distance,12)) -
+                                                  native_divide(kerconst_intra->VWpars_BD_const[idx],pow(smoothed_distance,6+4*hbond));
                 } // if cuttoff1 - internuclear-distance at 8A
 
                 // Calculating energy contributions
