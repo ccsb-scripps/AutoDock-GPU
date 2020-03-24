@@ -184,6 +184,7 @@ KOKKOS_INLINE_FUNCTION float kokkos_calc_intermolecular_energy(const int atom_id
 	// Grid index at 000
 	int grid_ind_000 = (x_low  + y_low*dock_params.gridsize_x  + z_low*dock_params.g2)<<2;
 	unsigned long mul_tmp = atom_typeid*dock_params.g3<<2;
+
 	// Calculating affinity energy
 	partial_energy += kokkos_trilinear_interp(dock_params.fgrids, grid_ind_000+mul_tmp, weights);
 
