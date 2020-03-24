@@ -54,6 +54,23 @@ KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_rotate(const float4struct 
 	return result;
 }
 
+// TODO Is there a faster norm? - ALS
+KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_normalize(const float4struct v)
+{
+	float norm = 1.0f/sqrt(pow(v.x,2) + pow(v.y,2) + pow(v.z,2));
+        float4struct result;
+        result.x = v.x*norm;
+        result.y = v.y*norm;
+        result.z = v.z*norm;
+        result.w = 0.0f;
+        return result;
+}
+
+KOKKOS_INLINE_FUNCTION float kokkos_quaternion_dot(const float4struct a, const float4struct b)
+{
+        return (a.x*b.x + a.y*b.y + a.z*b.z);
+}
+
 // trilinear interpolation
 template<class Device>
 KOKKOS_INLINE_FUNCTION float kokkos_trilinear_interp(Kokkos::View<float*,Device> fgrids, const int i, const float* weights)

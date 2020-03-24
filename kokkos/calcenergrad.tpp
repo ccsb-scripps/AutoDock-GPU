@@ -633,10 +633,11 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& te
         }
 }
 
-
+*/
 template<class Device>
-KOKKOS_INLINE_FUNCTION void kokkos_calc_torsion_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const Grads<Device>& grads, float& energy, float* gradient)
+KOKKOS_INLINE_FUNCTION void kokkos_calc_torsion_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const Grads<Device>& grads, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, float* gradient)
 {
+int tidx = team_member.team_rank();
 	int num_torsion_genes = docking_params.num_of_genes-6;
         for (int idx = tidx;
                   idx < num_torsion_genes * docking_params.num_of_atoms;
@@ -652,34 +653,32 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_torsion_gradients(const member_type& tea
                 int atom1_id = grads.rotbonds(2*rotbond_id);
                 int atom2_id = grads.rotbonds(2*rotbond_id+1);
 
-                float4 atomRef_coords;
-                atomRef_coords = calc_coords[atom1_id];
-                float4 rotation_unitvec = fast_normalize(calc_coords[atom2_id] - atomRef_coords);
+                float4struct atomRef_coords = calc_coords(atom1_id);
+                float4struct rotation_unitvec = kokkos_quaternion_normalize(calc_coords(atom2_id) - atomRef_coords);
 
                 // Torque of torsions
                 int lig_atom_id = grads.rotbonds_atoms(MAX_NUM_OF_ATOMS*rotbond_id + rotable_atom_cnt);
-                float4 torque_tor, r, atom_force;
 
                 // Calculating torque on point "A"
                 // They are converted back to Angstroms here
-                r = (calc_coords[lig_atom_id] - atomRef_coords);
+                float4struct r = calc_coords(lig_atom_id) - atomRef_coords;
 
                 // Re-using "gradient_inter_*" for total gradient (inter+intra)
+		float4struct atom_force;
                 atom_force.x = gradient_inter_x[lig_atom_id];
                 atom_force.y = gradient_inter_y[lig_atom_id];
                 atom_force.z = gradient_inter_z[lig_atom_id];
                 atom_force.w = 0.0f;
 
-                torque_tor = cross(r, atom_force);
-                float torque_on_axis = dot(rotation_unitvec, torque_tor) * docking_params.grid_spacing; // it is cheaper to do a scalar multiplication than a vector one
+                float4struct torque_tor = kokkos_quaternion_cross(r, atom_force);
+                float torque_on_axis = kokkos_quaternion_dot(rotation_unitvec, torque_tor) * docking_params.grid_spacing; // it is cheaper to do a scalar multiplication than a vector one
 
                 // Assignment of gene-based gradient
                 // - this works because a * (a_1 + a_2 + ... + a_n) = a*a_1 + a*a_2 + ... + a*a_n
-                atomicAdd_g_f(&gradient_genotype[rotbond_id+6], torque_on_axis * DEG_TO_RAD); /*(M_PI / 180.0f)*/;
-/*
+		Kokkos::atomic_add(&(gradient[rotbond_id+6]), torque_on_axis * DEG_TO_RAD);
 	}
 }
-*/
+
 
 template<class Device>
 KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member, const DockingParams<Device>& docking_params,const float *genotype,const Conform<Device>& conform, const RotList<Device>& rotlist, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, const Grads<Device>& grads, const AxisCorrection<Device>& axis_correction, float& energy, float* gradient)
@@ -780,7 +779,7 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member,
 	team_member.team_barrier();
 
 	// ACCUMULATE INTER- AND INTRAMOLECULAR GRADIENTS
-	// Loads accumulated gradients into gradient_intra_x etc
+	// Warning! Repurposes gradient_intra and inter!
 	kokkos_acculumate_interintra_gradients(team_member, docking_params, gradient_inter_x, gradient_inter_y, gradient_inter_z, gradient_intra_x, gradient_intra_y, gradient_intra_z);
 
 	team_member.team_barrier();
@@ -796,7 +795,7 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member,
 	team_member.team_barrier();
 
 	// Obtaining torsion-related gradients
-//	kokkos_calc_torsion_gradients();
+	kokkos_calc_torsion_gradients(team_member, docking_params, grads, calc_coords, gradient_inter_x, gradient_inter_y, gradient_inter_z, gradient);
 
 #if defined (CONVERT_INTO_ANGSTROM_RADIAN)
 	team_member.team_barrier();
