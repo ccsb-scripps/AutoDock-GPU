@@ -68,6 +68,21 @@ KOKKOS_INLINE_FUNCTION float kokkos_trilinear_interp(Kokkos::View<float*,Device>
 		fgrids(i+idx_111)*weights[idx_111]);
 }
 
+// gradient - move this and the above functions to a different file - ALS
+template<class Device>
+KOKKOS_INLINE_FUNCTION float4struct kokkos_spatial_gradient(Kokkos::View<float*,Device> fgrids, const int i,
+		const float dx,const float dy,const float dz, const float omdx,const float omdy,const float omdz)
+{
+	float4struct result;
+        result.x = omdz * (omdy * (fgrids(i+idx_100) - fgrids(i+idx_000)) + dy * (fgrids(i+idx_110) - fgrids(i+idx_010))) +
+                     dz * (omdy * (fgrids(i+idx_101) - fgrids(i+idx_001)) + dy * (fgrids(i+idx_111) - fgrids(i+idx_011)));
+        result.y = omdz * (omdx * (fgrids(i+idx_010) - fgrids(i+idx_000)) + dx * (fgrids(i+idx_110) - fgrids(i+idx_100))) +
+                     dz * (omdx * (fgrids(i+idx_011) - fgrids(i+idx_001)) + dx * (fgrids(i+idx_111) - fgrids(i+idx_101)));
+        result.z = omdy * (omdx * (fgrids(i+idx_001) - fgrids(i+idx_000)) + dx * (fgrids(i+idx_101) - fgrids(i+idx_100))) +
+                     dy * (omdx * (fgrids(i+idx_011) - fgrids(i+idx_010)) + dx * (fgrids(i+idx_111) - fgrids(i+idx_110)));
+        return result;
+}
+
 // GETTING ATOMIC POSITIONS
 template<class Device>
 KOKKOS_INLINE_FUNCTION void kokkos_get_atom_pos(const int atom_id, const Conform<Device>& conform, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)

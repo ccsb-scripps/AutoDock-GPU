@@ -52,8 +52,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "calcenergy.hpp"
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void kokkos_calc_intermolecular_gradients(const member_type& team_member, const DockingParams<Device>& docking_params,const float *genotype, const InterIntra<Device>& interintra, float& energy, float* gradient)
+KOKKOS_INLINE_FUNCTION void kokkos_calc_intermolecular_gradients(const member_type& team_member, const DockingParams<Device>& docking_params,const float *genotype, const InterIntra<Device>& interintra, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords, float& energy, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z)
 {
+// Get team and league ranks
+int tidx = team_member.team_rank();
 	float partial_energies=0.0f;
         float weights[8];
         float cube[8];
@@ -83,9 +85,9 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_intermolecular_gradients(const member_ty
                         continue;
                 }
                 // Getting coordinates
-                float x_low  = floor(x);
-                float y_low  = floor(y);
-                float z_low  = floor(z);
+		uint x_low  = (uint)floor(x);
+	        uint y_low  = (uint)floor(y);
+        	uint z_low  = (uint)floor(z);
 
                 float dx = x - x_low;
                 float omdx = 1.0f - dx;
@@ -105,11 +107,11 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_intermolecular_gradients(const member_ty
                 weights [idx_111] = dx*dy*dz;
 
 		// Grid index at 000
-		int grid_ind_000 = (x_low  + y_low*dock_params.gridsize_x  + z_low*dock_params.g2)<<2;
-		unsigned long mul_tmp = atom_typeid*dock_params.g3<<2;
+		int grid_ind_000 = (x_low  + y_low*docking_params.gridsize_x  + z_low*docking_params.g2)<<2;
+		unsigned long mul_tmp = atom_typeid*docking_params.g3<<2;
 
 		// Calculating affinity energy
-                partial_energies += kokkos_trilinear_interp(dock_params.fgrids, grid_ind_000+mul_tmp, weights);
+                partial_energies += kokkos_trilinear_interp(docking_params.fgrids, grid_ind_000+mul_tmp, weights);
 
 		// -------------------------------------------------------------------
                 // Deltas dx, dy, dz are already normalized
@@ -139,16 +141,11 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_intermolecular_gradients(const member_ty
                 // "atype" intermolecular energy
                 // Derived from autodockdev/maps.py
                 // -------------------------------------------------------------------
+		float4struct partial_gradient_inter = kokkos_spatial_gradient(docking_params.fgrids, grid_ind_000+mul_tmp, dx,dy,dz, omdx,omdy,omdz);
+		gradient_inter_x[atom_id] += partial_gradient_inter.x;
+                gradient_inter_y[atom_id] += partial_gradient_inter.y;
+                gradient_inter_z[atom_id] += partial_gradient_inter.z;
 
-                // Vector in x-direction
-		gradient_inter_x[atom_id] += omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
-                                               dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011]));
-                // Vector in y-direction
-                gradient_inter_y[atom_id] += omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
-                                               dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101]));
-                // Vectors in z-direction
-                gradient_inter_z[atom_id] += omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
-                                               dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110]));
                 // -------------------------------------------------------------------
                 // Calculating gradients (forces) corresponding to
                 // "elec" intermolecular energy
@@ -158,19 +155,14 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_intermolecular_gradients(const member_ty
                 // Capturing electrostatic values
                 atom_typeid = docking_params.num_of_atypes;
 
-                mul_tmp = atom_typeid*dock_params.g3<<2; // different atom type id to get charge IA
+                mul_tmp = atom_typeid*docking_params.g3<<2; // different atom type id to get charge IA
                 // Calculating affinity energy
-                partial_energies += q * kokkos_trilinear_interp(dock_params.fgrids, grid_ind_000+mul_tmp, weights);
+                partial_energies += q * kokkos_trilinear_interp(docking_params.fgrids, grid_ind_000+mul_tmp, weights);
+		partial_gradient_inter = kokkos_spatial_gradient(docking_params.fgrids, grid_ind_000+mul_tmp, dx,dy,dz, omdx,omdy,omdz);
+                gradient_inter_x[atom_id] += q * partial_gradient_inter.x;
+                gradient_inter_y[atom_id] += q * partial_gradient_inter.y;
+                gradient_inter_z[atom_id] += q * partial_gradient_inter.z;
 
-                // Vector in x-direction
-                gradient_inter_x[atom_id] += q * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
-                                                     dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011])));
-                // Vector in y-direction
-                gradient_inter_y[atom_id] += q * ( omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
-                                                     dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101])));
-                // Vectors in z-direction
-                gradient_inter_z[atom_id] += q * ( omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
-                                                     dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110])));
                 // -------------------------------------------------------------------
                 // Calculating gradients (forces) corresponding to
                 // "dsol" intermolecular energy
@@ -179,25 +171,19 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_intermolecular_gradients(const member_ty
                 // Need only magnitude of charge from here on down
                 q = fabs(q);
                 // Capturing desolvation values (atom_typeid+1 compared to above => mul_tmp + g3*4)
-                mul_tmp += g3<<2;
+                mul_tmp += docking_params.g3<<2;
 
                 // Calculating affinity energy
-                partial_energies += q * kokkos_trilinear_interp(dock_params.fgrids, grid_ind_000+mul_tmp, weights);
-
-                // Vector in x-direction
-                gradient_inter_x[atom_id] += q * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
-                                                     dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011])));
-                // Vector in y-direction
-                gradient_inter_y[atom_id] += q * ( omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
-                                                     dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101])));
-                // Vectors in z-direction
-                gradient_inter_z[atom_id] += q * ( omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
-                                                     dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110])));
-                // -------------------------------------------------------------------
+                partial_energies += q * kokkos_trilinear_interp(docking_params.fgrids, grid_ind_000+mul_tmp, weights);
+		partial_gradient_inter = kokkos_spatial_gradient(docking_params.fgrids, grid_ind_000+mul_tmp, dx,dy,dz, omdx,omdy,omdz);
+		gradient_inter_x[atom_id] += q * partial_gradient_inter.x;
+                gradient_inter_y[atom_id] += q * partial_gradient_inter.y;
+                gradient_inter_z[atom_id] += q * partial_gradient_inter.z;
         }
+	energy+=partial_energies; // FIX ME - ALS
 }
 
-
+/*
 template<class Device>
 KOKKOS_INLINE_FUNCTION void kokkos_calc_intramolecular_gradients(const member_type& team_member, const DockingParams<Device>& docking_params,const float *genotype, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, float& energy, float* gradient)
 {
@@ -484,10 +470,8 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& te
                 printf("%-20s %-10.6f\n", "torque length: ", torque_length);
                 #endif
 
-                /*
                 // Infinitesimal rotation in radians
-                const float infinitesimal_radian = 1E-5;
-                */
+                //const float infinitesimal_radian = 1E-5;
 
                 // Finding the quaternion that performs
                 // the infinitesimal rotation around torque axis
@@ -544,8 +528,8 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& te
                 // the displacement in shoemake space is not distorted.
                 // The correct amount of displacement in shoemake space is obtained
                 // by multiplying the infinitesimal displacement by shoemake_scaling:
-                //float shoemake_scaling = native_divide(torque_length, INFINITESIMAL_RADIAN/*infinitesimal_radian*/);
-                float orientation_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
+                //float shoemake_scaling = native_divide(torque_length, INFINITESIMAL_RADIAN/*infinitesimal_radian*/ //);
+/*                float orientation_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
 
                 #if defined (PRINT_GRAD_ROTATION_GENES)
                 printf("\n%s\n", "----------------------------------------------------------");
@@ -570,7 +554,7 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& te
                 // (X0,Y0) and (X1,Y1) are known points
                 // How to find the Y value in the straight line between Y0 and Y1,
                 // corresponding to a certain X?
-		/*
+//		/*
                         | dependence_on_theta_const
                         | dependence_on_rotangle_const
                         |
@@ -582,7 +566,7 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_rotation_gradients(const member_type& te
                         |_________________________________ angle_const
                              X0         X        X1
                 */
-
+/*
                 // Finding the index-position of "grad_delta" in the "angle_const" array
                 int index_theta    = floor((current_theta    - axis_correction.angle(0)) * inv_angle_delta);
                 int index_rotangle = floor((current_rotangle - axis_correction.angle(0)) * inv_angle_delta);
@@ -696,9 +680,10 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_torsion_gradients(const member_type& tea
                 // Assignment of gene-based gradient
                 // - this works because a * (a_1 + a_2 + ... + a_n) = a*a_1 + a*a_2 + ... + a*a_n
                 atomicAdd_g_f(&gradient_genotype[rotbond_id+6], torque_on_axis * DEG_TO_RAD); /*(M_PI / 180.0f)*/;
-        }
+/*
+	}
 }
-
+*/
 
 template<class Device>
 KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member, const DockingParams<Device>& docking_params,const float *genotype,const Conform<Device>& conform, const RotList<Device>& rotlist, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, const Grads<Device>& grads, const AxisCorrection<Device>& axis_correction, float& energy, float* gradient)
@@ -789,7 +774,8 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member,
 	team_member.team_barrier();
 
 	// CALCULATING INTERMOLECULAR GRADIENTS
-	kokkos_calc_intermolecular_gradients();
+	kokkos_calc_intermolecular_gradients(team_member, docking_params, genotype, interintra, calc_coords,
+			     energy, gradient_inter_x, gradient_inter_y, gradient_inter_z);
 
 	// CALCULATING INTRAMOLECULAR GRADIENTS
 //	kokkos_calc_intramolecular_gradients();
