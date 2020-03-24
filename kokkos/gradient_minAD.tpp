@@ -2,7 +2,7 @@
 
 // TODO - templatize ExSpace - ALS
 template<class Device>
-void kokkos_gradient_minAD(Dockpars* mypars,DockingParams<Device>& docking_params,Conform<Device>& conform, RotList<Device>& rotlist, IntraContrib<Device>& intracontrib, InterIntra<Device>& interintra, Intra<Device>& intra, Grads<Device>& grads, AxisCorrection<Device>& axis_correction)
+void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Device>& docking_params,Conform<Device>& conform, RotList<Device>& rotlist, IntraContrib<Device>& intracontrib, InterIntra<Device>& interintra, Intra<Device>& intra, Grads<Device>& grads, AxisCorrection<Device>& axis_correction)
 {
 	// Outer loop
         int league_size = docking_params.num_of_lsentities * mypars->num_of_runs;
