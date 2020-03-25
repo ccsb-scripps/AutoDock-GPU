@@ -275,7 +275,6 @@ filled with clock() */
 	int* cpu_evals_of_runs;
 	float* cpu_ref_ori_angles;
 
-	Dockparameters dockpars;
 	size_t size_floatgrids;
 	size_t size_populations;
 	size_t size_energies;
@@ -286,8 +285,6 @@ filled with clock() */
 	int threadsPerBlock;
 	int blocksPerGridForEachEntity;
 	int blocksPerGridForEachRun;
-	int blocksPerGridForEachLSEntity;
-	int blocksPerGridForEachGradMinimizerEntity;
 
 	unsigned long run_cnt;	/* int run_cnt; */
 	int generation_cnt;
@@ -552,67 +549,8 @@ filled with clock() */
  	memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_current, 	false, cpu_init_populations, 	size_populations);
 	memcopyBufferObjectToDevice(command_queue,mem_gpu_evals_of_runs, 		false, cpu_evals_of_runs, 	size_evals_of_runs);
 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,     	false, cpu_prng_seeds,      	size_prng_seeds);
-
-	//preparing parameter struct
-	dockpars.num_of_atoms  = ((char)  myligand_reference.num_of_atoms);
-	dockpars.num_of_atypes = ((char)  myligand_reference.num_of_atypes);
-	dockpars.num_of_intraE_contributors = ((int) myligand_reference.num_of_intraE_contributors);
-	dockpars.gridsize_x    = ((char)  mygrid->size_xyz[0]);
-	dockpars.gridsize_y    = ((char)  mygrid->size_xyz[1]);
-	dockpars.gridsize_z    = ((char)  mygrid->size_xyz[2]);
-	dockpars.grid_spacing  = ((float) mygrid->spacing);
-	dockpars.rotbondlist_length = ((int) NUM_OF_THREADS_PER_BLOCK*(myligand_reference.num_of_rotcyc));
-	dockpars.coeff_elec    = ((float) mypars->coeffs.scaled_AD4_coeff_elec);
-	dockpars.coeff_desolv  = ((float) mypars->coeffs.AD4_coeff_desolv);
-	dockpars.pop_size      = mypars->pop_size;
-	dockpars.num_of_genes  = myligand_reference.num_of_rotbonds + 6;
-	// Notice: dockpars.tournament_rate, dockpars.crossover_rate, dockpars.mutation_rate
-	// were scaled down to [0,1] in host to reduce number of operations in device
-	dockpars.tournament_rate = mypars->tournament_rate/100.0f; 
-	dockpars.crossover_rate  = mypars->crossover_rate/100.0f;
-	dockpars.mutation_rate   = mypars->mutation_rate/100.f;
-	dockpars.abs_max_dang    = mypars->abs_max_dang;
-	dockpars.abs_max_dmov    = mypars->abs_max_dmov;
-	dockpars.qasp 		 = mypars->qasp;
-	dockpars.smooth 	 = mypars->smooth;
-	unsigned int g2 = dockpars.gridsize_x * dockpars.gridsize_y;
-	unsigned int g3 = dockpars.gridsize_x * dockpars.gridsize_y * dockpars.gridsize_z;
-
-	dockpars.lsearch_rate    = mypars->lsearch_rate;
-
-	if (dockpars.lsearch_rate != 0.0f) 
-	{
-		dockpars.num_of_lsentities = (unsigned int) (mypars->lsearch_rate/100.0*mypars->pop_size + 0.5);
-		dockpars.rho_lower_bound   = mypars->rho_lower_bound;
-		dockpars.base_dmov_mul_sqrt3 = mypars->base_dmov_mul_sqrt3;
-		dockpars.base_dang_mul_sqrt3 = mypars->base_dang_mul_sqrt3;
-		dockpars.cons_limit        = (unsigned int) mypars->cons_limit;
-		dockpars.max_num_of_iters  = (unsigned int) mypars->max_num_of_iters;
-
-		// The number of entities that undergo Solis-Wets minimization,
-		blocksPerGridForEachLSEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
-
-		// The number of entities that undergo any gradient-based minimization,
-		// by default, it is the same as the number of entities that undergo the Solis-Wets minimizer
-		blocksPerGridForEachGradMinimizerEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
-
-		// Enable only for debugging.
-		// Only one entity per reach run, undergoes gradient minimization
-		//blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
-	}
 	
-	printf("Local-search chosen method is: %s\n", (dockpars.lsearch_rate == 0.0f)? "GA" :
-						      (
-						      (strcmp(mypars->ls_method, "sw")   == 0)?"Solis-Wets (sw)":
-						      (strcmp(mypars->ls_method, "sd")   == 0)?"Steepest-Descent (sd)": 
-						      (strcmp(mypars->ls_method, "fire") == 0)?"FIRE (fire)":
-						      (strcmp(mypars->ls_method, "ad") == 0)?"ADADELTA (ad)": "Unknown")
-						      );
-
-	/*
-	printf("dockpars.num_of_intraE_contributors:%u\n", dockpars.num_of_intraE_contributors);
-	printf("dockpars.rotbondlist_length:%u\n", dockpars.rotbondlist_length);
-	*/
+	printf("Local-search chosen method is ADADELTA (ad) because that is the only one available so far in the Kokkos version.");
 
 	clock_start_docking = clock();
 
@@ -870,12 +808,7 @@ filled with clock() */
 			}
 		}
 
-		//////////////////////////////////////////
-		// Kernel4
-
-
-		// Copy input to kernel4 to cpu, then into device view
-                // conformations_current and energies_current
+		// Perform gen_alg_eval_new, the genetic algorithm formerly known as kernel4
 		if (generation_cnt % 2 == 0){
                 	memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
 			memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
@@ -889,12 +822,13 @@ filled with clock() */
 
 		printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 
-                // Perform gen_alg_eval_new, formerly known as kernel4
-                kokkos_gen_alg_eval_new(odd_generation, even_generation, mypars, docking_params, genetic_params, conform, rotlist, intracontrib, interintra, intra);
+
+			kokkos_gen_alg_eval_new(odd_generation, even_generation, mypars, docking_params, genetic_params,
+					        conform, rotlist, intracontrib, interintra, intra);
                 Kokkos::fence();
 		printf("%15s", " ... Finished\n");fflush(stdout);
 
-		if (dockpars.lsearch_rate != 0.0f) {
+		if (docking_params.lsearch_rate != 0.0f) {
 			if (strcmp(mypars->ls_method, "ad") == 0) {
 				printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
 
