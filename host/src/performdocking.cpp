@@ -714,16 +714,11 @@ filled with clock() */
 
 	// Copy from temporary cpu array back to gpu for the remaining openCL kernels
 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
-	memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
 
 	printf("%15s" ," ... Finished\n");fflush(stdout); // Finished kernel1
 
 	// Kernel2
 	printf("%-25s", "\tK_EVAL");fflush(stdout);
-
-	// Copy input to kernel2 to cpu, then into device view
-        memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
-        Kokkos::deep_copy(docking_params.evals_of_new_entities, new_entities_view);
 
 	// Perform sum_evals, formerly known as kernel2
 	kokkos_sum_evals(mypars, docking_params, evals_of_runs);
@@ -910,9 +905,6 @@ filled with clock() */
 
 
 		// Copy input to kernel4 to cpu, then into device view
-		// evals_of_new_entities
-		memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
-                Kokkos::deep_copy(docking_params.evals_of_new_entities, new_entities_view);
                 // conformations_current and energies_current
 		if (generation_cnt % 2 == 0){
                 	memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
@@ -924,9 +916,6 @@ filled with clock() */
 		}
 		Kokkos::deep_copy(odd_generation.conformations, conforms_view);
                 Kokkos::deep_copy(odd_generation.energies, energies_view);
-		// prng_states
-                memcopyBufferObjectFromDevice(command_queue,cpu_prng_kokkos,mem_dockpars_prng_states,size_prng_seeds);
-                Kokkos::deep_copy(docking_params.prng_states, prng_view);
 
 		printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 
@@ -934,41 +923,10 @@ filled with clock() */
                 kokkos_gen_alg_eval_new(odd_generation, even_generation, mypars, docking_params, genetic_params, conform, rotlist, intracontrib, interintra, intra);
                 Kokkos::fence();
 
-                // Copy output from kokkos kernel4 to CPU
-                // evals_of_new_entities
-                Kokkos::deep_copy(new_entities_view,docking_params.evals_of_new_entities);
-		// conformations_next
-                Kokkos::deep_copy(conforms_view,even_generation.conformations);
-                // energies_next
-                Kokkos::deep_copy(energies_view,even_generation.energies);
-                // prng_states
-                Kokkos::deep_copy(prng_view,docking_params.prng_states);
-
-                // Copy kokkos output from CPU to OpenCL format
-                memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
-		if (generation_cnt % 2 == 0){
-                	memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_conforms_kokkos,size_populations);
-                	memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_energies_kokkos,size_energies);
-		} else {
-			memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_current,true,cpu_conforms_kokkos,size_populations);
-                	memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
-		}
-                memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,true,cpu_prng_kokkos,size_prng_seeds);
-
 		printf("%15s", " ... Finished\n");fflush(stdout);
-		// End of Kernel4
 
 		if (dockpars.lsearch_rate != 0.0f) {
-			if (strcmp(mypars->ls_method, "sw") == 0) {
-				// Kernel3 NOT SUPPORTED - ALS
-			} else if (strcmp(mypars->ls_method, "sd") == 0) {
-				// Kernel5 NOT SUPPORTED - ALS
-			} else if (strcmp(mypars->ls_method, "fire") == 0) {
-				// Kernel6 NOT SUPPORTED - ALS
-			} else if (strcmp(mypars->ls_method, "ad") == 0) {
-	                	//////////////////////////////////////////
-                		// Kernel7
-
+			if (strcmp(mypars->ls_method, "ad") == 0) {
 				printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
 
 				// Perform gradient_minAD, formerly known as kernel7
@@ -976,19 +934,12 @@ filled with clock() */
 				Kokkos::fence();
 
 				// Copy output from kokkos kernel7 to CPU
-				// evals_of_new_entities
-				Kokkos::deep_copy(new_entities_view,docking_params.evals_of_new_entities);
 				// conformations_next
 				Kokkos::deep_copy(conforms_view,even_generation.conformations);
 				// energies_next
 				Kokkos::deep_copy(energies_view,even_generation.energies);
-				// prng_states
-				Kokkos::deep_copy(prng_view,docking_params.prng_states);
-
-		                printf("\n\nVals new:");
 
                 		// Copy kokkos output from CPU to OpenCL format
-				memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
 				if (generation_cnt % 2 == 0){
 					memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_conforms_kokkos,size_populations);
 					memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_energies_kokkos,size_energies);
@@ -997,22 +948,13 @@ filled with clock() */
 					memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_current,true,cpu_conforms_kokkos,size_populations);
                                         memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
 				}
-				memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,true,cpu_prng_kokkos,size_prng_seeds);
 
-				for (int ik2o = 0; ik2o<new_entities_view.extent(0); ik2o+=39){
-                                        printf("\n%d : %d", ik2o, new_entities_view(ik2o));
-                                        for (int jk2o = 0; jk2o<docking_params.num_of_genes; jk2o++){
-                                                printf("\n  %d : %15.15f", jk2o, conforms_view(ik2o*GENOTYPE_LENGTH_IN_GLOBMEM+jk2o));
-                                        }
-                                        printf("\n%d : %15.15f", ik2o, energies_view(ik2o));
-                                        printf("\n%d : %u", ik2o, prng_view(ik2o));
-                                }
-                                printf("\n\n");fflush(stdout);
 				printf("%15s" ," ... Finished\n");fflush(stdout);
-				// End of Kernel7
+			} else {
+				// sw, sd, and fire are NOT SUPPORTED in the Kokkos version (yet)
 			}
-		} // End if (dockpars.lsearch_rate != 0.0f)
-//break;
+		}
+
 		// -------- Replacing with memory maps! ------------
 		#if defined (MAPPED_COPY)
 		unmemMap(command_queue,mem_gpu_evals_of_runs,map_cpu_evals_of_runs);
@@ -1021,10 +963,6 @@ filled with clock() */
 		// Kernel2
 		printf("%-25s", "\tK_EVAL");fflush(stdout);
 
-	        // Copy input to kernel2 to cpu, then into device view
-	        memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
-	        Kokkos::deep_copy(docking_params.evals_of_new_entities, new_entities_view);
-	
 	        // Perform sum_evals, formerly known as kernel2
 	        kokkos_sum_evals(mypars, docking_params, evals_of_runs);
 	        Kokkos::fence();
@@ -1105,26 +1043,6 @@ filled with clock() */
 					 mygrid, argc, argv, ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs,
 					 ELAPSEDSECS(clock_stop_program_before_clustering, clock_start_program),generation_cnt,total_evals/mypars->num_of_runs);
 	clock_stop_docking = clock();
-/*
-	clReleaseMemObject(mem_atom_charges_const);
-        clReleaseMemObject(mem_atom_types_const);
-        clReleaseMemObject(mem_intraE_contributors_const);
-  	clReleaseMemObject(mem_reqm_const);
-  	clReleaseMemObject(mem_reqm_hbond_const);
-  	clReleaseMemObject(mem_atom1_types_reqm_const);
-  	clReleaseMemObject(mem_atom2_types_reqm_const);
-        clReleaseMemObject(mem_VWpars_AC_const);
-	clReleaseMemObject(mem_VWpars_BD_const);
-	clReleaseMemObject(mem_dspars_S_const);
-	clReleaseMemObject(mem_dspars_V_const);
-        clReleaseMemObject(mem_rotlist_const);
-	clReleaseMemObject(mem_ref_coords_x_const);
-	clReleaseMemObject(mem_ref_coords_y_const);
-	clReleaseMemObject(mem_ref_coords_z_const);
-	clReleaseMemObject(mem_rotbonds_moving_vectors_const);
-	clReleaseMemObject(mem_rotbonds_unit_vectors_const);
-	clReleaseMemObject(mem_ref_orientation_quats_const);
-*/
 
 	clReleaseMemObject(mem_interintra_const);
 	clReleaseMemObject(mem_intracontrib_const);
@@ -1144,9 +1062,7 @@ filled with clock() */
 	clReleaseMemObject(mem_dockpars_evals_of_new_entities);
 	clReleaseMemObject(mem_dockpars_prng_states);
 	clReleaseMemObject(mem_gpu_evals_of_runs);
-	/*
-	clReleaseMemObject(mem_gradpars_conformation_min_perturbation);
-	*/
+
 	clReleaseMemObject(mem_angle_const);
 	clReleaseMemObject(mem_dependence_on_theta_const);
 	clReleaseMemObject(mem_dependence_on_rotangle_const);
@@ -1191,22 +1107,6 @@ double check_progress(int* evals_of_runs, int generation_cnt, int max_num_of_eva
 //generations, and the number of runs, respectively. The stop condition is satisfied, if the generations used is higher
 //than the maximal value, or if the average number of evaluations used is higher than the maximal value.
 {
-	/*	Stops if every run reached the number of evals or number of generations
-
-	int runs_finished;
-	int i;
-
-	runs_finished = 0;
-	for (i=0; i<num_of_runs; i++)
-		if (evals_of_runs[i] >= max_num_of_evals)
-			runs_finished++;
-
-	if ((runs_finished >= num_of_runs) || (generation_cnt >= max_num_of_gens))
-		return 1;
-	else
-		return 0;
-        */
-
 	//Stops if the sum of evals of every run reached the sum of the total number of evals
 
 	int i;
