@@ -263,11 +263,7 @@ filled with clock() */
 
 	// TEMPORARY - ALS
 	float* cpu_energies_kokkos;
-	int* cpu_new_entities_kokkos;
-	unsigned int* cpu_prng_kokkos;
 	float* cpu_conforms_kokkos;
-	float* cpu_Nenergies_kokkos;
-	float* cpu_Nconforms_kokkos;
 
 	float* cpu_init_populations;
 	float* cpu_final_populations;
@@ -344,11 +340,7 @@ filled with clock() */
 
 	// TEMPORARY - ALS
 	cpu_energies_kokkos = (float*) malloc(size_energies);
-	cpu_new_entities_kokkos = (int*) malloc(size_evals_of_new_entities);
-	cpu_prng_kokkos = (unsigned int*) malloc(size_prng_seeds);
 	cpu_conforms_kokkos = (float *) malloc(size_populations);
-	cpu_Nenergies_kokkos = (float*) malloc(size_energies);
-	cpu_Nconforms_kokkos = (float *) malloc(size_populations);
 
 	//allocating memory in CPU for evaluation counters
 	size_evals_of_runs = mypars->num_of_runs*sizeof(int);
@@ -603,11 +595,7 @@ filled with clock() */
 
 	// Wrap the C style arrays with an unmanaged kokkos view for easy deep copies (done after view initializations for easy sizing)
         FloatView1D energies_view(cpu_energies_kokkos, odd_generation.energies.extent(0));
-        IntView1D new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
         FloatView1D conforms_view(cpu_conforms_kokkos, odd_generation.conformations.extent(0));
-	FloatView1D Nenergies_view(cpu_Nenergies_kokkos, odd_generation.energies.extent(0));
-        FloatView1D Nconforms_view(cpu_Nconforms_kokkos, odd_generation.conformations.extent(0));
-        UnsignedIntView1D prng_view(cpu_prng_kokkos, docking_params.prng_states.extent(0));
         IntView1D evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0)); // Note this array was prexisting
 	FloatView1D original_energies_view(cpu_energies, odd_generation.energies.extent(0));
 	FloatView1D final_populations_view(cpu_final_populations, odd_generation.conformations.extent(0));
@@ -650,9 +638,6 @@ filled with clock() */
 	// Perform the kernel formerly known as kernel1
 	kokkos_calc_init_pop(odd_generation, mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);
 	Kokkos::fence();
-
-	// Copy back from device
-        Kokkos::deep_copy(new_entities_view, docking_params.evals_of_new_entities);
 
 	printf("%15s" ," ... Finished\n");fflush(stdout); // Finished kernel1
 
@@ -813,6 +798,7 @@ filled with clock() */
 			}
 		}
 
+		// Perform gen_alg_eval_new, the genetic algorithm formerly known as kernel4
 		printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 
 		if (generation_cnt % 2 == 0) { // Since we need 2 generations at any time, just alternate btw 2 mem allocations
@@ -838,7 +824,6 @@ filled with clock() */
 							      conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
 				}
 				Kokkos::fence();
-
 				printf("%15s" ," ... Finished\n");fflush(stdout);
 			} else {
 				// sw, sd, and fire are NOT SUPPORTED in the Kokkos version (yet)
@@ -957,10 +942,6 @@ filled with clock() */
 
 	// TEMPORARY - ALS
         free(cpu_energies_kokkos);
-        free(cpu_new_entities_kokkos);
-	free(cpu_Nenergies_kokkos);
-	free(cpu_Nconforms_kokkos);
-        free(cpu_prng_kokkos);
         free(cpu_conforms_kokkos);
 	return 0;
 }
