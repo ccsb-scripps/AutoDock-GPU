@@ -692,22 +692,11 @@ filled with clock() */
 	while ((progress = check_progress(cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
 	// -------- Replacing with memory maps! ------------
 	{
-		if (generation_cnt == 0){
-			Kokkos::deep_copy(energies_view, odd_generation.energies);
-		}
-		memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
-		if (mypars->autostop)
-                {
-                        if (generation_cnt % 10 == 0) {
-                                memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_current,size_energies);
-			}
-		}
-		if (generation_cnt % 2 == 0) Kokkos::deep_copy(odd_generation.energies, energies_view);
+		if (generation_cnt % 2 == 0) Kokkos::deep_copy(energies_view,odd_generation.energies);
 		if (mypars->autostop)
 		{
 			if (generation_cnt % 10 == 0) {
-//				memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_current,size_energies);
-//				Kokkos::deep_copy(original_energies_view, odd_generation.energies);
+				memcpy (cpu_energies, cpu_energies_kokkos, size_energies);
 				for(unsigned int count=0; (count<1+8*(generation_cnt==0)) && (fabs(curr_avg-prev_avg)>0.00001); count++)
 				{
 					threshold_used = threshold;
@@ -849,9 +838,6 @@ filled with clock() */
 							      conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
 				}
 				Kokkos::fence();
-
-                		// Copy kokkos output from CPU to OpenCL format
-				if (generation_cnt % 2 == 1) Kokkos::deep_copy(energies_view,odd_generation.energies);
 
 				printf("%15s" ," ... Finished\n");fflush(stdout);
 			} else {
