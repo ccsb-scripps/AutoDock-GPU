@@ -198,12 +198,10 @@ filled with clock() */
 	size_t size_populations;
 	size_t size_energies;
 	size_t size_prng_seeds;
-	size_t size_evals_of_new_entities;
 	size_t size_evals_of_runs;
 
 	int threadsPerBlock;
 	int blocksPerGridForEachEntity;
-	int blocksPerGridForEachRun;
 
 	unsigned long run_cnt;	/* int run_cnt; */
 	int generation_cnt;
@@ -220,7 +218,6 @@ filled with clock() */
 	//setting number of blocks and threads
 	threadsPerBlock = NUM_OF_THREADS_PER_BLOCK;
 	blocksPerGridForEachEntity = mypars->pop_size * mypars->num_of_runs;
-	blocksPerGridForEachRun = mypars->num_of_runs;
 
 	//allocating CPU memory for initial populations
 	size_populations = mypars->num_of_runs * mypars->pop_size * GENOTYPE_LENGTH_IN_GLOBMEM*sizeof(float);
@@ -255,9 +252,6 @@ filled with clock() */
 #else
 		cpu_prng_seeds[i] = genseed(0u);
 #endif
-
-	//Set size for evals_of_new_entities
-	size_evals_of_new_entities = mypars->pop_size*mypars->num_of_runs*sizeof(int);
 
 	// TEMPORARY - ALS
 	cpu_energies_kokkos = (float*) malloc(size_energies);
@@ -384,11 +378,12 @@ filled with clock() */
 	while ((progress = check_progress(cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
 	// -------- Replacing with memory maps! ------------
 	{
-		if (generation_cnt % 2 == 0) Kokkos::deep_copy(energies_view,odd_generation.energies);
+//		if (generation_cnt % 2 == 0) Kokkos::deep_copy(energies_view,odd_generation.energies);
 		if (mypars->autostop)
 		{
 			if (generation_cnt % 10 == 0) {
-				memcpy (cpu_energies, cpu_energies_kokkos, size_energies);
+				//memcpy (cpu_energies, cpu_energies_kokkos, size_energies);
+				Kokkos::deep_copy(original_energies_view,odd_generation.energies);
 				for(unsigned int count=0; (count<1+8*(generation_cnt==0)) && (fabs(curr_avg-prev_avg)>0.00001); count++)
 				{
 					threshold_used = threshold;
