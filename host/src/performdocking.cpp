@@ -170,12 +170,6 @@ filled with clock() */
 // =======================================================================
 // OpenCL Host Setup
 // =======================================================================
-	cl_platform_id*  platform_id;
-	cl_device_id*    device_ids;
-	cl_device_id     device_id;
-	cl_context       context;
-	cl_command_queue command_queue;
-	cl_program       program;
 
 #ifdef _WIN32
 	const char *filename = KRNL_FILE;
@@ -187,77 +181,6 @@ filled with clock() */
 
 	const char* options_program = OPT_PROG;
 	printf("%-40s %-40s\n", "Kernel compilation flags: ", options_program); fflush(stdout);
-
-	cl_kernel kernel1; const char *name_k1 = KRNL1;
-	size_t kernel1_gxsize, kernel1_lxsize;
-
-	cl_kernel kernel2; const char *name_k2 = KRNL2;
-	size_t kernel2_gxsize, kernel2_lxsize;
-
-	cl_kernel kernel3; const char *name_k3 = KRNL3;
-	size_t kernel3_gxsize, kernel3_lxsize;
-
-	cl_kernel kernel4; const char *name_k4 = KRNL4;
-	size_t kernel4_gxsize, kernel4_lxsize;
-
-	cl_kernel kernel5; const char *name_k5 = KRNL5;
-	size_t kernel5_gxsize, kernel5_lxsize;
-
-	cl_kernel kernel6; const char *name_k6 = KRNL6;
-	size_t kernel6_gxsize, kernel6_lxsize;
-
-	cl_kernel kernel7; const char *name_k7 = KRNL7;
-	size_t kernel7_gxsize, kernel7_lxsize;
-
-	cl_uint platformCount;
-	cl_uint deviceCount;
-
-	// Times
-	cl_ulong time_start_kernel;
-	cl_ulong time_end_kernel;
-
-	// Get all available platforms
-	if (getPlatforms(&platform_id,&platformCount) != 0) return 1;
-
-	// Get all devices of first platform
-	if (getDevices(platform_id[0],platformCount,&device_ids,&deviceCount) != 0) return 1;
-	if (mypars->devnum>=deviceCount)
-	{
-		printf("Warning: user specified OpenCL device number does not exist, using first device.\n");
-		mypars->devnum=0;
-	}
-	device_id=device_ids[mypars->devnum];
-
-	// Create context from first platform
-	if (createContext(platform_id[0],1,&device_id,&context) != 0) return 1;
-
-	// Create command queue for first device
-	if (createCommandQueue(context,device_id,&command_queue) != 0) return 1;
-
-	// Create program from source 
-#ifdef _WIN32
-	if (ImportSource(filename, name_k1, &device_id, context, options_program, &kernel1) != 0) return 1;
-	if (ImportSource(filename, name_k2, &device_id, context, options_program, &kernel2) != 0) return 1;
-	if (ImportSource(filename, name_k3, &device_id, context, options_program, &kernel3) != 0) return 1;
-	if (ImportSource(filename, name_k4, &device_id, context, options_program, &kernel4) != 0) return 1;
-	if (ImportSource(filename, name_k5, &device_id, context, options_program, &kernel5) != 0) return 1;
-	if (ImportSource(filename, name_k6, &device_id, context, options_program, &kernel6) != 0) return 1;
-	if (ImportSource(filename, name_k7, &device_id, context, options_program, &kernel7) != 0) return 1;
-#else
-	if (ImportSourceToProgram(calcenergy_ocl, &device_id, context, &program, options_program) != 0) return 1;
-#endif
-
-	// Create kernels
-	if (createKernel(&device_id, &program, name_k1, &kernel1) != 0) return 1;
-	if (createKernel(&device_id, &program, name_k2, &kernel2) != 0) return 1;
-	if (createKernel(&device_id, &program, name_k3, &kernel3) != 0) return 1;
-	if (createKernel(&device_id, &program, name_k4, &kernel4) != 0) return 1;
-	if (createKernel(&device_id, &program, name_k5, &kernel5) != 0) return 1;
-	if (createKernel(&device_id, &program, name_k6, &kernel6) != 0) return 1;
-	if (createKernel(&device_id, &program, name_k7, &kernel7) != 0) return 1;
-
-// End of OpenCL Host Setup
-// =======================================================================
 
 	Liganddata myligand_reference;
 
@@ -273,7 +196,6 @@ filled with clock() */
 	int* cpu_evals_of_runs;
 	float* cpu_ref_ori_angles;
 
-	size_t size_floatgrids;
 	size_t size_populations;
 	size_t size_energies;
 	size_t size_prng_seeds;
@@ -379,62 +301,6 @@ filled with clock() */
 					 &KerConst_grads) == 1) {
 		return 1;
 	}
-
-	// Constant data holding struct data
-	// Created because structs containing array
-	// are not supported as OpenCL kernel args
-/*
-  	cl_mem mem_atom_charges_const;
-	cl_mem mem_atom_types_const;
-  	cl_mem mem_intraE_contributors_const;
-  	cl_mem mem_reqm_const;
-  	cl_mem mem_reqm_hbond_const;
-  	cl_mem mem_atom1_types_reqm_const;
-  	cl_mem mem_atom2_types_reqm_const;
-  	cl_mem mem_VWpars_AC_const;
-  	cl_mem mem_VWpars_BD_const;
-  	cl_mem mem_dspars_S_const;
-  	cl_mem mem_dspars_V_const;
-  	cl_mem mem_rotlist_const;
-  	cl_mem mem_ref_coords_x_const;
-  	cl_mem mem_ref_coords_y_const;
-  	cl_mem mem_ref_coords_z_const;
-  	cl_mem mem_rotbonds_moving_vectors_const;
-  	cl_mem mem_rotbonds_unit_vectors_const;
-  	cl_mem mem_ref_orientation_quats_const;
-*/
-
-	cl_mem mem_interintra_const;
-	cl_mem mem_intracontrib_const;
-	cl_mem mem_intra_const;
-	cl_mem mem_rotlist_const;
-	cl_mem mem_conform_const;
-
-  	cl_mem mem_rotbonds_const;
-  	cl_mem mem_rotbonds_atoms_const;
-  	cl_mem mem_num_rotating_atoms_per_rotbond_const;
-
-	// Constant data for correcting axisangle gradients
-	cl_mem mem_angle_const;
-	cl_mem mem_dependence_on_theta_const;
-	cl_mem mem_dependence_on_rotangle_const;
-
-	// ----------------------------------------------------------------------
-
- 	//allocating GPU memory for populations, floatgirds,
-	//energies, evaluation counters and random number generator states
-	size_floatgrids = 4 * (sizeof(float)) * (mygrid->num_of_atypes+2) * (mygrid->size_xyz[0]) * (mygrid->size_xyz[1]) * (mygrid->size_xyz[2]);
-
-	cl_mem mem_dockpars_fgrids;
-	cl_mem mem_dockpars_conformations_current;
-	cl_mem mem_dockpars_energies_current;
-	cl_mem mem_dockpars_conformations_next;
-	cl_mem mem_dockpars_energies_next;
-	cl_mem mem_dockpars_evals_of_new_entities;
-	cl_mem mem_gpu_evals_of_runs;
-	cl_mem mem_dockpars_prng_states;
-
-
 	
 	printf("Local-search chosen method is ADADELTA (ad) because that is the only one available so far in the Kokkos version.");
 
@@ -781,47 +647,6 @@ filled with clock() */
 					 mygrid, argc, argv, ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs,
 					 ELAPSEDSECS(clock_stop_program_before_clustering, clock_start_program),generation_cnt,total_evals/mypars->num_of_runs);
 	clock_stop_docking = clock();
-
-	clReleaseMemObject(mem_interintra_const);
-	clReleaseMemObject(mem_intracontrib_const);
-	clReleaseMemObject(mem_intra_const);
-	clReleaseMemObject(mem_rotlist_const);
-	clReleaseMemObject(mem_conform_const);
-
-	clReleaseMemObject(mem_rotbonds_const);
-	clReleaseMemObject(mem_rotbonds_atoms_const);
-	clReleaseMemObject(mem_num_rotating_atoms_per_rotbond_const);
-
-	clReleaseMemObject(mem_dockpars_fgrids);
-	clReleaseMemObject(mem_dockpars_conformations_current);
-	clReleaseMemObject(mem_dockpars_energies_current);
-	clReleaseMemObject(mem_dockpars_conformations_next);
-	clReleaseMemObject(mem_dockpars_energies_next);
-	clReleaseMemObject(mem_dockpars_evals_of_new_entities);
-	clReleaseMemObject(mem_dockpars_prng_states);
-	clReleaseMemObject(mem_gpu_evals_of_runs);
-
-	clReleaseMemObject(mem_angle_const);
-	clReleaseMemObject(mem_dependence_on_theta_const);
-	clReleaseMemObject(mem_dependence_on_rotangle_const);
-
-	// Release all kernels,
-	// regardless of the chosen local-search method for execution.
-	// Otherwise, memory leak in clCreateKernel()
-	clReleaseKernel(kernel1);
-	clReleaseKernel(kernel2);
-	clReleaseKernel(kernel3);
-	clReleaseKernel(kernel4);
-	clReleaseKernel(kernel5);
-	clReleaseKernel(kernel6);
-	clReleaseKernel(kernel7);
-
-	clReleaseProgram(program);
-	
-	clReleaseCommandQueue(command_queue);
-	clReleaseContext(context);
-	free(device_ids);
-	free(platform_id);
 
 	free(cpu_init_populations);
 	free(cpu_energies);
