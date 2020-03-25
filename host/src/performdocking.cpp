@@ -721,29 +721,10 @@ filled with clock() */
 	kokkos_sum_evals(mypars, docking_params, evals_of_runs);
 	Kokkos::fence();
 
-        Kokkos::deep_copy(evals_of_runs_view, evals_of_runs);
-/*
-	printf("\n\nEvals_new0:");fflush(stdout);
-        for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
-        {
-                printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
-        }
-        printf("\n\n");
-*/
-	memcopyBufferObjectToDevice(command_queue,mem_gpu_evals_of_runs,true,cpu_evals_of_runs,size_evals_of_runs);
-
 	printf("%15s" ," ... Finished\n");fflush(stdout);
-        // End of Kernel2
-	// ===============================================================================
 
+	Kokkos::deep_copy(evals_of_runs_view, evals_of_runs);
 
-	// -------- Replacing with memory maps! ------------
-	memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
-
-	// -------- Replacing with memory maps! ------------
-	#if 0
-	generation_cnt = 1;
-	#endif
 	generation_cnt = 0;
 	bool first_time = true;
 	float* energies;
@@ -911,7 +892,6 @@ filled with clock() */
                 // Perform gen_alg_eval_new, formerly known as kernel4
                 kokkos_gen_alg_eval_new(odd_generation, even_generation, mypars, docking_params, genetic_params, conform, rotlist, intracontrib, interintra, intra);
                 Kokkos::fence();
-
 		printf("%15s", " ... Finished\n");fflush(stdout);
 
 		if (dockpars.lsearch_rate != 0.0f) {
@@ -944,28 +924,19 @@ filled with clock() */
 			}
 		}
 
+		// Perform sum_evals, formerly known as kernel2
 		printf("%-25s", "\tK_EVAL");fflush(stdout);
 
-	        // Perform sum_evals, formerly known as kernel2
 	        kokkos_sum_evals(mypars, docking_params, evals_of_runs);
 	        Kokkos::fence();
+		printf("%15s" ," ... Finished\n");fflush(stdout);
 
 		// Copy output from kokkos kernel2 to CPU
 	        Kokkos::deep_copy(evals_of_runs_view, evals_of_runs);
 
-		// Copy kokkos output from CPU to OpenCL format
-	        memcopyBufferObjectToDevice(command_queue,mem_gpu_evals_of_runs,true,cpu_evals_of_runs,size_evals_of_runs);
-
-		printf("%15s" ," ... Finished\n");fflush(stdout);
-		// End of Kernel2
-		// ===============================================================================
-		// -------- Replacing with memory maps! ------------
-		memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
-
-		// -------- Replacing with memory maps! ------------
 		generation_cnt++;
+	}
 
-	} // End of while-loop
 	clock_stop_docking = clock();
 	if (mypars->autostop==0)
 	{
@@ -977,26 +948,18 @@ filled with clock() */
 		}
 	}
 	printf("\n\n");
-	// ===============================================================================
-	// Modification based on:
-	// http://www.cc.gatech.edu/~vetter/keeneland/tutorial-2012-02-20/08-opencl.pdf
-	// ===============================================================================
-	//processing results
+
+	// Pull results back to CPU
 	if (generation_cnt % 2 == 0) {
 		memcopyBufferObjectFromDevice(command_queue,cpu_final_populations,mem_dockpars_conformations_current,size_populations);
 		memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_current,size_energies);
 	}
-	else { 
+	else {
 		memcopyBufferObjectFromDevice(command_queue,cpu_final_populations,mem_dockpars_conformations_next,size_populations);
 		memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_next,size_energies);
 	}
-#if defined (DOCK_DEBUG)
-	for (int cnt_pop=0;cnt_pop<size_populations/sizeof(float);cnt_pop++)
-		printf("total_num_pop: %u, cpu_final_populations[%u]: %f\n",(unsigned int)(size_populations/sizeof(float)),cnt_pop,cpu_final_populations[cnt_pop]);
-	for (int cnt_pop=0;cnt_pop<size_energies/sizeof(float);cnt_pop++)
-		printf("total_num_energies: %u, cpu_energies[%u]: %f\n",    (unsigned int)(size_energies/sizeof(float)),cnt_pop,cpu_energies[cnt_pop]);
-#endif
-	// ===============================================================================
+
+	// Process results
 	for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
 	{
 		arrange_result(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_energies+run_cnt*mypars->pop_size, mypars->pop_size);
