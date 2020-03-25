@@ -410,27 +410,6 @@ filled with clock() */
 	cl_mem mem_rotlist_const;
 	cl_mem mem_conform_const;
 
-	size_t sz_interintra_const	= MAX_NUM_OF_ATOMS*sizeof(float) + 
-					  MAX_NUM_OF_ATOMS*sizeof(char);
-
-	size_t sz_intracontrib_const	= 3*MAX_INTRAE_CONTRIBUTORS*sizeof(char);
-
-	size_t sz_intra_const		= ATYPE_NUM*sizeof(float) + 
-					  ATYPE_NUM*sizeof(float) + 
-					  ATYPE_NUM*sizeof(unsigned int) + 
-					  ATYPE_NUM*sizeof(unsigned int) + 
-				          MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
-					  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
-					  MAX_NUM_OF_ATYPES*sizeof(float) + 
-					  MAX_NUM_OF_ATYPES*sizeof(float);
-
-	size_t sz_rotlist_const		= MAX_NUM_OF_ROTATIONS*sizeof(int);
-
-	size_t sz_conform_const		= 3*MAX_NUM_OF_ATOMS*sizeof(float) + 
-					  3*MAX_NUM_OF_ROTBONDS*sizeof(float) + 
-					  3*MAX_NUM_OF_ROTBONDS*sizeof(float) + 
-					  4*MAX_NUM_OF_RUNS*sizeof(float);
-
   	cl_mem mem_rotbonds_const;
   	cl_mem mem_rotbonds_atoms_const;
   	cl_mem mem_num_rotating_atoms_per_rotbond_const;
@@ -440,78 +419,6 @@ filled with clock() */
 	cl_mem mem_dependence_on_theta_const;
 	cl_mem mem_dependence_on_rotangle_const;
 
-	// These constants are allocated in global memory since
-	// there is a limited number of constants that can be passed
-	// as arguments to kernel
-/*
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(float),                         &mem_atom_charges_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(char),                          &mem_atom_types_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,3*MAX_INTRAE_CONTRIBUTORS*sizeof(char),                 &mem_intraE_contributors_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(float),				    &mem_reqm_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(float),				    &mem_reqm_hbond_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(unsigned int),			    &mem_atom1_types_reqm_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(unsigned int),                         &mem_atom2_types_reqm_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float),      &mem_VWpars_AC_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float),      &mem_VWpars_BD_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*sizeof(float),                        &mem_dspars_S_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*sizeof(float),                        &mem_dspars_V_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ROTATIONS*sizeof(int),                       &mem_rotlist_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(float),                         &mem_ref_coords_x_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(float),                         &mem_ref_coords_y_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(float),                         &mem_ref_coords_z_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,3*MAX_NUM_OF_ROTBONDS*sizeof(float),                    &mem_rotbonds_moving_vectors_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,3*MAX_NUM_OF_ROTBONDS*sizeof(float),                    &mem_rotbonds_unit_vectors_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,4*MAX_NUM_OF_RUNS*sizeof(float),                        &mem_ref_orientation_quats_const);
-*/
-
-	mallocBufferObject(context,CL_MEM_READ_ONLY,sz_interintra_const,	&mem_interintra_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,sz_intracontrib_const,   	&mem_intracontrib_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,sz_intra_const,             &mem_intra_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,sz_rotlist_const,           &mem_rotlist_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,sz_conform_const,           &mem_conform_const);
-
-	mallocBufferObject(context,CL_MEM_READ_ONLY,2*MAX_NUM_OF_ROTBONDS*sizeof(int),                      &mem_rotbonds_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int),       &mem_rotbonds_atoms_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ROTBONDS*sizeof(int),      		    &mem_num_rotating_atoms_per_rotbond_const);
-
-	mallocBufferObject(context,CL_MEM_READ_ONLY,1000*sizeof(float),&mem_angle_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,1000*sizeof(float),&mem_dependence_on_theta_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,1000*sizeof(float),&mem_dependence_on_rotangle_const);
-   	
-/*
-	memcopyBufferObjectToDevice(command_queue,mem_atom_charges_const,			false,  &KerConst.atom_charges_const,           MAX_NUM_OF_ATOMS*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_atom_types_const,           		false,	&KerConst.atom_types_const,             MAX_NUM_OF_ATOMS*sizeof(char));
-	memcopyBufferObjectToDevice(command_queue,mem_intraE_contributors_const,  		false,  &KerConst.intraE_contributors_const,    3*MAX_INTRAE_CONTRIBUTORS*sizeof(char));
-	memcopyBufferObjectToDevice(command_queue,mem_reqm_const,         			false,  &KerConst.reqm_const,           	ATYPE_NUM*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_reqm_hbond_const,         		false,	&KerConst.reqm_hbond_const,           	ATYPE_NUM*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_atom1_types_reqm_const,         		false,  &KerConst.atom1_types_reqm_const,       ATYPE_NUM*sizeof(unsigned int));
-	memcopyBufferObjectToDevice(command_queue,mem_atom2_types_reqm_const,         		false,	&KerConst.atom2_types_reqm_const,       ATYPE_NUM*sizeof(unsigned int));
-	memcopyBufferObjectToDevice(command_queue,mem_VWpars_AC_const,            		false,	&KerConst.VWpars_AC_const,              MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_VWpars_BD_const,            		false,	&KerConst.VWpars_BD_const,              MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_dspars_S_const,             		false,	&KerConst.dspars_S_const,               MAX_NUM_OF_ATYPES*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_dspars_V_const,             		false,	&KerConst.dspars_V_const,               MAX_NUM_OF_ATYPES*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_rotlist_const,              		false,	&KerConst.rotlist_const,                MAX_NUM_OF_ROTATIONS*sizeof(int));
-	memcopyBufferObjectToDevice(command_queue,mem_ref_coords_x_const,         		false,	&KerConst.ref_coords_x_const,           MAX_NUM_OF_ATOMS*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_ref_coords_y_const,         		false,	&KerConst.ref_coords_y_const,           MAX_NUM_OF_ATOMS*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_ref_coords_z_const,         		false,	&KerConst.ref_coords_z_const,           MAX_NUM_OF_ATOMS*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_rotbonds_moving_vectors_const,		false,	&KerConst.rotbonds_moving_vectors_const,3*MAX_NUM_OF_ROTBONDS*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_rotbonds_unit_vectors_const,  		false,	&KerConst.rotbonds_unit_vectors_const,  3*MAX_NUM_OF_ROTBONDS*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_ref_orientation_quats_const, 		false,	&KerConst.ref_orientation_quats_const,  4*MAX_NUM_OF_RUNS*sizeof(float));
-*/
-	
-	memcopyBufferObjectToDevice(command_queue,mem_interintra_const,		false,	&KerConst_interintra,	sz_interintra_const);
-	memcopyBufferObjectToDevice(command_queue,mem_intracontrib_const,      	false,	&KerConst_intracontrib, sz_intracontrib_const);
-	memcopyBufferObjectToDevice(command_queue,mem_intra_const,       	false,	&KerConst_intra,       	sz_intra_const);
-	memcopyBufferObjectToDevice(command_queue,mem_rotlist_const,     	false,	&KerConst_rotlist,     	sz_rotlist_const);
-	memcopyBufferObjectToDevice(command_queue,mem_conform_const,     	false,	&KerConst_conform,     	sz_conform_const);
-
-	memcopyBufferObjectToDevice(command_queue,mem_rotbonds_const,  	      			false,	&KerConst_grads.rotbonds,  			2*MAX_NUM_OF_ROTBONDS*sizeof(int));
-	memcopyBufferObjectToDevice(command_queue,mem_rotbonds_atoms_const,  	      		false,	&KerConst_grads.rotbonds_atoms,  		MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
-	memcopyBufferObjectToDevice(command_queue,mem_num_rotating_atoms_per_rotbond_const, 	false,	&KerConst_grads.num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int));
-
-  	memcopyBufferObjectToDevice(command_queue,mem_angle_const,				false,  &angle,           		1000*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_dependence_on_theta_const,		false,  &dependence_on_theta,           1000*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_dependence_on_rotangle_const,		false,  &dependence_on_rotangle,        1000*sizeof(float));
 	// ----------------------------------------------------------------------
 
  	//allocating GPU memory for populations, floatgirds,
@@ -527,24 +434,7 @@ filled with clock() */
 	cl_mem mem_gpu_evals_of_runs;
 	cl_mem mem_dockpars_prng_states;
 
-	mallocBufferObject(context,CL_MEM_READ_ONLY,size_floatgrids,         			&mem_dockpars_fgrids);
-	mallocBufferObject(context,CL_MEM_READ_WRITE,size_populations,        			&mem_dockpars_conformations_current);
-	mallocBufferObject(context,CL_MEM_READ_WRITE,size_energies,           			&mem_dockpars_energies_current);
-	mallocBufferObject(context,CL_MEM_READ_WRITE,size_populations,        			&mem_dockpars_conformations_next);
-	mallocBufferObject(context,CL_MEM_READ_WRITE,size_energies,    	      			&mem_dockpars_energies_next);
-	mallocBufferObject(context,CL_MEM_READ_WRITE,size_evals_of_new_entities,		&mem_dockpars_evals_of_new_entities);
 
-	// -------- Replacing with memory maps! ------------
-	mallocBufferObject(context,CL_MEM_READ_WRITE,size_evals_of_runs,	  			&mem_gpu_evals_of_runs);
-
-	// -------- Replacing with memory maps! ------------
-
-	mallocBufferObject(context,CL_MEM_READ_WRITE,size_prng_seeds,  	      				&mem_dockpars_prng_states);
-
-	memcopyBufferObjectToDevice(command_queue,mem_dockpars_fgrids,                	false, cpu_floatgrids,  	size_floatgrids);
- 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_current, 	false, cpu_init_populations, 	size_populations);
-	memcopyBufferObjectToDevice(command_queue,mem_gpu_evals_of_runs, 		false, cpu_evals_of_runs, 	size_evals_of_runs);
-	memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,     	false, cpu_prng_seeds,      	size_prng_seeds);
 	
 	printf("Local-search chosen method is ADADELTA (ad) because that is the only one available so far in the Kokkos version.");
 
