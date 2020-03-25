@@ -22,93 +22,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
-
-
-
-#ifndef _WIN32
-#define STRINGIZE2(s) #s
-#define STRINGIZE(s)	STRINGIZE2(s)
-#define KRNL_FILE STRINGIZE(KRNL_SOURCE)
-#define KRNL_FOLDER STRINGIZE(KRNL_DIRECTORY)
-#define KRNL_COMMON STRINGIZE(KCMN_DIRECTORY)
-#define KRNL1 STRINGIZE(K1)
-#define KRNL2 STRINGIZE(K2)
-#define KRNL3 STRINGIZE(K3)
-#define KRNL4 STRINGIZE(K4)
-#define KRNL5 STRINGIZE(K5)
-#define KRNL6 STRINGIZE(K6)
-#define KRNL7 STRINGIZE(K7)
-
-#else
-#define KRNL_FILE KRNL_SOURCE
-#define KRNL_FOLDER KRNL_DIRECTORY
-#define KRNL_COMMON KCMN_DIRECTORY
-#define KRNL1 K1
-#define KRNL2 K2
-#define KRNL3 K3
-#define KRNL4 K4
-#define KRNL5 K5
-#define KRNL6 K6
-#define KRNL7 K7
-#endif
-
-#define INC " -I " KRNL_FOLDER " -I " KRNL_COMMON
-
-#if defined (N1WI)
-	#define KNWI " -DN1WI "
-#elif defined (N2WI)
-	#define KNWI " -DN2WI "
-#elif defined (N4WI)
-	#define KNWI " -DN4WI "
-#elif defined (N8WI)
-	#define KNWI " -DN8WI "
-#elif defined (N16WI)
-	#define KNWI " -DN16WI "
-#elif defined (N32WI)
-	#define KNWI " -DN32WI "
-#elif defined (N64WI)
-	#define KNWI " -DN64WI "
-#elif defined (N128WI)
-	#define KNWI " -DN128WI "
-#elif defined (N256WI)
-		#define KNWI " -DN256WI "
-#else
-	#define KNWI	" -DN64WI "
-#endif
-
-#if defined (REPRO)
-	#define REP " -DREPRO "
-#else
-	#define REP " "
-#endif
-
-
-#ifdef __APPLE__
-	#define KGDB_GPU	" -g -cl-opt-disable "
-#else
-	#define KGDB_GPU	" -g -O0 -Werror -cl-opt-disable "
-#endif
-#define KGDB_CPU	" -g3 -Werror -cl-opt-disable "
-// Might work in some (Intel) devices " -g -s " KRNL_FILE
-
-#if defined (DOCK_DEBUG)
-	#if defined (CPU_DEVICE)
-		#define KGDB KGDB_CPU
-	#elif defined (GPU_DEVICE)
-		#define KGDB KGDB_GPU
-	#endif
-#else
-	#define KGDB " -cl-mad-enable"
-#endif
-
-
-#define OPT_PROG INC KNWI REP KGDB
-
 #include <Kokkos_Core.hpp>
 
-#include "performdocking.h"
-#include "stringify.h"
+#include "defines.h"
 #include "correct_grad_axisangle.h"
+#include "performdocking.h"
 
 // From ./kokkos
 #include "kokkos_settings.hpp"
@@ -167,21 +85,6 @@ parameters argc and argv:
 		contains the state of the clock tick counter at the beginning of the program
 filled with clock() */
 {
-// =======================================================================
-// OpenCL Host Setup
-// =======================================================================
-
-#ifdef _WIN32
-	const char *filename = KRNL_FILE;
-	printf("\n%-40s %-40s\n", "Kernel source file: ", filename);  fflush(stdout);
-#else
-	printf("\n%-40s %-40s\n", "Kernel source used for development: ", "./device/calcenergy.cl");  fflush(stdout);
-	printf(  "%-40s %-40s\n", "Kernel string used for building: ",    "./host/inc/stringify.h");  fflush(stdout);
-#endif
-
-	const char* options_program = OPT_PROG;
-	printf("%-40s %-40s\n", "Kernel compilation flags: ", options_program); fflush(stdout);
-
 	Liganddata myligand_reference;
 
 	// TEMPORARY - ALS

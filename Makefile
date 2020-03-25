@@ -210,10 +210,7 @@ CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
 
 # ------------------------------------------------------
 
-stringify:
-	./stringify_ocl_krnls.sh
-
-odock: check-env-all stringify $(SRC)
+odock: check-env-all $(SRC)
 	$(CPP) \
 	$(SRC) \
 	$(CFLAGS) \
