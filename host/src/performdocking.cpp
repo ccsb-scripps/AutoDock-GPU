@@ -643,187 +643,9 @@ filled with clock() */
 	unsigned int ite_cnt = 0;
 #endif
 
-	/*
-	// Addded for printing intracontributor_pairs (autodockdevpy)
-	for (unsigned int intrapair_cnt=0; 
-			  intrapair_cnt<dockpars.num_of_intraE_contributors;
-			  intrapair_cnt++) {
-		if (intrapair_cnt == 0) {
-			printf("%-10s %-10s %-10s\n", "#pair", "#atom1", "#atom2");
-		}
-
-		printf ("%-10u %-10u %-10u\n", intrapair_cnt,
-					    KerConst.intraE_contributors_const[3*intrapair_cnt],
-					    KerConst.intraE_contributors_const[3*intrapair_cnt+1]);
-	}
-	*/
-
-	// Kernel1
-	setKernelArg(kernel1,0, sizeof(dockpars.num_of_atoms),                  &dockpars.num_of_atoms);
-	setKernelArg(kernel1,1, sizeof(dockpars.num_of_atypes),                 &dockpars.num_of_atypes);
-	setKernelArg(kernel1,2, sizeof(dockpars.num_of_intraE_contributors),    &dockpars.num_of_intraE_contributors);
-	setKernelArg(kernel1,3, sizeof(dockpars.gridsize_x),                    &dockpars.gridsize_x);
-	setKernelArg(kernel1,4, sizeof(dockpars.gridsize_y),                    &dockpars.gridsize_y);
-	setKernelArg(kernel1,5, sizeof(dockpars.gridsize_z),                    &dockpars.gridsize_z);
-	setKernelArg(kernel1,6, sizeof(g2),                    		  	&g2);
-	setKernelArg(kernel1,7, sizeof(g3),                    		  	&g3);
-	setKernelArg(kernel1,8, sizeof(dockpars.grid_spacing),                  &dockpars.grid_spacing);
-	setKernelArg(kernel1,9, sizeof(mem_dockpars_fgrids),                    &mem_dockpars_fgrids);
-	setKernelArg(kernel1,10,sizeof(dockpars.rotbondlist_length),            &dockpars.rotbondlist_length);
-	setKernelArg(kernel1,11,sizeof(dockpars.coeff_elec),                    &dockpars.coeff_elec);
-	setKernelArg(kernel1,12,sizeof(dockpars.coeff_desolv),                  &dockpars.coeff_desolv);
-	setKernelArg(kernel1,13,sizeof(mem_dockpars_conformations_current),     &mem_dockpars_conformations_current);
-	setKernelArg(kernel1,14,sizeof(mem_dockpars_energies_current),          &mem_dockpars_energies_current);
-	setKernelArg(kernel1,15,sizeof(mem_dockpars_evals_of_new_entities),     &mem_dockpars_evals_of_new_entities);
-	setKernelArg(kernel1,16,sizeof(dockpars.pop_size),                      &dockpars.pop_size);
-	setKernelArg(kernel1,17,sizeof(dockpars.qasp),                          &dockpars.qasp);
-	setKernelArg(kernel1,18,sizeof(dockpars.smooth),                        &dockpars.smooth);
-	
-	setKernelArg(kernel1,19,sizeof(mem_interintra_const),                 	&mem_interintra_const);
-  	setKernelArg(kernel1,20,sizeof(mem_intracontrib_const),          	&mem_intracontrib_const);
-  	setKernelArg(kernel1,21,sizeof(mem_intra_const),                        &mem_intra_const);
-  	setKernelArg(kernel1,22,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
-  	setKernelArg(kernel1,23,sizeof(mem_conform_const),                 	&mem_conform_const);
-	kernel1_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
-	kernel1_lxsize = threadsPerBlock;
-#ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "K_INIT", "gSize: ", kernel1_gxsize, "lSize: ", kernel1_lxsize); fflush(stdout);
-#endif
-	// End of Kernel1
-
-	// Kernel2
-  	setKernelArg(kernel2,0,sizeof(dockpars.pop_size),       		&dockpars.pop_size);
-  	setKernelArg(kernel2,1,sizeof(mem_dockpars_evals_of_new_entities),      &mem_dockpars_evals_of_new_entities);
-  	setKernelArg(kernel2,2,sizeof(mem_gpu_evals_of_runs),                   &mem_gpu_evals_of_runs);
-  	kernel2_gxsize = blocksPerGridForEachRun * threadsPerBlock;
-  	kernel2_lxsize = threadsPerBlock;
-#ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "K_EVAL", "gSize: ", kernel2_gxsize, "lSize: ",  kernel2_lxsize); fflush(stdout);
-#endif
-	// End of Kernel2
-
-	// Kernel4
-  	setKernelArg(kernel4,0, sizeof(dockpars.num_of_atoms),                  &dockpars.num_of_atoms);
-  	setKernelArg(kernel4,1, sizeof(dockpars.num_of_atypes),                 &dockpars.num_of_atypes);
-  	setKernelArg(kernel4,2, sizeof(dockpars.num_of_intraE_contributors),    &dockpars.num_of_intraE_contributors);
-  	setKernelArg(kernel4,3, sizeof(dockpars.gridsize_x),                    &dockpars.gridsize_x);
-  	setKernelArg(kernel4,4, sizeof(dockpars.gridsize_y),                    &dockpars.gridsize_y);
-  	setKernelArg(kernel4,5, sizeof(dockpars.gridsize_z),                    &dockpars.gridsize_z);
-  	setKernelArg(kernel4,6, sizeof(g2),                    		  	&g2);
-  	setKernelArg(kernel4,7, sizeof(g3),                    		  	&g3);
-  	setKernelArg(kernel4,8, sizeof(dockpars.grid_spacing),                  &dockpars.grid_spacing);
-  	setKernelArg(kernel4,9, sizeof(mem_dockpars_fgrids),                    &mem_dockpars_fgrids);
-  	setKernelArg(kernel4,10,sizeof(dockpars.rotbondlist_length),            &dockpars.rotbondlist_length);
-  	setKernelArg(kernel4,11,sizeof(dockpars.coeff_elec),                    &dockpars.coeff_elec);
-  	setKernelArg(kernel4,12,sizeof(dockpars.coeff_desolv),                  &dockpars.coeff_desolv);
-  	setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_current),     &mem_dockpars_conformations_current);
-  	setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_current),          &mem_dockpars_energies_current);
-  	setKernelArg(kernel4,15,sizeof(mem_dockpars_conformations_next),        &mem_dockpars_conformations_next);
-  	setKernelArg(kernel4,16,sizeof(mem_dockpars_energies_next),             &mem_dockpars_energies_next);
-  	setKernelArg(kernel4,17,sizeof(mem_dockpars_evals_of_new_entities),     &mem_dockpars_evals_of_new_entities);
-  	setKernelArg(kernel4,18,sizeof(mem_dockpars_prng_states),               &mem_dockpars_prng_states);
-  	setKernelArg(kernel4,19,sizeof(dockpars.pop_size),                      &dockpars.pop_size);
-  	setKernelArg(kernel4,20,sizeof(dockpars.num_of_genes),                  &dockpars.num_of_genes);
-  	setKernelArg(kernel4,21,sizeof(dockpars.tournament_rate),               &dockpars.tournament_rate);
-  	setKernelArg(kernel4,22,sizeof(dockpars.crossover_rate),                &dockpars.crossover_rate);
-  	setKernelArg(kernel4,23,sizeof(dockpars.mutation_rate),                 &dockpars.mutation_rate);
-  	setKernelArg(kernel4,24,sizeof(dockpars.abs_max_dmov),                  &dockpars.abs_max_dmov);
-  	setKernelArg(kernel4,25,sizeof(dockpars.abs_max_dang),                  &dockpars.abs_max_dang);
-  	setKernelArg(kernel4,26,sizeof(dockpars.qasp),                          &dockpars.qasp);
-  	setKernelArg(kernel4,27,sizeof(dockpars.smooth),                        &dockpars.smooth);
-
-  	setKernelArg(kernel4,28,sizeof(mem_interintra_const),                 	&mem_interintra_const);
-  	setKernelArg(kernel4,29,sizeof(mem_intracontrib_const),          	&mem_intracontrib_const);
-  	setKernelArg(kernel4,30,sizeof(mem_intra_const),                        &mem_intra_const);
-  	setKernelArg(kernel4,31,sizeof(mem_rotlist_const),                      &mem_rotlist_const);
-  	setKernelArg(kernel4,32,sizeof(mem_conform_const),                 	&mem_conform_const);
-  	kernel4_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
-  	kernel4_lxsize = threadsPerBlock;
-#ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "K_GA_GENERATION", "gSize: ",  kernel4_gxsize, "lSize: ", kernel4_lxsize); fflush(stdout);
-#endif
-	// End of Kernel4
-
-
-	if (dockpars.lsearch_rate != 0.0f) {
-
-		if (strcmp(mypars->ls_method, "sw") == 0) {
-			// Kernel3 NOT SUPPORTED - ALS
-		} else if (strcmp(mypars->ls_method, "sd") == 0) {
-			// Kernel5 NOT SUPPORTED - ALS
-		} else if (strcmp(mypars->ls_method, "fire") == 0) {
-			// Kernel6 NOT SUPPORTED - ALS
-		} else if (strcmp(mypars->ls_method, "ad") == 0) {
-			// Kernel7
-			setKernelArg(kernel7,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
-			setKernelArg(kernel7,1, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
-			setKernelArg(kernel7,2, sizeof(dockpars.num_of_intraE_contributors),     &dockpars.num_of_intraE_contributors);
-			setKernelArg(kernel7,3, sizeof(dockpars.gridsize_x),                     &dockpars.gridsize_x);
-			setKernelArg(kernel7,4, sizeof(dockpars.gridsize_y),                     &dockpars.gridsize_y);
-			setKernelArg(kernel7,5, sizeof(dockpars.gridsize_z),                     &dockpars.gridsize_z);
-			setKernelArg(kernel7,6, sizeof(g2),                    		   	 &g2);
-			setKernelArg(kernel7,7, sizeof(g3),                    		   	 &g3);
-			setKernelArg(kernel7,8, sizeof(dockpars.grid_spacing),                   &dockpars.grid_spacing);
-			setKernelArg(kernel7,9, sizeof(mem_dockpars_fgrids),                     &mem_dockpars_fgrids);
-			setKernelArg(kernel7,10,sizeof(dockpars.rotbondlist_length),             &dockpars.rotbondlist_length);
-			setKernelArg(kernel7,11,sizeof(dockpars.coeff_elec),                     &dockpars.coeff_elec);
-			setKernelArg(kernel7,12,sizeof(dockpars.coeff_desolv),                   &dockpars.coeff_desolv);
-			setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_next),         &mem_dockpars_conformations_next);
-			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_next),              &mem_dockpars_energies_next);
-			setKernelArg(kernel7,15,sizeof(mem_dockpars_evals_of_new_entities),      &mem_dockpars_evals_of_new_entities);
-			setKernelArg(kernel7,16,sizeof(mem_dockpars_prng_states),                &mem_dockpars_prng_states);
-			setKernelArg(kernel7,17,sizeof(dockpars.pop_size),                       &dockpars.pop_size);
-			setKernelArg(kernel7,18,sizeof(dockpars.num_of_genes),                   &dockpars.num_of_genes);
-			setKernelArg(kernel7,19,sizeof(dockpars.lsearch_rate),                   &dockpars.lsearch_rate);
-			setKernelArg(kernel7,20,sizeof(dockpars.num_of_lsentities),              &dockpars.num_of_lsentities);
-			setKernelArg(kernel7,21,sizeof(dockpars.max_num_of_iters),               &dockpars.max_num_of_iters);
-			setKernelArg(kernel7,22,sizeof(dockpars.qasp),                           &dockpars.qasp);
-			setKernelArg(kernel7,23,sizeof(dockpars.smooth),                         &dockpars.smooth);
-
-			setKernelArg(kernel7,24,sizeof(mem_interintra_const),                 	 &mem_interintra_const);
-			setKernelArg(kernel7,25,sizeof(mem_intracontrib_const),          	 &mem_intracontrib_const);
-			setKernelArg(kernel7,26,sizeof(mem_intra_const),                         &mem_intra_const);
-			setKernelArg(kernel7,27,sizeof(mem_rotlist_const),                       &mem_rotlist_const);
-			setKernelArg(kernel7,28,sizeof(mem_conform_const),                 	 &mem_conform_const);
-
-			setKernelArg(kernel7,29,sizeof(mem_rotbonds_const),         		 &mem_rotbonds_const);
-			setKernelArg(kernel7,30,sizeof(mem_rotbonds_atoms_const),   		 &mem_rotbonds_atoms_const);
-			setKernelArg(kernel7,31,sizeof(mem_num_rotating_atoms_per_rotbond_const),&mem_num_rotating_atoms_per_rotbond_const);
-			setKernelArg(kernel7,32,sizeof(mem_angle_const),			 &mem_angle_const);
-			setKernelArg(kernel7,33,sizeof(mem_dependence_on_theta_const),		 &mem_dependence_on_theta_const);
-			setKernelArg(kernel7,34,sizeof(mem_dependence_on_rotangle_const),	 &mem_dependence_on_rotangle_const);
-			kernel7_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
-			kernel7_lxsize = threadsPerBlock;
-			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_ADADELTA", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
-			#endif
-			// End of Kernel7
-		}
-	} // End if (dockpars.lsearch_rate != 0.0f)
-
 	// Kernel1
 	printf("\nExecution starts:\n\n");
 	printf("%-25s", "\tK_INIT");fflush(stdout);
-/*
-	runKernel1D(command_queue,kernel1,kernel1_gxsize,kernel1_lxsize,&time_start_kernel,&time_end_kernel);
-
-	// Copy outputs of kernel1 to Host and print output
-	memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
-	memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
-
-	// Print outputs
-        printf("\n\nEnergies:");fflush(stdout);
-        for (int ik1o = 0; ik1o<mypars->pop_size*mypars->num_of_runs; ik1o++)
-        {
-                printf("\n%d : %.15e", ik1o, cpu_energies_kokkos[ik1o]);fflush(stdout);
-        }
-        printf("\n\nEntities:");fflush(stdout);
-        for (int ik1o = 0; ik1o<mypars->pop_size*mypars->num_of_runs; ik1o++)
-        {
-                printf("\n%d : %d", ik1o, cpu_new_entities_kokkos[ik1o]);fflush(stdout);
-        }
-        printf("\n\n");
-*/
 
 	// KOKKOS kernel1: kokkos_calc_initpop
 	// Initialize DockingParams
@@ -890,21 +712,6 @@ filled with clock() */
         Kokkos::deep_copy(energies_view, odd_generation.energies);
         Kokkos::deep_copy(new_entities_view, docking_params.evals_of_new_entities);
 
-/*
-        // Print outputs
-        printf("\n\nEnergies:");fflush(stdout);
-        for (int ik1o = 0; ik1o<mypars->pop_size*mypars->num_of_runs; ik1o++)
-        {
-                printf("\n%d : %.15e", ik1o, cpu_energies_kokkos[ik1o]);fflush(stdout);
-        }
-        printf("\n\nEntities:");fflush(stdout);
-        for (int ik1o = 0; ik1o<mypars->pop_size*mypars->num_of_runs; ik1o++)
-        {
-                printf("\n%d : %d", ik1o, cpu_new_entities_kokkos[ik1o]);fflush(stdout);
-        }
-        printf("\n\n");
-*/
-
 	// Copy from temporary cpu array back to gpu for the remaining openCL kernels
 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
@@ -913,17 +720,7 @@ filled with clock() */
 
 	// Kernel2
 	printf("%-25s", "\tK_EVAL");fflush(stdout);
-/*	runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
 
-	memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
-
-        printf("\n\nEvals_old0:");fflush(stdout);
-        for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
-        {
-                printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
-        }
-        printf("\n\n");
-*/
 	// Copy input to kernel2 to cpu, then into device view
         memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
         Kokkos::deep_copy(docking_params.evals_of_new_entities, new_entities_view);
@@ -1131,25 +928,8 @@ filled with clock() */
                 memcopyBufferObjectFromDevice(command_queue,cpu_prng_kokkos,mem_dockpars_prng_states,size_prng_seeds);
                 Kokkos::deep_copy(docking_params.prng_states, prng_view);
 
-//		#ifdef DOCK_DEBUG
-			printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
-//		#endif
-#ifdef NO_KOKKOS
-		runKernel1D(command_queue,kernel4,kernel4_gxsize,kernel4_lxsize,&time_start_kernel,&time_end_kernel);
+		printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 
-	        // Copy output from original kernel4
-		memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
-                if (generation_cnt % 2 == 0){
-			memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_next,size_populations);
-			memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_next,size_energies);
-		}
-		if (generation_cnt % 2 == 1){
-                        memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
-			memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
-		}
-                memcopyBufferObjectFromDevice(command_queue,cpu_prng_kokkos,mem_dockpars_prng_states,size_prng_seeds);
-//		printf("\n\nEvals_old:");
-#else
                 // Perform gen_alg_eval_new, formerly known as kernel4
                 kokkos_gen_alg_eval_new(odd_generation, even_generation, mypars, docking_params, genetic_params, conform, rotlist, intracontrib, interintra, intra);
                 Kokkos::fence();
@@ -1164,18 +944,6 @@ filled with clock() */
                 // prng_states
                 Kokkos::deep_copy(prng_view,docking_params.prng_states);
 
-//                printf("\n\nEvals_new:");
-#endif
-/*                for (int ik2o = 0; ik2o<new_entities_view.extent(0); ik2o+=99){
-			printf("\n%d : %d", ik2o, new_entities_view(ik2o));
-			for (int jk2o = 0; jk2o<docking_params.num_of_genes; jk2o++){
-				printf("\n  %d : %15.15f", jk2o, conforms_view(ik2o*GENOTYPE_LENGTH_IN_GLOBMEM+jk2o));
-			}
-                	printf("\n%d : %15.15f", ik2o, energies_view(ik2o));
-                	printf("\n%d : %u", ik2o, prng_view(ik2o));
-		}
-                printf("\n\n");fflush(stdout);
-*/
                 // Copy kokkos output from CPU to OpenCL format
                 memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
 		if (generation_cnt % 2 == 0){
@@ -1201,23 +969,7 @@ filled with clock() */
 	                	//////////////////////////////////////////
                 		// Kernel7
 
-
 				printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
-				runKernel1D(command_queue,kernel7,kernel7_gxsize,kernel7_lxsize,&time_start_kernel,&time_end_kernel);
-#ifdef NO_KOKKOS
-				// Copy output from original kernel7
-				memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
-				if (generation_cnt % 2 == 0){
-					memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_next,size_populations);
-					memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_next,size_energies);
-				}
-				if (generation_cnt % 2 == 1){
-					memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
-					memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
-				}
-				memcopyBufferObjectFromDevice(command_queue,cpu_prng_kokkos,mem_dockpars_prng_states,size_prng_seeds);
-				printf("\n\nVals old:");
-#else
 
 				// Perform gradient_minAD, formerly known as kernel7
 				kokkos_gradient_minAD(even_generation, mypars, docking_params, conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
@@ -1246,7 +998,7 @@ filled with clock() */
                                         memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
 				}
 				memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,true,cpu_prng_kokkos,size_prng_seeds);
-#endif
+
 				for (int ik2o = 0; ik2o<new_entities_view.extent(0); ik2o+=39){
                                         printf("\n%d : %d", ik2o, new_entities_view(ik2o));
                                         for (int jk2o = 0; jk2o<docking_params.num_of_genes; jk2o++){
@@ -1268,18 +1020,6 @@ filled with clock() */
 		// -------- Replacing with memory maps! ------------
 		// Kernel2
 		printf("%-25s", "\tK_EVAL");fflush(stdout);
-/*		runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
-
-		// Copy output from original kernel2
-		memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
-
-	        printf("\n\nEvals_old:");fflush(stdout);
-	        for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
-	        {       
-	                printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
-	        }
-	        printf("\n\n");
-*/
 
 	        // Copy input to kernel2 to cpu, then into device view
 	        memcopyBufferObjectFromDevice(command_queue,cpu_new_entities_kokkos,mem_dockpars_evals_of_new_entities,size_evals_of_new_entities);
@@ -1291,15 +1031,6 @@ filled with clock() */
 
 		// Copy output from kokkos kernel2 to CPU
 	        Kokkos::deep_copy(evals_of_runs_view, evals_of_runs);
-
-/*		
-	        printf("\n\nEvals_new:");fflush(stdout);
-	        for (int ik2o = 0; ik2o<mypars->num_of_runs; ik2o++)
-	        {
-	                printf("\n%d : %d", ik2o, cpu_evals_of_runs[ik2o]);fflush(stdout);
-	        }
-	        printf("\n\n");
-*/
 
 		// Copy kokkos output from CPU to OpenCL format
 	        memcopyBufferObjectToDevice(command_queue,mem_gpu_evals_of_runs,true,cpu_evals_of_runs,size_evals_of_runs);
@@ -1313,66 +1044,10 @@ filled with clock() */
 #else
 		memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
 #endif
+
 		// -------- Replacing with memory maps! ------------
 		generation_cnt++;
-		// ----------------------------------------------------------------------
-		// ORIGINAL APPROACH: switching conformation and energy pointers
-		// CURRENT APPROACH:  copy data from one buffer to another, pointers are kept the same
-		// IMPROVED CURRENT APPROACH
-		// Kernel arguments are changed on every iteration
-		// No copy from dev glob memory to dev glob memory occurs
-		// Use generation_cnt as it evolves with the main loop
-		// No need to use tempfloat
-		// No performance improvement wrt to "CURRENT APPROACH"
 
-		// Kernel args exchange regions they point to
-		// But never two args point to the same region of dev memory
-		// NO ALIASING -> use restrict in Kernel
-		if (generation_cnt % 2 == 0) { // In this configuration the program starts with generation_cnt = 0
-			// Kernel 4
-			setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
-			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
-			setKernelArg(kernel4,15,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
-			setKernelArg(kernel4,16,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
-			if (dockpars.lsearch_rate != 0.0f) {
-				if (strcmp(mypars->ls_method, "sw") == 0) {
-					// Kernel 3 NOT SUPPORTED - ALS
-				} else if (strcmp(mypars->ls_method, "sd") == 0) {
-					// Kernel 5 NOT SUPPORTED - ALS
-				} else if (strcmp(mypars->ls_method, "fire") == 0) {
-					// Kernel 6 NOT SUPPORTED - ALS
-				} else if (strcmp(mypars->ls_method, "ad") == 0) {
-					// Kernel 7
-					setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
-					setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
-				}
-			} // End if (dockpars.lsearch_rate != 0.0f)
-		}
-		else {  // Program switches pointers the first time when generation_cnt becomes 1 (as it starts from 0)
-			// Kernel 4
-			setKernelArg(kernel4,13,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
-			setKernelArg(kernel4,14,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
-			setKernelArg(kernel4,15,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
-			setKernelArg(kernel4,16,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
-			if (dockpars.lsearch_rate != 0.0f) {
-				if (strcmp(mypars->ls_method, "sw") == 0) {
-						// Kernel 3 NOT SUPPORTED - ALS
-				} else if (strcmp(mypars->ls_method, "sd") == 0) {
-						// Kernel 5 NOT SUPPORTED - ALS
-				} else if (strcmp(mypars->ls_method, "fire") == 0) {
-						// Kernel 6 NOT SUPPORTED - ALS
-				} else if (strcmp(mypars->ls_method, "ad") == 0) {
-						// Kernel 7
-						setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
-			 			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
-				}
-			} // End if (dockpars.lsearch_rate != 0.0f)
-		}
-		// ----------------------------------------------------------------------
-		#ifdef DOCK_DEBUG
-			printf("\tProgress %.3f %%\n", progress);
-			fflush(stdout);
-		#endif
 	} // End of while-loop
 	clock_stop_docking = clock();
 	if (mypars->autostop==0)
