@@ -185,8 +185,6 @@ filled with clock() */
 	Liganddata myligand_reference;
 
 	// TEMPORARY - ALS
-	float* cpu_energies_kokkos;
-
 	float* cpu_init_populations;
 	float* cpu_final_populations;
 	float* cpu_energies;
@@ -253,9 +251,6 @@ filled with clock() */
 		cpu_prng_seeds[i] = genseed(0u);
 #endif
 
-	// TEMPORARY - ALS
-	cpu_energies_kokkos = (float*) malloc(size_energies);
-
 	//allocating memory in CPU for evaluation counters
 	size_evals_of_runs = mypars->num_of_runs*sizeof(int);
 	cpu_evals_of_runs = (int*) malloc(size_evals_of_runs);
@@ -294,9 +289,8 @@ filled with clock() */
 	Kokkos::View<int*,DeviceType> evals_of_runs("evals_of_runs",mypars->num_of_runs);
 
 	// Wrap the C style arrays with an unmanaged kokkos view for easy deep copies (done after view initializations for easy sizing)
-        FloatView1D energies_view(cpu_energies_kokkos, odd_generation.energies.extent(0));
         IntView1D evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0)); // Note this array was prexisting
-	FloatView1D original_energies_view(cpu_energies, odd_generation.energies.extent(0));
+	FloatView1D energies_view(cpu_energies, odd_generation.energies.extent(0));
 	FloatView1D final_populations_view(cpu_final_populations, odd_generation.conformations.extent(0));
 
 	// Declare these constant arrays on host
@@ -378,12 +372,10 @@ filled with clock() */
 	while ((progress = check_progress(cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
 	// -------- Replacing with memory maps! ------------
 	{
-//		if (generation_cnt % 2 == 0) Kokkos::deep_copy(energies_view,odd_generation.energies);
 		if (mypars->autostop)
 		{
 			if (generation_cnt % 10 == 0) {
-				//memcpy (cpu_energies, cpu_energies_kokkos, size_energies);
-				Kokkos::deep_copy(original_energies_view,odd_generation.energies);
+				Kokkos::deep_copy(energies_view,odd_generation.energies);
 				for(unsigned int count=0; (count<1+8*(generation_cnt==0)) && (fabs(curr_avg-prev_avg)>0.00001); count++)
 				{
 					threshold_used = threshold;
@@ -539,7 +531,7 @@ filled with clock() */
 	        Kokkos::fence();
 		printf("%15s" ," ... Finished\n");fflush(stdout);
 
-		// Copy output from kokkos kernel2 to CPU
+		// Copy back to CPU
 	        Kokkos::deep_copy(evals_of_runs_view, evals_of_runs);
 
 		generation_cnt++;
@@ -560,11 +552,11 @@ filled with clock() */
 	// Pull results back to CPU
 	if (generation_cnt % 2 == 0) {
 		Kokkos::deep_copy(final_populations_view,odd_generation.conformations);
-		Kokkos::deep_copy(original_energies_view,odd_generation.energies);
+		Kokkos::deep_copy(energies_view,odd_generation.energies);
 	}
 	else {
 		Kokkos::deep_copy(final_populations_view,even_generation.conformations);
-		Kokkos::deep_copy(original_energies_view,even_generation.energies);
+		Kokkos::deep_copy(energies_view,even_generation.energies);
 	}
 
 	// Process results
@@ -601,8 +593,6 @@ filled with clock() */
 	free(cpu_evals_of_runs);
 	free(cpu_ref_ori_angles);
 
-	// TEMPORARY - ALS
-        free(cpu_energies_kokkos);
 	return 0;
 }
 
