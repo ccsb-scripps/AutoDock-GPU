@@ -12,28 +12,9 @@
 # Valid values: CPU, GPU
 
 CPP = g++ -std=c++11 -stdlib=libc++
-#CPP = clang++ -std=c++11 -stdlib=libc++
-#g++
-LIB_OPENCL = -lOpenCL
+
 UNAME := $(shell uname)
 
-ifeq ($(UNAME), Darwin)
-# In case ScoreP (for profiling/tracing) is used,
-# need to link to a *.dylib for instrumentation
-ifneq (,$(findstring scorep,$(CPP)))
-# We're assuming that if the user sets the library
-# path there is a libOpenCL.so/dylib in it,
-# otherwise, we'll create a symbolic link from the
-# framework to link against
-ifeq ($(GPU_LIBRARY_PATH),)
-$(shell ln -sf /System/Library/Frameworks/OpenCL.framework/OpenCL ./libOpenCL.dylib)
-LIB_OPENCL = -L./ -lOpenCL
-endif
-else
-# in the normal case we can just include the framework
-LIB_OPENCL = -framework OpenCL
-endif
-endif
 
 KOKKOS_INC_PATH=/Users/ascheinberg/Research/kokkos/install/include/
 KOKKOS_LIB_PATH=/Users/ascheinberg/Research/kokkos/install/lib/
@@ -214,7 +195,6 @@ odock: check-env-all $(SRC)
 	$(CPP) \
 	$(SRC) \
 	$(CFLAGS) \
-	$(LIB_OPENCL) \
 	-o$(BIN_DIR)/$(TARGET) \
 	$(NWI) $(OPT) $(DD) $(REP)
 
