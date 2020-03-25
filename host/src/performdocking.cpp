@@ -98,15 +98,12 @@ filled with clock() */
 	Liganddata myligand_reference;
 
 	// TEMPORARY - ALS
-	float* cpu_init_populations;
-	float* cpu_final_populations;
-	float* cpu_energies;
 	Ligandresult* cpu_result_ligands;
 	int* cpu_evals_of_runs;
 	float* cpu_ref_ori_angles;
 
-	size_t size_populations;
-	size_t size_energies;
+	size_t n_populations = mypars->num_of_runs * mypars->pop_size * GENOTYPE_LENGTH_IN_GLOBMEM;
+	size_t n_energies = mypars->pop_size * mypars->num_of_runs;
 	size_t n_prng_seeds;
 	size_t size_evals_of_runs;
 
@@ -122,16 +119,12 @@ filled with clock() */
 	clock_t	clock_stop_docking;
 	clock_t clock_stop_program_before_clustering;
 
-	//allocating CPU memory for initial populations
-	size_populations = mypars->num_of_runs * mypars->pop_size * GENOTYPE_LENGTH_IN_GLOBMEM*sizeof(float);
-	cpu_init_populations = (float*) malloc(size_populations);
-	memset(cpu_init_populations, 0, size_populations);
+	std::vector<float> cpu_populations(n_populations);
+	std::fill(cpu_populations.begin(), cpu_populations.end(), 0); // Initialize to 0 - Isnt this overwritten? - ALS
 
 	//allocating CPU memory for results
-	size_energies = mypars->pop_size * mypars->num_of_runs * sizeof(float);
-	cpu_energies = (float*) malloc(size_energies);
+	std::vector<float> cpu_energies(n_energies);
 	cpu_result_ligands = (Ligandresult*) malloc(sizeof(Ligandresult)*(mypars->num_of_runs));
-	cpu_final_populations = cpu_init_populations;
 
 	//allocating memory in CPU for reference orientation angles
 	cpu_ref_ori_angles = (float*) malloc(mypars->num_of_runs*3*sizeof(float));
@@ -139,7 +132,7 @@ filled with clock() */
 	//generating initial populations and random orientation angles of reference ligand
 	//(ligand will be moved to origo and scaled as well)
 	myligand_reference = *myligand_init;
-	gen_initpop_and_reflig(mypars, cpu_init_populations, cpu_ref_ori_angles, &myligand_reference, mygrid);
+	gen_initpop_and_reflig(mypars, cpu_populations.data(), cpu_ref_ori_angles, &myligand_reference, mygrid);
 
 	//allocating memory in CPU for pseudorandom number generator seeds and
 	//generating them (seed for each thread during GA)
@@ -190,7 +183,7 @@ filled with clock() */
 
 	// Initialize the structs containing the two alternating generations
 	// Odd generation gets the initial population copied in
-	Generation<DeviceType> odd_generation(mypars->pop_size * mypars->num_of_runs, cpu_init_populations);
+	Generation<DeviceType> odd_generation(mypars->pop_size * mypars->num_of_runs, cpu_populations.data());
 	Generation<DeviceType> even_generation(mypars->pop_size * mypars->num_of_runs);
 
 	// Evals of runs on device (for kernel2)
@@ -198,8 +191,8 @@ filled with clock() */
 
 	// Wrap the C style arrays with an unmanaged kokkos view for easy deep copies (done after view initializations for easy sizing)
         IntView1D evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0)); // Note this array was prexisting
-	FloatView1D energies_view(cpu_energies, odd_generation.energies.extent(0));
-	FloatView1D final_populations_view(cpu_final_populations, odd_generation.conformations.extent(0));
+	FloatView1D energies_view(cpu_energies.data(), odd_generation.energies.extent(0));
+	FloatView1D final_populations_view(cpu_populations.data(), odd_generation.conformations.extent(0));
 
 	// Declare these constant arrays on host
 	InterIntra<HostType> interintra_h;
@@ -291,7 +284,7 @@ filled with clock() */
 					memset(&average_sd2_N[0],0,avg_arr_size*sizeof(float));
 					for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
 					{
-						energies = cpu_energies+run_cnt*mypars->pop_size;
+						energies = cpu_energies.data()+run_cnt*mypars->pop_size;
 						for (unsigned int i=0; i<mypars->pop_size; i++)
 						{
 							float energy = energies[i];
@@ -467,9 +460,9 @@ filled with clock() */
 	// Process results
 	for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
 	{
-		arrange_result(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_energies+run_cnt*mypars->pop_size, mypars->pop_size);
-		make_resfiles(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, 
-			      cpu_energies+run_cnt*mypars->pop_size, 
+		arrange_result(cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_energies.data()+run_cnt*mypars->pop_size, mypars->pop_size);
+		make_resfiles(cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, 
+			      cpu_energies.data()+run_cnt*mypars->pop_size, 
 			      &myligand_reference,
 			      myligand_init,
 			      myxrayligand, 
@@ -491,8 +484,6 @@ filled with clock() */
 					 ELAPSEDSECS(clock_stop_program_before_clustering, clock_start_program),generation_cnt,total_evals/mypars->num_of_runs);
 	clock_stop_docking = clock();
 
-	free(cpu_init_populations);
-	free(cpu_energies);
 	free(cpu_result_ligands);
 	free(cpu_evals_of_runs);
 	free(cpu_ref_ori_angles);
