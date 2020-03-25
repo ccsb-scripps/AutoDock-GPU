@@ -266,6 +266,8 @@ filled with clock() */
 	int* cpu_new_entities_kokkos;
 	unsigned int* cpu_prng_kokkos;
 	float* cpu_conforms_kokkos;
+	float* cpu_Nenergies_kokkos;
+	float* cpu_Nconforms_kokkos;
 
 	float* cpu_init_populations;
 	float* cpu_final_populations;
@@ -345,6 +347,8 @@ filled with clock() */
 	cpu_new_entities_kokkos = (int*) malloc(size_evals_of_new_entities);
 	cpu_prng_kokkos = (unsigned int*) malloc(size_prng_seeds);
 	cpu_conforms_kokkos = (float *) malloc(size_populations);
+	cpu_Nenergies_kokkos = (float*) malloc(size_energies);
+	cpu_Nconforms_kokkos = (float *) malloc(size_populations);
 
 	//allocating memory in CPU for evaluation counters
 	size_evals_of_runs = mypars->num_of_runs*sizeof(int);
@@ -601,6 +605,8 @@ filled with clock() */
         FloatView1D energies_view(cpu_energies_kokkos, odd_generation.energies.extent(0));
         IntView1D new_entities_view(cpu_new_entities_kokkos, docking_params.evals_of_new_entities.extent(0));
         FloatView1D conforms_view(cpu_conforms_kokkos, odd_generation.conformations.extent(0));
+	FloatView1D Nenergies_view(cpu_Nenergies_kokkos, odd_generation.energies.extent(0));
+        FloatView1D Nconforms_view(cpu_Nconforms_kokkos, odd_generation.conformations.extent(0));
         UnsignedIntView1D prng_view(cpu_prng_kokkos, docking_params.prng_states.extent(0));
         IntView1D evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0)); // Note this array was prexisting
 
@@ -809,16 +815,17 @@ filled with clock() */
 		}
 
 		// Perform gen_alg_eval_new, the genetic algorithm formerly known as kernel4
+		memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
+                        memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
+			memcopyBufferObjectFromDevice(command_queue,cpu_Nconforms_kokkos,mem_dockpars_conformations_next,size_populations);
+                        memcopyBufferObjectFromDevice(command_queue,cpu_Nenergies_kokkos,mem_dockpars_energies_next,size_energies);
 		if (generation_cnt % 2 == 0){
-                	memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
-			memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
+			Kokkos::deep_copy(odd_generation.conformations, conforms_view);
+	                Kokkos::deep_copy(odd_generation.energies, energies_view);
+		} else {
+			Kokkos::deep_copy(odd_generation.conformations, Nconforms_view);
+	                Kokkos::deep_copy(odd_generation.energies, Nenergies_view);
 		}
-		if (generation_cnt % 2 == 1){
-			memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_next,size_populations);
-			memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_next,size_energies);
-		}
-		Kokkos::deep_copy(odd_generation.conformations, conforms_view);
-                Kokkos::deep_copy(odd_generation.energies, energies_view);
 
 		printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 
@@ -836,21 +843,23 @@ filled with clock() */
 				kokkos_gradient_minAD(even_generation, mypars, docking_params, conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
 				Kokkos::fence();
 
-				// Copy output from kokkos kernel7 to CPU
-				// conformations_next
-				Kokkos::deep_copy(conforms_view,even_generation.conformations);
-				// energies_next
-				Kokkos::deep_copy(energies_view,even_generation.energies);
-
                 		// Copy kokkos output from CPU to OpenCL format
 				if (generation_cnt % 2 == 0){
-					memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_conforms_kokkos,size_populations);
-					memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_energies_kokkos,size_energies);
+					Kokkos::deep_copy(Nconforms_view,even_generation.conformations);
+                                	Kokkos::deep_copy(Nenergies_view,even_generation.energies);
+//					memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_Nconforms_kokkos,size_populations);
+//					memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_Nenergies_kokkos,size_energies);
 				}
 				if (generation_cnt % 2 == 1){
+					Kokkos::deep_copy(conforms_view,even_generation.conformations);
+                                	Kokkos::deep_copy(energies_view,even_generation.energies);
+//					memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_current,true,cpu_conforms_kokkos,size_populations);
+//                                        memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
+				}
+				memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_Nconforms_kokkos,size_populations);
+                                        memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_Nenergies_kokkos,size_energies);
 					memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_current,true,cpu_conforms_kokkos,size_populations);
                                         memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
-				}
 
 				printf("%15s" ," ... Finished\n");fflush(stdout);
 			} else {
@@ -971,6 +980,8 @@ filled with clock() */
 	// TEMPORARY - ALS
         free(cpu_energies_kokkos);
         free(cpu_new_entities_kokkos);
+	free(cpu_Nenergies_kokkos);
+	free(cpu_Nconforms_kokkos);
         free(cpu_prng_kokkos);
         free(cpu_conforms_kokkos);
 	return 0;
