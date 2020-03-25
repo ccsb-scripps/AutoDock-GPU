@@ -572,8 +572,8 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 
 	fprintf(fp, "           COUNTER STATES           \n");
 	fprintf(fp, "___________________________________\n\n");
-	fprintf(fp, "Number of energy evaluations performed:    %d\n", evals_performed);
-	fprintf(fp, "Number of generations used:                %d\n", generations_used);
+	fprintf(fp, "Number of energy evaluations performed:    %lu\n", evals_performed);
+	fprintf(fp, "Number of generations used:                %lu\n", generations_used);
 	fprintf(fp, "\n\n");
 
 	//writing input pdbqt file

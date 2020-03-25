@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
 		if (strcmp("-cgmaps", argv [i]) == 0)
 		{
 			int tempint;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 			if (tempint == 0)
 				mypars.cgmaps = 0;
 			else

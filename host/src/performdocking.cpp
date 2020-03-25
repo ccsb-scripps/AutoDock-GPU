@@ -97,42 +97,30 @@ filled with clock() */
 {
 	Liganddata myligand_reference;
 
-	// TEMPORARY - ALS
-	Ligandresult* cpu_result_ligands;
-	int* cpu_evals_of_runs;
-	float* cpu_ref_ori_angles;
-
 	size_t n_populations = mypars->num_of_runs * mypars->pop_size * GENOTYPE_LENGTH_IN_GLOBMEM;
 	size_t n_energies = mypars->pop_size * mypars->num_of_runs;
 	size_t n_prng_seeds;
-	size_t size_evals_of_runs;
 
 	unsigned long run_cnt;	/* int run_cnt; */
 	int generation_cnt;
-	int i;
 	double progress;
 
 	int curr_progress_cnt;
 	int new_progress_cnt;
 
-	clock_t clock_start_docking;
-	clock_t	clock_stop_docking;
-	clock_t clock_stop_program_before_clustering;
+	clock_t clock_start_docking, clock_stop_docking, clock_stop_program_before_clustering;
 
-	std::vector<float> cpu_populations(n_populations);
+	std::vector<float> cpu_populations(n_populations); // Populations
 	std::fill(cpu_populations.begin(), cpu_populations.end(), 0); // Initialize to 0 - Isnt this overwritten? - ALS
 
-	//allocating CPU memory for results
-	std::vector<float> cpu_energies(n_energies);
-	cpu_result_ligands = (Ligandresult*) malloc(sizeof(Ligandresult)*(mypars->num_of_runs));
-
-	//allocating memory in CPU for reference orientation angles
-	cpu_ref_ori_angles = (float*) malloc(mypars->num_of_runs*3*sizeof(float));
+	std::vector<float> cpu_energies(n_energies); // Energies
+	std::vector<Ligandresult> cpu_result_ligands(mypars->num_of_runs); // Ligand results
+	std::vector<float> cpu_ref_ori_angles(mypars->num_of_runs*3); // Reference orientation angles
 
 	//generating initial populations and random orientation angles of reference ligand
 	//(ligand will be moved to origo and scaled as well)
 	myligand_reference = *myligand_init;
-	gen_initpop_and_reflig(mypars, cpu_populations.data(), cpu_ref_ori_angles, &myligand_reference, mygrid);
+	gen_initpop_and_reflig(mypars, cpu_populations.data(), cpu_ref_ori_angles.data(), &myligand_reference, mygrid);
 
 	//allocating memory in CPU for pseudorandom number generator seeds and
 	//generating them (seed for each thread during GA)
@@ -142,7 +130,7 @@ filled with clock() */
 	//genseed(time(NULL));	//initializing seed generator
 	genseed(0u);    // TEMPORARY: removing randomness for consistent debugging - ALS
 
-	for (i=0; i<mypars->pop_size * mypars->num_of_runs*NUM_OF_THREADS_PER_BLOCK; i++)
+	for (int i=0; i<mypars->pop_size * mypars->num_of_runs*NUM_OF_THREADS_PER_BLOCK; i++)
 #if defined (REPRO)
 		cpu_prng_seeds[i] = 1u;
 #else
@@ -150,9 +138,8 @@ filled with clock() */
 #endif
 
 	//allocating memory in CPU for evaluation counters
-	size_evals_of_runs = mypars->num_of_runs*sizeof(int);
-	cpu_evals_of_runs = (int*) malloc(size_evals_of_runs);
-	memset(cpu_evals_of_runs, 0, size_evals_of_runs);
+	std::vector<int> cpu_evals_of_runs(mypars->num_of_runs);
+	std::fill(cpu_evals_of_runs.begin(), cpu_evals_of_runs.end(), 0);
 
 	if (strcmp(mypars->ls_method, "ad") == 0) {
 		printf("Local-search chosen method is ADADELTA (ad) because that is the only one available so far in the Kokkos version.");
@@ -165,7 +152,7 @@ filled with clock() */
 	// Progress bar
 	if (mypars->autostop)
 	{
-		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation\nof the best molecules, %u generations, or %u evaluations, whichever comes first:\n\n",mypars->stopstd,mypars->num_of_generations,mypars->num_of_energy_evals);
+		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation\nof the best molecules, %lu generations, or %lu evaluations, whichever comes first:\n\n",mypars->stopstd,mypars->num_of_generations,mypars->num_of_energy_evals);
 		printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
 		printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
 	}
@@ -190,7 +177,7 @@ filled with clock() */
 	Kokkos::View<int*,DeviceType> evals_of_runs("evals_of_runs",mypars->num_of_runs);
 
 	// Wrap the C style arrays with an unmanaged kokkos view for easy deep copies (done after view initializations for easy sizing)
-        IntView1D evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0)); // Note this array was prexisting
+        IntView1D evals_of_runs_view(cpu_evals_of_runs.data(), evals_of_runs.extent(0)); // Note this array was prexisting
 	FloatView1D energies_view(cpu_energies.data(), odd_generation.energies.extent(0));
 	FloatView1D final_populations_view(cpu_populations.data(), odd_generation.conformations.extent(0));
 
@@ -205,7 +192,7 @@ filled with clock() */
 
 	// Initialize them
 	// WARNING - Changes myligand_reference !!! - ALS
-	if (kokkos_prepare_const_fields(myligand_reference, mypars, cpu_ref_ori_angles,
+	if (kokkos_prepare_const_fields(myligand_reference, mypars, cpu_ref_ori_angles.data(),
                                          interintra_h, intracontrib_h, intra_h, rotlist_h, conform_h, grads_h) == 1) {
                 return 1;
         }
@@ -269,9 +256,7 @@ filled with clock() */
 	unsigned int avg_arr_size = (Ntop+1)*3;
 	float average_sd2_N[avg_arr_size];
 	unsigned long total_evals;
-	// -------- Replacing with memory maps! ------------
-	while ((progress = check_progress(cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
-	// -------- Replacing with memory maps! ------------
+	while ((progress = check_progress(cpu_evals_of_runs.data(), generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
 	{
 		if (mypars->autostop)
 		{
@@ -354,7 +339,7 @@ filled with clock() */
 						delta_energy = 2.0 * thres_stddev / (Ntop-1);
 					}
 				}
-				printf("%11u | %12u |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/mypars->num_of_runs,threshold_used,curr_avg,curr_std,bestN,overall_best_energy);
+				printf("%11u | %12lu |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/mypars->num_of_runs,threshold_used,curr_avg,curr_std,bestN,overall_best_energy);
 				fflush(stdout);
 				rolling[3*roll_count] = curr_avg * bestN;
 				rolling[3*roll_count+1] = (curr_std*curr_std + curr_avg*curr_avg)*bestN;
@@ -471,7 +456,7 @@ filled with clock() */
 			      generation_cnt, 
 			      mygrid, 
 			      cpu_floatgrids, 
-			      cpu_ref_ori_angles+3*run_cnt, 
+			      cpu_ref_ori_angles.data()+3*run_cnt, 
 			      argc, 
 			      argv, 
                               /*1*/0,
@@ -479,14 +464,10 @@ filled with clock() */
 			      &(cpu_result_ligands [run_cnt]));
 	}
 	clock_stop_program_before_clustering = clock();
-	clusanal_gendlg(cpu_result_ligands, mypars->num_of_runs, myligand_init, mypars,
+	clusanal_gendlg(cpu_result_ligands.data(), mypars->num_of_runs, myligand_init, mypars,
 					 mygrid, argc, argv, ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs,
 					 ELAPSEDSECS(clock_stop_program_before_clustering, clock_start_program),generation_cnt,total_evals/mypars->num_of_runs);
 	clock_stop_docking = clock();
-
-	free(cpu_result_ligands);
-	free(cpu_evals_of_runs);
-	free(cpu_ref_ori_angles);
 
 	return 0;
 }
@@ -500,13 +481,12 @@ double check_progress(int* evals_of_runs, int generation_cnt, int max_num_of_eva
 {
 	//Stops if the sum of evals of every run reached the sum of the total number of evals
 
-	int i;
 	double evals_progress;
 	double gens_progress;
 
 	//calculating progress according to number of runs
 	total_evals = 0;
-	for (i=0; i<num_of_runs; i++)
+	for (int i=0; i<num_of_runs; i++)
 		total_evals += evals_of_runs[i];
 
 	evals_progress = (double)total_evals/((double) num_of_runs)/max_num_of_evals*100.0;
