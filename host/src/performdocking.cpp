@@ -609,6 +609,8 @@ filled with clock() */
         FloatView1D Nconforms_view(cpu_Nconforms_kokkos, odd_generation.conformations.extent(0));
         UnsignedIntView1D prng_view(cpu_prng_kokkos, docking_params.prng_states.extent(0));
         IntView1D evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0)); // Note this array was prexisting
+	FloatView1D original_energies_view(cpu_energies, odd_generation.energies.extent(0));
+	FloatView1D final_populations_view(cpu_final_populations, odd_generation.conformations.extent(0));
 
 	// Declare these constant arrays on host
 	InterIntra<HostType> interintra_h;
@@ -698,6 +700,7 @@ filled with clock() */
 		{
 			if (generation_cnt % 10 == 0) {
 				memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_current,size_energies);
+//				Kokkos::deep_copy(original_energies_view, odd_generation.energies);
 				for(unsigned int count=0; (count<1+8*(generation_cnt==0)) && (fabs(curr_avg-prev_avg)>0.00001); count++)
 				{
 					threshold_used = threshold;
@@ -829,7 +832,7 @@ filled with clock() */
 
 		printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 
-		if (generation_cnt % 2 == 0){
+		if (generation_cnt % 2 == 0) { // Since we need 2 generations at any time, just alternate btw 2 mem allocations
 			kokkos_gen_alg_eval_new(odd_generation, even_generation, mypars, docking_params, genetic_params,
 					        conform, rotlist, intracontrib, interintra, intra);
 		} else {
@@ -841,13 +844,15 @@ filled with clock() */
 
 		if (docking_params.lsearch_rate != 0.0f) {
 			if (strcmp(mypars->ls_method, "ad") == 0) {
+				// Perform gradient_minAD, formerly known as kernel7
 				printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
 
-				// Perform gradient_minAD, formerly known as kernel7
 				if (generation_cnt % 2 == 0){
-					kokkos_gradient_minAD(even_generation, mypars, docking_params, conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
+					kokkos_gradient_minAD(even_generation, mypars, docking_params,
+							      conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
 				} else {
-					kokkos_gradient_minAD(odd_generation, mypars, docking_params, conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
+					kokkos_gradient_minAD(odd_generation, mypars, docking_params,
+							      conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
 				}
 				Kokkos::fence();
 
@@ -898,12 +903,12 @@ filled with clock() */
 
 	// Pull results back to CPU
 	if (generation_cnt % 2 == 0) {
-		memcopyBufferObjectFromDevice(command_queue,cpu_final_populations,mem_dockpars_conformations_current,size_populations);
-		memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_current,size_energies);
+		Kokkos::deep_copy(final_populations_view,odd_generation.conformations);
+		Kokkos::deep_copy(original_energies_view,odd_generation.energies);
 	}
 	else {
-		memcopyBufferObjectFromDevice(command_queue,cpu_final_populations,mem_dockpars_conformations_next,size_populations);
-		memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_next,size_energies);
+		Kokkos::deep_copy(final_populations_view,even_generation.conformations);
+		Kokkos::deep_copy(original_energies_view,even_generation.energies);
 	}
 
 	// Process results
