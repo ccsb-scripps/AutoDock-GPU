@@ -542,11 +542,8 @@ filled with clock() */
 	mallocBufferObject(context,CL_MEM_READ_WRITE,size_evals_of_new_entities,		&mem_dockpars_evals_of_new_entities);
 
 	// -------- Replacing with memory maps! ------------
-#if defined (MAPPED_COPY)
-	mallocBufferObject(context,CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR ,size_evals_of_runs,	  			&mem_gpu_evals_of_runs);
-#else
 	mallocBufferObject(context,CL_MEM_READ_WRITE,size_evals_of_runs,	  			&mem_gpu_evals_of_runs);
-#endif
+
 	// -------- Replacing with memory maps! ------------
 
 	mallocBufferObject(context,CL_MEM_READ_WRITE,size_prng_seeds,  	      				&mem_dockpars_prng_states);
@@ -741,12 +738,8 @@ filled with clock() */
 
 
 	// -------- Replacing with memory maps! ------------
-#if defined (MAPPED_COPY)
-	int* map_cpu_evals_of_runs;
-	map_cpu_evals_of_runs = (int*) memMap(command_queue, mem_gpu_evals_of_runs, CL_MAP_READ, size_evals_of_runs);
-#else
 	memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
-#endif
+
 	// -------- Replacing with memory maps! ------------
 	#if 0
 	generation_cnt = 1;
@@ -773,11 +766,7 @@ filled with clock() */
 	float average_sd2_N[avg_arr_size];
 	unsigned long total_evals;
 	// -------- Replacing with memory maps! ------------
-#if defined (MAPPED_COPY)
-	while ((progress = check_progress(map_cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
-#else
 	while ((progress = check_progress(cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
-#endif
 	// -------- Replacing with memory maps! ------------
 	{
 		if (mypars->autostop)
@@ -955,12 +944,6 @@ filled with clock() */
 			}
 		}
 
-		// -------- Replacing with memory maps! ------------
-		#if defined (MAPPED_COPY)
-		unmemMap(command_queue,mem_gpu_evals_of_runs,map_cpu_evals_of_runs);
-		#endif
-		// -------- Replacing with memory maps! ------------
-		// Kernel2
 		printf("%-25s", "\tK_EVAL");fflush(stdout);
 
 	        // Perform sum_evals, formerly known as kernel2
@@ -977,11 +960,7 @@ filled with clock() */
 		// End of Kernel2
 		// ===============================================================================
 		// -------- Replacing with memory maps! ------------
-#if defined (MAPPED_COPY)
-		map_cpu_evals_of_runs = (int*) memMap(command_queue, mem_gpu_evals_of_runs, CL_MAP_READ, size_evals_of_runs);
-#else
 		memcopyBufferObjectFromDevice(command_queue,cpu_evals_of_runs,mem_gpu_evals_of_runs,size_evals_of_runs);
-#endif
 
 		// -------- Replacing with memory maps! ------------
 		generation_cnt++;
