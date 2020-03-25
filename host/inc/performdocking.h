@@ -40,22 +40,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "calcenergy.h"
 #include "processresult.h"
 
-#ifdef __APPLE__
-	#include "OpenCL/opencl.h"
-#else
-	#include "CL/opencl.h"
-#endif
-#include "commonMacros.h"
-#include "listAttributes.h"
-#include "Platforms.h"
-#include "Devices.h"
-#include "Contexts.h"
-#include "CommandQueues.h"
-#include "Programs.h"
-#include "Kernels.h"
-#include "ImportBinary.h"
-#include "ImportSource.h"
-#include "BufferObjects.h"
 
 #define ELAPSEDSECS(stop,start) ((float) stop-start)/((float) CLOCKS_PER_SEC)
 

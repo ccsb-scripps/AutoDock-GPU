@@ -39,52 +39,22 @@ KOKKOS_INC_PATH=/Users/ascheinberg/Research/kokkos/install/include/
 KOKKOS_LIB_PATH=/Users/ascheinberg/Research/kokkos/install/lib/
 LIB_KOKKOS=-lkokkoscore
 
-ifeq ($(DEVICE), CPU)
-	DEV =-DCPU_DEVICE
-	OCLA_INC_PATH=$(CPU_INCLUDE_PATH)
-	OCLA_LIB_PATH=$(CPU_LIBRARY_PATH)
-else ifeq ($(DEVICE), GPU)
-	DEV =-DGPU_DEVICE
-	OCLA_INC_PATH=$(GPU_INCLUDE_PATH)
-	OCLA_LIB_PATH=$(GPU_LIBRARY_PATH)
-endif
-
 # ------------------------------------------------------
 # Project directories
 # opencl_lvs: wrapper for OpenCL APIs
 COMMON_DIR=./common
-OCL_INC_DIR=./wrapcl/inc
-OCL_SRC_DIR=./wrapcl/src
 HOST_INC_DIR=./host/inc
 HOST_SRC_DIR=./host/src
 KCODE_INC_PATH=./kokkos
-KRNL_DIR=./device
-KCMN_DIR=$(COMMON_DIR)
 BIN_DIR=./bin
 
 # Host sources
-OCL_SRC=$(wildcard $(OCL_SRC_DIR)/*.cpp)
 HOST_SRC=$(wildcard $(HOST_SRC_DIR)/*.cpp)
 SRC=$(OCL_SRC) $(HOST_SRC)
 
-IFLAGS=-I$(COMMON_DIR) -I$(OCL_INC_DIR) -I$(HOST_INC_DIR) -I$(OCLA_INC_PATH) -I$(KOKKOS_INC_PATH) -I$(KCODE_INC_PATH)
-LFLAGS=-L$(OCLA_LIB_PATH) $(KOKKOS_LIB_PATH) $(LIB_KOKKOS)
+IFLAGS=-I$(COMMON_DIR) -I$(HOST_INC_DIR) -I$(KOKKOS_INC_PATH) -I$(KCODE_INC_PATH)
+LFLAGS=-L$(KOKKOS_LIB_PATH) $(LIB_KOKKOS)
 CFLAGS=$(IFLAGS) $(LFLAGS)
-
-# Device sources
-KRNL_MAIN=calcenergy.cl
-KRNL_SRC=$(KRNL_DIR)/$(KRNL_MAIN)
-# Kernel names
-K1_NAME="gpu_calc_initpop"
-K2_NAME="gpu_sum_evals"
-K3_NAME="perform_LS"
-K4_NAME="gpu_gen_and_eval_newpops"
-K5_NAME="gradient_minSD"
-K6_NAME="gradient_minFire"
-K7_NAME="gradient_minAD"
-K_NAMES=-DK1=$(K1_NAME) -DK2=$(K2_NAME) -DK3=$(K3_NAME) -DK4=$(K4_NAME) -DK5=$(K5_NAME) -DK6=$(K6_NAME) -DK7=$(K7_NAME)
-# Kernel flags
-KFLAGS=-DKRNL_SOURCE=$(KRNL_DIR)/$(KRNL_MAIN) -DKRNL_DIRECTORY=$(KRNL_DIR) -DKCMN_DIRECTORY=$(KCMN_DIR) $(K_NAMES)
 
 TARGET := autodock
 ifeq ($(DEVICE), CPU)
@@ -249,7 +219,7 @@ odock: check-env-all stringify $(SRC)
 	$(CFLAGS) \
 	$(LIB_OPENCL) \
 	-o$(BIN_DIR)/$(TARGET) \
-	$(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
+	$(NWI) $(OPT) $(DD) $(REP)
 
 # Example
 # 1ac8: for testing gradients of translation and rotation genes
