@@ -823,15 +823,19 @@ filled with clock() */
 			Kokkos::deep_copy(odd_generation.conformations, conforms_view);
 	                Kokkos::deep_copy(odd_generation.energies, energies_view);
 		} else {
-			Kokkos::deep_copy(odd_generation.conformations, Nconforms_view);
-	                Kokkos::deep_copy(odd_generation.energies, Nenergies_view);
+			Kokkos::deep_copy(even_generation.conformations, Nconforms_view);
+	                Kokkos::deep_copy(even_generation.energies, Nenergies_view);
 		}
 
 		printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 
-
+		if (generation_cnt % 2 == 0){
 			kokkos_gen_alg_eval_new(odd_generation, even_generation, mypars, docking_params, genetic_params,
 					        conform, rotlist, intracontrib, interintra, intra);
+		} else {
+			kokkos_gen_alg_eval_new(even_generation, odd_generation, mypars, docking_params, genetic_params,
+                                                conform, rotlist, intracontrib, interintra, intra);
+		}
                 Kokkos::fence();
 		printf("%15s", " ... Finished\n");fflush(stdout);
 
@@ -840,21 +844,21 @@ filled with clock() */
 				printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
 
 				// Perform gradient_minAD, formerly known as kernel7
-				kokkos_gradient_minAD(even_generation, mypars, docking_params, conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
+				if (generation_cnt % 2 == 0){
+					kokkos_gradient_minAD(even_generation, mypars, docking_params, conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
+				} else {
+					kokkos_gradient_minAD(odd_generation, mypars, docking_params, conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
+				}
 				Kokkos::fence();
 
                 		// Copy kokkos output from CPU to OpenCL format
 				if (generation_cnt % 2 == 0){
 					Kokkos::deep_copy(Nconforms_view,even_generation.conformations);
                                 	Kokkos::deep_copy(Nenergies_view,even_generation.energies);
-//					memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_Nconforms_kokkos,size_populations);
-//					memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_Nenergies_kokkos,size_energies);
 				}
 				if (generation_cnt % 2 == 1){
-					Kokkos::deep_copy(conforms_view,even_generation.conformations);
-                                	Kokkos::deep_copy(energies_view,even_generation.energies);
-//					memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_current,true,cpu_conforms_kokkos,size_populations);
-//                                        memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
+					Kokkos::deep_copy(conforms_view,odd_generation.conformations);
+                                	Kokkos::deep_copy(energies_view,odd_generation.energies);
 				}
 				memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_Nconforms_kokkos,size_populations);
                                         memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_Nenergies_kokkos,size_energies);
