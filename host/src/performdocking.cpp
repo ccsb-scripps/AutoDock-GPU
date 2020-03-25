@@ -652,11 +652,7 @@ filled with clock() */
 	Kokkos::fence();
 
 	// Copy back from device
-        Kokkos::deep_copy(energies_view, odd_generation.energies);
         Kokkos::deep_copy(new_entities_view, docking_params.evals_of_new_entities);
-
-	// Copy from temporary cpu array back to gpu for the remaining openCL kernels
-	memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
 
 	printf("%15s" ," ... Finished\n");fflush(stdout); // Finished kernel1
 
@@ -696,10 +692,21 @@ filled with clock() */
 	while ((progress = check_progress(cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
 	// -------- Replacing with memory maps! ------------
 	{
+		if (generation_cnt == 0){
+			Kokkos::deep_copy(energies_view, odd_generation.energies);
+		}
+		memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
+		if (mypars->autostop)
+                {
+                        if (generation_cnt % 10 == 0) {
+                                memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_current,size_energies);
+			}
+		}
+		if (generation_cnt % 2 == 0) Kokkos::deep_copy(odd_generation.energies, energies_view);
 		if (mypars->autostop)
 		{
 			if (generation_cnt % 10 == 0) {
-				memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_current,size_energies);
+//				memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_current,size_energies);
 //				Kokkos::deep_copy(original_energies_view, odd_generation.energies);
 				for(unsigned int count=0; (count<1+8*(generation_cnt==0)) && (fabs(curr_avg-prev_avg)>0.00001); count++)
 				{
@@ -817,14 +824,6 @@ filled with clock() */
 			}
 		}
 
-		// Perform gen_alg_eval_new, the genetic algorithm formerly known as kernel4
-                memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
-		if (generation_cnt % 2 == 0){
-	                Kokkos::deep_copy(odd_generation.energies, energies_view);
-		} else {
-	                //Kokkos::deep_copy(even_generation.energies, Nenergies_view);
-		}
-
 		printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 
 		if (generation_cnt % 2 == 0) { // Since we need 2 generations at any time, just alternate btw 2 mem allocations
@@ -852,13 +851,7 @@ filled with clock() */
 				Kokkos::fence();
 
                 		// Copy kokkos output from CPU to OpenCL format
-				if (generation_cnt % 2 == 0){
-                                	//Kokkos::deep_copy(Nenergies_view,even_generation.energies);
-				}
-				if (generation_cnt % 2 == 1){
-                                	Kokkos::deep_copy(energies_view,odd_generation.energies);
-				}
-                                memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
+				if (generation_cnt % 2 == 1) Kokkos::deep_copy(energies_view,odd_generation.energies);
 
 				printf("%15s" ," ... Finished\n");fflush(stdout);
 			} else {
