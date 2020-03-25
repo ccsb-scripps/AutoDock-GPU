@@ -70,6 +70,15 @@ void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingPar
 	                best_energy = INFINITY; // Why isnt this set to energy? - ALS
 	        }
 
+		// Initializing variable arrays for gradient descent
+		float square_gradient[ACTUAL_GENOTYPE_LENGTH];
+	        float square_delta[ACTUAL_GENOTYPE_LENGTH];
+		for(uint i = tidx; i < ACTUAL_GENOTYPE_LENGTH; i+= team_member.team_size()) {
+                        square_gradient[i]=0;
+			square_delta[i]=0;
+                }
+
+
 		// Initialize iteration controls
 		unsigned int iteration_cnt;
 		if (tidx == 0) {
@@ -114,7 +123,7 @@ void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingPar
 		team_member.team_barrier();
 
 		// Update genotype based on gradient
-                genotype_gradient_descent(team_member, docking_params, gradient, genotype);
+                genotype_gradient_descent(team_member, docking_params, gradient, square_gradient, square_delta, genotype);
 
                 team_member.team_barrier();
 

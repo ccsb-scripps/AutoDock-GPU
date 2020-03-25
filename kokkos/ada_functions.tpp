@@ -30,16 +30,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 template<class Device>
 KOKKOS_INLINE_FUNCTION void genotype_gradient_descent(const member_type& team_member, const DockingParams<Device>& docking_params, float* gradient,
-		                     float* genotype)
+		             float* square_gradient, float* square_delta, float* genotype)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();
         int team_size = team_member.team_size();
-
-	// Why are these arrays? - ALS
-	float square_gradient[ACTUAL_GENOTYPE_LENGTH];
-	float delta[ACTUAL_GENOTYPE_LENGTH];
-	float square_delta[ACTUAL_GENOTYPE_LENGTH];
 
 	for(int i = tidx;
                  i < docking_params.num_of_genes;
@@ -50,14 +45,14 @@ KOKKOS_INLINE_FUNCTION void genotype_gradient_descent(const member_type& team_me
                 square_gradient[i] = RHO * square_gradient[i] + (1.0f - RHO) * gradient[i] * gradient[i];
 
                 // Computing update (eq.9 in the paper)
-                delta[i] = -1.0f * gradient[i] * sqrt( (float)(square_delta[i] + EPSILON) /
+                float delta = -1.0f * gradient[i] * sqrt( (float)(square_delta[i] + EPSILON) /
 					               (float)(square_gradient[i] + EPSILON));
 
                 // Accummulating update^2
                 // square_delta corresponds to E[dx^2]
-                square_delta[i] = RHO * square_delta[i] + (1.0f - RHO) * delta[i] * delta [i];
+                square_delta[i] = RHO * square_delta[i] + (1.0f - RHO) * delta * delta;
 
                 // Applying update
-                genotype[i] += delta[i];
+                genotype[i] += delta;
         }
 }

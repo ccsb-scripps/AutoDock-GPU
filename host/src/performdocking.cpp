@@ -880,6 +880,7 @@ filled with clock() */
 	rotlist.deep_copy(rotlist_h);
 	conform.deep_copy(conform_h);
 	grads.deep_copy(grads_h);
+	axis_correction.deep_copy(axis_correction_h);
 
 	// Perform the kernel formerly known as kernel1
 	kokkos_calc_init_pop(odd_generation, mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);
@@ -1233,28 +1234,33 @@ filled with clock() */
 				Kokkos::deep_copy(prng_view,docking_params.prng_states);
 
 		                printf("\n\nVals new:");
-#endif
-				for (int ik2o = 0; ik2o<new_entities_view.extent(0); ik2o+=99){
-					printf("\n%d : %d", ik2o, new_entities_view(ik2o));
-					for (int jk2o = 0; jk2o<docking_params.num_of_genes; jk2o++){
-						printf("\n  %d : %15.15f", jk2o, conforms_view(ik2o*GENOTYPE_LENGTH_IN_GLOBMEM+jk2o));
-					}
-					printf("\n%d : %15.15f", ik2o, energies_view(ik2o));
-					printf("\n%d : %u", ik2o, prng_view(ik2o));
-				}
-				printf("\n\n");fflush(stdout);
 
                 		// Copy kokkos output from CPU to OpenCL format
-				//memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
-				//memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_conforms_kokkos,size_populations);
-				//memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_energies_kokkos,size_energies);
-				//memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,true,cpu_prng_kokkos,size_prng_seeds);
-
+				memcopyBufferObjectToDevice(command_queue,mem_dockpars_evals_of_new_entities,true,cpu_new_entities_kokkos,size_evals_of_new_entities);
+				if (generation_cnt % 2 == 0){
+					memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_conforms_kokkos,size_populations);
+					memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_energies_kokkos,size_energies);
+				}
+				if (generation_cnt % 2 == 1){
+					memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_current,true,cpu_conforms_kokkos,size_populations);
+                                        memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
+				}
+				memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,true,cpu_prng_kokkos,size_prng_seeds);
+#endif
+				for (int ik2o = 0; ik2o<new_entities_view.extent(0); ik2o+=39){
+                                        printf("\n%d : %d", ik2o, new_entities_view(ik2o));
+                                        for (int jk2o = 0; jk2o<docking_params.num_of_genes; jk2o++){
+                                                printf("\n  %d : %15.15f", jk2o, conforms_view(ik2o*GENOTYPE_LENGTH_IN_GLOBMEM+jk2o));
+                                        }
+                                        printf("\n%d : %15.15f", ik2o, energies_view(ik2o));
+                                        printf("\n%d : %u", ik2o, prng_view(ik2o));
+                                }
+                                printf("\n\n");fflush(stdout);
 				printf("%15s" ," ... Finished\n");fflush(stdout);
 				// End of Kernel7
 			}
 		} // End if (dockpars.lsearch_rate != 0.0f)
-break;
+//break;
 		// -------- Replacing with memory maps! ------------
 		#if defined (MAPPED_COPY)
 		unmemMap(command_queue,mem_gpu_evals_of_runs,map_cpu_evals_of_runs);

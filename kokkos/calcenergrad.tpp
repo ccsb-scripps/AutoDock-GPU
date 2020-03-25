@@ -369,7 +369,7 @@ int tidx = team_member.team_rank();
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void kokkos_reduce_energy_and_translation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z, float& energy, float* gradient)
+KOKKOS_INLINE_FUNCTION void kokkos_reduce_energy_and_translation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z, float& partial_energies, float& energy, float* gradient)
 {
 int tidx = team_member.team_rank();
 	// reduction over partial energies and prepared "gradient_intra_*" values
@@ -385,7 +385,7 @@ int tidx = team_member.team_rank();
                 }
         }
         if (tidx == 0) {
-//                *energy = partial_energies[0]; already done for single thread, FIX ME - ALS
+                energy = partial_energies;//[0]; already done for single thread, FIX ME - ALS
                 // Scaling gradient for translational genes as
                 // their corresponding gradients were calculated in the space
                 // where these genes are in Angstrom,
@@ -713,7 +713,7 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member,
 	[=] (int& idx) {
 		kokkos_get_atom_pos(idx, conform, calc_coords);
 	});
-//if (lidx==99) for(int cci=0;cci<docking_params.num_of_atoms;cci++) {printf("\nkcci %d: %.15e, %.15e, %.15e, %.15e, ", cci, calc_coords(cci).x, calc_coords(cci).y, calc_coords(cci).z, calc_coords(cci).w);}
+
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 	// General rotation moving vector
 	float4struct genrot_movingvec;
@@ -744,16 +744,16 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member,
 	[=] (int& idx) {
 		kokkos_rotate_atoms(idx, conform, rotlist, run_id, genotype, genrot_movingvec, genrot_unitvec, calc_coords);
 	});
-//if (lidx==99) for(int cci=0;cci<docking_params.num_of_atoms;cci++) {printf("\nkcci %d: %.15e, %.15e, %.15e, %.15e, ", cci, calc_coords(cci).x, calc_coords(cci).y, calc_coords(cci).z, calc_coords(cci).w);}
+
 	team_member.team_barrier();
 
 	// CALCULATING INTERMOLECULAR GRADIENTS
 	kokkos_calc_intermolecular_gradients(team_member, docking_params, interintra, calc_coords,
-			     energy, gradient_inter_x, gradient_inter_y, gradient_inter_z);
+			     partial_energies, gradient_inter_x, gradient_inter_y, gradient_inter_z);
 
 	// CALCULATING INTRAMOLECULAR GRADIENTS
 	kokkos_calc_intramolecular_gradients(team_member, docking_params, intracontrib, interintra, intra, calc_coords,
-			     energy, gradient_intra_x, gradient_intra_y, gradient_intra_z);
+			     partial_energies, gradient_intra_x, gradient_intra_y, gradient_intra_z);
 
 	team_member.team_barrier();
 
@@ -764,7 +764,7 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member,
 	team_member.team_barrier();
 
 	// Obtaining energy and translation-related gradients
-	kokkos_reduce_energy_and_translation_gradients(team_member, docking_params, gradient_intra_x, gradient_intra_y, gradient_intra_z, energy, gradient);
+	kokkos_reduce_energy_and_translation_gradients(team_member, docking_params, gradient_intra_x, gradient_intra_y, gradient_intra_z, partial_energies, energy, gradient);
 
 	team_member.team_barrier();
 
