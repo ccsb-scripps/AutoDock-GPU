@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
+#include <vector>
 #include <Kokkos_Core.hpp>
 
 #include "defines.h"
@@ -101,17 +102,13 @@ filled with clock() */
 	float* cpu_final_populations;
 	float* cpu_energies;
 	Ligandresult* cpu_result_ligands;
-	unsigned int* cpu_prng_seeds;
 	int* cpu_evals_of_runs;
 	float* cpu_ref_ori_angles;
 
 	size_t size_populations;
 	size_t size_energies;
-	size_t size_prng_seeds;
+	size_t n_prng_seeds;
 	size_t size_evals_of_runs;
-
-	int threadsPerBlock;
-	int blocksPerGridForEachEntity;
 
 	unsigned long run_cnt;	/* int run_cnt; */
 	int generation_cnt;
@@ -124,10 +121,6 @@ filled with clock() */
 	clock_t clock_start_docking;
 	clock_t	clock_stop_docking;
 	clock_t clock_stop_program_before_clustering;
-
-	//setting number of blocks and threads
-	threadsPerBlock = NUM_OF_THREADS_PER_BLOCK;
-	blocksPerGridForEachEntity = mypars->pop_size * mypars->num_of_runs;
 
 	//allocating CPU memory for initial populations
 	size_populations = mypars->num_of_runs * mypars->pop_size * GENOTYPE_LENGTH_IN_GLOBMEM*sizeof(float);
@@ -150,13 +143,13 @@ filled with clock() */
 
 	//allocating memory in CPU for pseudorandom number generator seeds and
 	//generating them (seed for each thread during GA)
-	size_prng_seeds = blocksPerGridForEachEntity * threadsPerBlock * sizeof(unsigned int);
-	cpu_prng_seeds = (unsigned int*) malloc(size_prng_seeds);
+	n_prng_seeds = mypars->pop_size * mypars->num_of_runs * NUM_OF_THREADS_PER_BLOCK;
+	std::vector<unsigned int> cpu_prng_seeds(n_prng_seeds);
 
 	//genseed(time(NULL));	//initializing seed generator
 	genseed(0u);    // TEMPORARY: removing randomness for consistent debugging - ALS
 
-	for (i=0; i<blocksPerGridForEachEntity*threadsPerBlock; i++)
+	for (i=0; i<mypars->pop_size * mypars->num_of_runs*NUM_OF_THREADS_PER_BLOCK; i++)
 #if defined (REPRO)
 		cpu_prng_seeds[i] = 1u;
 #else
@@ -245,7 +238,7 @@ filled with clock() */
 	axis_correction.deep_copy(axis_correction_h);
 
 	// Initialize DockingParams
-        DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids, cpu_prng_seeds);
+        DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids, cpu_prng_seeds.data());
 
 	// Perform the kernel formerly known as kernel1
 	checkpoint("K_INIT");
@@ -501,7 +494,6 @@ filled with clock() */
 	free(cpu_init_populations);
 	free(cpu_energies);
 	free(cpu_result_ligands);
-	free(cpu_prng_seeds);
 	free(cpu_evals_of_runs);
 	free(cpu_ref_ori_angles);
 
