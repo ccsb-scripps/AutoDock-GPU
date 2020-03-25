@@ -56,6 +56,15 @@ inline float stddev(float* average_sd2_N)
 	return sqrt(sq)/average_sd2_N[2];
 }
 
+inline void checkpoint(const char* input)
+{
+#ifdef DOCK_DEBUG
+	printf("\n");
+	printf(input);
+	fflush(stdout);
+#endif
+}
+
 int docking_with_gpu(const Gridinfo*  	 	mygrid,
 	         /*const*/ float*      		cpu_floatgrids,
                            Dockpars*   		mypars,
@@ -159,8 +168,11 @@ filled with clock() */
 	cpu_evals_of_runs = (int*) malloc(size_evals_of_runs);
 	memset(cpu_evals_of_runs, 0, size_evals_of_runs);
 
-	
-	printf("Local-search chosen method is ADADELTA (ad) because that is the only one available so far in the Kokkos version.");
+	if (strcmp(mypars->ls_method, "ad") == 0) {
+		printf("Local-search chosen method is ADADELTA (ad) because that is the only one available so far in the Kokkos version.");
+	} else {
+		printf("Only one local-search method available. Please set -lsmet ad\n\n"); return 1;
+	}
 
 	clock_start_docking = clock();
 
@@ -236,16 +248,16 @@ filled with clock() */
         DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids, cpu_prng_seeds);
 
 	// Perform the kernel formerly known as kernel1
-	printf("%-25s", "\tK_INIT");fflush(stdout);
+	checkpoint("K_INIT");
 	kokkos_calc_init_pop(odd_generation, mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);
 	Kokkos::fence();
-	printf("%15s" ," ... Finished\n");fflush(stdout); // Finished kernel1
+	checkpoint(" ... Finished\n");
 
 	// Perform sum_evals, formerly known as kernel2
-	printf("%-25s", "\tK_EVAL");fflush(stdout);
+	checkpoint("K_EVAL");
 	kokkos_sum_evals(mypars, docking_params, evals_of_runs);
 	Kokkos::fence();
-	printf("%15s" ," ... Finished\n");fflush(stdout);
+	checkpoint(" ... Finished\n");
 
 	Kokkos::deep_copy(evals_of_runs_view, evals_of_runs);
 
@@ -395,9 +407,8 @@ filled with clock() */
 			}
 		}
 
-		// Perform gen_alg_eval_new, the genetic algorithm formerly known as kernel4
-		printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
-
+		// Perform the genetic algorithm formerly known as kernel4
+		checkpoint("K_GA_GENERATION");
 		if (generation_cnt % 2 == 0) { // Since we need 2 generations at any time, just alternate btw 2 mem allocations
 			kokkos_gen_alg_eval_new(odd_generation, even_generation, mypars, docking_params, genetic_params,
 					        conform, rotlist, intracontrib, interintra, intra);
@@ -406,13 +417,12 @@ filled with clock() */
                                                 conform, rotlist, intracontrib, interintra, intra);
 		}
                 Kokkos::fence();
-		printf("%15s", " ... Finished\n");fflush(stdout);
+		checkpoint(" ... Finished\n");
 
 		if (docking_params.lsearch_rate != 0.0f) {
 			if (strcmp(mypars->ls_method, "ad") == 0) {
-				// Perform gradient_minAD, formerly known as kernel7
-				printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
-
+				// Perform the ADADELTA gradient descent, formerly known as kernel7
+				checkpoint("K_LS_GRAD_ADADELTA");
 				if (generation_cnt % 2 == 0){
 					kokkos_gradient_minAD(even_generation, mypars, docking_params,
 							      conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
@@ -421,20 +431,19 @@ filled with clock() */
 							      conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
 				}
 				Kokkos::fence();
-				printf("%15s" ," ... Finished\n");fflush(stdout);
+				checkpoint(" ... Finished\n");
 			} else {
 				// sw, sd, and fire are NOT SUPPORTED in the Kokkos version (yet)
 			}
 		}
 
 		// Perform sum_evals, formerly known as kernel2
-		printf("%-25s", "\tK_EVAL");fflush(stdout);
-
+		checkpoint("K_EVAL");
 	        kokkos_sum_evals(mypars, docking_params, evals_of_runs);
 	        Kokkos::fence();
-		printf("%15s" ," ... Finished\n");fflush(stdout);
+		checkpoint(" ... Finished\n");
 
-		// Copy back to CPU
+		// Copy evals back to CPU
 	        Kokkos::deep_copy(evals_of_runs_view, evals_of_runs);
 
 		generation_cnt++;

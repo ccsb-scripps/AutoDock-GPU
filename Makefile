@@ -7,14 +7,9 @@
 # if DEVICE=CPU: CPU_INCLUDE_PATH?, CPU_LIBRARY_PATH?
 # if DEVICE=GPU: GPU_INCLUDE_PATH?, GPU_LIBRARY_PATH?
 
-# ------------------------------------------------------
-# Choose OpenCL device
-# Valid values: CPU, GPU
-
 CPP = g++ -std=c++11 -stdlib=libc++
 
 UNAME := $(shell uname)
-
 
 KOKKOS_INC_PATH=/Users/ascheinberg/Research/kokkos/install/include/
 KOKKOS_LIB_PATH=/Users/ascheinberg/Research/kokkos/install/lib/
@@ -22,7 +17,6 @@ LIB_KOKKOS=-lkokkoscore
 
 # ------------------------------------------------------
 # Project directories
-# opencl_lvs: wrapper for OpenCL APIs
 COMMON_DIR=./common
 HOST_INC_DIR=./host/inc
 HOST_SRC_DIR=./host/src
@@ -30,8 +24,7 @@ KCODE_INC_PATH=./kokkos
 BIN_DIR=./bin
 
 # Host sources
-HOST_SRC=$(wildcard $(HOST_SRC_DIR)/*.cpp)
-SRC=$(OCL_SRC) $(HOST_SRC)
+SRC=$(wildcard $(HOST_SRC_DIR)/*.cpp)
 
 IFLAGS=-I$(COMMON_DIR) -I$(HOST_INC_DIR) -I$(KOKKOS_INC_PATH) -I$(KCODE_INC_PATH)
 LFLAGS=-L$(KOKKOS_LIB_PATH) $(LIB_KOKKOS)
@@ -39,55 +32,18 @@ CFLAGS=$(IFLAGS) $(LFLAGS)
 
 TARGET := autodock
 ifeq ($(DEVICE), CPU)
+	KOKKOS_OPTS=-DUSE_OMP
 	TARGET:=$(TARGET)_cpu
+else ifeq ($(DEVICE), SERIAL) # Single thread on CPU
+	KOKKOS_OPTS=
+	TARGET:=$(TARGET)_serial
 else ifeq ($(DEVICE), GPU)
-	NWI=-DN64WI
+	KOKKOS_OPTS=-DUSE_GPU
 	TARGET:=$(TARGET)_gpu
 endif
 
 BIN := $(wildcard $(TARGET)*)
 
-# ------------------------------------------------------
-# Number of work-items (wi)
-# Valid values: 16, 32, 64, 128
-NUMWI=
-
-ifeq ($(NUMWI), 1)
-	NWI=-DN1WI
-	TARGET:=$(TARGET)_1wi
-else ifeq ($(NUMWI), 2)
-	NWI=-DN2WI
-	TARGET:=$(TARGET)_2wi
-else ifeq ($(NUMWI), 4)
-	NWI=-DN4WI
-	TARGET:=$(TARGET)_4wi
-else ifeq ($(NUMWI), 8)
-	NWI=-DN8WI
-	TARGET:=$(TARGET)_8wi
-else ifeq ($(NUMWI), 16)
-	NWI=-DN16WI
-	TARGET:=$(TARGET)_16wi
-else ifeq ($(NUMWI), 32)
-	NWI=-DN32WI
-	TARGET:=$(TARGET)_32wi
-else ifeq ($(NUMWI), 64)
-	NWI=-DN64WI
-	TARGET:=$(TARGET)_64wi
-else ifeq ($(NUMWI), 128)
-	NWI=-DN128WI
-	TARGET:=$(TARGET)_128wi
-else ifeq ($(NUMWI), 256)
-		NWI=-DN256WI
-		TARGET:=$(TARGET)_256wi
-else
-	ifeq ($(DEVICE), CPU)
-		NWI=-DN16WI
-		TARGET:=$(TARGET)_16wi
-	else ifeq ($(DEVICE), GPU)
-		NWI=-DN64WI
-		TARGET:=$(TARGET)_64wi
-	endif
-endif
 
 # ------------------------------------------------------
 # Configuration
@@ -97,27 +53,10 @@ endif
 CONFIG=RELEASE
 #CONFIG=FDEBUG
 
-OCL_DEBUG_BASIC=-DPLATFORM_ATTRIBUTES_DISPLAY\
-	      -DCMD_QUEUE_PROFILING_ENABLE \
-	        -DDEVICE_ATTRIBUTES_DISPLAY
-
-OCL_DEBUG_ALL=$(OCL_DEBUG_BASIC) \
-	      -DCONTEXT_INFO_DISPLAY \
-	      -DCMD_QUEUE_INFO_DISPLAY \
-	      -DCMD_QUEUE_PROFILING_ENABLE \
-	      -DPROGRAM_INFO_DISPLAY \
-	      -DPROGRAM_BUILD_INFO_DISPLAY \
-	      -DKERNEL_INFO_DISPLAY \
-	      -DKERNEL_WORK_GROUP_INFO_DISPLAY \
-	      -DBUFFER_OBJECT_INFO_DISPLAY
-ifneq ($(UNAME), Darwin) # out of order queues don't work on Mac OS X
-OCL_DEBUG_ALL += -DCMD_QUEUE_OUTORDER_ENABLE
-endif
-
 ifeq ($(CONFIG),FDEBUG)
-	OPT =-O0 -g3 -Wall $(OCL_DEBUG_ALL) -DDOCK_DEBUG
+	OPT =-O0 -g3 -Wall -DDOCK_DEBUG
 else ifeq ($(CONFIG),LDEBUG)
-	OPT =-O0 -g3 -Wall $(OCL_DEBUG_BASIC)
+	OPT =-O0 -g3 -Wall
 else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
 else
@@ -148,7 +87,11 @@ check-env-dev:
 			if [ "$$DEVICE" = "GPU" ]; then \
 				echo "DEVICE is set to $$DEVICE"; \
 			else \
-				echo "DEVICE value is invalid. Set DEVICE to either CPU or GPU"; \
+				if [ "$$DEVICE" = "SERIAL" ]; then \
+					echo "DEVICE is set to $$DEVICE"; \
+				else \
+					echo "DEVICE value is invalid. Set DEVICE to either CPU, GPU, or SERIAL (1 thread on CPU)"; \
+				fi; \
 			fi; \
 		fi; \
 	fi; \
