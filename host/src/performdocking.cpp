@@ -186,7 +186,6 @@ filled with clock() */
 
 	// TEMPORARY - ALS
 	float* cpu_energies_kokkos;
-	float* cpu_conforms_kokkos;
 
 	float* cpu_init_populations;
 	float* cpu_final_populations;
@@ -262,52 +261,18 @@ filled with clock() */
 
 	// TEMPORARY - ALS
 	cpu_energies_kokkos = (float*) malloc(size_energies);
-	cpu_conforms_kokkos = (float *) malloc(size_populations);
 
 	//allocating memory in CPU for evaluation counters
 	size_evals_of_runs = mypars->num_of_runs*sizeof(int);
 	cpu_evals_of_runs = (int*) malloc(size_evals_of_runs);
 	memset(cpu_evals_of_runs, 0, size_evals_of_runs);
 
-	//preparing the constant data fields for the GPU
-	// ----------------------------------------------------------------------
-	// The original function does CUDA calls initializing const Kernel data.
-	// We create a struct to hold those constants
-	// and return them <here> (<here> = where prepare_const_fields_for_gpu() is called),
-	// so we can send them to Kernels from <here>, instead of from calcenergy.cpp as originally.
-	// ----------------------------------------------------------------------
-	// Constant struct
-
-/*
-	kernelconstant KerConst;
-
-	if (prepare_const_fields_for_gpu(&myligand_reference, mypars, cpu_ref_ori_angles, &KerConst) == 1)
-		return 1;
-*/
-
-	kernelconstant_interintra	KerConst_interintra;
-	kernelconstant_intracontrib	KerConst_intracontrib;
-	kernelconstant_intra		KerConst_intra;
-	kernelconstant_rotlist		KerConst_rotlist;
-	kernelconstant_conform		KerConst_conform;
-	kernelconstant_grads		KerConst_grads;
-
-	if (prepare_const_fields_for_gpu(&myligand_reference, mypars, cpu_ref_ori_angles, 
-					 &KerConst_interintra, 
-					 &KerConst_intracontrib, 
-					 &KerConst_intra, 
-					 &KerConst_rotlist, 
-					 &KerConst_conform,
-					 &KerConst_grads) == 1) {
-		return 1;
-	}
 	
 	printf("Local-search chosen method is ADADELTA (ad) because that is the only one available so far in the Kokkos version.");
 
 	clock_start_docking = clock();
 
-	//print progress bar
-#ifndef DOCK_DEBUG
+	// Progress bar
 	if (mypars->autostop)
 	{
 		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation\nof the best molecules, %u generations, or %u evaluations, whichever comes first:\n\n",mypars->stopstd,mypars->num_of_generations,mypars->num_of_energy_evals);
@@ -320,23 +285,8 @@ filled with clock() */
 		printf("        20%%        40%%       60%%       80%%       100%%\n");
 		printf("---------+---------+---------+---------+---------+\n");
 	}
-#else
-	printf("\n");
-#endif
-	curr_progress_cnt = 0;
 
-#ifdef DOCK_DEBUG
-	// Main while-loop iterarion counter
-	unsigned int ite_cnt = 0;
-#endif
-
-	// Kernel1
 	printf("\nExecution starts:\n\n");
-	printf("%-25s", "\tK_INIT");fflush(stdout);
-
-	// KOKKOS kernel1: kokkos_calc_initpop
-	// Initialize DockingParams
-	DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids, cpu_prng_seeds);
 
 	// Initialize GeneticParams (broken out of docking params since they relate to the genetic algorithm, not the docking per se
 	GeneticParams genetic_params(mypars);
@@ -351,7 +301,6 @@ filled with clock() */
 
 	// Wrap the C style arrays with an unmanaged kokkos view for easy deep copies (done after view initializations for easy sizing)
         FloatView1D energies_view(cpu_energies_kokkos, odd_generation.energies.extent(0));
-        FloatView1D conforms_view(cpu_conforms_kokkos, odd_generation.conformations.extent(0));
         IntView1D evals_of_runs_view(cpu_evals_of_runs, evals_of_runs.extent(0)); // Note this array was prexisting
 	FloatView1D original_energies_view(cpu_energies, odd_generation.energies.extent(0));
 	FloatView1D final_populations_view(cpu_final_populations, odd_generation.conformations.extent(0));
@@ -366,7 +315,8 @@ filled with clock() */
 	AxisCorrection<HostType> axis_correction_h;
 
 	// Initialize them
-	if (kokkos_prepare_const_fields(&myligand_reference, mypars, cpu_ref_ori_angles,
+	// WARNING - Changes myligand_reference !!! - ALS
+	if (kokkos_prepare_const_fields(myligand_reference, mypars, cpu_ref_ori_angles,
                                          interintra_h, intracontrib_h, intra_h, rotlist_h, conform_h, grads_h) == 1) {
                 return 1;
         }
@@ -391,24 +341,25 @@ filled with clock() */
 	grads.deep_copy(grads_h);
 	axis_correction.deep_copy(axis_correction_h);
 
+	// Initialize DockingParams
+        DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids, cpu_prng_seeds);
+
 	// Perform the kernel formerly known as kernel1
+	printf("%-25s", "\tK_INIT");fflush(stdout);
 	kokkos_calc_init_pop(odd_generation, mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);
 	Kokkos::fence();
-
 	printf("%15s" ," ... Finished\n");fflush(stdout); // Finished kernel1
 
-	// Kernel2
-	printf("%-25s", "\tK_EVAL");fflush(stdout);
-
 	// Perform sum_evals, formerly known as kernel2
+	printf("%-25s", "\tK_EVAL");fflush(stdout);
 	kokkos_sum_evals(mypars, docking_params, evals_of_runs);
 	Kokkos::fence();
-
 	printf("%15s" ," ... Finished\n");fflush(stdout);
 
 	Kokkos::deep_copy(evals_of_runs_view, evals_of_runs);
 
 	generation_cnt = 0;
+	curr_progress_cnt = 0;
 	bool first_time = true;
 	float* energies;
 	float threshold = 1<<24;
@@ -657,7 +608,6 @@ filled with clock() */
 
 	// TEMPORARY - ALS
         free(cpu_energies_kokkos);
-        free(cpu_conforms_kokkos);
 	return 0;
 }
 

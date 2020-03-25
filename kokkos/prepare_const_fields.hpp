@@ -38,7 +38,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "calcenergy.h"
 
 template<class Device>
-int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
+int kokkos_prepare_const_fields(Liganddata& 	   		myligand_reference,
 				 Dockpars*   	   		mypars,
 				 float*      	   		cpu_ref_ori_angles,
 				 InterIntra<Device>& interintra,

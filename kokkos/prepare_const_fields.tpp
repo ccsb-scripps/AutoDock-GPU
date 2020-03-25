@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 template<class Device>
-int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
+int kokkos_prepare_const_fields(Liganddata& 	   		myligand_reference,
 				 Dockpars*   	   		mypars,
 				 float*      	   		cpu_ref_ori_angles,
                                  InterIntra<Device>& interintra,
@@ -134,24 +134,24 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
 	floatpoi = atom_charges;
 	charpoi = atom_types;
 
-	for (i=0; i < myligand_reference->num_of_atoms; i++)
+	for (i=0; i < myligand_reference.num_of_atoms; i++)
 	{
-		*floatpoi = (float) myligand_reference->atom_idxyzq[i][4];
-		*charpoi = (char) myligand_reference->atom_idxyzq[i][0];
+		*floatpoi = (float) myligand_reference.atom_idxyzq[i][4];
+		*charpoi = (char) myligand_reference.atom_idxyzq[i][0];
 		floatpoi++;
 		charpoi++;
 	}
 
 	//intramolecular energy contributors
-	myligand_reference->num_of_intraE_contributors = 0;
-	for (i=0; i<myligand_reference->num_of_atoms-1; i++)
-		for (j=i+1; j<myligand_reference->num_of_atoms; j++)
+	myligand_reference.num_of_intraE_contributors = 0;
+	for (i=0; i<myligand_reference.num_of_atoms-1; i++)
+		for (j=i+1; j<myligand_reference.num_of_atoms; j++)
 		{
-			if (myligand_reference->intraE_contributors[i][j])
-				myligand_reference->num_of_intraE_contributors++;
+			if (myligand_reference.intraE_contributors[i][j])
+				myligand_reference.num_of_intraE_contributors++;
 		}
 
-	if (myligand_reference->num_of_intraE_contributors > MAX_INTRAE_CONTRIBUTORS)
+	if (myligand_reference.num_of_intraE_contributors > MAX_INTRAE_CONTRIBUTORS)
 	{
 		printf("Error: number of intramolecular energy contributor is too high!\n");
 		fflush(stdout);
@@ -159,19 +159,19 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
 	}
 
 	charpoi = intraE_contributors;
-	for (i=0; i<myligand_reference->num_of_atoms-1; i++)
-		for (j=i+1; j<myligand_reference->num_of_atoms; j++)
+	for (i=0; i<myligand_reference.num_of_atoms-1; i++)
+		for (j=i+1; j<myligand_reference.num_of_atoms; j++)
 		{
-			if (myligand_reference->intraE_contributors[i][j] == 1)
+			if (myligand_reference.intraE_contributors[i][j] == 1)
 			{
 				*charpoi = (char) i;
 				charpoi++;
 				*charpoi = (char) j;
 				charpoi++;
-				type_id1 = (int) myligand_reference->atom_idxyzq [i][0];
-				type_id2 = (int) myligand_reference->atom_idxyzq [j][0];
+				type_id1 = (int) myligand_reference.atom_idxyzq [i][0];
+				type_id2 = (int) myligand_reference.atom_idxyzq [j][0];
 
-				if (is_H_bond(myligand_reference->atom_types[type_id1], myligand_reference->atom_types[type_id2]) != 0)
+				if (is_H_bond(myligand_reference.atom_types[type_id1], myligand_reference.atom_types[type_id2]) != 0)
 					*charpoi = (char) 1;
 				else
 					*charpoi = (char) 0;
@@ -181,49 +181,49 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
 
         // Smoothed pairwise potentials
 	// reqm, reqm_hbond: equilibrium internuclear separation for vdW and hbond
-	for (i= 0; i<ATYPE_NUM/*myligand_reference->num_of_atypes*/; i++) {
-		reqm[i]       = myligand_reference->reqm[i];
-		reqm_hbond[i] = myligand_reference->reqm_hbond[i];
+	for (i= 0; i<ATYPE_NUM/*myligand_reference.num_of_atypes*/; i++) {
+		reqm[i]       = myligand_reference.reqm[i];
+		reqm_hbond[i] = myligand_reference.reqm_hbond[i];
 
-		atom1_types_reqm [i] = myligand_reference->atom1_types_reqm[i];
-		atom2_types_reqm [i] = myligand_reference->atom2_types_reqm[i];
+		atom1_types_reqm [i] = myligand_reference.atom1_types_reqm[i];
+		atom2_types_reqm [i] = myligand_reference.atom2_types_reqm[i];
 	}
 
 	//van der Waals parameters
-	for (i=0; i<myligand_reference->num_of_atypes; i++)
-		for (j=0; j<myligand_reference->num_of_atypes; j++)
+	for (i=0; i<myligand_reference.num_of_atypes; i++)
+		for (j=0; j<myligand_reference.num_of_atypes; j++)
 		{
-			if (is_H_bond(myligand_reference->atom_types[i], myligand_reference->atom_types[j]) != 0)
+			if (is_H_bond(myligand_reference.atom_types[i], myligand_reference.atom_types[j]) != 0)
 			{
-				floatpoi = VWpars_AC + i*myligand_reference->num_of_atypes + j;
-				*floatpoi = (float) myligand_reference->VWpars_C[i][j];
-				floatpoi = VWpars_AC + j*myligand_reference->num_of_atypes + i;
-				*floatpoi = (float) myligand_reference->VWpars_C[j][i];
+				floatpoi = VWpars_AC + i*myligand_reference.num_of_atypes + j;
+				*floatpoi = (float) myligand_reference.VWpars_C[i][j];
+				floatpoi = VWpars_AC + j*myligand_reference.num_of_atypes + i;
+				*floatpoi = (float) myligand_reference.VWpars_C[j][i];
 
-				floatpoi = VWpars_BD + i*myligand_reference->num_of_atypes + j;
-				*floatpoi = (float) myligand_reference->VWpars_D[i][j];
-				floatpoi = VWpars_BD + j*myligand_reference->num_of_atypes + i;
-				*floatpoi = (float) myligand_reference->VWpars_D[j][i];
+				floatpoi = VWpars_BD + i*myligand_reference.num_of_atypes + j;
+				*floatpoi = (float) myligand_reference.VWpars_D[i][j];
+				floatpoi = VWpars_BD + j*myligand_reference.num_of_atypes + i;
+				*floatpoi = (float) myligand_reference.VWpars_D[j][i];
 			}
 			else
 			{
-				floatpoi = VWpars_AC + i*myligand_reference->num_of_atypes + j;
-				*floatpoi = (float) myligand_reference->VWpars_A[i][j];
-				floatpoi = VWpars_AC + j*myligand_reference->num_of_atypes + i;
-				*floatpoi = (float) myligand_reference->VWpars_A[j][i];
+				floatpoi = VWpars_AC + i*myligand_reference.num_of_atypes + j;
+				*floatpoi = (float) myligand_reference.VWpars_A[i][j];
+				floatpoi = VWpars_AC + j*myligand_reference.num_of_atypes + i;
+				*floatpoi = (float) myligand_reference.VWpars_A[j][i];
 
-				floatpoi = VWpars_BD + i*myligand_reference->num_of_atypes + j;
-				*floatpoi = (float) myligand_reference->VWpars_B[i][j];
-				floatpoi = VWpars_BD + j*myligand_reference->num_of_atypes + i;
-				*floatpoi = (float) myligand_reference->VWpars_B[j][i];
+				floatpoi = VWpars_BD + i*myligand_reference.num_of_atypes + j;
+				*floatpoi = (float) myligand_reference.VWpars_B[i][j];
+				floatpoi = VWpars_BD + j*myligand_reference.num_of_atypes + i;
+				*floatpoi = (float) myligand_reference.VWpars_B[j][i];
 			}
 		}
 
 	//desolvation parameters
-	for (i=0; i<myligand_reference->num_of_atypes; i++)
+	for (i=0; i<myligand_reference.num_of_atypes; i++)
 	{
-		dspars_S[i] = myligand_reference->solpar[i];
-		dspars_V[i] = myligand_reference->volume[i];
+		dspars_S[i] = myligand_reference.solpar[i];
+		dspars_V[i] = myligand_reference.volume[i];
 	}
 
 	//generate rotation list
@@ -234,19 +234,19 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
 	}
 
 	//coordinates of reference ligand
-	for (i=0; i < myligand_reference->num_of_atoms; i++)
+	for (i=0; i < myligand_reference.num_of_atoms; i++)
 	{
-		ref_coords_x[i] = myligand_reference->atom_idxyzq[i][1];
-		ref_coords_y[i] = myligand_reference->atom_idxyzq[i][2];
-		ref_coords_z[i] = myligand_reference->atom_idxyzq[i][3];
+		ref_coords_x[i] = myligand_reference.atom_idxyzq[i][1];
+		ref_coords_y[i] = myligand_reference.atom_idxyzq[i][2];
+		ref_coords_z[i] = myligand_reference.atom_idxyzq[i][3];
 	}
 
 	//rotatable bond vectors
-	for (i=0; i < myligand_reference->num_of_rotbonds; i++)
+	for (i=0; i < myligand_reference.num_of_rotbonds; i++)
 		for (j=0; j<3; j++)
 		{
-			rotbonds_moving_vectors[3*i+j] = myligand_reference->rotbonds_moving_vectors[i][j];
-			rotbonds_unit_vectors[3*i+j] = myligand_reference->rotbonds_unit_vectors[i][j];
+			rotbonds_moving_vectors[3*i+j] = myligand_reference.rotbonds_moving_vectors[i][j];
+			rotbonds_unit_vectors[3*i+j] = myligand_reference.rotbonds_unit_vectors[i][j];
 		}
 
 
@@ -283,10 +283,10 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
 	// Added for calculating torsion-related gradients.
 	// Passing list of rotbond-atoms ids to the GPU.
 	// Contains the same information as processligand.h/Liganddata->rotbonds
-	for (i=0; i < myligand_reference->num_of_rotbonds; i++)
+	for (i=0; i < myligand_reference.num_of_rotbonds; i++)
 	{
-		rotbonds [2*i]   = myligand_reference->rotbonds[i][0]; // id of first-atom
-		rotbonds [2*i+1] = myligand_reference->rotbonds[i][1]; // id of second atom
+		rotbonds [2*i]   = myligand_reference.rotbonds[i][0]; // id of first-atom
+		rotbonds [2*i+1] = myligand_reference.rotbonds[i][1]; // id of second atom
 	}
 
 	// Contains the same information as processligand.h/Liganddata->atom_rotbonds
@@ -302,21 +302,17 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
 	int* intpoi;
 	//intpoi = rotbonds_atoms;
 
-	for (i=0; i < myligand_reference->num_of_rotbonds; i++)
+	for (i=0; i < myligand_reference.num_of_rotbonds; i++)
 	{	
 		// Pointing to the mem area corresponding to a given rotbond
 		intpoi = rotbonds_atoms + MAX_NUM_OF_ATOMS*i;
 
-		for (j=0; j < myligand_reference->num_of_atoms; j++)
+		for (j=0; j < myligand_reference.num_of_atoms; j++)
 		{
-			/*
-			rotbonds_atoms [MAX_NUM_OF_ATOMS*i+j] = myligand_reference->atom_rotbonds [j][i]; // 
-			*/
-			
 			// If an atom rotates with a rotbond, then
 			// add its atom-id to the entry corresponding to the rotbond-id.
 			// Also, count the number of atoms that rotate with a certain rotbond
-			if (myligand_reference->atom_rotbonds [j][i] == 1){
+			if (myligand_reference.atom_rotbonds [j][i] == 1){
 				*intpoi = j;
 				intpoi++;
 				num_rotating_atoms_per_rotbond [i] ++;	
@@ -345,7 +341,7 @@ int kokkos_prepare_const_fields(Liganddata* 	   		myligand_reference,
 
 	for (m=0;m<MAX_NUM_OF_ROTATIONS;m++) {
 		rotlist_out.rotlist_const[m]  = rotlist[m];
-/*		if(m!=0 && m%myligand_reference->num_of_atoms==0)
+/*		if(m!=0 && m%myligand_reference.num_of_atoms==0)
 			printf("***\n");
 		if(m!=0 && m%NUM_OF_THREADS_PER_BLOCK==0)
 			printf("===\n");
