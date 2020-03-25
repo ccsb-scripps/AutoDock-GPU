@@ -818,16 +818,11 @@ filled with clock() */
 		}
 
 		// Perform gen_alg_eval_new, the genetic algorithm formerly known as kernel4
-		memcopyBufferObjectFromDevice(command_queue,cpu_conforms_kokkos,mem_dockpars_conformations_current,size_populations);
-                        memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
-			memcopyBufferObjectFromDevice(command_queue,cpu_Nconforms_kokkos,mem_dockpars_conformations_next,size_populations);
-                        memcopyBufferObjectFromDevice(command_queue,cpu_Nenergies_kokkos,mem_dockpars_energies_next,size_energies);
+                memcopyBufferObjectFromDevice(command_queue,cpu_energies_kokkos,mem_dockpars_energies_current,size_energies);
 		if (generation_cnt % 2 == 0){
-			Kokkos::deep_copy(odd_generation.conformations, conforms_view);
 	                Kokkos::deep_copy(odd_generation.energies, energies_view);
 		} else {
-			Kokkos::deep_copy(even_generation.conformations, Nconforms_view);
-	                Kokkos::deep_copy(even_generation.energies, Nenergies_view);
+	                //Kokkos::deep_copy(even_generation.energies, Nenergies_view);
 		}
 
 		printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
@@ -858,17 +853,12 @@ filled with clock() */
 
                 		// Copy kokkos output from CPU to OpenCL format
 				if (generation_cnt % 2 == 0){
-					Kokkos::deep_copy(Nconforms_view,even_generation.conformations);
-                                	Kokkos::deep_copy(Nenergies_view,even_generation.energies);
+                                	//Kokkos::deep_copy(Nenergies_view,even_generation.energies);
 				}
 				if (generation_cnt % 2 == 1){
-					Kokkos::deep_copy(conforms_view,odd_generation.conformations);
                                 	Kokkos::deep_copy(energies_view,odd_generation.energies);
 				}
-				memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_next,true,cpu_Nconforms_kokkos,size_populations);
-                                        memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_next,true,cpu_Nenergies_kokkos,size_energies);
-					memcopyBufferObjectToDevice(command_queue,mem_dockpars_conformations_current,true,cpu_conforms_kokkos,size_populations);
-                                        memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
+                                memcopyBufferObjectToDevice(command_queue,mem_dockpars_energies_current,true,cpu_energies_kokkos,size_energies);
 
 				printf("%15s" ," ... Finished\n");fflush(stdout);
 			} else {
