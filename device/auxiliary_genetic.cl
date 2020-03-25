@@ -73,7 +73,7 @@ float gpu_randf(
 #if defined (REPRO)
 	state = 0.55f; //0.55f;
 #else
-	state =  native_divide(gpu_rand(prng_states),MAX_UINT)*0.999999f;
+	state =  (gpu_rand(prng_states)/MAX_UINT)*0.999999f;
 #endif
 
   return state;

@@ -83,7 +83,7 @@ inline float fast_acos(float cosine)
 	float x3=x2*x;
 	float x4=x3*x;
 	float ac=(((fast_acos_o*x4+fast_acos_a)*x3+fast_acos_b)*x2+fast_acos_c)*x+fast_acos_d+
-		 fast_acos_e*native_sqrt(2.0f-native_sqrt(2.0f+2.0f*x))-fast_acos_f*native_sqrt(2.0f-2.0f*x);
+		 fast_acos_e*sqrt(2.0f-sqrt(2.0f+2.0f*x))-fast_acos_f*sqrt(2.0f-2.0f*x);
 	return copysign(ac,cosine) + (cosine<0.0f)*PI_FLOAT;
 }
 
@@ -144,12 +144,12 @@ inline void calc_atom_pos_after_rotations(int tidx, char dockpars_num_of_atoms, 
         float genrotangle = genotype[5] * DEG_TO_RAD;
 
         float4 genrot_unitvec;
-        float sin_angle = native_sin(theta);
-        float s2 = native_sin(genrotangle*0.5f);
-        genrot_unitvec.x = s2*sin_angle*native_cos(phi);
-        genrot_unitvec.y = s2*sin_angle*native_sin(phi);
-        genrot_unitvec.z = s2*native_cos(theta);
-        genrot_unitvec.w = native_cos(genrotangle*0.5f);
+        float sin_angle = sin(theta);
+        float s2 = sin(genrotangle*0.5f);
+        genrot_unitvec.x = s2*sin_angle*cos(phi);
+        genrot_unitvec.y = s2*sin_angle*sin(phi);
+        genrot_unitvec.z = s2*cos(theta);
+        genrot_unitvec.w = cos(genrotangle*0.5f);
 
         barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -175,11 +175,11 @@ inline void calc_atom_pos_after_rotations(int tidx, char dockpars_num_of_atoms, 
                                 uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
                                 
                                 float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
-                                float s = native_sin(rotation_angle);
+                                float s = sin(rotation_angle);
                                 rotation_unitvec = (float4)(s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id],
                                                             s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1],
                                                             s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2],
-                                                            native_cos(rotation_angle));
+                                                            cos(rotation_angle));
                                 rotation_movingvec = (float4)(kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id],
                                                               kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1],
                                                               kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2],0);
@@ -314,7 +314,7 @@ inline float calc_intramolecular_energy(int tidx,float dockpars_smooth,int dockp
                 float subz = calc_coords[atom1_id].z - calc_coords[atom2_id].z;
 
                 // Calculating atomic_distance
-                float atomic_distance = native_sqrt(subx*subx + suby*suby + subz*subz)*dockpars_grid_spacing;
+                float atomic_distance = sqrt(subx*subx + suby*suby + subz*subz)*dockpars_grid_spacing;
 
                 // Getting type IDs
                 uint atom1_typeid = kerconst_interintra->atom_types_const[atom1_id];
@@ -346,8 +346,8 @@ inline float calc_intramolecular_energy(int tidx,float dockpars_smooth,int dockp
                         }
                         // Calculating van der Waals / hydrogen bond term
                         uint idx = atom1_typeid * dockpars_num_of_atypes + atom2_typeid;
-                        partial_energy += native_divide(kerconst_intra->VWpars_AC_const[idx],pow(smoothed_distance,12)) -
-                                                  native_divide(kerconst_intra->VWpars_BD_const[idx],pow(smoothed_distance,6+4*hbond));
+                        partial_energy += (kerconst_intra->VWpars_AC_const[idx])/(pow(smoothed_distance,12)) -
+                                                  (kerconst_intra->VWpars_BD_const[idx])/(pow(smoothed_distance,6+4*hbond));
                 } // if cuttoff1 - internuclear-distance at 8A
 
                 // Calculating energy contributions
@@ -362,16 +362,16 @@ inline float calc_intramolecular_energy(int tidx,float dockpars_smooth,int dockp
                                                  dockpars_qasp*fabs(q1)) * kerconst_intra->dspars_V_const[atom2_typeid] +
                                                 (kerconst_intra->dspars_S_const[atom2_typeid] +
                                                  dockpars_qasp*fabs(q2)) * kerconst_intra->dspars_V_const[atom1_typeid]) *
-                                                native_divide (
-                                                                dockpars_coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)),
+                                                (
+                                                                dockpars_coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)))/(
                                                                 (12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2))) // *native_exp(-0.03858025f*atomic_distance*atomic_distance);
                                                               );
                         // Calculating electrostatic term
                         float dist_shift=atomic_distance+1.261f;
                         dist2=dist_shift*dist_shift;
-                        float diel = native_divide(1.105f,dist2)+0.0104f;
-                        float es_energy = native_divide (
-                                                          dockpars_coeff_elec * q1 * q2,
+                        float diel = (1.105f)/(dist2)+0.0104f;
+                        float es_energy = (
+                                                          dockpars_coeff_elec * q1 * q2)/(
                                                           atomic_distance
                                                         );
                         partial_energy += diel * es_energy + desolv_energy;

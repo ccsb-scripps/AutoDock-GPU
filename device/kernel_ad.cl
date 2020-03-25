@@ -512,11 +512,13 @@ gradient_minAD(
 				}
 #endif
 		}
+
 		barrier(CLK_LOCAL_MEM_FENCE); // making sure that iteration_cnt is up-to-date
+
 #ifdef AD_RHO_CRITERION
-	} while ((iteration_cnt < dockpars_max_num_of_iters)  && (rho > 0.01));
+        } while ((iteration_cnt < dockpars_max_num_of_iters)  && (rho > 0.01));
 #else
-	} while (iteration_cnt < dockpars_max_num_of_iters);
+        } while (iteration_cnt < dockpars_max_num_of_iters);
 #endif
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
