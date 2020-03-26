@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "defines.h"
 #include "correct_grad_axisangle.h"
+#include "autostop.hpp"
 #include "performdocking.h"
 
 // From ./kokkos
@@ -40,22 +41,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "sum_evals.hpp"
 #include "genetic_alg_eval_new.hpp"
 #include "gradient_minAD.hpp"
-
-inline float average(float* average_sd2_N)
-{
-	if(average_sd2_N[2]<1.0f)
-		return 0.0;
-	return average_sd2_N[0]/average_sd2_N[2];
-}
-
-inline float stddev(float* average_sd2_N)
-{
-	if(average_sd2_N[2]<1.0f)
-		return 0.0;
-	float sq = average_sd2_N[1]*average_sd2_N[2]-average_sd2_N[0]*average_sd2_N[0];
-	if((fabs(sq)<=0.000001) || (sq<0.0)) return 0.0;
-	return sqrt(sq)/average_sd2_N[2];
-}
 
 inline void checkpoint(const char* input)
 {
@@ -97,8 +82,6 @@ filled with clock() */
 {
 	Liganddata myligand_reference;
 
-	unsigned long run_cnt;	/* int run_cnt; */
-	int generation_cnt;
 	double progress;
 
 	int curr_progress_cnt;
@@ -162,12 +145,12 @@ filled with clock() */
         }
         printf("\nUsing NUM_OF_THREADS_PER_BLOCK = %d ", NUM_OF_THREADS_PER_BLOCK);
 
-	// Progress bar
+
+	// Autostop / Progress bar
+	AutoStop autostop(mypars->pop_size, mypars->num_of_runs, mypars->stopstd);
         if (mypars->autostop)
         {
-                printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation\nof the best molecules, %lu generations, or %lu evaluations, whichever comes first:\n\n",mypars->stopstd,mypars->num_of_generations,mypars->num_of_energy_evals);
-                printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
-                printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
+		autostop.print_intro(mypars->num_of_generations, mypars->num_of_energy_evals);
         }
         else
         {
@@ -194,132 +177,18 @@ filled with clock() */
 
 	Kokkos::deep_copy(evals_of_runs_h, evals_of_runs);
 
-	generation_cnt = 0;
+	int generation_cnt = 0; // Counter of while loop
 	curr_progress_cnt = 0;
-	bool first_time = true;
-	float* energies;
-	float threshold = 1<<24;
-	float threshold_used;
-	float thres_stddev = threshold;
-	float curr_avg = -(1<<24);
-	float curr_std = thres_stddev;
-	float prev_avg = 0.0;
-	unsigned int roll_count = 0;
-	float rolling[4*3];
-	float rolling_stddev;
-	memset(&rolling[0],0,12*sizeof(float));
-	unsigned int bestN = 1;
-	unsigned int Ntop = mypars->pop_size;
-	unsigned int Ncream = Ntop / 10;
-	float delta_energy = 2.0 * thres_stddev / Ntop;
-	float overall_best_energy;
-	unsigned int avg_arr_size = (Ntop+1)*3;
-	float average_sd2_N[avg_arr_size];
 	unsigned long total_evals;
 	while ((progress = check_progress(evals_of_runs_h.data(), generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
 	{
-		if (mypars->autostop)
-		{
+		if (mypars->autostop) {
 			if (generation_cnt % 10 == 0) {
 				Kokkos::deep_copy(energies_h,odd_generation.energies);
-				for(unsigned int count=0; (count<1+8*(generation_cnt==0)) && (fabs(curr_avg-prev_avg)>0.00001); count++)
-				{
-					threshold_used = threshold;
-					overall_best_energy = 1<<24;
-					memset(&average_sd2_N[0],0,avg_arr_size*sizeof(float));
-					for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
-					{
-						energies = energies_h.data()+run_cnt*mypars->pop_size;
-						for (unsigned int i=0; i<mypars->pop_size; i++)
-						{
-							float energy = energies[i];
-							if(energy < overall_best_energy)
-								overall_best_energy = energy;
-							if(energy < threshold)
-							{
-								average_sd2_N[0] += energy;
-								average_sd2_N[1] += energy * energy;
-								average_sd2_N[2] += 1.0;
-								for(unsigned int m=0; m<Ntop; m++)
-									if(energy < (threshold-2.0*thres_stddev)+m*delta_energy)
-									{
-										average_sd2_N[3*(m+1)] += energy;
-										average_sd2_N[3*(m+1)+1] += energy*energy;
-										average_sd2_N[3*(m+1)+2] += 1.0;
-										break; // only one entry per bin
-									}
-							}
-						}
-					}
-					if(first_time)
-					{
-						curr_avg = average(&average_sd2_N[0]);
-						curr_std = stddev(&average_sd2_N[0]);
-						bestN = average_sd2_N[2];
-						thres_stddev = curr_std;
-						threshold = curr_avg + thres_stddev;
-						delta_energy = 2.0 * thres_stddev / (Ntop-1);
-						first_time = false;
-					}
-					else
-					{
-						curr_avg = average(&average_sd2_N[0]);
-						curr_std = stddev(&average_sd2_N[0]);
-						bestN = average_sd2_N[2];
-						average_sd2_N[0] = 0.0;
-						average_sd2_N[1] = 0.0;
-						average_sd2_N[2] = 0.0;
-						unsigned int lowest_energy = 0;
-						for(unsigned int m=0; m<Ntop; m++)
-						{
-							if((average_sd2_N[3*(m+1)+2]>=1.0) && (lowest_energy<Ncream))
-							{
-								if((average_sd2_N[2]<4.0) || fabs(average(&average_sd2_N[0])-average(&average_sd2_N[3*(m+1)]))<2.0*mypars->stopstd)
-								{
-//									printf("Adding %f +/- %f (%i)\n",average(&average_sd2_N[3*(m+1)]),stddev(&average_sd2_N[3*(m+1)]),(unsigned int)average_sd2_N[3*(m+1)+2]);
-									average_sd2_N[0] += average_sd2_N[3*(m+1)];
-									average_sd2_N[1] += average_sd2_N[3*(m+1)+1];
-									average_sd2_N[2] += average_sd2_N[3*(m+1)+2];
-									lowest_energy++;
-								}
-							}
-						}
-//						printf("---\n");
-						if(lowest_energy>0)
-						{
-							curr_avg = average(&average_sd2_N[0]);
-							curr_std = stddev(&average_sd2_N[0]);
-							bestN = average_sd2_N[2];
-						}
-						if(curr_std<0.5f*mypars->stopstd)
-							thres_stddev = mypars->stopstd;
-						else
-							thres_stddev = curr_std;
-						threshold = curr_avg + Ncream * thres_stddev / bestN;
-						delta_energy = 2.0 * thres_stddev / (Ntop-1);
-					}
-				}
-				printf("%11u | %12lu |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/mypars->num_of_runs,threshold_used,curr_avg,curr_std,bestN,overall_best_energy);
-				fflush(stdout);
-				rolling[3*roll_count] = curr_avg * bestN;
-				rolling[3*roll_count+1] = (curr_std*curr_std + curr_avg*curr_avg)*bestN;
-				rolling[3*roll_count+2] = bestN;
-				roll_count = (roll_count + 1) % 4;
-				average_sd2_N[0] = rolling[0] + rolling[3] + rolling[6] + rolling[9];
-				average_sd2_N[1] = rolling[1] + rolling[4] + rolling[7] + rolling[10];
-				average_sd2_N[2] = rolling[2] + rolling[5] + rolling[8] + rolling[11];
-				// Finish when the std.dev. of the last 4 rounds is below 0.1 kcal/mol
-				if((stddev(&average_sd2_N[0])<mypars->stopstd) && (generation_cnt>30))
-				{
-					printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
-					printf("\n%43s evaluation after reaching\n%40.2f +/-%8.2f kcal/mol combined.\n%34i samples, best energy %8.2f kcal/mol.\n","Finished",average(&average_sd2_N[0]),stddev(&average_sd2_N[0]),(unsigned int)average_sd2_N[2],overall_best_energy);
-					fflush(stdout);
-					break;
-				}
+				bool finished = autostop.check_if_satisfactory(generation_cnt, energies_h.data(), total_evals);
+				if (finished) break; // Exit loop
 			}
-		}
-		else
-		{
+		} else {
 			//update progress bar (bar length is 50)
 			new_progress_cnt = (int) (progress/2.0+0.5);
 			if (new_progress_cnt > 50)
@@ -343,9 +212,10 @@ filled with clock() */
                 Kokkos::fence();
 		checkpoint(" ... Finished\n");
 
+		// Refine conformations to minimize energies
 		if (docking_params.lsearch_rate != 0.0f) {
 			if (strcmp(mypars->ls_method, "ad") == 0) {
-				// ADADELTA gradient descent to adjust conformations to minimize energies, (formerly kernel7)
+				// Use ADADELTA gradient descent (formerly kernel7)
 				checkpoint("K_LS_GRAD_ADADELTA");
 				if (generation_cnt % 2 == 0){
 					kokkos_gradient_minAD(even_generation, mypars, docking_params, consts);
@@ -394,7 +264,7 @@ filled with clock() */
 	}
 
 	// Process results
-	for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
+	for (unsigned long run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
 	{
 		arrange_result(populations_h.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, energies_h.data()+run_cnt*mypars->pop_size, mypars->pop_size);
 		make_resfiles(populations_h.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, 
