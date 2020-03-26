@@ -4,7 +4,7 @@
 
 // TODO - templatize ExSpace - ALS
 template<class Device>
-void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Device>& docking_params,Conform<Device>& conform, RotList<Device>& rotlist, IntraContrib<Device>& intracontrib, InterIntra<Device>& interintra, Intra<Device>& intra, Grads<Device>& grads, AxisCorrection<Device>& axis_correction)
+void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Device>& docking_params,Constants<Device>& consts)
 {
 	// Outer loop
         int league_size = docking_params.num_of_lsentities * mypars->num_of_runs;
@@ -105,9 +105,8 @@ void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingPar
         // (IEEE-754 single float has a precision of about 6 decimal digits)
         do {
 		// Calculating energy & gradient
-                kokkos_calc_energrad(team_member, docking_params, genotype,
-				conform, rotlist, intracontrib, interintra, intra, grads, axis_correction,
-                                energy, gradient);
+                kokkos_calc_energrad(team_member, docking_params, genotype, consts,
+                                     energy, gradient);
 
 		team_member.team_barrier();
 

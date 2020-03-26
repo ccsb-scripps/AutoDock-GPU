@@ -660,7 +660,7 @@ int tidx = team_member.team_rank();
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member, const DockingParams<Device>& docking_params,const float *genotype,const Conform<Device>& conform, const RotList<Device>& rotlist, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, const Grads<Device>& grads, const AxisCorrection<Device>& axis_correction, float& energy, float* gradient)
+KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member, const DockingParams<Device>& docking_params,const float *genotype,const Constants<Device>& consts, float& energy, float* gradient)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();
@@ -711,7 +711,7 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member,
 	Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords("calc_coords");
 	Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, (int)(docking_params.num_of_atoms)),
 	[=] (int& idx) {
-		kokkos_get_atom_pos(idx, conform, calc_coords);
+		kokkos_get_atom_pos(idx, consts.conform, calc_coords);
 	});
 
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -742,17 +742,17 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member,
 	// Loop over the rot bond list and carry out all the rotations
 	Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, docking_params.rotbondlist_length),
 	[=] (int& idx) {
-		kokkos_rotate_atoms(idx, conform, rotlist, run_id, genotype, genrot_movingvec, genrot_unitvec, calc_coords);
+		kokkos_rotate_atoms(idx, consts.conform, consts.rotlist, run_id, genotype, genrot_movingvec, genrot_unitvec, calc_coords);
 	});
 
 	team_member.team_barrier();
 
 	// CALCULATING INTERMOLECULAR GRADIENTS
-	kokkos_calc_intermolecular_gradients(team_member, docking_params, interintra, calc_coords,
+	kokkos_calc_intermolecular_gradients(team_member, docking_params, consts.interintra, calc_coords,
 			     partial_energies, gradient_inter_x, gradient_inter_y, gradient_inter_z);
 
 	// CALCULATING INTRAMOLECULAR GRADIENTS
-	kokkos_calc_intramolecular_gradients(team_member, docking_params, intracontrib, interintra, intra, calc_coords,
+	kokkos_calc_intramolecular_gradients(team_member, docking_params, consts.intracontrib, consts.interintra, consts.intra, calc_coords,
 			     partial_energies, gradient_intra_x, gradient_intra_y, gradient_intra_z);
 
 	team_member.team_barrier();
@@ -769,12 +769,12 @@ KOKKOS_INLINE_FUNCTION void kokkos_calc_energrad(const member_type& team_member,
 	team_member.team_barrier();
 
 	// Obtaining rotation-related gradients
-	kokkos_calc_rotation_gradients(team_member, docking_params, axis_correction,genrot_movingvec, genrot_unitvec, calc_coords, phi, theta, genrotangle, is_theta_gt_pi, gradient_inter_x, gradient_inter_y, gradient_inter_z, gradient_intra_x, gradient_intra_y, gradient_intra_z, gradient);
+	kokkos_calc_rotation_gradients(team_member, docking_params, consts.axis_correction,genrot_movingvec, genrot_unitvec, calc_coords, phi, theta, genrotangle, is_theta_gt_pi, gradient_inter_x, gradient_inter_y, gradient_inter_z, gradient_intra_x, gradient_intra_y, gradient_intra_z, gradient);
 
 	team_member.team_barrier();
 
 	// Obtaining torsion-related gradients
-	kokkos_calc_torsion_gradients(team_member, docking_params, grads, calc_coords, gradient_inter_x, gradient_inter_y, gradient_inter_z, gradient);
+	kokkos_calc_torsion_gradients(team_member, docking_params, consts.grads, calc_coords, gradient_inter_x, gradient_inter_y, gradient_inter_z, gradient);
 
 #if defined (CONVERT_INTO_ANGSTROM_RADIAN)
 	team_member.team_barrier();

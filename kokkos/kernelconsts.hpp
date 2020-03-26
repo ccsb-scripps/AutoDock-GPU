@@ -152,4 +152,28 @@ struct AxisCorrection
         };
 };
 
+template<class Device>
+struct Constants
+{
+        InterIntra<Device> interintra;
+        IntraContrib<Device> intracontrib;
+        Intra<Device> intra;
+        RotList<Device> rotlist;
+        Conform<Device> conform;
+        Grads<Device> grads;
+        AxisCorrection<Device> axis_correction;
+
+	// Copy from a host version
+        void deep_copy(Constants<HostType> consts_h)
+        {
+                interintra.deep_copy(consts_h.interintra);
+        	intracontrib.deep_copy(consts_h.intracontrib);
+        	intra.deep_copy(consts_h.intra);
+        	rotlist.deep_copy(consts_h.rotlist);
+        	conform.deep_copy(consts_h.conform);
+        	grads.deep_copy(consts_h.grads);
+        	axis_correction.deep_copy(consts_h.axis_correction);
+        };
+};
+
 #endif

@@ -4,7 +4,7 @@
 
 // TODO - templatize ExSpace - ALS
 template<class Device>
-void kokkos_gen_alg_eval_new(Generation<Device>& current, Generation<Device>& next, Dockpars* mypars,DockingParams<Device>& docking_params,GeneticParams& genetic_params,Conform<Device>& conform, RotList<Device>& rotlist, IntraContrib<Device>& intracontrib, InterIntra<Device>& interintra, Intra<Device>& intra)
+void kokkos_gen_alg_eval_new(Generation<Device>& current, Generation<Device>& next, Dockpars* mypars,DockingParams<Device>& docking_params,GeneticParams& genetic_params,Constants<Device>& consts)
 {
 	// Outer loop over mypars->pop_size * mypars->num_of_runs
         int league_size = mypars->pop_size * mypars->num_of_runs;
@@ -86,7 +86,7 @@ void kokkos_gen_alg_eval_new(Generation<Device>& current, Generation<Device>& ne
 			team_member.team_barrier();
 
 			// Get the current energy for each run
-			float energy = kokkos_calc_energy(team_member, docking_params,conform, rotlist, intracontrib, interintra, intra, offspring_genotype);
+			float energy = kokkos_calc_energy(team_member, docking_params, consts, offspring_genotype);
 
 			// Copy to global views
 			if( tidx == 0 ) {

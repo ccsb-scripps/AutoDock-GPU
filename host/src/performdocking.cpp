@@ -135,41 +135,21 @@ filled with clock() */
 	// Evals of runs on device (for kernel2)
 	Kokkos::View<int*,DeviceType> evals_of_runs("evals_of_runs",mypars->num_of_runs);
 
-	// Declare these constant arrays on host
-	InterIntra<HostType> interintra_h;
-        IntraContrib<HostType> intracontrib_h;
-        Intra<HostType> intra_h;
-        RotList<HostType> rotlist_h;
-        Conform<HostType> conform_h;
-	Grads<HostType> grads_h;
-	AxisCorrection<HostType> axis_correction_h;
+	// Declare the constant arrays on host and device
+	Constants<HostType> consts_h;
+	Constants<DeviceType> consts;
 
-	// Initialize them
+	// Initialize host constants
 	// WARNING - Changes myligand_reference !!! - ALS
 	if (kokkos_prepare_const_fields(myligand_reference, mypars, cpu_ref_ori_angles.data(),
-                                         interintra_h, intracontrib_h, intra_h, rotlist_h, conform_h, grads_h) == 1) {
+                                         consts_h.interintra, consts_h.intracontrib, consts_h.intra, consts_h.rotlist, consts_h.conform, consts_h.grads) == 1) {
                 return 1;
         }
 	kokkos_prepare_axis_correction(angle, dependence_on_theta, dependence_on_rotangle,
-                                        axis_correction_h);
+                                        consts_h.axis_correction);
 
-	// Declare on device
-        InterIntra<DeviceType> interintra;
-        IntraContrib<DeviceType> intracontrib;
-        Intra<DeviceType> intra;
-        RotList<DeviceType> rotlist;
-        Conform<DeviceType> conform;
-	Grads<DeviceType> grads;
-	AxisCorrection<DeviceType> axis_correction;
-
-	// Copy to device
-	interintra.deep_copy(interintra_h);
-	intracontrib.deep_copy(intracontrib_h);
-	intra.deep_copy(intra_h);
-	rotlist.deep_copy(rotlist_h);
-	conform.deep_copy(conform_h);
-	grads.deep_copy(grads_h);
-	axis_correction.deep_copy(axis_correction_h);
+	// Copy constants to device
+	consts.deep_copy(consts_h);
 
 	// Initialize DockingParams
         DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids);
@@ -200,13 +180,13 @@ filled with clock() */
         printf("\nExecution starts:\n\n");
 	clock_start_docking = clock();
 
-	// Perform the kernel formerly known as kernel1
+	// Get the energy of the initial population (formerly kernel1)
 	checkpoint("K_INIT");
-	kokkos_calc_init_pop(odd_generation, mypars, docking_params, conform, rotlist, intracontrib, interintra, intra);
+	kokkos_calc_init_pop(odd_generation, mypars, docking_params, consts);
 	Kokkos::fence();
 	checkpoint(" ... Finished\n");
 
-	// Perform sum_evals, formerly known as kernel2
+	// Reduction on the number of evaluations (formerly kernel2)
 	checkpoint("K_EVAL");
 	kokkos_sum_evals(mypars, docking_params, evals_of_runs);
 	Kokkos::fence();
@@ -340,11 +320,6 @@ filled with clock() */
 		}
 		else
 		{
-#ifdef DOCK_DEBUG
-			ite_cnt++;
-			printf("\nLGA iteration # %u\n", ite_cnt);
-			fflush(stdout);
-#endif
 			//update progress bar (bar length is 50)
 			new_progress_cnt = (int) (progress/2.0+0.5);
 			if (new_progress_cnt > 50)
@@ -358,28 +333,24 @@ filled with clock() */
 			}
 		}
 
-		// Perform the genetic algorithm formerly known as kernel4
+		// Get the next generation via the genetic algorithm (formerly kernel4)
 		checkpoint("K_GA_GENERATION");
 		if (generation_cnt % 2 == 0) { // Since we need 2 generations at any time, just alternate btw 2 mem allocations
-			kokkos_gen_alg_eval_new(odd_generation, even_generation, mypars, docking_params, genetic_params,
-					        conform, rotlist, intracontrib, interintra, intra);
+			kokkos_gen_alg_eval_new(odd_generation, even_generation, mypars, docking_params, genetic_params, consts);
 		} else {
-			kokkos_gen_alg_eval_new(even_generation, odd_generation, mypars, docking_params, genetic_params,
-                                                conform, rotlist, intracontrib, interintra, intra);
+			kokkos_gen_alg_eval_new(even_generation, odd_generation, mypars, docking_params, genetic_params, consts);
 		}
                 Kokkos::fence();
 		checkpoint(" ... Finished\n");
 
 		if (docking_params.lsearch_rate != 0.0f) {
 			if (strcmp(mypars->ls_method, "ad") == 0) {
-				// Perform the ADADELTA gradient descent, formerly known as kernel7
+				// ADADELTA gradient descent to adjust conformations to minimize energies, (formerly kernel7)
 				checkpoint("K_LS_GRAD_ADADELTA");
 				if (generation_cnt % 2 == 0){
-					kokkos_gradient_minAD(even_generation, mypars, docking_params,
-							      conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
+					kokkos_gradient_minAD(even_generation, mypars, docking_params, consts);
 				} else {
-					kokkos_gradient_minAD(odd_generation, mypars, docking_params,
-							      conform, rotlist, intracontrib, interintra, intra, grads, axis_correction);
+					kokkos_gradient_minAD(odd_generation, mypars, docking_params, consts);
 				}
 				Kokkos::fence();
 				checkpoint(" ... Finished\n");
@@ -388,7 +359,7 @@ filled with clock() */
 			}
 		}
 
-		// Perform sum_evals, formerly known as kernel2
+		// Reduction on the number of evaluations (formerly kernel2)
 		checkpoint("K_EVAL");
 	        kokkos_sum_evals(mypars, docking_params, evals_of_runs);
 	        Kokkos::fence();
