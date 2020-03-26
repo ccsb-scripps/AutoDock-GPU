@@ -140,7 +140,7 @@ odock: check-env-all $(SRC)
 	$(SRC) \
 	$(CFLAGS) \
 	-o $(BIN_DIR)/$(TARGET) \
-	$(NWI) $(OPT) $(DD) $(REP)
+	$(NWI) $(OPT) $(DD) $(REP) $(KOKKOS_OPTS)
 
 # Example
 # 1ac8: for testing gradients of translation and rotation genes

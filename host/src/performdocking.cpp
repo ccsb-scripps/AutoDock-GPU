@@ -136,6 +136,15 @@ filled with clock() */
         } else {
                 printf("\nOnly one local-search method available. Please set -lsmet ad\n\n"); return 1;
         }
+#if USE_GPU == 1
+	printf("\nUsing the GPU version.");
+#else
+#if USE_OMP == 1
+	printf("\nUsing the CPU version with OpenMP.");
+#else
+	printf("\nUsing the CPU version without OpenMP (serial).");
+#endif
+#endif
         printf("\nUsing NUM_OF_THREADS_PER_BLOCK = %d ", NUM_OF_THREADS_PER_BLOCK);
 
 

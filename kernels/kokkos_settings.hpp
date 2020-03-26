@@ -7,10 +7,11 @@
 using MemSpace = Kokkos::CudaSpace;
 using ExSpace = Kokkos::Cuda;
 #else
-using MemSpace = Kokkos::HostSpace;
 #if USE_OMP == 1
+using MemSpace = Kokkos::HostSpace;
 using ExSpace = Kokkos::OpenMP;
 #else
+using MemSpace = Kokkos::HostSpace;
 using ExSpace = Kokkos::Serial;
 #endif
 #endif
