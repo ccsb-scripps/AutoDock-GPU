@@ -97,10 +97,6 @@ filled with clock() */
 {
 	Liganddata myligand_reference;
 
-	size_t n_populations = mypars->num_of_runs * mypars->pop_size * GENOTYPE_LENGTH_IN_GLOBMEM;
-	size_t n_energies = mypars->pop_size * mypars->num_of_runs;
-	size_t n_prng_seeds;
-
 	unsigned long run_cnt;	/* int run_cnt; */
 	int generation_cnt;
 	double progress;
@@ -110,75 +106,34 @@ filled with clock() */
 
 	clock_t clock_start_docking, clock_stop_docking, clock_stop_program_before_clustering;
 
-	std::vector<float> cpu_populations(n_populations, 0.0f); // Populations, initialized to 0 (unnecessary? - ALS )
+	// Note - Kokkos views initialized to 0 by default
+	Kokkos::View<float*,HostType> populations_h(  "populations_h",   mypars->num_of_runs * mypars->pop_size * GENOTYPE_LENGTH_IN_GLOBMEM);
+	Kokkos::View<float*,HostType> energies_h(     "energies_h",      mypars->num_of_runs * mypars->pop_size);
+	Kokkos::View<int*,  HostType> evals_of_runs_h("evals_of_runs_h", mypars->num_of_runs);
 
-	std::vector<float> cpu_energies(n_energies); // Energies
 	std::vector<Ligandresult> cpu_result_ligands(mypars->num_of_runs); // Ligand results
 	std::vector<float> cpu_ref_ori_angles(mypars->num_of_runs*3); // Reference orientation angles
 
 	//generating initial populations and random orientation angles of reference ligand
 	//(ligand will be moved to origo and scaled as well)
 	myligand_reference = *myligand_init;
-	gen_initpop_and_reflig(mypars, cpu_populations.data(), cpu_ref_ori_angles.data(), &myligand_reference, mygrid);
-
-	//allocating memory in CPU for pseudorandom number generator seeds and
-	//generating them (seed for each thread during GA)
-	n_prng_seeds = mypars->pop_size * mypars->num_of_runs * NUM_OF_THREADS_PER_BLOCK;
-	std::vector<unsigned int> cpu_prng_seeds(n_prng_seeds);
+	gen_initpop_and_reflig(mypars, populations_h.data(), cpu_ref_ori_angles.data(), &myligand_reference, mygrid);
 
 	//genseed(time(NULL));	//initializing seed generator
 	genseed(0u);    // TEMPORARY: removing randomness for consistent debugging - ALS
 
-	for (int i=0; i<mypars->pop_size * mypars->num_of_runs*NUM_OF_THREADS_PER_BLOCK; i++)
-#if defined (REPRO)
-		cpu_prng_seeds[i] = 1u;
-#else
-		cpu_prng_seeds[i] = genseed(0u);
-#endif
-
-	//allocating memory in CPU for evaluation counters and initializing to 0
-	std::vector<int> cpu_evals_of_runs(mypars->num_of_runs, 0);
-
-	if (strcmp(mypars->ls_method, "ad") == 0) {
-		printf("\nLocal-search chosen method is ADADELTA (ad) because that is the only one available so far in the Kokkos version.");
-	} else {
-		printf("\nOnly one local-search method available. Please set -lsmet ad\n\n"); return 1;
-	}
-	printf("\nUsing NUM_OF_THREADS_PER_BLOCK = %d ", NUM_OF_THREADS_PER_BLOCK);
-
-	clock_start_docking = clock();
-
-	// Progress bar
-	if (mypars->autostop)
-	{
-		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation\nof the best molecules, %lu generations, or %lu evaluations, whichever comes first:\n\n",mypars->stopstd,mypars->num_of_generations,mypars->num_of_energy_evals);
-		printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
-		printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
-	}
-	else
-	{
-		printf("\nExecuting docking runs:\n");
-		printf("        20%%        40%%       60%%       80%%       100%%\n");
-		printf("---------+---------+---------+---------+---------+\n");
-	}
-
-	printf("\nExecution starts:\n\n");
-
 	// Initialize GeneticParams (broken out of docking params since they relate to the genetic algorithm, not the docking per se
 	GeneticParams genetic_params(mypars);
 
-	// Initialize the structs containing the two alternating generations
-	// Odd generation gets the initial population copied in
-	Generation<DeviceType> odd_generation(mypars->pop_size * mypars->num_of_runs, cpu_populations.data());
+	// Initialize the objects containing the two alternating generations
+	Generation<DeviceType> odd_generation(mypars->pop_size * mypars->num_of_runs);
 	Generation<DeviceType> even_generation(mypars->pop_size * mypars->num_of_runs);
+
+	// Odd generation gets the initial population copied in
+	Kokkos::deep_copy(odd_generation.conformations, populations_h);
 
 	// Evals of runs on device (for kernel2)
 	Kokkos::View<int*,DeviceType> evals_of_runs("evals_of_runs",mypars->num_of_runs);
-
-	// Wrap the C style arrays with an unmanaged kokkos view for easy deep copies (done after view initializations for easy sizing)
-        IntView1D evals_of_runs_view(cpu_evals_of_runs.data(), evals_of_runs.extent(0)); // Note this array was prexisting
-	FloatView1D energies_view(cpu_energies.data(), odd_generation.energies.extent(0));
-	FloatView1D final_populations_view(cpu_populations.data(), odd_generation.conformations.extent(0));
 
 	// Declare these constant arrays on host
 	InterIntra<HostType> interintra_h;
@@ -217,7 +172,33 @@ filled with clock() */
 	axis_correction.deep_copy(axis_correction_h);
 
 	// Initialize DockingParams
-        DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids, cpu_prng_seeds.data());
+        DockingParams<DeviceType> docking_params(myligand_reference, mygrid, mypars, cpu_floatgrids);
+
+	// Input notes
+	if (strcmp(mypars->ls_method, "ad") == 0) {
+                printf("\nLocal-search chosen method is ADADELTA (ad) because that is the only one available so far in the Kokkos version.");
+        } else {
+                printf("\nOnly one local-search method available. Please set -lsmet ad\n\n"); return 1;
+        }
+        printf("\nUsing NUM_OF_THREADS_PER_BLOCK = %d ", NUM_OF_THREADS_PER_BLOCK);
+
+	// Progress bar
+        if (mypars->autostop)
+        {
+                printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation\nof the best molecules, %lu generations, or %lu evaluations, whichever comes first:\n\n",mypars->stopstd,mypars->num_of_generations,mypars->num_of_energy_evals);
+                printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
+                printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
+        }
+        else
+        {
+                printf("\nExecuting docking runs:\n");
+                printf("        20%%        40%%       60%%       80%%       100%%\n");
+                printf("---------+---------+---------+---------+---------+\n");
+        }
+
+	//-----------------------------------------------------------------------------//
+        printf("\nExecution starts:\n\n");
+	clock_start_docking = clock();
 
 	// Perform the kernel formerly known as kernel1
 	checkpoint("K_INIT");
@@ -231,7 +212,7 @@ filled with clock() */
 	Kokkos::fence();
 	checkpoint(" ... Finished\n");
 
-	Kokkos::deep_copy(evals_of_runs_view, evals_of_runs);
+	Kokkos::deep_copy(evals_of_runs_h, evals_of_runs);
 
 	generation_cnt = 0;
 	curr_progress_cnt = 0;
@@ -255,12 +236,12 @@ filled with clock() */
 	unsigned int avg_arr_size = (Ntop+1)*3;
 	float average_sd2_N[avg_arr_size];
 	unsigned long total_evals;
-	while ((progress = check_progress(cpu_evals_of_runs.data(), generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
+	while ((progress = check_progress(evals_of_runs_h.data(), generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
 	{
 		if (mypars->autostop)
 		{
 			if (generation_cnt % 10 == 0) {
-				Kokkos::deep_copy(energies_view,odd_generation.energies);
+				Kokkos::deep_copy(energies_h,odd_generation.energies);
 				for(unsigned int count=0; (count<1+8*(generation_cnt==0)) && (fabs(curr_avg-prev_avg)>0.00001); count++)
 				{
 					threshold_used = threshold;
@@ -268,7 +249,7 @@ filled with clock() */
 					memset(&average_sd2_N[0],0,avg_arr_size*sizeof(float));
 					for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
 					{
-						energies = cpu_energies.data()+run_cnt*mypars->pop_size;
+						energies = energies_h.data()+run_cnt*mypars->pop_size;
 						for (unsigned int i=0; i<mypars->pop_size; i++)
 						{
 							float energy = energies[i];
@@ -414,7 +395,7 @@ filled with clock() */
 		checkpoint(" ... Finished\n");
 
 		// Copy evals back to CPU
-	        Kokkos::deep_copy(evals_of_runs_view, evals_of_runs);
+	        Kokkos::deep_copy(evals_of_runs_h, evals_of_runs);
 
 		generation_cnt++;
 	}
@@ -433,25 +414,25 @@ filled with clock() */
 
 	// Pull results back to CPU
 	if (generation_cnt % 2 == 0) {
-		Kokkos::deep_copy(final_populations_view,odd_generation.conformations);
-		Kokkos::deep_copy(energies_view,odd_generation.energies);
+		Kokkos::deep_copy(populations_h,odd_generation.conformations);
+		Kokkos::deep_copy(energies_h,odd_generation.energies);
 	}
 	else {
-		Kokkos::deep_copy(final_populations_view,even_generation.conformations);
-		Kokkos::deep_copy(energies_view,even_generation.energies);
+		Kokkos::deep_copy(populations_h,even_generation.conformations);
+		Kokkos::deep_copy(energies_h,even_generation.energies);
 	}
 
 	// Process results
 	for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
 	{
-		arrange_result(cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_energies.data()+run_cnt*mypars->pop_size, mypars->pop_size);
-		make_resfiles(cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, 
-			      cpu_energies.data()+run_cnt*mypars->pop_size, 
+		arrange_result(populations_h.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, energies_h.data()+run_cnt*mypars->pop_size, mypars->pop_size);
+		make_resfiles(populations_h.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, 
+			      energies_h.data()+run_cnt*mypars->pop_size, 
 			      &myligand_reference,
 			      myligand_init,
 			      myxrayligand, 
 			      mypars, 
-			      cpu_evals_of_runs[run_cnt], 
+			      evals_of_runs_h[run_cnt], 
 			      generation_cnt, 
 			      mygrid, 
 			      cpu_floatgrids, 

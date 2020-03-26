@@ -30,7 +30,7 @@ struct DockingParams
         unsigned int    max_num_of_iters;
 
 	// Constructor
-	DockingParams(const Liganddata& myligand_reference, const Gridinfo* mygrid, const Dockpars* mypars, float* cpu_floatgrids, unsigned int* cpu_prng_seeds)
+	DockingParams(const Liganddata& myligand_reference, const Gridinfo* mygrid, const Dockpars* mypars, float* cpu_floatgrids )
 		: fgrids("fgrids", 4 * (mygrid->num_of_atypes+2) * (mygrid->size_xyz[0]) * (mygrid->size_xyz[1]) * (mygrid->size_xyz[2])),
 		  evals_of_new_entities("evals_of_new_entities", mypars->pop_size * mypars->num_of_runs),
 		  prng_states("prng_states",mypars->pop_size * mypars->num_of_runs * NUM_OF_THREADS_PER_BLOCK)
@@ -68,8 +68,15 @@ struct DockingParams
 		FloatView1D fgrids_view(cpu_floatgrids, fgrids.extent(0));
 		Kokkos::deep_copy(fgrids, fgrids_view);
 
-                UnsignedIntView1D prng_view(cpu_prng_seeds, prng_states.extent(0));
-                Kokkos::deep_copy(prng_states, prng_view);
+		// Create the randomization seeds here and send them to device
+		Kokkos::View<unsigned int*,HostType> prng_seeds("prng_seeds",prng_states.extent(0)); // Could be mirror
+		for (int i=0; i<prng_seeds.extent(0); i++)
+#if defined (REPRO)
+                	prng_seeds(i) = 1u;
+#else
+                	prng_seeds(i) = genseed(0u);
+#endif
+                Kokkos::deep_copy(prng_states, prng_seeds);
 	}
 };
 
