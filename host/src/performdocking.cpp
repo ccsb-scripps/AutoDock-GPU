@@ -80,14 +80,7 @@ parameters argc and argv:
 		contains the state of the clock tick counter at the beginning of the program
 filled with clock() */
 {
-	Liganddata myligand_reference;
-
-	double progress;
-
-	int curr_progress_cnt;
-	int new_progress_cnt;
-
-	clock_t clock_start_docking, clock_stop_docking, clock_stop_program_before_clustering;
+	//------------------------------- SETUP --------------------------------------//
 
 	// Note - Kokkos views initialized to 0 by default
 	Kokkos::View<float*,HostType> populations_h(  "populations_h",   mypars->num_of_runs * mypars->pop_size * GENOTYPE_LENGTH_IN_GLOBMEM);
@@ -99,7 +92,7 @@ filled with clock() */
 
 	//generating initial populations and random orientation angles of reference ligand
 	//(ligand will be moved to origo and scaled as well)
-	myligand_reference = *myligand_init;
+	Liganddata myligand_reference = *myligand_init;
 	gen_initpop_and_reflig(mypars, populations_h.data(), cpu_ref_ori_angles.data(), &myligand_reference, mygrid);
 
 	//genseed(time(NULL));	//initializing seed generator
@@ -159,9 +152,9 @@ filled with clock() */
                 printf("---------+---------+---------+---------+---------+\n");
         }
 
-	//-----------------------------------------------------------------------------//
+	//----------------------------- EXECUTION ------------------------------------//
         printf("\nExecution starts:\n\n");
-	clock_start_docking = clock();
+	clock_t clock_start_docking = clock();
 
 	// Get the energy of the initial population (formerly kernel1)
 	checkpoint("K_INIT");
@@ -178,7 +171,8 @@ filled with clock() */
 	Kokkos::deep_copy(evals_of_runs_h, evals_of_runs);
 
 	int generation_cnt = 0; // Counter of while loop
-	curr_progress_cnt = 0;
+	int curr_progress_cnt = 0;
+	double progress;
 	unsigned long total_evals;
 	while ((progress = check_progress(evals_of_runs_h.data(), generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
 	{
@@ -190,7 +184,7 @@ filled with clock() */
 			}
 		} else {
 			//update progress bar (bar length is 50)
-			new_progress_cnt = (int) (progress/2.0+0.5);
+			int new_progress_cnt = (int) (progress/2.0+0.5);
 			if (new_progress_cnt > 50)
 				new_progress_cnt = 50;
 			while (curr_progress_cnt < new_progress_cnt) {
@@ -241,7 +235,7 @@ filled with clock() */
 		generation_cnt++;
 	}
 
-	clock_stop_docking = clock();
+	clock_t clock_stop_docking = clock();
 	if (mypars->autostop==0)
 	{
 		//update progress bar (bar length is 50)mem_num_of_rotatingatoms_per_rotbond_const
@@ -253,6 +247,8 @@ filled with clock() */
 	}
 	printf("\n\n");
 
+	//----------------------------- PROCESSING ------------------------------------//
+
 	// Pull results back to CPU
 	if (generation_cnt % 2 == 0) {
 		Kokkos::deep_copy(populations_h,odd_generation.conformations);
@@ -263,7 +259,7 @@ filled with clock() */
 		Kokkos::deep_copy(energies_h,even_generation.energies);
 	}
 
-	// Process results
+	// Arrange results and make res files
 	for (unsigned long run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
 	{
 		arrange_result(populations_h.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, energies_h.data()+run_cnt*mypars->pop_size, mypars->pop_size);
@@ -284,7 +280,9 @@ filled with clock() */
 			      run_cnt, 
 			      &(cpu_result_ligands [run_cnt]));
 	}
-	clock_stop_program_before_clustering = clock();
+
+	// Clustering analysis, generate .dlg output
+	clock_t clock_stop_program_before_clustering = clock();
 	clusanal_gendlg(cpu_result_ligands.data(), mypars->num_of_runs, myligand_init, mypars,
 					 mygrid, argc, argv, ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs,
 					 ELAPSEDSECS(clock_stop_program_before_clustering, clock_start_program),generation_cnt,total_evals/mypars->num_of_runs);
