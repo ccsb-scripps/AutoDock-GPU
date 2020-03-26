@@ -110,8 +110,7 @@ filled with clock() */
 
 	clock_t clock_start_docking, clock_stop_docking, clock_stop_program_before_clustering;
 
-	std::vector<float> cpu_populations(n_populations); // Populations
-	std::fill(cpu_populations.begin(), cpu_populations.end(), 0); // Initialize to 0 - Isnt this overwritten? - ALS
+	std::vector<float> cpu_populations(n_populations, 0.0f); // Populations, initialized to 0 (unnecessary? - ALS )
 
 	std::vector<float> cpu_energies(n_energies); // Energies
 	std::vector<Ligandresult> cpu_result_ligands(mypars->num_of_runs); // Ligand results
@@ -137,9 +136,8 @@ filled with clock() */
 		cpu_prng_seeds[i] = genseed(0u);
 #endif
 
-	//allocating memory in CPU for evaluation counters
-	std::vector<int> cpu_evals_of_runs(mypars->num_of_runs);
-	std::fill(cpu_evals_of_runs.begin(), cpu_evals_of_runs.end(), 0);
+	//allocating memory in CPU for evaluation counters and initializing to 0
+	std::vector<int> cpu_evals_of_runs(mypars->num_of_runs, 0);
 
 	if (strcmp(mypars->ls_method, "ad") == 0) {
 		printf("\nLocal-search chosen method is ADADELTA (ad) because that is the only one available so far in the Kokkos version.");
