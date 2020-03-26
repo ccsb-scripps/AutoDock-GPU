@@ -95,8 +95,8 @@ filled with clock() */
 	Liganddata myligand_reference = *myligand_init;
 	gen_initpop_and_reflig(mypars, populations_h.data(), cpu_ref_ori_angles.data(), &myligand_reference, mygrid);
 
-	//genseed(time(NULL));	//initializing seed generator
-	genseed(0u);    // TEMPORARY: removing randomness for consistent debugging - ALS
+	genseed(time(NULL));	//initializing seed generator
+	//genseed(0u);    // TEMPORARY: removing randomness for consistent debugging - ALS
 
 	// Initialize GeneticParams (broken out of docking params since they relate to the genetic algorithm, not the docking per se
 	GeneticParams genetic_params(mypars);
