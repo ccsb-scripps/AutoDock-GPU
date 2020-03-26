@@ -303,13 +303,21 @@ float partial_energies=0.0f;
                 // Calculating gradients in xyz components.
                 // Gradients for both atoms in a single contributor pair
                 // have the same magnitude, but opposite directions
-		Kokkos::atomic_add(&(gradient_intra_x[atom1_id]), -priv_intra_gradient_x);
+/*		Kokkos::atomic_add(&(gradient_intra_x[atom1_id]), -priv_intra_gradient_x); // - ALS
                 Kokkos::atomic_add(&(gradient_intra_y[atom1_id]), -priv_intra_gradient_y);
                 Kokkos::atomic_add(&(gradient_intra_z[atom1_id]), -priv_intra_gradient_z);
 
 		Kokkos::atomic_add(&(gradient_intra_x[atom2_id]), priv_intra_gradient_x);
                 Kokkos::atomic_add(&(gradient_intra_y[atom2_id]), priv_intra_gradient_y);
                 Kokkos::atomic_add(&(gradient_intra_z[atom2_id]), priv_intra_gradient_z);
+*/
+		gradient_intra_x[atom1_id] -= priv_intra_gradient_x;
+                gradient_intra_y[atom1_id] -= priv_intra_gradient_y;
+                gradient_intra_z[atom1_id] -= priv_intra_gradient_z;
+
+                gradient_intra_x[atom2_id] += priv_intra_gradient_x;
+                gradient_intra_y[atom2_id] += priv_intra_gradient_y;
+                gradient_intra_z[atom2_id] += priv_intra_gradient_z;
         }
 	energy+=partial_energies; // FIX ME - ALS
 }
@@ -653,7 +661,8 @@ int tidx = team_member.team_rank();
 
                 // Assignment of gene-based gradient
                 // - this works because a * (a_1 + a_2 + ... + a_n) = a*a_1 + a*a_2 + ... + a*a_n
-		Kokkos::atomic_add(&(gradient[rotbond_id+6]), torque_on_axis * DEG_TO_RAD);
+		//Kokkos::atomic_add(&(gradient[rotbond_id+6]), torque_on_axis * DEG_TO_RAD); - ALS
+		gradient[rotbond_id+6]+=torque_on_axis * DEG_TO_RAD;
 	}
 }
 
