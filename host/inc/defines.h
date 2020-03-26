@@ -29,7 +29,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define DEFINES_H_
 
 // If the number of threads per block isn't specified, set to 1 for now //let Kokkos choose
-#ifndef NUM_OF_THREADS_PER_BLOCK
+#ifdef NUM_OF_THREADS_PER_BLOCK
+#error SET NUM_OF_THREADS_PER_BLOCK TO 1, HIERARCHICAL PARALLELISM NOT READY YET
+#else
 //#define NUM_OF_THREADS_PER_BLOCK Kokkos::AUTO()
 #define NUM_OF_THREADS_PER_BLOCK 1
 #endif

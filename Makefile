@@ -43,6 +43,8 @@ else ifeq ($(DEVICE), GPU)
 	TARGET:=$(TARGET)_gpu
 endif
 
+KOKKOS_OPTS+=-DNUM_OF_THREADS_PER_BLOCK=$(NUM_OF_THREADS_PER_BLOCK)
+
 BIN := $(wildcard $(TARGET)*)
 
 
@@ -55,9 +57,9 @@ CONFIG=RELEASE
 #CONFIG=FDEBUG
 
 ifeq ($(CONFIG),FDEBUG)
-	OPT =-O0 -g3 -Wall -DDOCK_DEBUG
+	OPT =-O0 -g -Wall -DDOCK_DEBUG
 else ifeq ($(CONFIG),LDEBUG)
-	OPT =-O0 -g3 -Wall
+	OPT =-O0 -g -Wall
 else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
 else
