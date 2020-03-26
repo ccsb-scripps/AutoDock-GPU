@@ -261,7 +261,6 @@ void make_resfiles(float* final_population,
 	char* name_ext_start;
 	float accurate_interE [MAX_POPSIZE];
 	float accurate_intraE [MAX_POPSIZE];
-	float temp_genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
 
 	static float best_energy_of_all = 1000000000000;
 
