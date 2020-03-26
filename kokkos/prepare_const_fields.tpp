@@ -26,9 +26,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 template<class Device>
-int kokkos_prepare_const_fields(Liganddata& 	   		myligand_reference,
-				 Dockpars*   	   		mypars,
-				 float*      	   		cpu_ref_ori_angles,
+int kokkos_prepare_const_fields(Liganddata&			myligand_reference,
+				 Dockpars*			mypars,
+				 float*				cpu_ref_ori_angles,
                                  InterIntra<Device>& interintra,
                                  IntraContrib<Device>& intracontrib,
                                  Intra<Device>& intra,
@@ -47,8 +47,8 @@ int kokkos_prepare_const_fields(Liganddata& 	   		myligand_reference,
 //atom_types_const: stores the ligand atom type IDs according to myligand_reference.
 //		    Element i corresponds to atom with ID i in myligand_reference.
 //intraE_contributors_const: each three contiguous items describe an intramolecular contributor.
-//		         The first two elements store the atom ID of the contributors according to myligand_reference.
-//		         The third element is 0, if no H-bond can occur between the two atoms, and 1, if it can.
+//			 The first two elements store the atom ID of the contributors according to myligand_reference.
+//			 The third element is 0, if no H-bond can occur between the two atoms, and 1, if it can.
 //VWpars_AC_const: stores the A or C van der Waals parameters.
 //                 The element i*MAX_NUM_OF_ATYPES+j and j*MAX_NUM_OF_ATYPES+i corresponds to A or C in case of
 //		   H-bond for atoms with type ID i and j (according to myligand_reference).
@@ -68,7 +68,7 @@ int kokkos_prepare_const_fields(Liganddata& 	   		myligand_reference,
 //		 If bit 16 is 1, this is the first rotation of the atom.
 //		 If bit 17 is 1, this is a general rotation (so rotbond ID has to be ignored).
 //		 If bit 18 is 1, this is a "dummy" rotation, that is, no rotation can be performed in this cycle
-//	         (considering the other rotations which are being carried out in this period).
+//		 (considering the other rotations which are being carried out in this period).
 //ref_coords_x_const: stores the x coordinates of the reference ligand atoms.
 //		      Element i corresponds to the x coordinate of
 //					  atom with atom ID i (according to myligand_reference).
@@ -329,15 +329,15 @@ int kokkos_prepare_const_fields(Liganddata& 	   		myligand_reference,
 	for (m=0;m<3*MAX_INTRAE_CONTRIBUTORS;m++){ intracontrib.intraE_contributors_const[m] = intraE_contributors[m]; }
 
 	for (m=0;m<ATYPE_NUM;m++){
-		intra.reqm_const[m] 	    = 0.5*reqm[m];
+		intra.reqm_const[m]	    = 0.5*reqm[m];
 		intra.reqm_const[m+ATYPE_NUM]	    = reqm_hbond[m];
 	}
 	for (m=0;m<ATYPE_NUM;m++)				{ intra.atom1_types_reqm_const[m] = atom1_types_reqm[m]; }
 	for (m=0;m<ATYPE_NUM;m++)				{ intra.atom2_types_reqm_const[m] = atom2_types_reqm[m]; }
 	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++)	{ intra.VWpars_AC_const[m]        = VWpars_AC[m]; }
 	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++)	{ intra.VWpars_BD_const[m]        = VWpars_BD[m]; }
-	for (m=0;m<MAX_NUM_OF_ATYPES;m++)		   	{ intra.dspars_S_const[m]         = dspars_S[m]; }
-	for (m=0;m<MAX_NUM_OF_ATYPES;m++)		   	{ intra.dspars_V_const[m]         = dspars_V[m]; }
+	for (m=0;m<MAX_NUM_OF_ATYPES;m++)			{ intra.dspars_S_const[m]         = dspars_S[m]; }
+	for (m=0;m<MAX_NUM_OF_ATYPES;m++)			{ intra.dspars_V_const[m]         = dspars_V[m]; }
 
 	for (m=0;m<MAX_NUM_OF_ROTATIONS;m++) {
 		rotlist_out.rotlist_const[m]  = rotlist[m];
@@ -360,9 +360,9 @@ int kokkos_prepare_const_fields(Liganddata& 	   		myligand_reference,
 	// Added for calculating torsion-related gradients.
 	// Passing list of rotbond-atoms ids to the GPU.
 	// Contains the same information as processligand.h/Liganddata->rotbonds
-	for (m=0;m<2*MAX_NUM_OF_ROTBONDS;m++) 			{ grads.rotbonds[m] 			  = rotbonds[m]; }
-	for (m=0;m<MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS;m++) 	{ grads.rotbonds_atoms[m]                 = rotbonds_atoms[m]; }
-	for (m=0;m<MAX_NUM_OF_ROTBONDS;m++) 			{ grads.num_rotating_atoms_per_rotbond[m] = num_rotating_atoms_per_rotbond[m]; }
+	for (m=0;m<2*MAX_NUM_OF_ROTBONDS;m++)			{ grads.rotbonds[m]			  = rotbonds[m]; }
+	for (m=0;m<MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS;m++)	{ grads.rotbonds_atoms[m]                 = rotbonds_atoms[m]; }
+	for (m=0;m<MAX_NUM_OF_ROTBONDS;m++)			{ grads.num_rotating_atoms_per_rotbond[m] = num_rotating_atoms_per_rotbond[m]; }
 	return 0;
 }
 

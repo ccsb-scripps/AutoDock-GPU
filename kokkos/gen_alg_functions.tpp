@@ -170,7 +170,7 @@ KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const Gene
 
 template<class Device>
 KOKKOS_INLINE_FUNCTION void mutation(const member_type& team_member, const DockingParams<Device>& docking_params, const GeneticParams& genetic_params,
-		                     float* offspring_genotype)
+				     float* offspring_genotype)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();

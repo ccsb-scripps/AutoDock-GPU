@@ -16,9 +16,9 @@ void kokkos_gen_alg_eval_new(Generation<Device>& current, Generation<Device>& ne
                 int lidx = team_member.league_rank();
 
 		// This compute-unit is responsible for elitist selection
-	        if ((lidx % docking_params.pop_size) == 0) {
+		if ((lidx % docking_params.pop_size) == 0) {
 			perform_elitist_selection(team_member, current, next, docking_params);
-        	}else{
+		}else{
 			// Some local arrays
 			float offspring_genotype[ACTUAL_GENOTYPE_LENGTH];
 			float randnums[10];
@@ -27,9 +27,9 @@ void kokkos_gen_alg_eval_new(Generation<Device>& current, Generation<Device>& ne
 			int parents[2];
 			
 			// Generating the following random numbers:
-                	// [0..3] for parent candidates,
-                	// [4..5] for binary tournaments, [6] for deciding crossover,
-                	// [7..8] for crossover points, [9] for local search
+			// [0..3] for parent candidates,
+			// [4..5] for binary tournaments, [6] for deciding crossover,
+			// [7..8] for crossover points, [9] for local search
 			for (int gene_counter = tidx;
 				gene_counter < 10;
 				gene_counter+= team_member.team_size()) {
@@ -37,10 +37,10 @@ void kokkos_gen_alg_eval_new(Generation<Device>& current, Generation<Device>& ne
 			}
 
 			// Determine which run this team is doing
-        		int run_id;
-        		if (tidx == 0) {
-        		        run_id = lidx/docking_params.pop_size;
-        		}
+			int run_id;
+			if (tidx == 0) {
+				run_id = lidx/docking_params.pop_size;
+			}
 
 			team_member.team_barrier();
 
@@ -49,9 +49,9 @@ void kokkos_gen_alg_eval_new(Generation<Device>& current, Generation<Device>& ne
 			for (int parent_counter = tidx;
                               parent_counter < 4;
                               parent_counter+= team_member.team_size()){
-                        	parent_candidates[parent_counter]  = (int) (docking_params.pop_size*randnums[parent_counter]); //using randnums[0..3]
-                        	candidate_energies[parent_counter] = current.energies(run_id*docking_params.pop_size+parent_candidates[parent_counter]);
-                	}
+				parent_candidates[parent_counter]  = (int) (docking_params.pop_size*randnums[parent_counter]); //using randnums[0..3]
+				candidate_energies[parent_counter] = current.energies(run_id*docking_params.pop_size+parent_candidates[parent_counter]);
+			}
 
 			team_member.team_barrier();
 

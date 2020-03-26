@@ -28,18 +28,18 @@ class AutoStop{
 
 	inline float average(float* average_sd2_N)
 	{
-        	if(average_sd2_N[2]<1.0f)
-        	        return 0.0;
-        	return average_sd2_N[0]/average_sd2_N[2];
+		if(average_sd2_N[2]<1.0f)
+			return 0.0;
+		return average_sd2_N[0]/average_sd2_N[2];
 	}
 
 	inline float stddev(float* average_sd2_N)
 	{
-        	if(average_sd2_N[2]<1.0f)
-        	        return 0.0;
-        	float sq = average_sd2_N[1]*average_sd2_N[2]-average_sd2_N[0]*average_sd2_N[0];
-        	if((fabs(sq)<=0.000001) || (sq<0.0)) return 0.0;
-        	return sqrt(sq)/average_sd2_N[2];
+		if(average_sd2_N[2]<1.0f)
+			return 0.0;
+		float sq = average_sd2_N[1]*average_sd2_N[2]-average_sd2_N[0]*average_sd2_N[0];
+		if((fabs(sq)<=0.000001) || (sq<0.0)) return 0.0;
+		return sqrt(sq)/average_sd2_N[2];
 	}
 
 	public:
@@ -48,20 +48,20 @@ class AutoStop{
 		: rolling(4*3, 0), // Initialize to zero
 		  average_sd2_N((pop_size_in+1)*3)
 	{
-	        first_time = true;
-        	threshold = 1<<24;
-        	thres_stddev = threshold;
-        	curr_avg = -(1<<24);
-        	curr_std = thres_stddev;
-        	prev_avg = 0.0;
-        	roll_count = 0;
-        	bestN = 1;
-        	Ntop = pop_size_in;
+		first_time = true;
+		threshold = 1<<24;
+		thres_stddev = threshold;
+		curr_avg = -(1<<24);
+		curr_std = thres_stddev;
+		prev_avg = 0.0;
+		roll_count = 0;
+		bestN = 1;
+		Ntop = pop_size_in;
 		pop_size = pop_size_in;
 		num_of_runs = num_of_runs_in;
-        	Ncream = Ntop / 10;
-        	delta_energy = 2.0 * thres_stddev / Ntop;
-        	avg_arr_size = (Ntop+1)*3;
+		Ncream = Ntop / 10;
+		delta_energy = 2.0 * thres_stddev / Ntop;
+		avg_arr_size = (Ntop+1)*3;
 		stopstd = stopstd_in;
 	}
 

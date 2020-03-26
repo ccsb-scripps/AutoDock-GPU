@@ -48,7 +48,7 @@ int get_filenames_and_ADcoeffs(const int* argc,
 
 	//this model assumes the unbound conformation is EXTENDED, default if AD4.0
 	const AD4_free_energy_coeffs coeffs_extended = {0.1560,
-						        0.0974,
+							0.0974,
 							coeff_elec_scale_factor*0.1465,
 							0.1159,
 							0.2744};
@@ -124,8 +124,8 @@ int get_filenames_and_ADcoeffs(const int* argc,
 }
 
 void get_commandpars(const int* argc,
-		         char** argv,
-		        double* spacing,
+			 char** argv,
+			double* spacing,
 		      Dockpars* mypars)
 //The function processes the command line arguments given with the argc and argv parameters,
 //and fills the proper fields of mypars according to that. If a parameter was not defined
@@ -141,9 +141,9 @@ void get_commandpars(const int* argc,
 	//default values
 	mypars->num_of_energy_evals	= 2500000;
 	mypars->num_of_generations	= 27000;
-	mypars->abs_max_dmov		= 6.0/(*spacing); 	// +/-6A
-	mypars->abs_max_dang		= 90; 		// +/- 90°
-	mypars->mutation_rate		= 2; 		// 2%
+	mypars->abs_max_dmov		= 6.0/(*spacing);	// +/-6A
+	mypars->abs_max_dang		= 90;		// +/- 90°
+	mypars->mutation_rate		= 2;		// 2%
 	mypars->crossover_rate		= 80;		// 80%
 	mypars->lsearch_rate		= 80;		// 80%
 				    // unsigned long num_of_ls
@@ -177,7 +177,7 @@ void get_commandpars(const int* argc,
 	mypars->gen_best		= 0;
 	strcpy(mypars->resname, "docking");
 	mypars->qasp			= 0.01097f;
-	mypars->rmsd_tolerance 		= 2.0;			//2 Angstroem
+	mypars->rmsd_tolerance		= 2.0;			//2 Angstroem
 	strcpy(mypars->xrayligandfile, mypars->ligandfile);	// By default xray-ligand file is the same as the randomized input ligand
 	mypars->given_xrayligandfile	= false;		// That is, not given (explicitly by the user)
 	// ------------------------------------------
@@ -864,7 +864,7 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		// ref_ori_angles[3*i+2] = 0.0f;
 
 		// Enable for release.
-		// ref_ori_angles[3*i]   = (float) (myrand()*360.0); 	//phi
+		// ref_ori_angles[3*i]   = (float) (myrand()*360.0);	//phi
 		// ref_ori_angles[3*i+1] = (float) (myrand()*180.0);	//theta
 		// ref_ori_angles[3*i+2] = (float) (myrand()*360.0);	//angle
 
@@ -913,7 +913,7 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		//ref_ori_angles[3*i+1] = 0.25f;
 		//ref_ori_angles[3*i+2] = 0.0f;
 //#else
-		ref_ori_angles[3*i]   = ((float) rand()/ (float) RAND_MAX); 	// u1
+		ref_ori_angles[3*i]   = ((float) rand()/ (float) RAND_MAX);	// u1
 		ref_ori_angles[3*i+1] = ((float) rand()/ (float) RAND_MAX);	// u2
 		ref_ori_angles[3*i+2] = ((float) rand()/ (float) RAND_MAX);	// u3
 		//printf("u1, u2, u3: %10f %10f %10f \n", ref_ori_angles[3*i], ref_ori_angles[3*i+1], ref_ori_angles[3*i+2]);

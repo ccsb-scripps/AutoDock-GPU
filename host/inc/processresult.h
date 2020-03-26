@@ -41,8 +41,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 typedef struct
 {
 	Liganddata reslig_realcoord;
-	float 	   interE;
-	float 	   interE_elec;
+	float	   interE;
+	float	   interE_elec;
 	float      intraE;
 	float      peratom_vdw  [MAX_NUM_OF_ATOMS];
 	float      peratom_elec [MAX_NUM_OF_ATOMS];
@@ -55,53 +55,53 @@ typedef struct
 
 
 void arrange_result(    float*    final_population,
-		        float*    energies,
-		    const int 	  pop_size);
+			float*    energies,
+		    const int	  pop_size);
 
 void write_basic_info(            FILE* fp,
 		      const Liganddata* ligand_ref,
 		      const Dockpars*   mypars,
 		      const Gridinfo*   mygrid,
 		      const int*        argc,
-		           char**       argv);
+			   char**       argv);
 
 void write_basic_info_dlg(	      FILE* fp,
 			  const Liganddata* ligand_ref,
 			  const Dockpars*   mypars,
 			  const Gridinfo*   mygrid,
 			  const int*        argc,
-			  	char**      argv);
+				char**      argv);
 
 void make_resfiles(	      float* final_population,
-		   	      float* energies,
+			      float* energies,
 		   const Liganddata* ligand_ref,
                    const Liganddata* ligand_from_pdb,
 		   const Liganddata* ligand_xray,
 		   const Dockpars*   mypars,
-		   		int  evals_performed,
-                   		int  generations_used,
+				int  evals_performed,
+				int  generations_used,
                    const Gridinfo*   mygrid,
                    const float*      grids,
-                   	      float* cpu_ref_ori_angles,
-                   const int* 	     argc,
-		   	      char** argv,
-		   		int  debug,
-		   		int  run_cnt,
+			      float* cpu_ref_ori_angles,
+                   const int*	     argc,
+			      char** argv,
+				int  debug,
+				int  run_cnt,
 		   Ligandresult* best_result);
 
 void cluster_analysis(     Ligandresult myresults [],
-		                    int num_of_runs,
-		                  char* report_file_name,
+				    int num_of_runs,
+				  char* report_file_name,
 		      const Liganddata* ligand_ref,
 		      const Dockpars* mypars,
 		      const Gridinfo* mygrid,
 		      const int*      argc,
-		            char**    argv,
+			    char**    argv,
 		      const double    docking_avg_runtime,
 		      const double    program_runtime);
 
 void clusanal_gendlg(Ligandresult myresults [],
-		                  int  num_of_runs,
+				  int  num_of_runs,
 		     const Liganddata* ligand_ref,
 		     const Dockpars*   mypars,
                      const Gridinfo*   mygrid,

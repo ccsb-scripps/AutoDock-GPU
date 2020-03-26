@@ -44,44 +44,44 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // the evaluation counters and the random number generator states.
 typedef struct
 {
-	char  	 	num_of_atoms;
-	char   		num_of_atypes;
-	int    		num_of_intraE_contributors;
-	char   		gridsize_x;
-	char   		gridsize_y;
-	char   		gridsize_z;
-	float  		grid_spacing;
-	float* 		fgrids;
-	int    		rotbondlist_length;
-	float  		coeff_elec;
-	float  		coeff_desolv;
-	float* 		conformations_current;
-	float* 		energies_current;
-	float* 		conformations_next;
-	float* 		energies_next;
-	int*   		evals_of_new_entities;
-	unsigned int* 	prng_states;
-	int    		pop_size;
-	int    		num_of_genes;
-	float  		tournament_rate;
-	float  		crossover_rate;
-	float  		mutation_rate;
-	float  		abs_max_dmov;
-	float  		abs_max_dang;
-	float  		lsearch_rate;
-	float 		smooth;
-	unsigned int 	num_of_lsentities;
-	float  		rho_lower_bound;
-	float  		base_dmov_mul_sqrt3;
-	float  		base_dang_mul_sqrt3;
-	unsigned int 	cons_limit;
-	unsigned int 	max_num_of_iters;
-	float  		qasp;
+	char		num_of_atoms;
+	char		num_of_atypes;
+	int		num_of_intraE_contributors;
+	char		gridsize_x;
+	char		gridsize_y;
+	char		gridsize_z;
+	float		grid_spacing;
+	float*		fgrids;
+	int		rotbondlist_length;
+	float		coeff_elec;
+	float		coeff_desolv;
+	float*		conformations_current;
+	float*		energies_current;
+	float*		conformations_next;
+	float*		energies_next;
+	int*		evals_of_new_entities;
+	unsigned int*	prng_states;
+	int		pop_size;
+	int		num_of_genes;
+	float		tournament_rate;
+	float		crossover_rate;
+	float		mutation_rate;
+	float		abs_max_dmov;
+	float		abs_max_dang;
+	float		lsearch_rate;
+	float		smooth;
+	unsigned int	num_of_lsentities;
+	float		rho_lower_bound;
+	float		base_dmov_mul_sqrt3;
+	float		base_dang_mul_sqrt3;
+	unsigned int	cons_limit;
+	unsigned int	max_num_of_iters;
+	float		qasp;
 } Dockparameters;
 
 void make_reqrot_ordering(char number_of_req_rotations[MAX_NUM_OF_ATOMS],
 			  char atom_id_of_numrots[MAX_NUM_OF_ATOMS],
-		          int  num_of_atoms);
+			  int  num_of_atoms);
 
 int gen_rotlist(Liganddata& myligand,
 		int         rotlist[MAX_NUM_OF_ROTATIONS]);

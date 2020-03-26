@@ -234,7 +234,7 @@ void make_resfiles(float* final_population,
 		   const Liganddata* ligand_from_pdb,
 		   const Liganddata* ligand_xray,
 		   const Dockpars* mypars, 
-		         int evals_performed, 
+			 int evals_performed, 
 			 int generations_used, 
 		   const Gridinfo* mygrid, 
 		   const float* grids,
@@ -518,7 +518,7 @@ void cluster_analysis(Ligandresult myresults [], int num_of_runs, char* report_f
 			if (myresults [j].clus_id == i)
 			{
 				fprintf(fp, "  %3d |   %3d   | %3d |  %15.3lf |  %15.3lf |  %15.3lf |  %15.3lf |     %4.2lf     |      %4.2lf      |\n", (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number,
-						(myresults [j]).interE, (myresults [j]).intraE, torsional_energy, (myresults [j]).interE + /*(myresults [j]).intraE +*/ torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref); 	//intraE can be commented when unbound_same_as_bound
+						(myresults [j]).interE, (myresults [j]).intraE, torsional_energy, (myresults [j]).interE + /*(myresults [j]).intraE +*/ torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);	//intraE can be commented when unbound_same_as_bound
 			}
 	}
 
@@ -805,12 +805,12 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 		for (j=0; j<num_of_runs; j++)
 			if (myresults [j].clus_id == i+1)
 			{
-	            if (myresults[j].interE + torsional_energy > 999999.99)
-	                fprintf(fp, "%4d   %4d   %4d  %+10.2e  %8.2f  %8.2f           RANKING\n", (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number,
-	                		myresults[j].interE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
-	            else
-	            	fprintf(fp, "%4d   %4d   %4d  %+10.2f  %8.2f  %8.2f           RANKING\n", (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number,
-	                		myresults[j].interE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
+		    if (myresults[j].interE + torsional_energy > 999999.99)
+			fprintf(fp, "%4d   %4d   %4d  %+10.2e  %8.2f  %8.2f           RANKING\n", (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number,
+					myresults[j].interE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
+		    else
+			fprintf(fp, "%4d   %4d   %4d  %+10.2f  %8.2f  %8.2f           RANKING\n", (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number,
+					myresults[j].interE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
 			}
 	}
 
@@ -839,8 +839,8 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 		for (j=0; j<num_of_runs; j++)
 			if (myresults [j].clus_id == i+1)
 			{
-	            fprintf(fp_xml, "\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
-	            		(myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number, myresults[j].interE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
+		    fprintf(fp_xml, "\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
+				(myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number, myresults[j].interE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
 			}
 	}
 	fprintf(fp_xml, "\t</rmsd_table>\n");

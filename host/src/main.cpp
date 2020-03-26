@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
 {
 	Kokkos::initialize();
 
-	Gridinfo 	 mygrid;
+	Gridinfo	 mygrid;
 	Liganddata myligand_init;
 	Dockpars   mypars;
 	float*     floatgrids;

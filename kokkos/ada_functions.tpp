@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 template<class Device>
 KOKKOS_INLINE_FUNCTION void genotype_gradient_descent(const member_type& team_member, const DockingParams<Device>& docking_params, float* gradient,
-		             float* square_gradient, float* square_delta, float* genotype)
+			     float* square_gradient, float* square_delta, float* genotype)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();
@@ -46,7 +46,7 @@ KOKKOS_INLINE_FUNCTION void genotype_gradient_descent(const member_type& team_me
 
                 // Computing update (eq.9 in the paper)
                 float delta = -1.0f * gradient[i] * sqrt( (float)(square_delta[i] + EPSILON) /
-					               (float)(square_gradient[i] + EPSILON));
+						       (float)(square_gradient[i] + EPSILON));
 
                 // Accummulating update^2
                 // square_delta corresponds to E[dx^2]

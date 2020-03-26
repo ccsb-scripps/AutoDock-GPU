@@ -210,7 +210,7 @@ void rotate(double point [], const double movvec [], const double normvec [], co
 
 	if (debug == 1)
 		printf("q*v (w,x,y,z): %lf, %lf, %lf, %lf\n",
-		        quatrot_temp.q, quatrot_temp.x, quatrot_temp.y, quatrot_temp.z);
+			quatrot_temp.q, quatrot_temp.x, quatrot_temp.y, quatrot_temp.z);
 
 	point [0] = quatrot_temp.q*quatrot_right.x +
 		    quatrot_temp.x*quatrot_right.q +
@@ -358,7 +358,7 @@ void rotate_shoemake(double point [],
 
 	if (debug == 1)
 		printf("q*v (w,x,y,z): %lf, %lf, %lf, %lf\n",
-		        quatrot_temp.q, quatrot_temp.x, quatrot_temp.y, quatrot_temp.z);
+			quatrot_temp.q, quatrot_temp.x, quatrot_temp.y, quatrot_temp.z);
 
 	point [0] = quatrot_temp.q*quatrot_right.x +
 		    quatrot_temp.x*quatrot_right.q +

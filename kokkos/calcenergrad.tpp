@@ -86,8 +86,8 @@ float partial_energies=0.0f;
                 }
                 // Getting coordinates
 		uint x_low  = (uint)floor(x);
-	        uint y_low  = (uint)floor(y);
-        	uint z_low  = (uint)floor(z);
+		uint y_low  = (uint)floor(y);
+		uint z_low  = (uint)floor(z);
 
                 float dx = x - x_low;
                 float omdx = 1.0f - dx;
@@ -425,7 +425,7 @@ int tidx = team_member.team_rank();
                   atom_cnt < docking_params.num_of_atoms;
                   atom_cnt+= team_member.team_size()) {
                 float4struct r = calc_coords[atom_cnt] - genrot_movingvec;
-	        r.x = r.x * docking_params.grid_spacing;
+		r.x = r.x * docking_params.grid_spacing;
 		r.y = r.y * docking_params.grid_spacing;
 		r.z = r.z * docking_params.grid_spacing;
                 // Re-using "gradient_inter_*" for total gradient (inter+intra)

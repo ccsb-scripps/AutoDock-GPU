@@ -120,7 +120,7 @@ struct Grads
         Kokkos::View<int[MAX_NUM_OF_ROTBONDS],Device> num_rotating_atoms_per_rotbond;
 
         Grads() : rotbonds("rotbonds"),
-       		  rotbonds_atoms("rotbonds_atoms"),
+		  rotbonds_atoms("rotbonds_atoms"),
 		  num_rotating_atoms_per_rotbond("num_rotating_atoms_per_rotbond") {};
 
         // Copy from a host version
@@ -140,7 +140,7 @@ struct AxisCorrection
         Kokkos::View<float[NUM_AXIS_CORRECTION],Device> dependence_on_rotangle;
         
         AxisCorrection() : angle("angle"),
-       			   dependence_on_theta("dependence_on_theta"),
+			   dependence_on_theta("dependence_on_theta"),
 			   dependence_on_rotangle("dependence_on_rotangle")	{};
         
         // Copy from a host version
@@ -167,12 +167,12 @@ struct Constants
         void deep_copy(Constants<HostType> consts_h)
         {
                 interintra.deep_copy(consts_h.interintra);
-        	intracontrib.deep_copy(consts_h.intracontrib);
-        	intra.deep_copy(consts_h.intra);
-        	rotlist.deep_copy(consts_h.rotlist);
-        	conform.deep_copy(consts_h.conform);
-        	grads.deep_copy(consts_h.grads);
-        	axis_correction.deep_copy(consts_h.axis_correction);
+		intracontrib.deep_copy(consts_h.intracontrib);
+		intra.deep_copy(consts_h.intra);
+		rotlist.deep_copy(consts_h.rotlist);
+		conform.deep_copy(consts_h.conform);
+		grads.deep_copy(consts_h.grads);
+		axis_correction.deep_copy(consts_h.axis_correction);
         };
 };
 

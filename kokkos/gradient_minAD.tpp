@@ -21,36 +21,36 @@ void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingPar
 
 		float energy;
 
-	        if (tidx == 0)
-        	{
-                	run_id = lidx / docking_params.num_of_lsentities;
-                	entity_id = lidx - run_id * docking_params.num_of_lsentities; // modulus in different form
+		if (tidx == 0)
+		{
+			run_id = lidx / docking_params.num_of_lsentities;
+			entity_id = lidx - run_id * docking_params.num_of_lsentities; // modulus in different form
 
-                	// Since entity 0 is the best one due to elitism,
-                	// it should be subjected to random selection
-                	if (entity_id == 0) {
-                	        // If entity 0 is not selected according to LS-rate,
-                	        // choosing another entity
-                	        if (100.0f*rand_float(team_member, docking_params) > docking_params.lsearch_rate) {
-                	                entity_id = docking_params.num_of_lsentities; // AT - Should this be (uint)(dockpars_pop_size * gpu_randf(dockpars_prng_states))?
-                	        }
-                	}
+			// Since entity 0 is the best one due to elitism,
+			// it should be subjected to random selection
+			if (entity_id == 0) {
+				// If entity 0 is not selected according to LS-rate,
+				// choosing another entity
+				if (100.0f*rand_float(team_member, docking_params) > docking_params.lsearch_rate) {
+					entity_id = docking_params.num_of_lsentities; // AT - Should this be (uint)(dockpars_pop_size * gpu_randf(dockpars_prng_states))?
+				}
+			}
 
 			gpop_idx = run_id*docking_params.pop_size+entity_id; // global population index
 
 			// Get current energy
-                	energy = next.energies(gpop_idx);
+			energy = next.energies(gpop_idx);
 
 #if defined (PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION)
-                	printf("\n-------> Start of ADADELTA minimization cycle\n");
-                	printf("%20s %6u\n", "run_id: ", run_id);
-                	printf("%20s %6u\n", "entity_id: ", entity_id);
-                	printf("\n%20s \n", "LGA genotype: ");
-                	printf("%20s %.6f\n", "initial energy: ", energy);
+			printf("\n-------> Start of ADADELTA minimization cycle\n");
+			printf("%20s %6u\n", "run_id: ", run_id);
+			printf("%20s %6u\n", "entity_id: ", entity_id);
+			printf("\n%20s \n", "LGA genotype: ");
+			printf("%20s %.6f\n", "initial energy: ", energy);
 #endif
-        	}
+		}
 
-        	team_member.team_barrier();
+		team_member.team_barrier();
 
 		// FIX ME Copy this genotype to local memory, maybe unnecessary, maybe parallelizable - ALS
                 float genotype[ACTUAL_GENOTYPE_LENGTH];
@@ -60,19 +60,19 @@ void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingPar
 
 		team_member.team_barrier();
 
-	        // Initializing best genotype and energy
+		// Initializing best genotype and energy
 		float best_genotype[ACTUAL_GENOTYPE_LENGTH];
-	        for(uint i = tidx; i < docking_params.num_of_genes; i+= team_member.team_size()) {
-	                best_genotype [i] = genotype [i];
-	        }
+		for(uint i = tidx; i < docking_params.num_of_genes; i+= team_member.team_size()) {
+			best_genotype [i] = genotype [i];
+		}
 		float best_energy;
-	        if (tidx == 0) {
-	                best_energy = INFINITY; // Why isnt this set to energy? - ALS
-	        }
+		if (tidx == 0) {
+			best_energy = INFINITY; // Why isnt this set to energy? - ALS
+		}
 
 		// Initializing variable arrays for gradient descent
 		float square_gradient[ACTUAL_GENOTYPE_LENGTH];
-	        float square_delta[ACTUAL_GENOTYPE_LENGTH];
+		float square_delta[ACTUAL_GENOTYPE_LENGTH];
 		for(uint i = tidx; i < ACTUAL_GENOTYPE_LENGTH; i+= team_member.team_size()) {
                         square_gradient[i]=0;
 			square_delta[i]=0;
@@ -85,19 +85,19 @@ void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingPar
 			iteration_cnt  = 0;
 		}
 #ifdef AD_RHO_CRITERION
-        	float rho;
-        	int   cons_succ;
-        	int   cons_fail;
-        	if (tidx == 0) {
-                	rho = 1.0f; 
-                	cons_succ = 0;
-                	cons_fail = 0;
-        	}
+		float rho;
+		int   cons_succ;
+		int   cons_fail;
+		if (tidx == 0) {
+			rho = 1.0f; 
+			cons_succ = 0;
+			cons_fail = 0;
+		}
 #endif
 
 		team_member.team_barrier();
 
-	        // Perform adadelta iterations
+		// Perform adadelta iterations
 		float gradient[ACTUAL_GENOTYPE_LENGTH];
         // The termination criteria is based on
         // a maximum number of iterations, and
@@ -113,9 +113,9 @@ void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingPar
 		// we need to be careful not to change best_energy until we had a chance to update the whole array
 		if (energy < best_energy){
 			for(uint i = tidx;
-                	         i < docking_params.num_of_genes;
-                	         i+= team_member.team_size()) {
-                	         best_genotype[i] = genotype[i];
+				 i < docking_params.num_of_genes;
+				 i+= team_member.team_size()) {
+				 best_genotype[i] = genotype[i];
 			}
 		}
 
@@ -142,8 +142,8 @@ void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingPar
                                 rho *= LS_EXP_FACTOR;
                                 cons_succ = 0;
                         } else if (cons_fail >= 4) {
-                        	rho *= LS_CONT_FACTOR;
-                        	cons_fail = 0;
+				rho *= LS_CONT_FACTOR;
+				cons_fail = 0;
                         }
 		}
 #endif
@@ -169,13 +169,13 @@ void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingPar
 	// Descent complete
 	// -----------------------------------------------------------------------------
 
-	        // Modulo torsion angles
-        	for (uint gene_counter = tidx+3;
-        	          gene_counter < docking_params.num_of_genes;
-        	          gene_counter+= team_member.team_size()) {
+		// Modulo torsion angles
+		for (uint gene_counter = tidx+3;
+			  gene_counter < docking_params.num_of_genes;
+			  gene_counter+= team_member.team_size()) {
                         while (best_genotype[gene_counter] >= 360.0f) { best_genotype[gene_counter] -= 360.0f; }
                         while (best_genotype[gene_counter] < 0.0f   ) { best_genotype[gene_counter] += 360.0f; }
-        	}
+		}
 
 		team_member.team_barrier();
 

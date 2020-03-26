@@ -51,14 +51,14 @@ inline void checkpoint(const char* input)
 #endif
 }
 
-int docking_with_gpu(const Gridinfo*  	 	mygrid,
-	         /*const*/ float*      		cpu_floatgrids,
-                           Dockpars*   		mypars,
-		     const Liganddata* 		myligand_init,
-		     const Liganddata* 		myxrayligand,
-		     const int*        		argc,
-		           char**      		argv,
-		           clock_t     		clock_start_program)
+int docking_with_gpu(const Gridinfo*		mygrid,
+		 /*const*/ float*		cpu_floatgrids,
+                           Dockpars*		mypars,
+		     const Liganddata*		myligand_init,
+		     const Liganddata*		myxrayligand,
+		     const int*			argc,
+			   char**		argv,
+			   clock_t		clock_start_program)
 /* The function performs the docking algorithm and generates the corresponding result files.
 parameter mygrid:
 		describes the grid
@@ -225,12 +225,12 @@ filled with clock() */
 
 		// Reduction on the number of evaluations (formerly kernel2)
 		checkpoint("K_EVAL");
-	        kokkos_sum_evals(mypars, docking_params, evals_of_runs);
-	        Kokkos::fence();
+		kokkos_sum_evals(mypars, docking_params, evals_of_runs);
+		Kokkos::fence();
 		checkpoint(" ... Finished\n");
 
 		// Copy evals back to CPU
-	        Kokkos::deep_copy(evals_of_runs_h, evals_of_runs);
+		Kokkos::deep_copy(evals_of_runs_h, evals_of_runs);
 
 		generation_cnt++;
 	}

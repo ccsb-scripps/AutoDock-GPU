@@ -56,10 +56,10 @@ struct DockingParams
 		num_of_genes  = myligand_reference.num_of_rotbonds + 6;
 		lsearch_rate    = mypars->lsearch_rate;
 		if (lsearch_rate != 0.0f)
-        	{
-                	num_of_lsentities = (unsigned int) (mypars->lsearch_rate/100.0*mypars->pop_size + 0.5);
-                	max_num_of_iters  = (unsigned int) mypars->max_num_of_iters;
-        	}
+		{
+			num_of_lsentities = (unsigned int) (mypars->lsearch_rate/100.0*mypars->pop_size + 0.5);
+			max_num_of_iters  = (unsigned int) mypars->max_num_of_iters;
+		}
 
 		// Note kokkos views are initialized to zero by default
 
@@ -72,9 +72,9 @@ struct DockingParams
 		Kokkos::View<unsigned int*,HostType> prng_seeds("prng_seeds",prng_states.extent(0)); // Could be mirror
 		for (int i=0; i<prng_seeds.extent(0); i++)
 #if defined (REPRO)
-                	prng_seeds(i) = 1u;
+			prng_seeds(i) = 1u;
 #else
-                	prng_seeds(i) = genseed(0u);
+			prng_seeds(i) = genseed(0u);
 #endif
                 Kokkos::deep_copy(prng_states, prng_seeds);
 	}

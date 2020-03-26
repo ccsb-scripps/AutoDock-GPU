@@ -134,7 +134,7 @@ int init_liganddata(const char* ligfilename,
 }
 
 int set_liganddata_typeid(Liganddata* myligand,
-			  int 	      atom_id,
+			  int	      atom_id,
 			  const char* typeof_new_atom)
 //The function sets the type index of the atom_id-th atom of myligand (in atom_idxyzq field),
 //that is, it looks for the row in the atom_types field of myligand which is the same as
@@ -633,8 +633,8 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 
 	//cdW well depth (kcal/mol) in case of hydrogen bond
 	double eps_hbond [ATYPE_NUM] = {
-					0.0, 1.0, 1.0, 0.0, 0.0, 	//HD and HS value is 1 so that it is not necessary to decide which atom_typeid
-					0.0, 5.0, 5.0, 5.0, 5.0, 	//corresponds to the hydrogen when reading eps_hbond...
+					0.0, 1.0, 1.0, 0.0, 0.0,	//HD and HS value is 1 so that it is not necessary to decide which atom_typeid
+					0.0, 5.0, 5.0, 5.0, 5.0,	//corresponds to the hydrogen when reading eps_hbond...
 					0.0, 0.0, 0.0, 1.0, 0.0,
 					0.0, 0.0, 0.0, 0.0, 0.0,
 					0.0, 0.0,
@@ -1564,9 +1564,9 @@ void change_conform_f(Liganddata* myligand,
 			printf("according to general rotation\n");
 
 		rotate_shoemake(&(myligand->atom_idxyzq[atom_id][1]),
-	  		        genrot_movvec,
-		       		refori_shoemake,
-		       		debug);		//rotating to reference oritentation
+				genrot_movvec,
+				refori_shoemake,
+				debug);		//rotating to reference oritentation
 
 		rotate_shoemake(&(myligand->atom_idxyzq[atom_id][1]),
 			       genrot_movvec,
@@ -1791,7 +1791,7 @@ float calc_interE_f(const Gridinfo*   mygrid,
 }
 
 void calc_interE_peratom_f(const Gridinfo* mygrid,
-	                   const Liganddata* myligand,
+			   const Liganddata* myligand,
 			   const float* fgrids,
 			   float  outofgrid_tolerance,
 			   float* elecE,
@@ -2126,13 +2126,13 @@ float calc_intraE_f(const Liganddata* myligand,
 
 // Corrected host "calc_intraE_f" function after smoothing was added
 float calc_intraE_f(const Liganddata* myligand,
-		          float       dcutoff,
-		          float       smooth,
-		          char        ignore_desolv,
+			  float       dcutoff,
+			  float       smooth,
+			  char        ignore_desolv,
 		    const float       scaled_AD4_coeff_elec,
 		    const float       AD4_coeff_desolv,
 		    const float       qasp, 
-		          int         debug)
+			  int         debug)
 //The function calculates the intramolecular energy of the ligand given by the first parameter,
 //and returns it as a double. The second parameter is the distance cutoff, if the third isn't 0,
 //desolvation energy won't be included by the energy value, the fourth indicates if messages
@@ -2206,7 +2206,7 @@ float calc_intraE_f(const Liganddata* myligand,
 				// reqm: equilibrium internuclear separation
 				//       (sum of the vdW radii of two like atoms (A)) in the case of vdW
 				// reqm_hbond: equilibrium internuclear separation
-				// 	 (sum of the vdW radii of two like atoms (A)) in the case of hbond
+				//	 (sum of the vdW radii of two like atoms (A)) in the case of hbond
 				float opt_distance;
 
 				if (is_H_bond(myligand->atom_types [type_id1], myligand->atom_types [type_id2]) != 0)	//H-bond

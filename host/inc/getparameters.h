@@ -91,11 +91,11 @@ typedef struct
 } Dockpars;
 
 int get_filenames_and_ADcoeffs(const int*,
-			           char**,
+				   char**,
 				Dockpars*);
 
 void get_commandpars(const int*,
-		         char**,
+			 char**,
 			double*,
 		      Dockpars*);
 

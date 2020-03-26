@@ -14,10 +14,10 @@ void kokkos_calc_init_pop(Generation<Device>& current, Dockpars* mypars,DockingP
                 int lidx = team_member.league_rank();
 
 		// FIX ME Copy this genotype to local memory, maybe unnecessary, maybe parallelizable - ALS
-        	float genotype[ACTUAL_GENOTYPE_LENGTH];
-        	for (int i_geno = 0; i_geno<ACTUAL_GENOTYPE_LENGTH; i_geno++) {
-        	        genotype[i_geno] = current.conformations(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*lidx);
-        	}
+		float genotype[ACTUAL_GENOTYPE_LENGTH];
+		for (int i_geno = 0; i_geno<ACTUAL_GENOTYPE_LENGTH; i_geno++) {
+			genotype[i_geno] = current.conformations(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*lidx);
+		}
 
 		// Get the current energy for each run
 		float energy = kokkos_calc_energy(team_member, docking_params, consts, genotype);
