@@ -2,7 +2,7 @@
 
 // TODO - templatize ExSpace - ALS
 template<class Device>
-void kokkos_calc_init_pop(Generation<Device>& current, Dockpars* mypars,DockingParams<Device>& docking_params,Constants<Device>& consts)
+void calc_init_pop(Generation<Device>& current, Dockpars* mypars,DockingParams<Device>& docking_params,Constants<Device>& consts)
 {
 	// Outer loop over mypars->pop_size * mypars->num_of_runs
         int league_size = mypars->pop_size * mypars->num_of_runs;
@@ -20,7 +20,7 @@ void kokkos_calc_init_pop(Generation<Device>& current, Dockpars* mypars,DockingP
 		}
 
 		// Get the current energy for each run
-		float energy = kokkos_calc_energy(team_member, docking_params, consts, genotype);
+		float energy = calc_energy(team_member, docking_params, consts, genotype);
 
 		// Copy to global views
                 if( tidx == 0 ) {

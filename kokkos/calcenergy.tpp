@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define FAST_ACOS_f  0.370388f
 #define FAST_ACOS_o -(FAST_ACOS_a+FAST_ACOS_b+FAST_ACOS_c+FAST_ACOS_d)
 
-KOKKOS_INLINE_FUNCTION float kokkos_fast_acos(float cosine)
+KOKKOS_INLINE_FUNCTION float fast_acos(float cosine)
 {
         float x=fabs(cosine);
         float x2=x*x;
@@ -42,12 +42,12 @@ KOKKOS_INLINE_FUNCTION float kokkos_fast_acos(float cosine)
         return copysign(ac,cosine) + (cosine<0.0f)*PI_FLOAT;
 }
 
-KOKKOS_INLINE_FUNCTION float kokkos_fmod_two_pi(float x)
+KOKKOS_INLINE_FUNCTION float fmod_two_pi(float x)
 {
         return x-(int)(INV_TWO_PI*x)*PI_TIMES_2;
 }
 
-KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_cross(const float4struct a, const float4struct b)
+KOKKOS_INLINE_FUNCTION float4struct quaternion_cross(const float4struct a, const float4struct b)
 {
 	float4struct result;
 	result.x = a.y * b.z - a.z * b.y;
@@ -57,7 +57,7 @@ KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_cross(const float4struct a
 	return result;
 }
 
-KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_multiply(const float4struct a, const float4struct b)
+KOKKOS_INLINE_FUNCTION float4struct quaternion_multiply(const float4struct a, const float4struct b)
 {
 	float4struct result;
 	result.x = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y;
@@ -67,10 +67,10 @@ KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_multiply(const float4struc
 	return result;
 }
 
-KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_rotate(const float4struct v, const float4struct rot)
+KOKKOS_INLINE_FUNCTION float4struct quaternion_rotate(const float4struct v, const float4struct rot)
 {
-	float4struct qcross = kokkos_quaternion_cross(rot,v);
-	float4struct qcross2 = kokkos_quaternion_cross(rot,qcross);
+	float4struct qcross = quaternion_cross(rot,v);
+	float4struct qcross2 = quaternion_cross(rot,qcross);
 	float4struct result;
 	result.x = v.x + 2.0f*qcross.x*rot.w + 2.0f*qcross2.x;
 	result.y = v.y + 2.0f*qcross.y*rot.w + 2.0f*qcross2.y;
@@ -80,7 +80,7 @@ KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_rotate(const float4struct 
 }
 
 // TODO Is there a faster norm? - ALS
-KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_normalize(const float4struct v)
+KOKKOS_INLINE_FUNCTION float4struct quaternion_normalize(const float4struct v)
 {
 	float norm = 1.0f/sqrt(pow(v.x,2) + pow(v.y,2) + pow(v.z,2));
         float4struct result;
@@ -91,19 +91,19 @@ KOKKOS_INLINE_FUNCTION float4struct kokkos_quaternion_normalize(const float4stru
         return result;
 }
 
-KOKKOS_INLINE_FUNCTION float kokkos_quaternion_dot(const float4struct a, const float4struct b)
+KOKKOS_INLINE_FUNCTION float quaternion_dot(const float4struct a, const float4struct b)
 {
         return (a.x*b.x + a.y*b.y + a.z*b.z);
 }
 
-KOKKOS_INLINE_FUNCTION float kokkos_quaternion_length(const float4struct v)
+KOKKOS_INLINE_FUNCTION float quaternion_length(const float4struct v)
 {
         return sqrt(pow(v.x,2) + pow(v.y,2) + pow(v.z,2));
 }
 
 // trilinear interpolation
 template<class Device>
-KOKKOS_INLINE_FUNCTION float kokkos_trilinear_interp(Kokkos::View<float*,Device> fgrids, const int i, const float* weights)
+KOKKOS_INLINE_FUNCTION float trilinear_interp(Kokkos::View<float*,Device> fgrids, const int i, const float* weights)
 {
 	return (fgrids(i+idx_000)*weights[idx_000] +
 		fgrids(i+idx_010)*weights[idx_010] +
@@ -117,7 +117,7 @@ KOKKOS_INLINE_FUNCTION float kokkos_trilinear_interp(Kokkos::View<float*,Device>
 
 // gradient - move this and the above functions to a different file - ALS
 template<class Device>
-KOKKOS_INLINE_FUNCTION float4struct kokkos_spatial_gradient(Kokkos::View<float*,Device> fgrids, const int i,
+KOKKOS_INLINE_FUNCTION float4struct spatial_gradient(Kokkos::View<float*,Device> fgrids, const int i,
 		const float dx,const float dy,const float dz, const float omdx,const float omdy,const float omdz)
 {
 	float4struct result;
@@ -132,7 +132,7 @@ KOKKOS_INLINE_FUNCTION float4struct kokkos_spatial_gradient(Kokkos::View<float*,
 
 // GETTING ATOMIC POSITIONS
 template<class Device>
-KOKKOS_INLINE_FUNCTION void kokkos_get_atom_pos(const int atom_id, const Conform<Device>& conform, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)
+KOKKOS_INLINE_FUNCTION void get_atom_pos(const int atom_id, const Conform<Device>& conform, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)
 {
         // Initializing gradients (forces)
         // Derived from autodockdev/maps.py
@@ -145,7 +145,7 @@ KOKKOS_INLINE_FUNCTION void kokkos_get_atom_pos(const int atom_id, const Conform
 
 // CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 template<class Device>
-KOKKOS_INLINE_FUNCTION void kokkos_rotate_atoms(const int rotation_counter, const Conform<Device>& conform, const RotList<Device>& rotlist, const int run_id, const float* genotype, const float4struct& genrot_movingvec, const float4struct& genrot_unitvec, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)
+KOKKOS_INLINE_FUNCTION void rotate_atoms(const int rotation_counter, const Conform<Device>& conform, const RotList<Device>& rotlist, const int run_id, const float* genotype, const float4struct& genrot_movingvec, const float4struct& genrot_unitvec, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)
 {
         int rotation_list_element = rotlist.rotlist_const(rotation_counter);
                 
@@ -193,11 +193,11 @@ KOKKOS_INLINE_FUNCTION void kokkos_rotate_atoms(const int rotation_counter, cons
 			ref_orientation.y = conform.ref_orientation_quats_const(rid4+1);
 			ref_orientation.z = conform.ref_orientation_quats_const(rid4+2);
 			ref_orientation.w = conform.ref_orientation_quats_const(rid4+3);
-                        quatrot_left = kokkos_quaternion_multiply(quatrot_left, ref_orientation);
+                        quatrot_left = quaternion_multiply(quatrot_left, ref_orientation);
                 }
                 
                 // Performing final movement and storing values
-                calc_coords(atom_id) = kokkos_quaternion_rotate(atom_to_rotate,quatrot_left) + rotation_movingvec;
+                calc_coords(atom_id) = quaternion_rotate(atom_to_rotate,quatrot_left) + rotation_movingvec;
                 
         }
 }
@@ -205,7 +205,7 @@ KOKKOS_INLINE_FUNCTION void kokkos_rotate_atoms(const int rotation_counter, cons
 
 // CALCULATING INTERMOLECULAR ENERGY
 template<class Device>
-KOKKOS_INLINE_FUNCTION float kokkos_calc_intermolecular_energy(const int atom_id, const DockingParams<Device>& dock_params, const InterIntra<Device>& interintra, const Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)
+KOKKOS_INLINE_FUNCTION float calc_intermolecular_energy(const int atom_id, const DockingParams<Device>& dock_params, const InterIntra<Device>& interintra, const Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)
 {
 	float partial_energy = 0.0f;
 
@@ -248,28 +248,28 @@ KOKKOS_INLINE_FUNCTION float kokkos_calc_intermolecular_energy(const int atom_id
 	unsigned long mul_tmp = atom_typeid*dock_params.g3<<2;
 
 	// Calculating affinity energy
-	partial_energy += kokkos_trilinear_interp(dock_params.fgrids, grid_ind_000+mul_tmp, weights);
+	partial_energy += trilinear_interp(dock_params.fgrids, grid_ind_000+mul_tmp, weights);
 
 	// Capturing electrostatic values
 	atom_typeid = dock_params.num_of_atypes;
 
 	mul_tmp = atom_typeid*dock_params.g3<<2;
 	// Calculating electrostatic energy
-	partial_energy += q * kokkos_trilinear_interp(dock_params.fgrids, grid_ind_000+mul_tmp, weights);
+	partial_energy += q * trilinear_interp(dock_params.fgrids, grid_ind_000+mul_tmp, weights);
 
 	// Capturing desolvation values
 	atom_typeid = dock_params.num_of_atypes+1;
 
 	mul_tmp = atom_typeid*dock_params.g3<<2;
 	// Calculating desolvation energy
-	partial_energy += fabs(q) * kokkos_trilinear_interp(dock_params.fgrids, grid_ind_000+mul_tmp, weights);
+	partial_energy += fabs(q) * trilinear_interp(dock_params.fgrids, grid_ind_000+mul_tmp, weights);
 
 	return partial_energy;
 }
 
 // CALCULATING INTRAMOLECULAR ENERGY
 template<class Device>
-KOKKOS_INLINE_FUNCTION float kokkos_calc_intramolecular_energy(const int contributor_counter, const DockingParams<Device>& dock_params, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)
+KOKKOS_INLINE_FUNCTION float calc_intramolecular_energy(const int contributor_counter, const DockingParams<Device>& dock_params, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)
 {
         float partial_energy = 0.0f;
         float delta_distance = 0.5f*dock_params.smooth;
@@ -365,7 +365,7 @@ KOKKOS_INLINE_FUNCTION float kokkos_calc_intramolecular_energy(const int contrib
 }
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION float kokkos_calc_energy(const member_type& team_member, const DockingParams<Device>& docking_params,const Constants<Device>& consts, const float* genotype)
+KOKKOS_INLINE_FUNCTION float calc_energy(const member_type& team_member, const DockingParams<Device>& docking_params,const Constants<Device>& consts, const float* genotype)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();
@@ -384,7 +384,7 @@ KOKKOS_INLINE_FUNCTION float kokkos_calc_energy(const member_type& team_member, 
 	Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords("calc_coords");
 	Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, (int)(docking_params.num_of_atoms)),
 	[=] (int& idx) {
-		kokkos_get_atom_pos(idx, consts.conform, calc_coords);
+		get_atom_pos(idx, consts.conform, calc_coords);
 	});
 
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -413,7 +413,7 @@ KOKKOS_INLINE_FUNCTION float kokkos_calc_energy(const member_type& team_member, 
 	// Loop over the rot bond list and carry out all the rotations
 	Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, docking_params.rotbondlist_length),
 	[=] (int& idx) {
-		kokkos_rotate_atoms(idx, consts.conform, consts.rotlist, run_id, genotype, genrot_movingvec, genrot_unitvec, calc_coords);
+		rotate_atoms(idx, consts.conform, consts.rotlist, run_id, genotype, genrot_movingvec, genrot_unitvec, calc_coords);
 	});
 
 	team_member.team_barrier();
@@ -423,7 +423,7 @@ KOKKOS_INLINE_FUNCTION float kokkos_calc_energy(const member_type& team_member, 
 	// loop over atoms
 	Kokkos::parallel_reduce (Kokkos::TeamThreadRange (team_member, (int)(docking_params.num_of_atoms)),
 	[=] (int& idx, float& l_energy_inter) {
-		l_energy_inter += kokkos_calc_intermolecular_energy(idx, docking_params, consts.interintra, calc_coords);
+		l_energy_inter += calc_intermolecular_energy(idx, docking_params, consts.interintra, calc_coords);
 	}, energy_inter);
 
 	// CALCULATING INTRAMOLECULAR ENERGY
@@ -431,7 +431,7 @@ KOKKOS_INLINE_FUNCTION float kokkos_calc_energy(const member_type& team_member, 
 	// loop over intraE contributors
 	Kokkos::parallel_reduce (Kokkos::TeamThreadRange (team_member, docking_params.num_of_intraE_contributors),
 	[=] (int& idx, float& l_energy_intra) {
-		l_energy_intra += kokkos_calc_intramolecular_energy(idx, docking_params, consts.intracontrib, consts.interintra, consts.intra, calc_coords);
+		l_energy_intra += calc_intramolecular_energy(idx, docking_params, consts.intracontrib, consts.interintra, consts.intra, calc_coords);
 	}, energy_intra);
 
 	team_member.team_barrier();

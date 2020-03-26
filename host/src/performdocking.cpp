@@ -117,11 +117,11 @@ filled with clock() */
 
 	// Initialize host constants
 	// WARNING - Changes myligand_reference !!! - ALS
-	if (kokkos_prepare_const_fields(myligand_reference, mypars, cpu_ref_ori_angles.data(),
+	if (prepare_const_fields(myligand_reference, mypars, cpu_ref_ori_angles.data(),
                                          consts_h.interintra, consts_h.intracontrib, consts_h.intra, consts_h.rotlist, consts_h.conform, consts_h.grads) == 1) {
                 return 1;
         }
-	kokkos_prepare_axis_correction(angle, dependence_on_theta, dependence_on_rotangle,
+	prepare_axis_correction(angle, dependence_on_theta, dependence_on_rotangle,
                                         consts_h.axis_correction);
 
 	// Copy constants to device
@@ -158,13 +158,13 @@ filled with clock() */
 
 	// Get the energy of the initial population (formerly kernel1)
 	checkpoint("K_INIT");
-	kokkos_calc_init_pop(odd_generation, mypars, docking_params, consts);
+	calc_init_pop(odd_generation, mypars, docking_params, consts);
 	Kokkos::fence();
 	checkpoint(" ... Finished\n");
 
 	// Reduction on the number of evaluations (formerly kernel2)
 	checkpoint("K_EVAL");
-	kokkos_sum_evals(mypars, docking_params, evals_of_runs);
+	sum_evals(mypars, docking_params, evals_of_runs);
 	Kokkos::fence();
 	checkpoint(" ... Finished\n");
 
@@ -199,9 +199,9 @@ filled with clock() */
 		// Get the next generation via the genetic algorithm (formerly kernel4)
 		checkpoint("K_GA_GENERATION");
 		if (generation_cnt % 2 == 0) { // Since we need 2 generations at any time, just alternate btw 2 mem allocations
-			kokkos_gen_alg_eval_new(odd_generation, even_generation, mypars, docking_params, genetic_params, consts);
+			gen_alg_eval_new(odd_generation, even_generation, mypars, docking_params, genetic_params, consts);
 		} else {
-			kokkos_gen_alg_eval_new(even_generation, odd_generation, mypars, docking_params, genetic_params, consts);
+			gen_alg_eval_new(even_generation, odd_generation, mypars, docking_params, genetic_params, consts);
 		}
                 Kokkos::fence();
 		checkpoint(" ... Finished\n");
@@ -212,9 +212,9 @@ filled with clock() */
 				// Use ADADELTA gradient descent (formerly kernel7)
 				checkpoint("K_LS_GRAD_ADADELTA");
 				if (generation_cnt % 2 == 0){
-					kokkos_gradient_minAD(even_generation, mypars, docking_params, consts);
+					gradient_minAD(even_generation, mypars, docking_params, consts);
 				} else {
-					kokkos_gradient_minAD(odd_generation, mypars, docking_params, consts);
+					gradient_minAD(odd_generation, mypars, docking_params, consts);
 				}
 				Kokkos::fence();
 				checkpoint(" ... Finished\n");
@@ -225,7 +225,7 @@ filled with clock() */
 
 		// Reduction on the number of evaluations (formerly kernel2)
 		checkpoint("K_EVAL");
-		kokkos_sum_evals(mypars, docking_params, evals_of_runs);
+		sum_evals(mypars, docking_params, evals_of_runs);
 		Kokkos::fence();
 		checkpoint(" ... Finished\n");
 

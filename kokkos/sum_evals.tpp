@@ -1,6 +1,6 @@
 // TODO - templatize ExSpace - ALS
 template<class Device>
-void kokkos_sum_evals(Dockpars* mypars,DockingParams<Device>& docking_params,Kokkos::View<int*,DeviceType> evals_of_runs)
+void sum_evals(Dockpars* mypars,DockingParams<Device>& docking_params,Kokkos::View<int*,DeviceType> evals_of_runs)
 {
         // Outer loop over mypars->num_of_runs
         int league_size = mypars->num_of_runs;

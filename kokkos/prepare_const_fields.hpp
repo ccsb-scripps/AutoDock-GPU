@@ -38,7 +38,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "calcenergy.h"
 
 template<class Device>
-int kokkos_prepare_const_fields(Liganddata&			myligand_reference,
+int prepare_const_fields(Liganddata&			myligand_reference,
 				 Dockpars*			mypars,
 				 float*				cpu_ref_ori_angles,
 				 InterIntra<Device>& interintra,
@@ -49,7 +49,7 @@ int kokkos_prepare_const_fields(Liganddata&			myligand_reference,
 				 Grads<Device>& grads);
 
 template<class Device>
-void kokkos_prepare_axis_correction( float* angle, float* dependence_on_theta, float* dependence_on_rotangle,
+void prepare_axis_correction( float* angle, float* dependence_on_theta, float* dependence_on_rotangle,
                                  AxisCorrection<Device>& axis_correction);
 
 #include "prepare_const_fields.tpp"
