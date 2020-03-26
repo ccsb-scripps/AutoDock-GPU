@@ -1,6 +1,9 @@
 #ifndef CALCENERGY_HPP
 #define CALCENERGY_HPP
 
+// View type on scratch memory that is used in energy and gradient calculations
+typedef Kokkos::View<float4struct[MAX_NUM_OF_ATOMS],ScratchSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> Coordinates;
+
 template<class Device>
 KOKKOS_INLINE_FUNCTION void get_atom_pos(const int atom_id, const Conform<Device>& conform, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords);
 

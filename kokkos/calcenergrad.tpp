@@ -52,7 +52,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "calcenergy.hpp"
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_intermolecular_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const InterIntra<Device>& interintra, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords, float& energy, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z)
+KOKKOS_INLINE_FUNCTION void calc_intermolecular_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const InterIntra<Device>& interintra, Coordinates calc_coords, float& energy, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z)
 {
 // Get team and league ranks
 int tidx = team_member.team_rank();
@@ -184,7 +184,7 @@ float partial_energies=0.0f;
 }
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_intramolecular_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords, float& energy, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z)
+KOKKOS_INLINE_FUNCTION void calc_intramolecular_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, Coordinates calc_coords, float& energy, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z)
 {
 // Get team and league ranks
 int tidx = team_member.team_rank();
@@ -405,7 +405,7 @@ int tidx = team_member.team_rank();
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_rotation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const AxisCorrection<Device>& axis_correction,float4struct& genrot_movingvec, float4struct& genrot_unitvec, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords, const float phi, const float theta, const float genrotangle, const bool is_theta_gt_pi, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z, float* gradient)
+KOKKOS_INLINE_FUNCTION void calc_rotation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const AxisCorrection<Device>& axis_correction,float4struct& genrot_movingvec, float4struct& genrot_unitvec, Coordinates calc_coords, const float phi, const float theta, const float genrotangle, const bool is_theta_gt_pi, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z, float* gradient)
 {
 int tidx = team_member.team_rank();
 	// Transform gradients_inter_{x|y|z}
@@ -614,7 +614,7 @@ int tidx = team_member.team_rank();
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_torsion_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const Grads<Device>& grads, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, float* gradient)
+KOKKOS_INLINE_FUNCTION void calc_torsion_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const Grads<Device>& grads, Coordinates calc_coords, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, float* gradient)
 {
 int tidx = team_member.team_rank();
 	int num_torsion_genes = docking_params.num_of_genes-6;
@@ -660,7 +660,7 @@ int tidx = team_member.team_rank();
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const DockingParams<Device>& docking_params,const float *genotype,const Constants<Device>& consts, float& energy, float* gradient)
+KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const DockingParams<Device>& docking_params,const float *genotype,const Constants<Device>& consts, Coordinates calc_coords, float& energy, float* gradient)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();
@@ -707,8 +707,6 @@ KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const 
         }
 
 	// GETTING ATOMIC POSITIONS
-	// ALS - This view needs to be in scratch space FIX ME
-	Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords("calc_coords");
 	Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, (int)(docking_params.num_of_atoms)),
 	[=] (int& idx) {
 		get_atom_pos(idx, consts.conform, calc_coords);

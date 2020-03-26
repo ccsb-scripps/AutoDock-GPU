@@ -34,6 +34,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define NUM_OF_THREADS_PER_BLOCK 1
 #endif
 
+// Which level of memory team scratch is placed in. 0 is kilobytes (L1), 1 is a few gigabytes, 2 is generally node capacity
+#ifndef KOKKOS_TEAM_SCRATCH_OPT
+#define KOKKOS_TEAM_SCRATCH_OPT 0
+#endif
+
 // Indexes of atomic types used in
 // host/src/processligand.cpp/get_VWpars(),
 // and kernel energy & gradient calculation.

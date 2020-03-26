@@ -132,7 +132,7 @@ KOKKOS_INLINE_FUNCTION float4struct spatial_gradient(Kokkos::View<float*,Device>
 
 // GETTING ATOMIC POSITIONS
 template<class Device>
-KOKKOS_INLINE_FUNCTION void get_atom_pos(const int atom_id, const Conform<Device>& conform, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)
+KOKKOS_INLINE_FUNCTION void get_atom_pos(const int atom_id, const Conform<Device>& conform, Coordinates calc_coords)
 {
         // Initializing gradients (forces)
         // Derived from autodockdev/maps.py
@@ -145,7 +145,7 @@ KOKKOS_INLINE_FUNCTION void get_atom_pos(const int atom_id, const Conform<Device
 
 // CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 template<class Device>
-KOKKOS_INLINE_FUNCTION void rotate_atoms(const int rotation_counter, const Conform<Device>& conform, const RotList<Device>& rotlist, const int run_id, const float* genotype, const float4struct& genrot_movingvec, const float4struct& genrot_unitvec, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)
+KOKKOS_INLINE_FUNCTION void rotate_atoms(const int rotation_counter, const Conform<Device>& conform, const RotList<Device>& rotlist, const int run_id, const float* genotype, const float4struct& genrot_movingvec, const float4struct& genrot_unitvec, Coordinates calc_coords)
 {
         int rotation_list_element = rotlist.rotlist_const(rotation_counter);
                 
@@ -205,7 +205,7 @@ KOKKOS_INLINE_FUNCTION void rotate_atoms(const int rotation_counter, const Confo
 
 // CALCULATING INTERMOLECULAR ENERGY
 template<class Device>
-KOKKOS_INLINE_FUNCTION float calc_intermolecular_energy(const int atom_id, const DockingParams<Device>& dock_params, const InterIntra<Device>& interintra, const Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)
+KOKKOS_INLINE_FUNCTION float calc_intermolecular_energy(const int atom_id, const DockingParams<Device>& dock_params, const InterIntra<Device>& interintra, const Coordinates calc_coords)
 {
 	float partial_energy = 0.0f;
 
@@ -269,7 +269,7 @@ KOKKOS_INLINE_FUNCTION float calc_intermolecular_energy(const int atom_id, const
 
 // CALCULATING INTRAMOLECULAR ENERGY
 template<class Device>
-KOKKOS_INLINE_FUNCTION float calc_intramolecular_energy(const int contributor_counter, const DockingParams<Device>& dock_params, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords)
+KOKKOS_INLINE_FUNCTION float calc_intramolecular_energy(const int contributor_counter, const DockingParams<Device>& dock_params, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, Coordinates calc_coords)
 {
         float partial_energy = 0.0f;
         float delta_distance = 0.5f*dock_params.smooth;
@@ -381,7 +381,7 @@ KOKKOS_INLINE_FUNCTION float calc_energy(const member_type& team_member, const D
 
 	// GETTING ATOMIC POSITIONS
 	// ALS - This view needs to be in scratch space FIX ME
-	Kokkos::View<float4struct[MAX_NUM_OF_ATOMS]> calc_coords("calc_coords");
+	Coordinates calc_coords(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
 	Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, (int)(docking_params.num_of_atoms)),
 	[=] (int& idx) {
 		get_atom_pos(idx, consts.conform, calc_coords);

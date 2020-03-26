@@ -8,7 +8,11 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
 {
 	// Outer loop
         int league_size = docking_params.num_of_lsentities * mypars->num_of_runs;
-        Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, NUM_OF_THREADS_PER_BLOCK ),
+
+	// Get the size of the shared memory allocation
+        size_t shmem_size = Coordinates::shmem_size()*NUM_OF_THREADS_PER_BLOCK;
+	Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, NUM_OF_THREADS_PER_BLOCK ).
+                              set_scratch_size(KOKKOS_TEAM_SCRATCH_OPT,Kokkos::PerTeam(shmem_size)),
                         KOKKOS_LAMBDA (member_type team_member)
         {
                 // Get team and league ranks
@@ -97,7 +101,11 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
 
 		team_member.team_barrier();
 
-		// Perform adadelta iterations
+		// Declare/allocate coordinates for internal use by calc_energrad only. Must be outside of loop since there is
+		// no way to de/reallocate things in Kokkos team scratch
+		Coordinates calc_coords(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
+
+		// Perform adadelta iterations on gradient
 		float gradient[ACTUAL_GENOTYPE_LENGTH];
         // The termination criteria is based on
         // a maximum number of iterations, and
@@ -105,7 +113,7 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
         // (IEEE-754 single float has a precision of about 6 decimal digits)
         do {
 		// Calculating energy & gradient
-                calc_energrad(team_member, docking_params, genotype, consts,
+                calc_energrad(team_member, docking_params, genotype, consts, calc_coords,
                                      energy, gradient);
 
 		team_member.team_barrier();

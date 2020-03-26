@@ -8,8 +8,12 @@ void gen_alg_eval_new(Generation<Device>& current, Generation<Device>& next, Doc
 {
 	// Outer loop over mypars->pop_size * mypars->num_of_runs
         int league_size = mypars->pop_size * mypars->num_of_runs;
-        Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, NUM_OF_THREADS_PER_BLOCK ),
-                        KOKKOS_LAMBDA (member_type team_member)
+
+	// Get the size of the shared memory allocation
+        size_t shmem_size = Coordinates::shmem_size()*NUM_OF_THREADS_PER_BLOCK;
+	Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, NUM_OF_THREADS_PER_BLOCK ).
+                              set_scratch_size(KOKKOS_TEAM_SCRATCH_OPT,Kokkos::PerTeam(shmem_size)),
+                              KOKKOS_LAMBDA (member_type team_member)
         {
                 // Get team and league ranks
                 int tidx = team_member.team_rank();

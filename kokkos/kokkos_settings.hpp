@@ -29,6 +29,9 @@ using HostType = Kokkos::Device<CPUExec,CPUSpace>;
 // Set up member_type for device here so it can be passed as function argument
 typedef Kokkos::TeamPolicy<ExSpace>::member_type member_type;
 
+// Set up scratch space (short-term memory for each team)
+typedef Kokkos::DefaultExecutionSpace::scratch_memory_space ScratchSpace;
+
 // Set up unmanaged kokkos views to wrap around C-style arrays for deep copies
 typedef Kokkos::View<float*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> FloatView1D;
 typedef Kokkos::View<int*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> IntView1D;
