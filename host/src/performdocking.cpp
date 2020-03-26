@@ -142,10 +142,11 @@ filled with clock() */
 	std::fill(cpu_evals_of_runs.begin(), cpu_evals_of_runs.end(), 0);
 
 	if (strcmp(mypars->ls_method, "ad") == 0) {
-		printf("Local-search chosen method is ADADELTA (ad) because that is the only one available so far in the Kokkos version.");
+		printf("\nLocal-search chosen method is ADADELTA (ad) because that is the only one available so far in the Kokkos version.");
 	} else {
-		printf("Only one local-search method available. Please set -lsmet ad\n\n"); return 1;
+		printf("\nOnly one local-search method available. Please set -lsmet ad\n\n"); return 1;
 	}
+	printf("\nUsing NUM_OF_THREADS_PER_BLOCK = %d ", NUM_OF_THREADS_PER_BLOCK);
 
 	clock_start_docking = clock();
 

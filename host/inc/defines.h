@@ -28,26 +28,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef DEFINES_H_
 #define DEFINES_H_
 
-#if defined (N1WI)
-	#define NUM_OF_THREADS_PER_BLOCK 1
-#elif defined (N2WI)
-	#define NUM_OF_THREADS_PER_BLOCK 2
-#elif defined (N4WI)
-	#define NUM_OF_THREADS_PER_BLOCK 4
-#elif defined (N8WI)
-	#define NUM_OF_THREADS_PER_BLOCK 8
-#elif defined (N16WI)
-	#define NUM_OF_THREADS_PER_BLOCK 16
-#elif defined (N32WI)
-	#define NUM_OF_THREADS_PER_BLOCK 32
-#elif defined (N64WI)
-	#define NUM_OF_THREADS_PER_BLOCK 64
-#elif defined (N128WI)
-	#define NUM_OF_THREADS_PER_BLOCK 128
-#elif defined (N256WI)
-	#define NUM_OF_THREADS_PER_BLOCK 256
-#else
-	#define NUM_OF_THREADS_PER_BLOCK 16
+// If the number of threads per block isn't specified, set to 1 for now //let Kokkos choose
+#ifndef NUM_OF_THREADS_PER_BLOCK
+//#define NUM_OF_THREADS_PER_BLOCK Kokkos::AUTO()
+#define NUM_OF_THREADS_PER_BLOCK 1
 #endif
 
 // Indexes of atomic types used in

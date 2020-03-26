@@ -8,7 +8,7 @@ void kokkos_gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingPar
 {
 	// Outer loop
         int league_size = docking_params.num_of_lsentities * mypars->num_of_runs;
-        Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, Kokkos::AUTO() ),
+        Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, NUM_OF_THREADS_PER_BLOCK ),
                         KOKKOS_LAMBDA (member_type team_member)
         {
                 // Get team and league ranks

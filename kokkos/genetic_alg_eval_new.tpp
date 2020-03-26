@@ -8,7 +8,7 @@ void kokkos_gen_alg_eval_new(Generation<Device>& current, Generation<Device>& ne
 {
 	// Outer loop over mypars->pop_size * mypars->num_of_runs
         int league_size = mypars->pop_size * mypars->num_of_runs;
-        Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, Kokkos::AUTO() ),
+        Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, NUM_OF_THREADS_PER_BLOCK ),
                         KOKKOS_LAMBDA (member_type team_member)
         {
                 // Get team and league ranks
