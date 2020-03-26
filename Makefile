@@ -7,14 +7,16 @@
 # if DEVICE=CPU: CPU_INCLUDE_PATH?, CPU_LIBRARY_PATH?
 # if DEVICE=GPU: GPU_INCLUDE_PATH?, GPU_LIBRARY_PATH?
 
-CPP = g++ -std=c++11 -stdlib=libc++
-
 UNAME := $(shell uname)
 
-KOKKOS_INC_PATH=/Users/ascheinberg/Research/kokkos/install/include/
-KOKKOS_LIB_PATH=/Users/ascheinberg/Research/kokkos/install/lib/
-LIB_KOKKOS=-lkokkoscore
+export NVCC_WRAPPER_DEFAULT_COMPILER=mpiCC
+KOKKOS_SRC_DIR=/ccs/home/scheinberg/Software/Nov19/kokkos
+KOKKOS_INC_PATH=/ccs/home/scheinberg/Software/Nov19/kokkos/install/include/
+KOKKOS_LIB_PATH=/ccs/home/scheinberg/Software/Nov19/kokkos/install/lib/
+LIB_KOKKOS=-lkokkos #core
 
+
+CPP = $(KOKKOS_SRC_DIR)/bin/nvcc_wrapper -mp -std=c++11 --expt-extended-lambda -arch=sm_70
 # ------------------------------------------------------
 # Project directories
 COMMON_DIR=./common
@@ -138,7 +140,7 @@ odock: check-env-all $(SRC)
 	$(CPP) \
 	$(SRC) \
 	$(CFLAGS) \
-	-o$(BIN_DIR)/$(TARGET) \
+	-o $(BIN_DIR)/$(TARGET) \
 	$(NWI) $(OPT) $(DD) $(REP)
 
 # Example
