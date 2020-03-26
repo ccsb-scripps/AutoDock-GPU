@@ -1,0 +1,27 @@
+#!/bin/bash
+# Begin LSF Directives
+#BSUB -P BIF128
+#BSUB -W 1:00
+#BSUB -nnodes 1
+#BSUB -J test
+#BSUB -o test.%J
+#BSUB -e test.%J
+
+module load pgi/19.9
+module load cuda/10.1.243
+
+cd $MEMBERWORK/bif128/adk
+date
+
+# GPU (Currently: only 1 GPU, only 1 thread per block)
+jsrun -n 1 -r 1 -a 1 -g 1 -c 1 -b rs ./bin/autodock_gpu -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10 -lsmet ad
+
+# OpenMP
+##export OMP_NUM_THREADS=42
+##export OMP_NUM_THREADS=84  # hyperthreading x2
+#export OMP_NUM_THREADS=168 # hyperthreading x4 ***BEST OPTION***
+#jsrun -n 1 -r 1 -a 1 -g 1 -c 42 -b rs ./bin/autodock_cpu -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10 -lsmet ad
+
+# Serial
+#jsrun -n 1 -r 1 -a 1 -g 1 -c 1 -b rs ./bin/autodock_serial -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 2 -lsmet ad
+
