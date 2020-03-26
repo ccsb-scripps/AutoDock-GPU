@@ -58,7 +58,6 @@ KOKKOS_INLINE_FUNCTION void calc_intermolecular_gradients(const member_type& tea
 int tidx = team_member.team_rank();
 float partial_energies=0.0f;
         float weights[8];
-        float cube[8];
         for (int atom_id = tidx;
                   atom_id < docking_params.num_of_atoms;
                   atom_id+= team_member.team_size())

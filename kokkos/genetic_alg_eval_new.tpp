@@ -10,7 +10,7 @@ void gen_alg_eval_new(Generation<Device>& current, Generation<Device>& next, Doc
         int league_size = mypars->pop_size * mypars->num_of_runs;
 
 	// Get the size of the shared memory allocation
-        size_t shmem_size = Coordinates::shmem_size()*NUM_OF_THREADS_PER_BLOCK;
+        size_t shmem_size = Coordinates::shmem_size();
 	Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, NUM_OF_THREADS_PER_BLOCK ).
                               set_scratch_size(KOKKOS_TEAM_SCRATCH_OPT,Kokkos::PerTeam(shmem_size)),
                               KOKKOS_LAMBDA (member_type team_member)

@@ -1,6 +1,8 @@
 #ifndef CALCENERGY_HPP
 #define CALCENERGY_HPP
 
+#include "float4struct.hpp"
+
 // View type on scratch memory that is used in energy and gradient calculations
 typedef Kokkos::View<float4struct[MAX_NUM_OF_ATOMS],ScratchSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> Coordinates;
 

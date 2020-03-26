@@ -37,8 +37,8 @@ KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_me
         int lidx = team_member.league_rank();
 	int team_size = team_member.team_size();
 
-	float best_energies[team_size];
-        int best_IDs[team_size];
+	float best_energies[1];//team_size]; - ALS FIX ME
+        int best_IDs[1];//team_size]; - ALS FIX ME
         int best_ID;
 
         int entity_counter;

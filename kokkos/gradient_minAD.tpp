@@ -10,7 +10,7 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
         int league_size = docking_params.num_of_lsentities * mypars->num_of_runs;
 
 	// Get the size of the shared memory allocation
-        size_t shmem_size = Coordinates::shmem_size()*NUM_OF_THREADS_PER_BLOCK;
+        size_t shmem_size = Coordinates::shmem_size();
 	Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, NUM_OF_THREADS_PER_BLOCK ).
                               set_scratch_size(KOKKOS_TEAM_SCRATCH_OPT,Kokkos::PerTeam(shmem_size)),
                         KOKKOS_LAMBDA (member_type team_member)

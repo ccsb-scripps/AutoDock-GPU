@@ -380,7 +380,6 @@ KOKKOS_INLINE_FUNCTION float calc_energy(const member_type& team_member, const D
         team_member.team_barrier();
 
 	// GETTING ATOMIC POSITIONS
-	// ALS - This view needs to be in scratch space FIX ME
 	Coordinates calc_coords(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
 	Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, (int)(docking_params.num_of_atoms)),
 	[=] (int& idx) {
