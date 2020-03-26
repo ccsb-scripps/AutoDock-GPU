@@ -677,10 +677,10 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 //the function moves myligand to origo and scales it according to grid spacing.
 {
 	int entity_id, gene_id;
-	int gen_pop, gen_seeds;
+	int gen_pop;
 	FILE* fp;
 	int i;
-	float init_orientation[MAX_NUM_OF_ROTBONDS+6];
+	//float init_orientation[MAX_NUM_OF_ROTBONDS+6];
 	double movvec_to_origo[3];
 
 	int pop_size = mypars->pop_size;

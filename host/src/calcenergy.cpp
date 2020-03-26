@@ -136,7 +136,7 @@ int gen_rotlist(Liganddata& myligand, int rotlist[MAX_NUM_OF_ROTATIONS])
 							rotbond_candidate--;
 
 						if (rotbond_candidate < 0)
-							return 1;
+							return 1;  // FIX ME: this line is never reached since its an unsigned int! - ALS
 					}
 
 					new_rotlist_element |= (((int) rotbond_candidate) << RLIST_RBONDID_SHIFT) & RLIST_RBONDID_MASK;

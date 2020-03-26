@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
 	FILE*      fp;
 	char report_file_name [256];
 
-	clock_t clock_start_program, clock_stop_program;
+	clock_t clock_start_program;
 	clock_start_program = clock();
 
 #ifndef _WIN32
