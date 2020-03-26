@@ -19,16 +19,15 @@ LIB_KOKKOS=-lkokkos #core
 CPP = $(KOKKOS_SRC_DIR)/bin/nvcc_wrapper -mp -std=c++11 --expt-extended-lambda -arch=sm_70
 # ------------------------------------------------------
 # Project directories
-COMMON_DIR=./common
 HOST_INC_DIR=./host/inc
 HOST_SRC_DIR=./host/src
-KCODE_INC_PATH=./kokkos
+KERNEL_INC_PATH=./kernels
 BIN_DIR=./bin
 
 # Host sources
 SRC=$(wildcard $(HOST_SRC_DIR)/*.cpp)
 
-IFLAGS=-I$(COMMON_DIR) -I$(HOST_INC_DIR) -I$(KOKKOS_INC_PATH) -I$(KCODE_INC_PATH)
+IFLAGS=-I$(HOST_INC_DIR) -I$(KOKKOS_INC_PATH) -I$(KERNEL_INC_PATH)
 LFLAGS=-L$(KOKKOS_LIB_PATH) $(LIB_KOKKOS)
 CFLAGS=$(IFLAGS) $(LFLAGS)
 
