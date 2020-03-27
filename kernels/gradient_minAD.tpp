@@ -56,19 +56,15 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
 
 		team_member.team_barrier();
 
-		// FIX ME Copy this genotype to local memory, maybe unnecessary, maybe parallelizable - ALS
                 Genotype genotype(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
-                for (int i_geno = 0; i_geno<docking_params.num_of_genes; i_geno++) {
-                        genotype[i_geno] = next.conformations(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*gpop_idx);
-                }
+		copy_genotype(team_member, genotype, next, gpop_idx);
 
 		team_member.team_barrier();
 
 		// Initializing best genotype and energy
 		Genotype best_genotype(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
-		for(uint i = tidx; i < docking_params.num_of_genes; i+= team_member.team_size()) {
-			best_genotype [i] = genotype [i];
-		}
+		copy_genotype(team_member, best_genotype, genotype);
+
 		float best_energy;
 		if (tidx == 0) {
 			best_energy = INFINITY; // Why isnt this set to energy? - ALS
@@ -120,11 +116,7 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
 
 		// we need to be careful not to change best_energy until we had a chance to update the whole array
 		if (energy < best_energy){
-			for(uint i = tidx;
-				 i < docking_params.num_of_genes;
-				 i+= team_member.team_size()) {
-				 best_genotype[i] = genotype[i];
-			}
+			copy_genotype(team_member, best_genotype, genotype);
 		}
 
 		team_member.team_barrier();
@@ -193,10 +185,7 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
                         docking_params.evals_of_new_entities(gpop_idx) += iteration_cnt;
                 }
 
-                // FIX ME Copying new offspring to next generation, maybe parallelizable - ALS
-                for (int i_geno = 0; i_geno<docking_params.num_of_genes; i_geno++) {
-                        next.conformations(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*gpop_idx) = best_genotype[i_geno];
-                }
+		copy_genotype(team_member, next, gpop_idx, best_genotype);
 
                 team_member.team_barrier();
         });

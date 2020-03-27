@@ -98,10 +98,7 @@ void gen_alg_eval_new(Generation<Device>& current, Generation<Device>& next, Doc
 				docking_params.evals_of_new_entities(lidx) = 1;
 			}
 
-			// FIX ME Copying new offspring to next generation, maybe parallelizable - ALS
-			for (int i_geno = 0; i_geno<docking_params.num_of_genes; i_geno++) {
-				next.conformations(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*lidx) = offspring_genotype[i_geno];
-			}
+			copy_genotype(team_member, next, lidx, offspring_genotype);
 
 			team_member.team_barrier();
 		}

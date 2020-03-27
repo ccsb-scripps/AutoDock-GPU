@@ -89,13 +89,7 @@ KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_me
         // Copying genotype and energy value to the first entity of new population
         team_member.team_barrier();
 
-        for (gene_counter = tidx;
-             gene_counter < docking_params.num_of_genes;
-             gene_counter+= team_size) {
-             next.conformations(GENOTYPE_LENGTH_IN_GLOBMEM*lidx+gene_counter)
-		     = current.conformations(GENOTYPE_LENGTH_IN_GLOBMEM*lidx + GENOTYPE_LENGTH_IN_GLOBMEM*best_ID+gene_counter);
-        }
-
+	copy_genotype(team_member, next, lidx, current, (lidx + best_ID));
 }
 
 
@@ -159,10 +153,7 @@ KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const Gene
 	}
 	else    //no crossover
 	{
-		// FIX ME Copying new offspring to next generation, maybe parallelizable - ALS
-                for (int i_geno = 0; i_geno<docking_params.num_of_genes; i_geno++) {
-                        offspring_genotype[i_geno] = current.conformations(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*(run_id*docking_params.pop_size+parents[0]));
-                }
+		copy_genotype(team_member, offspring_genotype, current, (run_id*docking_params.pop_size+parents[0]));
 
                 team_member.team_barrier();
 	}

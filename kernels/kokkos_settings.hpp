@@ -27,6 +27,8 @@ using CPUExec = Kokkos::Serial;
 #endif
 using HostType = Kokkos::Device<CPUExec,CPUSpace>;
 
+// TODO: The two typedefs below use ExSpace, which negates the point of templating everything since now
+// the kernels will only run in ExSpace. But I don't see a clean way to solve that at the moment - ALS
 // Set up member_type for device here so it can be passed as function argument
 typedef Kokkos::TeamPolicy<ExSpace>::member_type member_type;
 

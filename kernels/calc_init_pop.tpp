@@ -21,6 +21,8 @@ void calc_init_pop(Generation<Device>& current, Dockpars* mypars,DockingParams<D
 		Genotype genotype(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
 		copy_genotype(team_member, genotype, current, lidx);
 
+		team_member.team_barrier();
+
 		// Get the current energy for each run
 		float energy = calc_energy(team_member, docking_params, consts, genotype);
 
