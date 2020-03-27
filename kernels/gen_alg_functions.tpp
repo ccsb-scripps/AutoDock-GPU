@@ -101,7 +101,7 @@ KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_me
 
 template<class Device>
 KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const Generation<Device>& current, const DockingParams<Device>& docking_params, const GeneticParams& genetic_params, const int run_id, const float* randnums, const int* parents,
-					float* offspring_genotype)
+					Genotype offspring_genotype)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();
@@ -170,7 +170,7 @@ KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const Gene
 
 template<class Device>
 KOKKOS_INLINE_FUNCTION void mutation(const member_type& team_member, const DockingParams<Device>& docking_params, const GeneticParams& genetic_params,
-				     float* offspring_genotype)
+				     Genotype offspring_genotype)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();

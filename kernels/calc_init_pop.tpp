@@ -8,7 +8,7 @@ void calc_init_pop(Generation<Device>& current, Dockpars* mypars,DockingParams<D
         int league_size = mypars->pop_size * mypars->num_of_runs;
 
 	// Get the size of the shared memory allocation
-	size_t shmem_size = Coordinates::shmem_size();
+	size_t shmem_size = Coordinates::shmem_size() + Genotype::shmem_size();
         Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, NUM_OF_THREADS_PER_BLOCK ).
                               set_scratch_size(KOKKOS_TEAM_SCRATCH_OPT,Kokkos::PerTeam(shmem_size)),
                               KOKKOS_LAMBDA (member_type team_member)
@@ -18,7 +18,7 @@ void calc_init_pop(Generation<Device>& current, Dockpars* mypars,DockingParams<D
                 int lidx = team_member.league_rank();
 
 		// FIX ME Copy this genotype to local memory, maybe unnecessary, maybe parallelizable - ALS
-		float genotype[ACTUAL_GENOTYPE_LENGTH];
+		Genotype genotype(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
 		for (int i_geno = 0; i_geno<ACTUAL_GENOTYPE_LENGTH; i_geno++) {
 			genotype[i_geno] = current.conformations(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*lidx);
 		}

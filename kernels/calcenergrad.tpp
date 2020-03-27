@@ -376,7 +376,7 @@ int tidx = team_member.team_rank();
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void reduce_energy_and_translation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z, float& partial_energies, float& energy, float* gradient)
+KOKKOS_INLINE_FUNCTION void reduce_energy_and_translation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z, float& partial_energies, float& energy, GenotypeAux gradient)
 {
 int tidx = team_member.team_rank();
 	// reduction over partial energies and prepared "gradient_intra_*" values
@@ -412,7 +412,7 @@ int tidx = team_member.team_rank();
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_rotation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const AxisCorrection<Device>& axis_correction,float4struct& genrot_movingvec, float4struct& genrot_unitvec, Coordinates calc_coords, const float phi, const float theta, const float genrotangle, const bool is_theta_gt_pi, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z, float* gradient)
+KOKKOS_INLINE_FUNCTION void calc_rotation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const AxisCorrection<Device>& axis_correction,float4struct& genrot_movingvec, float4struct& genrot_unitvec, Coordinates calc_coords, const float phi, const float theta, const float genrotangle, const bool is_theta_gt_pi, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z, GenotypeAux gradient)
 {
 int tidx = team_member.team_rank();
 	// Transform gradients_inter_{x|y|z}
@@ -621,7 +621,7 @@ int tidx = team_member.team_rank();
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_torsion_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const Grads<Device>& grads, Coordinates calc_coords, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, float* gradient)
+KOKKOS_INLINE_FUNCTION void calc_torsion_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const Grads<Device>& grads, Coordinates calc_coords, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, GenotypeAux gradient)
 {
 int tidx = team_member.team_rank();
 	int num_torsion_genes = docking_params.num_of_genes-6;
@@ -668,7 +668,7 @@ int tidx = team_member.team_rank();
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const DockingParams<Device>& docking_params,const float *genotype,const Constants<Device>& consts, Coordinates calc_coords, float& energy, float* gradient)
+KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const DockingParams<Device>& docking_params,Genotype genotype,const Constants<Device>& consts, Coordinates calc_coords, float& energy, GenotypeAux gradient)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();

@@ -145,7 +145,7 @@ KOKKOS_INLINE_FUNCTION void get_atom_pos(const int atom_id, const Conform<Device
 
 // CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 template<class Device>
-KOKKOS_INLINE_FUNCTION void rotate_atoms(const int rotation_counter, const Conform<Device>& conform, const RotList<Device>& rotlist, const int run_id, const float* genotype, const float4struct& genrot_movingvec, const float4struct& genrot_unitvec, Coordinates calc_coords)
+KOKKOS_INLINE_FUNCTION void rotate_atoms(const int rotation_counter, const Conform<Device>& conform, const RotList<Device>& rotlist, const int run_id, Genotype genotype, const float4struct& genrot_movingvec, const float4struct& genrot_unitvec, Coordinates calc_coords)
 {
         int rotation_list_element = rotlist.rotlist_const(rotation_counter);
                 
@@ -365,7 +365,7 @@ KOKKOS_INLINE_FUNCTION float calc_intramolecular_energy(const int contributor_co
 }
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION float calc_energy(const member_type& team_member, const DockingParams<Device>& docking_params,const Constants<Device>& consts, const float* genotype)
+KOKKOS_INLINE_FUNCTION float calc_energy(const member_type& team_member, const DockingParams<Device>& docking_params,const Constants<Device>& consts, Genotype genotype)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();

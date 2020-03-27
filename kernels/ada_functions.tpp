@@ -29,8 +29,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define EPSILON         1e-2
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void genotype_gradient_descent(const member_type& team_member, const DockingParams<Device>& docking_params, float* gradient,
-			     float* square_gradient, float* square_delta, float* genotype)
+KOKKOS_INLINE_FUNCTION void genotype_gradient_descent(const member_type& team_member, const DockingParams<Device>& docking_params, GenotypeAux gradient,
+			     GenotypeAux square_gradient, GenotypeAux square_delta, Genotype genotype)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();
