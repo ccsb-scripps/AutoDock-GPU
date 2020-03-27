@@ -37,20 +37,16 @@ KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_me
         int lidx = team_member.league_rank();
 	int team_size = team_member.team_size();
 
-	float best_energies[1];//team_size]; - ALS FIX ME
-        int best_IDs[1];//team_size]; - ALS FIX ME
-        int best_ID;
-
-        int entity_counter;
-        int gene_counter;
-        float best_energy;
+	// Scratch float and int of length team_size
+	TeamFloat best_energies(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
+	TeamInt best_IDs(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
 
         if (tidx < docking_params.pop_size) {
                 best_energies[tidx] = current.energies(lidx+tidx);
                 best_IDs[tidx] = tidx;
         }
 
-        for (entity_counter = team_size+tidx;
+        for (int entity_counter = team_size+tidx;
              entity_counter < docking_params.pop_size;
              entity_counter+= team_size) {
 
@@ -65,21 +61,18 @@ KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_me
         // This could be implemented with a tree-like structure
         // which may be slightly faster
         if (tidx == 0) {
-                best_energy = best_energies[0];
-                best_ID = best_IDs[0];
-
-                for (entity_counter = 1;
+                for (int entity_counter = 1;
                      entity_counter < team_size;
                      entity_counter++) {
 
-                     if ((best_energies[entity_counter] < best_energy) && (entity_counter < docking_params.pop_size)) {
-                              best_energy = best_energies[entity_counter];
-                              best_ID = best_IDs[entity_counter];
+                     if ((best_energies[entity_counter] < best_energies(0)) && (entity_counter < docking_params.pop_size)) {
+                              best_energies(0) = best_energies[entity_counter];
+                              best_IDs(0) = best_IDs[entity_counter];
                      }
                 }
 
                 // Setting energy value of new entity
-                next.energies(lidx) = best_energy;
+                next.energies(lidx) = best_energies(0);
 
                 // Zero (0) evals were performed for entity selected with elitism (since it was copied only)
                 docking_params.evals_of_new_entities(lidx) = 0;
@@ -89,12 +82,12 @@ KOKKOS_INLINE_FUNCTION void perform_elitist_selection(const member_type& team_me
         // Copying genotype and energy value to the first entity of new population
         team_member.team_barrier();
 
-	copy_genotype(team_member, next, lidx, current, (lidx + best_ID));
+	copy_genotype(team_member, next, lidx, current, (lidx + best_IDs(0)));
 }
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const Generation<Device>& current, const DockingParams<Device>& docking_params, const GeneticParams& genetic_params, const int run_id, const float* randnums, const int* parents,
+KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const Generation<Device>& current, const DockingParams<Device>& docking_params, const GeneticParams& genetic_params, const int run_id, TenFloat randnums, TwoInt parents,
 					Genotype offspring_genotype)
 {
         // Get team and league ranks
@@ -102,18 +95,15 @@ KOKKOS_INLINE_FUNCTION void crossover(const member_type& team_member, const Gene
         int lidx = team_member.league_rank();
         int team_size = team_member.team_size();
 
-	int covr_point[2];
+	TwoInt covr_point(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
 
 	// Notice: dockpars_crossover_rate was scaled down to [0,1] in host
 	// to reduce number of operations in device
 	if (/*100.0f**/randnums[6] < genetic_params.crossover_rate)   // Using randnums[6]
 	{
-		for (int covr_counter = tidx;
-                              covr_counter < 2;
-                              covr_counter+= team_member.team_size()){
-			// Using randnum[7..8]
-			covr_point[covr_counter] = (int) ((docking_params.num_of_genes-1)*randnums[7+covr_counter]);
-		}
+		// Using randnum[7..8]
+		covr_point[0] = (int) ((docking_params.num_of_genes-1)*randnums[7]);
+		covr_point[1] = (int) ((docking_params.num_of_genes-1)*randnums[8]);
 
 		team_member.team_barrier();
 

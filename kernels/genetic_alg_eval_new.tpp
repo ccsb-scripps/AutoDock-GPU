@@ -10,7 +10,8 @@ void gen_alg_eval_new(Generation<Device>& current, Generation<Device>& next, Doc
         int league_size = mypars->pop_size * mypars->num_of_runs;
 
 	// Get the size of the shared memory allocation
-        size_t shmem_size = Coordinates::shmem_size() + Genotype::shmem_size();
+        size_t shmem_size = Coordinates::shmem_size() + Genotype::shmem_size() + TeamFloat::shmem_size() + TeamInt::shmem_size()
+			  + 2*TwoInt::shmem_size() + TenFloat::shmem_size() + FourInt::shmem_size() + FourFloat::shmem_size();
 	Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, NUM_OF_THREADS_PER_BLOCK ).
                               set_scratch_size(KOKKOS_TEAM_SCRATCH_OPT,Kokkos::PerTeam(shmem_size)),
                               KOKKOS_LAMBDA (member_type team_member)
@@ -25,18 +26,16 @@ void gen_alg_eval_new(Generation<Device>& current, Generation<Device>& next, Doc
 		}else{
 			// Some local arrays
 			Genotype offspring_genotype(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
-			float randnums[10];
-			int parent_candidates[4];
-			float candidate_energies[4];
-			int parents[2];
+			TenFloat randnums(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
+			FourInt parent_candidates(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
+			FourFloat candidate_energies(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
+			TwoInt parents(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
 			
 			// Generating the following random numbers:
 			// [0..3] for parent candidates,
 			// [4..5] for binary tournaments, [6] for deciding crossover,
 			// [7..8] for crossover points, [9] for local search
-			for (int gene_counter = tidx;
-				gene_counter < 10;
-				gene_counter+= team_member.team_size()) {
+			for (int gene_counter = tidx; gene_counter < 10; gene_counter+= team_member.team_size()) {
 				randnums[gene_counter] = rand_float(team_member, docking_params);
 			}
 
@@ -50,9 +49,7 @@ void gen_alg_eval_new(Generation<Device>& current, Generation<Device>& next, Doc
 
 			// Binary tournament selection
 			// it is not ensured that the four candidates will be different...
-			for (int parent_counter = tidx;
-                              parent_counter < 4;
-                              parent_counter+= team_member.team_size()){
+			for (int parent_counter = tidx; parent_counter < 4; parent_counter+= team_member.team_size()){
 				parent_candidates[parent_counter]  = (int) (docking_params.pop_size*randnums[parent_counter]); //using randnums[0..3]
 				candidate_energies[parent_counter] = current.energies(run_id*docking_params.pop_size+parent_candidates[parent_counter]);
 			}
@@ -60,9 +57,7 @@ void gen_alg_eval_new(Generation<Device>& current, Generation<Device>& next, Doc
 			team_member.team_barrier();
 
 			// Choose parents
-			for (int parent_counter = tidx;
-                              parent_counter < 2;
-                              parent_counter+= team_member.team_size()) {
+			for (int parent_counter = tidx; parent_counter < 2; parent_counter+= team_member.team_size()) {
 				// Notice: dockpars_tournament_rate was scaled down to [0,1] in host
 				// to reduce number of operations in device
 				if (candidate_energies[2*parent_counter] < candidate_energies[2*parent_counter+1])
@@ -99,8 +94,6 @@ void gen_alg_eval_new(Generation<Device>& current, Generation<Device>& next, Doc
 			}
 
 			copy_genotype(team_member, next, lidx, offspring_genotype);
-
-			team_member.team_barrier();
 		}
         });
 }
