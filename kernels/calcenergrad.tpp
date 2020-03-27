@@ -52,7 +52,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "calcenergy.hpp"
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_intermolecular_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const InterIntra<Device>& interintra, Coordinates calc_coords, float& energy, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z)
+KOKKOS_INLINE_FUNCTION void calc_intermolecular_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const InterIntra<Device>& interintra, Coordinates calc_coords, float& energy, AtomGradients atom_gradients)
 {
 // Get team and league ranks
 int tidx = team_member.team_rank();
@@ -78,9 +78,9 @@ float partial_energies=0.0f;
                         // Setting gradients (forces) penalties.
                         // The idea here is to push the offending
                         // molecule towards the center rather
-                        gradient_inter_x[atom_id] += 42.0f * x;
-                        gradient_inter_y[atom_id] += 42.0f * y;
-                        gradient_inter_z[atom_id] += 42.0f * z;
+                        atom_gradients(0,0,atom_id) += 42.0f * x;
+                        atom_gradients(0,1,atom_id) += 42.0f * y;
+                        atom_gradients(0,2,atom_id) += 42.0f * z;
                         continue;
                 }
                 // Getting coordinates
@@ -141,9 +141,9 @@ float partial_energies=0.0f;
                 // Derived from autodockdev/maps.py
                 // -------------------------------------------------------------------
 		float4struct partial_gradient_inter = spatial_gradient(docking_params.fgrids, grid_ind_000+mul_tmp, dx,dy,dz, omdx,omdy,omdz);
-		gradient_inter_x[atom_id] += partial_gradient_inter.x;
-                gradient_inter_y[atom_id] += partial_gradient_inter.y;
-                gradient_inter_z[atom_id] += partial_gradient_inter.z;
+		atom_gradients(0,0,atom_id) += partial_gradient_inter.x;
+                atom_gradients(0,1,atom_id) += partial_gradient_inter.y;
+                atom_gradients(0,2,atom_id) += partial_gradient_inter.z;
 
                 // -------------------------------------------------------------------
                 // Calculating gradients (forces) corresponding to
@@ -158,9 +158,9 @@ float partial_energies=0.0f;
                 // Calculating affinity energy
                 partial_energies += q * trilinear_interp(docking_params.fgrids, grid_ind_000+mul_tmp, weights);
 		partial_gradient_inter = spatial_gradient(docking_params.fgrids, grid_ind_000+mul_tmp, dx,dy,dz, omdx,omdy,omdz);
-                gradient_inter_x[atom_id] += q * partial_gradient_inter.x;
-                gradient_inter_y[atom_id] += q * partial_gradient_inter.y;
-                gradient_inter_z[atom_id] += q * partial_gradient_inter.z;
+                atom_gradients(0,0,atom_id) += q * partial_gradient_inter.x;
+                atom_gradients(0,1,atom_id) += q * partial_gradient_inter.y;
+                atom_gradients(0,2,atom_id) += q * partial_gradient_inter.z;
 
                 // -------------------------------------------------------------------
                 // Calculating gradients (forces) corresponding to
@@ -175,15 +175,15 @@ float partial_energies=0.0f;
                 // Calculating affinity energy
                 partial_energies += q * trilinear_interp(docking_params.fgrids, grid_ind_000+mul_tmp, weights);
 		partial_gradient_inter = spatial_gradient(docking_params.fgrids, grid_ind_000+mul_tmp, dx,dy,dz, omdx,omdy,omdz);
-		gradient_inter_x[atom_id] += q * partial_gradient_inter.x;
-                gradient_inter_y[atom_id] += q * partial_gradient_inter.y;
-                gradient_inter_z[atom_id] += q * partial_gradient_inter.z;
+		atom_gradients(0,0,atom_id) += q * partial_gradient_inter.x;
+                atom_gradients(0,1,atom_id) += q * partial_gradient_inter.y;
+                atom_gradients(0,2,atom_id) += q * partial_gradient_inter.z;
         }
 	energy+=partial_energies; // FIX ME - ALS
 }
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_intramolecular_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, Coordinates calc_coords, float& energy, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z)
+KOKKOS_INLINE_FUNCTION void calc_intramolecular_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, Coordinates calc_coords, float& energy, AtomGradients atom_gradients)
 {
 // Get team and league ranks
 int tidx = team_member.team_rank();
@@ -303,28 +303,28 @@ float partial_energies=0.0f;
                 // Calculating gradients in xyz components.
                 // Gradients for both atoms in a single contributor pair
                 // have the same magnitude, but opposite directions
-/*		Kokkos::atomic_add(&(gradient_intra_x[atom1_id]), -priv_intra_gradient_x); // - ALS
-                Kokkos::atomic_add(&(gradient_intra_y[atom1_id]), -priv_intra_gradient_y);
-                Kokkos::atomic_add(&(gradient_intra_z[atom1_id]), -priv_intra_gradient_z);
+/*		Kokkos::atomic_add(&(atom_gradients(1,0,atom1_id)), -priv_intra_gradient_x); // - ALS
+                Kokkos::atomic_add(&(atom_gradients(1,1,atom1_id)), -priv_intra_gradient_y);
+                Kokkos::atomic_add(&(atom_gradients(1,2,atom1_id)), -priv_intra_gradient_z);
 
-		Kokkos::atomic_add(&(gradient_intra_x[atom2_id]), priv_intra_gradient_x);
-                Kokkos::atomic_add(&(gradient_intra_y[atom2_id]), priv_intra_gradient_y);
-                Kokkos::atomic_add(&(gradient_intra_z[atom2_id]), priv_intra_gradient_z);
+		Kokkos::atomic_add(&(atom_gradients(1,0,atom2_id)), priv_intra_gradient_x);
+                Kokkos::atomic_add(&(atom_gradients(1,1,atom2_id)), priv_intra_gradient_y);
+                Kokkos::atomic_add(&(atom_gradients(1,2,atom2_id)), priv_intra_gradient_z);
 */
-		gradient_intra_x[atom1_id] -= priv_intra_gradient_x;
-                gradient_intra_y[atom1_id] -= priv_intra_gradient_y;
-                gradient_intra_z[atom1_id] -= priv_intra_gradient_z;
+		atom_gradients(1,0,atom1_id) -= priv_intra_gradient_x;
+                atom_gradients(1,1,atom1_id) -= priv_intra_gradient_y;
+                atom_gradients(1,2,atom1_id) -= priv_intra_gradient_z;
 
-                gradient_intra_x[atom2_id] += priv_intra_gradient_x;
-                gradient_intra_y[atom2_id] += priv_intra_gradient_y;
-                gradient_intra_z[atom2_id] += priv_intra_gradient_z;
+                atom_gradients(1,0,atom2_id) += priv_intra_gradient_x;
+                atom_gradients(1,1,atom2_id) += priv_intra_gradient_y;
+                atom_gradients(1,2,atom2_id) += priv_intra_gradient_z;
         }
 	energy+=partial_energies; // FIX ME - ALS
 }
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void acculumate_interintra_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z)
+KOKKOS_INLINE_FUNCTION void acculumate_interintra_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, AtomGradients atom_gradients)
 {
 int tidx = team_member.team_rank();
 	for (int atom_cnt = tidx;
@@ -336,9 +336,9 @@ int tidx = team_member.team_rank();
 
                 // Intramolecular gradients were already in Angstrom,
                 // so no scaling for them is required.
-                float grad_total_x = gradient_inter_x[atom_cnt]/docking_params.grid_spacing;
-                float grad_total_y = gradient_inter_y[atom_cnt]/docking_params.grid_spacing;
-                float grad_total_z = gradient_inter_z[atom_cnt]/docking_params.grid_spacing;
+                float grad_total_x = atom_gradients(0,0,atom_cnt)/docking_params.grid_spacing;
+                float grad_total_y = atom_gradients(0,1,atom_cnt)/docking_params.grid_spacing;
+                float grad_total_z = atom_gradients(0,2,atom_cnt)/docking_params.grid_spacing;
 
                 #if defined (PRINT_GRAD_ROTATION_GENES)
                 if (atom_cnt == 0) {
@@ -346,22 +346,22 @@ int tidx = team_member.team_rank();
                         printf("%s\n", "Gradients: inter and intra");
                         printf("%10s %13s %13s %13s %5s %13s %13s %13s\n", "atom_id", "grad_intER.x", "grad_intER.y", "grad_intER.z", "|", "grad_intRA.x", "grad_intRA.y", "grad_intRA.z");
                 }
-                printf("%10u %13.6f %13.6f %13.6f %5s %13.6f %13.6f %13.6f\n", atom_cnt, grad_total_x, grad_total_y, grad_total_z, "|", gradient_intra_x[atom_cnt], gradient_intra_y[atom_cnt], gradient_intra_z[atom_cnt]);
+                printf("%10u %13.6f %13.6f %13.6f %5s %13.6f %13.6f %13.6f\n", atom_cnt, grad_total_x, grad_total_y, grad_total_z, "|", atom_gradients(1,0,atom_cnt), atom_gradients(1,1,atom_cnt), atom_gradients(1,2,atom_cnt));
                 #endif
 
-                grad_total_x += gradient_intra_x[atom_cnt];
-                grad_total_y += gradient_intra_y[atom_cnt];
-                grad_total_z += gradient_intra_z[atom_cnt];
+                grad_total_x += atom_gradients(1,0,atom_cnt);
+                grad_total_y += atom_gradients(1,1,atom_cnt);
+                grad_total_z += atom_gradients(1,2,atom_cnt);
                 // Re-using "gradient_inter_*" for total gradient (inter+intra)
-                gradient_inter_x[atom_cnt] = grad_total_x;
-                gradient_inter_y[atom_cnt] = grad_total_y;
-                gradient_inter_z[atom_cnt] = grad_total_z;
+                atom_gradients(0,0,atom_cnt) = grad_total_x;
+                atom_gradients(0,1,atom_cnt) = grad_total_y;
+                atom_gradients(0,2,atom_cnt) = grad_total_z;
 
                 // Re-use "gradient_intra_*" for total gradient to do reduction below
                 // - need to prepare by doing thread-wise reduction
-                gradient_intra_x[tidx] += (float)(atom_cnt==tidx)*(-gradient_intra_x[tidx])+grad_total_x; // We need to start sum from 0 but I don't want an if statement
-                gradient_intra_y[tidx] += (float)(atom_cnt==tidx)*(-gradient_intra_y[tidx])+grad_total_y;
-                gradient_intra_z[tidx] += (float)(atom_cnt==tidx)*(-gradient_intra_z[tidx])+grad_total_z;
+                atom_gradients(1,0,tidx) += (float)(atom_cnt==tidx)*(-atom_gradients(1,0,tidx))+grad_total_x; // We need to start sum from 0 but I don't want an if statement
+                atom_gradients(1,1,tidx) += (float)(atom_cnt==tidx)*(-atom_gradients(1,1,tidx))+grad_total_y;
+                atom_gradients(1,2,tidx) += (float)(atom_cnt==tidx)*(-atom_gradients(1,2,tidx))+grad_total_z;
 
                 #if defined (PRINT_GRAD_ROTATION_GENES)
                 if (atom_cnt == 0) {
@@ -369,14 +369,14 @@ int tidx = team_member.team_rank();
                         printf("%s\n", "Gradients: total = inter + intra");
                         printf("%10s %13s %13s %13s\n", "atom_id", "grad.x", "grad.y", "grad.z");
                 }
-                printf("%10u %13.6f %13.6f %13.6f \n", atom_cnt, gradient_inter_x[atom_cnt], gradient_inter_y[atom_cnt], gradient_inter_z[atom_cnt]);
+                printf("%10u %13.6f %13.6f %13.6f \n", atom_cnt, atom_gradients(0,0,atom_cnt), atom_gradients(0,1,atom_cnt), atom_gradients(0,2,atom_cnt));
                 #endif
         }
 }
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void reduce_energy_and_translation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z, float& partial_energies, float& energy, GenotypeAux gradient)
+KOKKOS_INLINE_FUNCTION void reduce_energy_and_translation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, AtomGradients atom_gradients, float& partial_energies, float& energy, GenotypeAux gradient)
 {
 int tidx = team_member.team_rank();
 	// reduction over partial energies and prepared "gradient_intra_*" values
@@ -386,9 +386,9 @@ int tidx = team_member.team_rank();
                 if (tidx < off)
                 {
 //                        partial_energies[tidx] += partial_energies[tidx+off];
-                        gradient_intra_x[tidx] += gradient_intra_x[tidx+off];
-                        gradient_intra_y[tidx] += gradient_intra_y[tidx+off];
-                        gradient_intra_z[tidx] += gradient_intra_z[tidx+off];
+                        atom_gradients(1,0,tidx) += atom_gradients(1,0,tidx+off);
+                        atom_gradients(1,1,tidx) += atom_gradients(1,1,tidx+off);
+                        atom_gradients(1,2,tidx) += atom_gradients(1,2,tidx+off);
                 }
         }
         if (tidx == 0) {
@@ -397,9 +397,9 @@ int tidx = team_member.team_rank();
                 // their corresponding gradients were calculated in the space
                 // where these genes are in Angstrom,
                 // but AutoDock-GPU translational genes are within in grids
-                gradient[0] = gradient_intra_x[0] * docking_params.grid_spacing;
-                gradient[1] = gradient_intra_y[0] * docking_params.grid_spacing;
-                gradient[2] = gradient_intra_z[0] * docking_params.grid_spacing;
+                gradient[0] = atom_gradients(1,0,0) * docking_params.grid_spacing;
+                gradient[1] = atom_gradients(1,1,0) * docking_params.grid_spacing;
+                gradient[2] = atom_gradients(1,2,0) * docking_params.grid_spacing;
 
                 #if defined (PRINT_GRAD_TRANSLATION_GENES)
                 printf("\n%s\n", "----------------------------------------------------------");
@@ -412,7 +412,7 @@ int tidx = team_member.team_rank();
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_rotation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const AxisCorrection<Device>& axis_correction,float4struct& genrot_movingvec, float4struct& genrot_unitvec, Coordinates calc_coords, const float phi, const float theta, const float genrotangle, const bool is_theta_gt_pi, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, float* gradient_intra_x, float* gradient_intra_y, float* gradient_intra_z, GenotypeAux gradient)
+KOKKOS_INLINE_FUNCTION void calc_rotation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const AxisCorrection<Device>& axis_correction,float4struct& genrot_movingvec, float4struct& genrot_unitvec, Coordinates calc_coords, const float phi, const float theta, const float genrotangle, const bool is_theta_gt_pi, AtomGradients atom_gradients, GenotypeAux gradient)
 {
 int tidx = team_member.team_rank();
 	// Transform gradients_inter_{x|y|z}
@@ -425,9 +425,9 @@ int tidx = team_member.team_rank();
         // ------------------------------------------
 
         // start by populating "gradient_intra_*" with torque values
-        gradient_intra_x[tidx] = 0.0;
-        gradient_intra_y[tidx] = 0.0;
-        gradient_intra_z[tidx] = 0.0;
+        atom_gradients(1,0,tidx) = 0.0;
+        atom_gradients(1,1,tidx) = 0.0;
+        atom_gradients(1,2,tidx) = 0.0;
         for (int atom_cnt = tidx;
                   atom_cnt < docking_params.num_of_atoms;
                   atom_cnt+= team_member.team_size()) {
@@ -437,14 +437,14 @@ int tidx = team_member.team_rank();
 		r.z = r.z * docking_params.grid_spacing;
                 // Re-using "gradient_inter_*" for total gradient (inter+intra)
                 float4struct force;
-                force.x = gradient_inter_x[atom_cnt];
-                force.y = gradient_inter_y[atom_cnt];
-                force.z = gradient_inter_z[atom_cnt];
+                force.x = atom_gradients(0,0,atom_cnt);
+                force.y = atom_gradients(0,1,atom_cnt);
+                force.z = atom_gradients(0,2,atom_cnt);
                 force.w = 0.0;
                 float4struct torque_rot = quaternion_cross(r, force);
-                gradient_intra_x[tidx] += torque_rot.x;
-                gradient_intra_y[tidx] += torque_rot.y;
-                gradient_intra_z[tidx] += torque_rot.z;
+                atom_gradients(1,0,tidx) += torque_rot.x;
+                atom_gradients(1,1,tidx) += torque_rot.y;
+                atom_gradients(1,2,tidx) += torque_rot.z;
         }
         // do a reduction over the total gradient containing prepared "gradient_intra_*" values
         for (int off=(team_member.team_size())>>1; off>0; off >>= 1)
@@ -452,16 +452,16 @@ int tidx = team_member.team_rank();
                 team_member.team_barrier();
                 if (tidx < off)
                 {
-                        gradient_intra_x[tidx] += gradient_intra_x[tidx+off];
-                        gradient_intra_y[tidx] += gradient_intra_y[tidx+off];
-                        gradient_intra_z[tidx] += gradient_intra_z[tidx+off];
+                        atom_gradients(1,0,tidx) += atom_gradients(1,0,tidx+off);
+                        atom_gradients(1,1,tidx) += atom_gradients(1,1,tidx+off);
+                        atom_gradients(1,2,tidx) += atom_gradients(1,2,tidx+off);
                 }
         }
         if (tidx == 0) {
                 float4struct torque_rot;
-                torque_rot.x = gradient_intra_x[0];
-                torque_rot.y = gradient_intra_y[0];
-                torque_rot.z = gradient_intra_z[0];
+                torque_rot.x = atom_gradients(1,0,0);
+                torque_rot.y = atom_gradients(1,1,0);
+                torque_rot.z = atom_gradients(1,2,0);
 
                 // Derived from rotation.py/axisangle_to_q()
                 // genes[3:7] = rotation.axisangle_to_q(torque, rad)
@@ -621,7 +621,7 @@ int tidx = team_member.team_rank();
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_torsion_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const Grads<Device>& grads, Coordinates calc_coords, float* gradient_inter_x, float* gradient_inter_y, float* gradient_inter_z, GenotypeAux gradient)
+KOKKOS_INLINE_FUNCTION void calc_torsion_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const Grads<Device>& grads, Coordinates calc_coords, AtomGradients atom_gradients, GenotypeAux gradient)
 {
 int tidx = team_member.team_rank();
 	int num_torsion_genes = docking_params.num_of_genes-6;
@@ -651,9 +651,9 @@ int tidx = team_member.team_rank();
 
                 // Re-using "gradient_inter_*" for total gradient (inter+intra)
 		float4struct atom_force;
-                atom_force.x = gradient_inter_x[lig_atom_id];
-                atom_force.y = gradient_inter_y[lig_atom_id];
-                atom_force.z = gradient_inter_z[lig_atom_id];
+                atom_force.x = atom_gradients(0,0,lig_atom_id);
+                atom_force.y = atom_gradients(0,1,lig_atom_id);
+                atom_force.z = atom_gradients(0,2,lig_atom_id);
                 atom_force.w = 0.0f;
 
                 float4struct torque_tor = quaternion_cross(r, atom_force);
@@ -668,7 +668,7 @@ int tidx = team_member.team_rank();
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const DockingParams<Device>& docking_params,Genotype genotype,const Constants<Device>& consts, Coordinates calc_coords, float& energy, GenotypeAux gradient)
+KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const DockingParams<Device>& docking_params,Genotype genotype,const Constants<Device>& consts, Coordinates calc_coords, AtomGradients atom_gradients, float& energy, GenotypeAux gradient)
 {
         // Get team and league ranks
         int tidx = team_member.team_rank();
@@ -682,28 +682,17 @@ KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const 
 	// Initialize energy - FIX ME - should be array length team_size - ALS
 	float partial_energies = 0.0f;
 
-	// Gradient of the intermolecular energy per each ligand atom
-        // Also used to store the accummulated gradient per each ligand atom
-        float gradient_inter_x[MAX_NUM_OF_ATOMS];
-        float gradient_inter_y[MAX_NUM_OF_ATOMS];
-        float gradient_inter_z[MAX_NUM_OF_ATOMS];
-
-        // Gradient of the intramolecular energy per each ligand atom
-        float gradient_intra_x[MAX_NUM_OF_ATOMS];
-        float gradient_intra_y[MAX_NUM_OF_ATOMS];
-        float gradient_intra_z[MAX_NUM_OF_ATOMS];
-
 	// Initializing gradients (forces) 
         // Derived from autodockdev/maps.py
         for (int atom_id = tidx; atom_id < MAX_NUM_OF_ATOMS; atom_id+= team_member.team_size()) {
                 // Intermolecular gradients
-                gradient_inter_x[atom_id] = 0.0f;
-                gradient_inter_y[atom_id] = 0.0f;
-                gradient_inter_z[atom_id] = 0.0f;
+                atom_gradients(0,0,atom_id) = 0.0f;
+                atom_gradients(0,1,atom_id) = 0.0f;
+                atom_gradients(0,2,atom_id) = 0.0f;
                 // Intramolecular gradients
-                gradient_intra_x[atom_id] = 0.0f;
-                gradient_intra_y[atom_id] = 0.0f;
-                gradient_intra_z[atom_id] = 0.0f;
+                atom_gradients(1,0,atom_id) = 0.0f;
+                atom_gradients(1,1,atom_id) = 0.0f;
+                atom_gradients(1,2,atom_id) = 0.0f;
         }
 
 	// Initializing gradient genotypes
@@ -750,34 +739,34 @@ KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const 
 
 	team_member.team_barrier();
 
-	// CALCULATING INTERMOLECULAR GRADIENTS
+	// CALCULATING INTERMOLECULAR ENERGY AND GRADIENTS
 	calc_intermolecular_gradients(team_member, docking_params, consts.interintra, calc_coords,
-			     partial_energies, gradient_inter_x, gradient_inter_y, gradient_inter_z);
+			     partial_energies, atom_gradients);
 
-	// CALCULATING INTRAMOLECULAR GRADIENTS
+	// CALCULATING INTRAMOLECULAR ENERGY AND GRADIENTS
 	calc_intramolecular_gradients(team_member, docking_params, consts.intracontrib, consts.interintra, consts.intra, calc_coords,
-			     partial_energies, gradient_intra_x, gradient_intra_y, gradient_intra_z);
+			     partial_energies, atom_gradients);
 
 	team_member.team_barrier();
 
 	// ACCUMULATE INTER- AND INTRAMOLECULAR GRADIENTS
-	// Warning! Repurposes gradient_intra and inter!
-	acculumate_interintra_gradients(team_member, docking_params, gradient_inter_x, gradient_inter_y, gradient_inter_z, gradient_intra_x, gradient_intra_y, gradient_intra_z);
+	// Warning! Repurposes atom_gradients!
+	acculumate_interintra_gradients(team_member, docking_params, atom_gradients);
 
 	team_member.team_barrier();
 
 	// Obtaining energy and translation-related gradients
-	reduce_energy_and_translation_gradients(team_member, docking_params, gradient_intra_x, gradient_intra_y, gradient_intra_z, partial_energies, energy, gradient);
+	reduce_energy_and_translation_gradients(team_member, docking_params, atom_gradients, partial_energies, energy, gradient);
 
 	team_member.team_barrier();
 
 	// Obtaining rotation-related gradients
-	calc_rotation_gradients(team_member, docking_params, consts.axis_correction,genrot_movingvec, genrot_unitvec, calc_coords, phi, theta, genrotangle, is_theta_gt_pi, gradient_inter_x, gradient_inter_y, gradient_inter_z, gradient_intra_x, gradient_intra_y, gradient_intra_z, gradient);
+	calc_rotation_gradients(team_member, docking_params, consts.axis_correction,genrot_movingvec, genrot_unitvec, calc_coords, phi, theta, genrotangle, is_theta_gt_pi, atom_gradients, gradient);
 
 	team_member.team_barrier();
 
 	// Obtaining torsion-related gradients
-	calc_torsion_gradients(team_member, docking_params, consts.grads, calc_coords, gradient_inter_x, gradient_inter_y, gradient_inter_z, gradient);
+	calc_torsion_gradients(team_member, docking_params, consts.grads, calc_coords, atom_gradients, gradient);
 
 #if defined (CONVERT_INTO_ANGSTROM_RADIAN)
 	team_member.team_barrier();

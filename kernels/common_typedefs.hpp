@@ -7,6 +7,9 @@
 // Coordinates of all atoms
 typedef Kokkos::View<float4struct[MAX_NUM_OF_ATOMS],ScratchSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> Coordinates;
 
+// Gradient (inter/intra, xyz, num atoms)
+typedef Kokkos::View<float[2][3][MAX_NUM_OF_ATOMS],ScratchSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> AtomGradients;
+
 // Genotype
 typedef Kokkos::View<float[ACTUAL_GENOTYPE_LENGTH],ScratchSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> Genotype;
 

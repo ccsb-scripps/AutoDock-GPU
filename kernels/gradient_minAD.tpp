@@ -11,7 +11,7 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
 
 	// Get the size of the shared memory allocation
         size_t shmem_size = Coordinates::shmem_size() + 2*Genotype::shmem_size() + 3*GenotypeAux::shmem_size()
-			  + OneInt::shmem_size() + 2*OneBool::shmem_size();
+			  + OneInt::shmem_size() + 2*OneBool::shmem_size() + AtomGradients::shmem_size();
 	Kokkos::parallel_for (Kokkos::TeamPolicy<ExSpace> (league_size, NUM_OF_THREADS_PER_BLOCK ).
                               set_scratch_size(KOKKOS_TEAM_SCRATCH_OPT,Kokkos::PerTeam(shmem_size)),
                         KOKKOS_LAMBDA (member_type team_member)
@@ -87,9 +87,10 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
 
 		team_member.team_barrier();
 
-		// Declare/allocate coordinates for internal use by calc_energrad only. Must be outside of loop since there is
+		// Declare/allocate coordinates/atom_gradients for internal use by calc_energrad only. Must be outside of loop since there is
 		// no way to de/reallocate things in Kokkos team scratch
 		Coordinates calc_coords(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
+		AtomGradients atom_gradients(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
 
 		// Perform adadelta iterations on gradient
 		GenotypeAux gradient(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
@@ -99,7 +100,7 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
 		// (IEEE-754 single float has a precision of about 6 decimal digits)
 		do {
 			// Calculating energy & gradient
-			calc_energrad(team_member, docking_params, genotype, consts, calc_coords,
+			calc_energrad(team_member, docking_params, genotype, consts, calc_coords, atom_gradients,
 					     energy, gradient);
 
 			if ((tidx == 0) && (energy < best_energy)) energy_improved(0)=true;
