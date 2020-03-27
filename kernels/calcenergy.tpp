@@ -382,7 +382,7 @@ KOKKOS_INLINE_FUNCTION float calc_energy(const member_type& team_member, const D
 	// GETTING ATOMIC POSITIONS
 	Coordinates calc_coords(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
 	Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, (int)(docking_params.num_of_atoms)),
-	[=] (int& idx) {
+			[=] (int& idx) {
 		get_atom_pos(idx, consts.conform, calc_coords);
 	});
 
@@ -411,7 +411,7 @@ KOKKOS_INLINE_FUNCTION float calc_energy(const member_type& team_member, const D
 	// FIX ME This will break once multi-threading - ALS
 	// Loop over the rot bond list and carry out all the rotations
 	Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, docking_params.rotbondlist_length),
-	[=] (int& idx) {
+			[=] (int& idx) {
 		rotate_atoms(idx, consts.conform, consts.rotlist, run_id, genotype, genrot_movingvec, genrot_unitvec, calc_coords);
 	});
 
@@ -421,7 +421,7 @@ KOKKOS_INLINE_FUNCTION float calc_energy(const member_type& team_member, const D
 	float energy_inter;
 	// loop over atoms
 	Kokkos::parallel_reduce (Kokkos::TeamThreadRange (team_member, (int)(docking_params.num_of_atoms)),
-	[=] (int& idx, float& l_energy_inter) {
+			[=] (int& idx, float& l_energy_inter) {
 		l_energy_inter += calc_intermolecular_energy(idx, docking_params, consts.interintra, calc_coords);
 	}, energy_inter);
 
@@ -429,7 +429,7 @@ KOKKOS_INLINE_FUNCTION float calc_energy(const member_type& team_member, const D
 	float energy_intra;
 	// loop over intraE contributors
 	Kokkos::parallel_reduce (Kokkos::TeamThreadRange (team_member, docking_params.num_of_intraE_contributors),
-	[=] (int& idx, float& l_energy_intra) {
+			[=] (int& idx, float& l_energy_intra) {
 		l_energy_intra += calc_intramolecular_energy(idx, docking_params, consts.intracontrib, consts.interintra, consts.intra, calc_coords);
 	}, energy_intra);
 

@@ -1,4 +1,5 @@
 #include "calcenergy.hpp"
+#include "genotype_funcs.hpp"
 
 // TODO - templatize ExSpace - ALS
 template<class Device>
@@ -17,11 +18,8 @@ void calc_init_pop(Generation<Device>& current, Dockpars* mypars,DockingParams<D
                 int tidx = team_member.team_rank();
                 int lidx = team_member.league_rank();
 
-		// FIX ME Copy this genotype to local memory, maybe unnecessary, maybe parallelizable - ALS
 		Genotype genotype(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
-		for (int i_geno = 0; i_geno<ACTUAL_GENOTYPE_LENGTH; i_geno++) {
-			genotype[i_geno] = current.conformations(i_geno + GENOTYPE_LENGTH_IN_GLOBMEM*lidx);
-		}
+		copy_genotype(team_member, genotype, current, lidx);
 
 		// Get the current energy for each run
 		float energy = calc_energy(team_member, docking_params, consts, genotype);
