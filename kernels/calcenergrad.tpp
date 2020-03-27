@@ -52,274 +52,262 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "calcenergy.hpp"
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_intermolecular_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const InterIntra<Device>& interintra, Coordinates calc_coords, float& energy, AtomGradients atom_gradients)
+KOKKOS_INLINE_FUNCTION float calc_intermolecular_gradients(const int atom_id, const DockingParams<Device>& docking_params, const InterIntra<Device>& interintra, Coordinates calc_coords, AtomGradients atom_gradients)
 {
-// Get team and league ranks
-int tidx = team_member.team_rank();
-float partial_energies=0.0f;
+	float partial_energy=0.0f;
         float weights[8];
-        for (int atom_id = tidx;
-                  atom_id < docking_params.num_of_atoms;
-                  atom_id+= team_member.team_size())
-        {
-                float x = calc_coords[atom_id].x;
-                float y = calc_coords[atom_id].y;
-                float z = calc_coords[atom_id].z;
-                float q = interintra.atom_charges_const[atom_id];
-                int atom_typeid = interintra.atom_types_const[atom_id];
+	float x = calc_coords[atom_id].x;
+	float y = calc_coords[atom_id].y;
+	float z = calc_coords[atom_id].z;
+	float q = interintra.atom_charges_const[atom_id];
+	int atom_typeid = interintra.atom_types_const[atom_id];
 
-                if ((x < 0) || (y < 0) || (z < 0) || (x >= docking_params.gridsize_x-1)
-                                                  || (y >= docking_params.gridsize_y-1)
-                                                  || (z >= docking_params.gridsize_z-1)){
-                        x -= 0.5f * docking_params.gridsize_x;
-                        y -= 0.5f * docking_params.gridsize_y;
-                        z -= 0.5f * docking_params.gridsize_z;
-                        partial_energies += 21.0f * (x*x+y*y+z*z); //100000.0f;
-                        // Setting gradients (forces) penalties.
-                        // The idea here is to push the offending
-                        // molecule towards the center rather
-                        atom_gradients(0,0,atom_id) += 42.0f * x;
-                        atom_gradients(0,1,atom_id) += 42.0f * y;
-                        atom_gradients(0,2,atom_id) += 42.0f * z;
-                        continue;
-                }
-                // Getting coordinates
-		uint x_low  = (uint)floor(x);
-		uint y_low  = (uint)floor(y);
-		uint z_low  = (uint)floor(z);
+	if ((x < 0) || (y < 0) || (z < 0) || (x >= docking_params.gridsize_x-1)
+					  || (y >= docking_params.gridsize_y-1)
+					  || (z >= docking_params.gridsize_z-1)){
+		x -= 0.5f * docking_params.gridsize_x;
+		y -= 0.5f * docking_params.gridsize_y;
+		z -= 0.5f * docking_params.gridsize_z;
+		partial_energy += 21.0f * (x*x+y*y+z*z); //100000.0f;
+		// Setting gradients (forces) penalties.
+		// The idea here is to push the offending
+		// molecule towards the center rather
+		atom_gradients(0,0,atom_id) += 42.0f * x;
+		atom_gradients(0,1,atom_id) += 42.0f * y;
+		atom_gradients(0,2,atom_id) += 42.0f * z;
+		return partial_energy;
+	}
+	// Getting coordinates
+	uint x_low  = (uint)floor(x);
+	uint y_low  = (uint)floor(y);
+	uint z_low  = (uint)floor(z);
 
-                float dx = x - x_low;
-                float omdx = 1.0f - dx;
-                float dy = y - y_low;
-                float omdy = 1.0f - dy;
-                float dz = z - z_low;
-                float omdz = 1.0f - dz;
+	float dx = x - x_low;
+	float omdx = 1.0f - dx;
+	float dy = y - y_low;
+	float omdy = 1.0f - dy;
+	float dz = z - z_low;
+	float omdz = 1.0f - dz;
 
-		// Calculating interpolation weights
-                weights [idx_000] = omdx*omdy*omdz;
-                weights [idx_010] = omdx*dy*omdz;
-                weights [idx_001] = omdx*omdy*dz;
-                weights [idx_011] = omdx*dy*dz;
-                weights [idx_100] = dx*omdy*omdz;
-                weights [idx_110] = dx*dy*omdz;
-                weights [idx_101] = dx*omdy*dz;
-                weights [idx_111] = dx*dy*dz;
+	// Calculating interpolation weights
+	weights [idx_000] = omdx*omdy*omdz;
+	weights [idx_010] = omdx*dy*omdz;
+	weights [idx_001] = omdx*omdy*dz;
+	weights [idx_011] = omdx*dy*dz;
+	weights [idx_100] = dx*omdy*omdz;
+	weights [idx_110] = dx*dy*omdz;
+	weights [idx_101] = dx*omdy*dz;
+	weights [idx_111] = dx*dy*dz;
 
-		// Grid index at 000
-		int grid_ind_000 = (x_low  + y_low*docking_params.gridsize_x  + z_low*docking_params.g2)<<2;
-		unsigned long mul_tmp = atom_typeid*docking_params.g3<<2;
+	// Grid index at 000
+	int grid_ind_000 = (x_low  + y_low*docking_params.gridsize_x  + z_low*docking_params.g2)<<2;
+	unsigned long mul_tmp = atom_typeid*docking_params.g3<<2;
 
-		// Calculating affinity energy
-                partial_energies += trilinear_interp(docking_params.fgrids, grid_ind_000+mul_tmp, weights);
+	// Calculating affinity energy
+	partial_energy += trilinear_interp(docking_params.fgrids, grid_ind_000+mul_tmp, weights);
 
-		// -------------------------------------------------------------------
-                // Deltas dx, dy, dz are already normalized
-                // (by host/src/getparameters.cpp) in AutoDock-GPU.
-                // The correspondance between vertices in xyz axes is:
-                // 0, 1, 2, 3, 4, 5, 6, 7  and  000, 100, 010, 001, 101, 110, 011, 111
-                // -------------------------------------------------------------------
-                /*
-                    deltas: (x-x0)/(x1-x0), (y-y0...
-                    vertices: (000, 100, 010, 001, 101, 110, 011, 111)
+	// -------------------------------------------------------------------
+	// Deltas dx, dy, dz are already normalized
+	// (by host/src/getparameters.cpp) in AutoDock-GPU.
+	// The correspondance between vertices in xyz axes is:
+	// 0, 1, 2, 3, 4, 5, 6, 7  and  000, 100, 010, 001, 101, 110, 011, 111
+	// -------------------------------------------------------------------
+	/*
+	    deltas: (x-x0)/(x1-x0), (y-y0...
+	    vertices: (000, 100, 010, 001, 101, 110, 011, 111)
 
-                          Z
-                          '
-                          3 - - - - 6
-                         /.        /|
-                        4 - - - - 7 |
-                        | '       | |
-                        | 0 - - - + 2 -- Y
-                        '/        |/
-                        1 - - - - 5
-                       /
-                      X
-                */
+		  Z
+		  '
+		  3 - - - - 6
+		 /.        /|
+		4 - - - - 7 |
+		| '       | |
+		| 0 - - - + 2 -- Y
+		'/        |/
+		1 - - - - 5
+	       /
+	      X
+	*/
 
-                // -------------------------------------------------------------------
-                // Calculating gradients (forces) corresponding to
-                // "atype" intermolecular energy
-                // Derived from autodockdev/maps.py
-                // -------------------------------------------------------------------
-		float4struct partial_gradient_inter = spatial_gradient(docking_params.fgrids, grid_ind_000+mul_tmp, dx,dy,dz, omdx,omdy,omdz);
-		atom_gradients(0,0,atom_id) += partial_gradient_inter.x;
-                atom_gradients(0,1,atom_id) += partial_gradient_inter.y;
-                atom_gradients(0,2,atom_id) += partial_gradient_inter.z;
+	// -------------------------------------------------------------------
+	// Calculating gradients (forces) corresponding to
+	// "atype" intermolecular energy
+	// Derived from autodockdev/maps.py
+	// -------------------------------------------------------------------
+	float4struct partial_gradient_inter = spatial_gradient(docking_params.fgrids, grid_ind_000+mul_tmp, dx,dy,dz, omdx,omdy,omdz);
+	atom_gradients(0,0,atom_id) += partial_gradient_inter.x;
+	atom_gradients(0,1,atom_id) += partial_gradient_inter.y;
+	atom_gradients(0,2,atom_id) += partial_gradient_inter.z;
 
-                // -------------------------------------------------------------------
-                // Calculating gradients (forces) corresponding to
-                // "elec" intermolecular energy
-                // Derived from autodockdev/maps.py
-                // -------------------------------------------------------------------
+	// -------------------------------------------------------------------
+	// Calculating gradients (forces) corresponding to
+	// "elec" intermolecular energy
+	// Derived from autodockdev/maps.py
+	// -------------------------------------------------------------------
 
-                // Capturing electrostatic values
-                atom_typeid = docking_params.num_of_atypes;
+	// Capturing electrostatic values
+	atom_typeid = docking_params.num_of_atypes;
 
-                mul_tmp = atom_typeid*docking_params.g3<<2; // different atom type id to get charge IA
-                // Calculating affinity energy
-                partial_energies += q * trilinear_interp(docking_params.fgrids, grid_ind_000+mul_tmp, weights);
-		partial_gradient_inter = spatial_gradient(docking_params.fgrids, grid_ind_000+mul_tmp, dx,dy,dz, omdx,omdy,omdz);
-                atom_gradients(0,0,atom_id) += q * partial_gradient_inter.x;
-                atom_gradients(0,1,atom_id) += q * partial_gradient_inter.y;
-                atom_gradients(0,2,atom_id) += q * partial_gradient_inter.z;
+	mul_tmp = atom_typeid*docking_params.g3<<2; // different atom type id to get charge IA
+	// Calculating affinity energy
+	partial_energy += q * trilinear_interp(docking_params.fgrids, grid_ind_000+mul_tmp, weights);
+	partial_gradient_inter = spatial_gradient(docking_params.fgrids, grid_ind_000+mul_tmp, dx,dy,dz, omdx,omdy,omdz);
+	atom_gradients(0,0,atom_id) += q * partial_gradient_inter.x;
+	atom_gradients(0,1,atom_id) += q * partial_gradient_inter.y;
+	atom_gradients(0,2,atom_id) += q * partial_gradient_inter.z;
 
-                // -------------------------------------------------------------------
-                // Calculating gradients (forces) corresponding to
-                // "dsol" intermolecular energy
-                // Derived from autodockdev/maps.py
-                // -------------------------------------------------------------------
-                // Need only magnitude of charge from here on down
-                q = fabs(q);
-                // Capturing desolvation values (atom_typeid+1 compared to above => mul_tmp + g3*4)
-                mul_tmp += docking_params.g3<<2;
+	// -------------------------------------------------------------------
+	// Calculating gradients (forces) corresponding to
+	// "dsol" intermolecular energy
+	// Derived from autodockdev/maps.py
+	// -------------------------------------------------------------------
+	// Need only magnitude of charge from here on down
+	q = fabs(q);
+	// Capturing desolvation values (atom_typeid+1 compared to above => mul_tmp + g3*4)
+	mul_tmp += docking_params.g3<<2;
 
-                // Calculating affinity energy
-                partial_energies += q * trilinear_interp(docking_params.fgrids, grid_ind_000+mul_tmp, weights);
-		partial_gradient_inter = spatial_gradient(docking_params.fgrids, grid_ind_000+mul_tmp, dx,dy,dz, omdx,omdy,omdz);
-		atom_gradients(0,0,atom_id) += q * partial_gradient_inter.x;
-                atom_gradients(0,1,atom_id) += q * partial_gradient_inter.y;
-                atom_gradients(0,2,atom_id) += q * partial_gradient_inter.z;
-        }
-	energy+=partial_energies; // FIX ME - ALS
+	// Calculating affinity energy
+	partial_energy += q * trilinear_interp(docking_params.fgrids, grid_ind_000+mul_tmp, weights);
+	partial_gradient_inter = spatial_gradient(docking_params.fgrids, grid_ind_000+mul_tmp, dx,dy,dz, omdx,omdy,omdz);
+	atom_gradients(0,0,atom_id) += q * partial_gradient_inter.x;
+	atom_gradients(0,1,atom_id) += q * partial_gradient_inter.y;
+	atom_gradients(0,2,atom_id) += q * partial_gradient_inter.z;
+
+	return partial_energy;
 }
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void calc_intramolecular_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, Coordinates calc_coords, float& energy, AtomGradients atom_gradients)
+KOKKOS_INLINE_FUNCTION float calc_intramolecular_gradients(const int contributor_counter, const DockingParams<Device>& docking_params, const IntraContrib<Device>& intracontrib, const InterIntra<Device>& interintra, const Intra<Device>& intra, Coordinates calc_coords, AtomGradients atom_gradients)
 {
-// Get team and league ranks
-int tidx = team_member.team_rank();
-float partial_energies=0.0f;
+	float partial_energy=0.0f;
         float delta_distance = 0.5f*docking_params.smooth;
-        float smoothed_distance;
 
-        for (int contributor_counter = tidx;
-                  contributor_counter < docking_params.num_of_intraE_contributors;
-                  contributor_counter+= team_member.team_size())
-        {
-                // Storing in a private variable
-                // the gradient contribution of each contributing atomic pair
-                float priv_gradient_per_intracontributor= 0.0f;
+	// Storing in a private variable
+	// the gradient contribution of each contributing atomic pair
+	float priv_gradient_per_intracontributor= 0.0f;
 
-                // Getting atom IDs
-                int atom1_id = intracontrib.intraE_contributors_const[3*contributor_counter];
-                int atom2_id = intracontrib.intraE_contributors_const[3*contributor_counter+1];
-                int hbond = (int)(intracontrib.intraE_contributors_const[3*contributor_counter+2] == 1);    // evaluates to 1 in case of H-bond, 0 otherwise
+	// Getting atom IDs
+	int atom1_id = intracontrib.intraE_contributors_const[3*contributor_counter];
+	int atom2_id = intracontrib.intraE_contributors_const[3*contributor_counter+1];
+	int hbond = (int)(intracontrib.intraE_contributors_const[3*contributor_counter+2] == 1);    // evaluates to 1 in case of H-bond, 0 otherwise
 
-                // Calculating vector components of vector going
-                // from first atom's to second atom's coordinates
-                float subx = calc_coords[atom1_id].x - calc_coords[atom2_id].x;
-                float suby = calc_coords[atom1_id].y - calc_coords[atom2_id].y;
-                float subz = calc_coords[atom1_id].z - calc_coords[atom2_id].z;
+	// Calculating vector components of vector going
+	// from first atom's to second atom's coordinates
+	float subx = calc_coords[atom1_id].x - calc_coords[atom2_id].x;
+	float suby = calc_coords[atom1_id].y - calc_coords[atom2_id].y;
+	float subz = calc_coords[atom1_id].z - calc_coords[atom2_id].z;
 
-                // Calculating atomic_distance
-                float dist = sqrt(subx*subx + suby*suby + subz*subz);
-                float atomic_distance = dist*docking_params.grid_spacing;
+	// Calculating atomic_distance
+	float dist = sqrt(subx*subx + suby*suby + subz*subz);
+	float atomic_distance = dist*docking_params.grid_spacing;
 
-                // Getting type IDs
-                int atom1_typeid = interintra.atom_types_const[atom1_id];
-                int atom2_typeid = interintra.atom_types_const[atom2_id];
+	// Getting type IDs
+	int atom1_typeid = interintra.atom_types_const[atom1_id];
+	int atom2_typeid = interintra.atom_types_const[atom2_id];
 
-                int atom1_type_vdw_hb = intra.atom1_types_reqm_const [atom1_typeid];
-                int atom2_type_vdw_hb = intra.atom2_types_reqm_const [atom2_typeid];
+	int atom1_type_vdw_hb = intra.atom1_types_reqm_const [atom1_typeid];
+	int atom2_type_vdw_hb = intra.atom2_types_reqm_const [atom2_typeid];
 
-                // ------------------------------------------------
-                // Required only for flexrings
-                // Checking if this is a CG-G0 atomic pair.
-                // If so, then adding energy term (E = G * distance).
-                // Initial specification required NON-SMOOTHED distance.
-                // This interaction is evaluated at any distance,
-                // so no cuttoffs considered here!
-                // vbond is G when calculating flexrings, 0.0 otherwise
-                float vbond = G * (float)(((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) ||
-                                          ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX)));
-                partial_energies += vbond * atomic_distance;
-                priv_gradient_per_intracontributor += vbond;
-                // ------------------------------------------------
+	// ------------------------------------------------
+	// Required only for flexrings
+	// Checking if this is a CG-G0 atomic pair.
+	// If so, then adding energy term (E = G * distance).
+	// Initial specification required NON-SMOOTHED distance.
+	// This interaction is evaluated at any distance,
+	// so no cuttoffs considered here!
+	// vbond is G when calculating flexrings, 0.0 otherwise
+	float vbond = G * (float)(((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) ||
+				  ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX)));
+	partial_energy += vbond * atomic_distance;
+	priv_gradient_per_intracontributor += vbond;
+	// ------------------------------------------------
 
-                // Calculating energy contributions
-                // Cuttoff1: internuclear-distance at 8A only for vdw and hbond.
-                if (atomic_distance < 8.0f)
-                {
-			// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
-                        // reqm: equilibrium internuclear separation
-                        //       (sum of the vdW radii of two like atoms (A)) in the case of vdW
-                        // reqm_hbond: equilibrium internuclear separation
-                        //       (sum of the vdW radii of two like atoms (A)) in the case of hbond
-                        float opt_distance = (intra.reqm_const [atom1_type_vdw_hb+ATYPE_NUM*hbond] + intra.reqm_const [atom2_type_vdw_hb+ATYPE_NUM*hbond]);
+	// Calculating energy contributions
+	// Cuttoff1: internuclear-distance at 8A only for vdw and hbond.
+	if (atomic_distance < 8.0f)
+	{
+		// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
+		// reqm: equilibrium internuclear separation
+		//       (sum of the vdW radii of two like atoms (A)) in the case of vdW
+		// reqm_hbond: equilibrium internuclear separation
+		//       (sum of the vdW radii of two like atoms (A)) in the case of hbond
+		float opt_distance = (intra.reqm_const [atom1_type_vdw_hb+ATYPE_NUM*hbond] + intra.reqm_const [atom2_type_vdw_hb+ATYPE_NUM*hbond]);
 
-                        // Getting smoothed distance
-                        // smoothed_distance = function(atomic_distance, opt_distance)
-                        float opt_dist_delta = opt_distance - atomic_distance;
-                        if(fabs(opt_dist_delta)>=delta_distance){
-                                smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
-                        } else smoothed_distance = opt_distance;
-                        // Calculating van der Waals / hydrogen bond term
-                        int idx = atom1_typeid * docking_params.num_of_atypes + atom2_typeid;
-                        float nvbond = 1.0 - vbond;
-                        float A = nvbond * intra.VWpars_AC_const[idx] / pow(smoothed_distance,12);
-                        float B = nvbond * intra.VWpars_BD_const[idx] / pow(smoothed_distance,6+4*hbond);
-                        partial_energies += A - B;
-                        priv_gradient_per_intracontributor += ((6.0f+4.0f*hbond) * B - 12.0f * A) / smoothed_distance;
-                } // if cuttoff1 - internuclear-distance at 8A
+		// Getting smoothed distance
+		// smoothed_distance = function(atomic_distance, opt_distance)
+		float smoothed_distance;
+		float opt_dist_delta = opt_distance - atomic_distance;
+		if(fabs(opt_dist_delta)>=delta_distance){
+			smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
+		} else smoothed_distance = opt_distance;
+		// Calculating van der Waals / hydrogen bond term
+		int idx = atom1_typeid * docking_params.num_of_atypes + atom2_typeid;
+		float nvbond = 1.0 - vbond;
+		float A = nvbond * intra.VWpars_AC_const[idx] / pow(smoothed_distance,12);
+		float B = nvbond * intra.VWpars_BD_const[idx] / pow(smoothed_distance,6+4*hbond);
+		partial_energy += A - B;
+		priv_gradient_per_intracontributor += ((6.0f+4.0f*hbond) * B - 12.0f * A) / smoothed_distance;
+	} // if cuttoff1 - internuclear-distance at 8A
 
-                // Calculating energy contributions
-                // Cuttoff2: internuclear-distance at 20.48A only for el and sol.
-                if (atomic_distance < 20.48f)
-                {
-                        float q1 = interintra.atom_charges_const[atom1_id];
-                        float q2 = interintra.atom_charges_const[atom2_id];
-                        float dist2 = atomic_distance*atomic_distance;
-                        // Calculating desolvation term
-                        // 1/25.92 = 0.038580246913580245
-                        float desolv_energy =  ((intra.dspars_S_const[atom1_typeid] +
-                                                 docking_params.qasp*fabs(q1)) * intra.dspars_V_const[atom2_typeid] +
-                                                (intra.dspars_S_const[atom2_typeid] +
-                                                 docking_params.qasp*fabs(q2)) * intra.dspars_V_const[atom1_typeid]) *
-                                                ( docking_params.coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)))/
-                                                                (12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2)));
-                        float dist_shift=atomic_distance+1.588f;
-                        dist2=dist_shift*dist_shift;
-                        float disth_shift=atomic_distance+0.794f;
-                        float disth4=disth_shift*disth_shift;
-                        disth4*=disth4;
-                        float diel = 1.404f/dist2 + 0.072f/disth4 + 0.00831f;
-			float es_energy = docking_params.coeff_elec * q1 * q2 / atomic_distance;
-                        partial_energies += diel * es_energy + desolv_energy;
+	// Calculating energy contributions
+	// Cuttoff2: internuclear-distance at 20.48A only for el and sol.
+	if (atomic_distance < 20.48f)
+	{
+		float q1 = interintra.atom_charges_const[atom1_id];
+		float q2 = interintra.atom_charges_const[atom2_id];
+		float dist2 = atomic_distance*atomic_distance;
+		// Calculating desolvation term
+		// 1/25.92 = 0.038580246913580245
+		float desolv_energy =  ((intra.dspars_S_const[atom1_typeid] +
+					 docking_params.qasp*fabs(q1)) * intra.dspars_V_const[atom2_typeid] +
+					(intra.dspars_S_const[atom2_typeid] +
+					 docking_params.qasp*fabs(q2)) * intra.dspars_V_const[atom1_typeid]) *
+					( docking_params.coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)))/
+							(12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2)));
+		float dist_shift=atomic_distance+1.588f;
+		dist2=dist_shift*dist_shift;
+		float disth_shift=atomic_distance+0.794f;
+		float disth4=disth_shift*disth_shift;
+		disth4*=disth4;
+		float diel = 1.404f/dist2 + 0.072f/disth4 + 0.00831f;
+		float es_energy = docking_params.coeff_elec * q1 * q2 / atomic_distance;
+		partial_energy += diel * es_energy + desolv_energy;
 
-                        // http://www.wolframalpha.com/input/?i=1%2F(x*(A%2B(B%2F(1%2BK*exp(-h*B*x)))))
-                        priv_gradient_per_intracontributor +=  -(es_energy/atomic_distance) * diel - es_energy * (2.808f/(dist2*dist_shift)+0.288f/(disth4*disth_shift)) -
-                                                                0.0771605f * atomic_distance * desolv_energy; // 1/3.6^2 = 1/12.96 = 0.0771605
-                } // if cuttoff2 - internuclear-distance at 20.48A
+		// http://www.wolframalpha.com/input/?i=1%2F(x*(A%2B(B%2F(1%2BK*exp(-h*B*x)))))
+		priv_gradient_per_intracontributor +=  -(es_energy/atomic_distance) * diel - es_energy * (2.808f/(dist2*dist_shift)+0.288f/(disth4*disth_shift)) -
+							0.0771605f * atomic_distance * desolv_energy; // 1/3.6^2 = 1/12.96 = 0.0771605
+	} // if cuttoff2 - internuclear-distance at 20.48A
 
 
-                // Decomposing "priv_gradient_per_intracontributor"
-                // into the contribution of each atom of the pair.
-                // Distances in Angstroms of vector that goes from
-                // "atom1_id"-to-"atom2_id", therefore - subx, - suby, and - subz are used
-                float grad_div_dist = -priv_gradient_per_intracontributor/dist;
-                float priv_intra_gradient_x = subx * grad_div_dist;
-                float priv_intra_gradient_y = suby * grad_div_dist;
-                float priv_intra_gradient_z = subz * grad_div_dist;
+	// Decomposing "priv_gradient_per_intracontributor"
+	// into the contribution of each atom of the pair.
+	// Distances in Angstroms of vector that goes from
+	// "atom1_id"-to-"atom2_id", therefore - subx, - suby, and - subz are used
+	float grad_div_dist = -priv_gradient_per_intracontributor/dist;
+	float priv_intra_gradient_x = subx * grad_div_dist;
+	float priv_intra_gradient_y = suby * grad_div_dist;
+	float priv_intra_gradient_z = subz * grad_div_dist;
 
-                // Calculating gradients in xyz components.
-                // Gradients for both atoms in a single contributor pair
-                // have the same magnitude, but opposite directions
+	// Calculating gradients in xyz components.
+	// Gradients for both atoms in a single contributor pair
+	// have the same magnitude, but opposite directions
 /*		Kokkos::atomic_add(&(atom_gradients(1,0,atom1_id)), -priv_intra_gradient_x); // - ALS
-                Kokkos::atomic_add(&(atom_gradients(1,1,atom1_id)), -priv_intra_gradient_y);
-                Kokkos::atomic_add(&(atom_gradients(1,2,atom1_id)), -priv_intra_gradient_z);
+	Kokkos::atomic_add(&(atom_gradients(1,1,atom1_id)), -priv_intra_gradient_y);
+	Kokkos::atomic_add(&(atom_gradients(1,2,atom1_id)), -priv_intra_gradient_z);
 
-		Kokkos::atomic_add(&(atom_gradients(1,0,atom2_id)), priv_intra_gradient_x);
-                Kokkos::atomic_add(&(atom_gradients(1,1,atom2_id)), priv_intra_gradient_y);
-                Kokkos::atomic_add(&(atom_gradients(1,2,atom2_id)), priv_intra_gradient_z);
+	Kokkos::atomic_add(&(atom_gradients(1,0,atom2_id)), priv_intra_gradient_x);
+	Kokkos::atomic_add(&(atom_gradients(1,1,atom2_id)), priv_intra_gradient_y);
+	Kokkos::atomic_add(&(atom_gradients(1,2,atom2_id)), priv_intra_gradient_z);
 */
-		atom_gradients(1,0,atom1_id) -= priv_intra_gradient_x;
-                atom_gradients(1,1,atom1_id) -= priv_intra_gradient_y;
-                atom_gradients(1,2,atom1_id) -= priv_intra_gradient_z;
+	atom_gradients(1,0,atom1_id) -= priv_intra_gradient_x;
+	atom_gradients(1,1,atom1_id) -= priv_intra_gradient_y;
+	atom_gradients(1,2,atom1_id) -= priv_intra_gradient_z;
 
-                atom_gradients(1,0,atom2_id) += priv_intra_gradient_x;
-                atom_gradients(1,1,atom2_id) += priv_intra_gradient_y;
-                atom_gradients(1,2,atom2_id) += priv_intra_gradient_z;
-        }
-	energy+=partial_energies; // FIX ME - ALS
+	atom_gradients(1,0,atom2_id) += priv_intra_gradient_x;
+	atom_gradients(1,1,atom2_id) += priv_intra_gradient_y;
+	atom_gradients(1,2,atom2_id) += priv_intra_gradient_z;
+
+	return partial_energy;
 }
 
 
@@ -376,7 +364,7 @@ int tidx = team_member.team_rank();
 
 
 template<class Device>
-KOKKOS_INLINE_FUNCTION void reduce_energy_and_translation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, AtomGradients atom_gradients, float& partial_energies, float& energy, GenotypeAux gradient)
+KOKKOS_INLINE_FUNCTION void reduce_translation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, AtomGradients atom_gradients, GenotypeAux gradient)
 {
 int tidx = team_member.team_rank();
 	// reduction over partial energies and prepared "gradient_intra_*" values
@@ -385,14 +373,12 @@ int tidx = team_member.team_rank();
                 team_member.team_barrier();
                 if (tidx < off)
                 {
-//                        partial_energies[tidx] += partial_energies[tidx+off];
                         atom_gradients(1,0,tidx) += atom_gradients(1,0,tidx+off);
                         atom_gradients(1,1,tidx) += atom_gradients(1,1,tidx+off);
                         atom_gradients(1,2,tidx) += atom_gradients(1,2,tidx+off);
                 }
         }
         if (tidx == 0) {
-                energy = partial_energies;//[0]; already done for single thread, FIX ME - ALS
                 // Scaling gradient for translational genes as
                 // their corresponding gradients were calculated in the space
                 // where these genes are in Angstrom,
@@ -679,9 +665,6 @@ KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const 
 
         team_member.team_barrier();
 
-	// Initialize energy - FIX ME - should be array length team_size - ALS
-	float partial_energies = 0.0f;
-
 	// Initializing gradients (forces) 
         // Derived from autodockdev/maps.py
         for (int atom_id = tidx; atom_id < MAX_NUM_OF_ATOMS; atom_id+= team_member.team_size()) {
@@ -740,14 +723,27 @@ KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const 
 	team_member.team_barrier();
 
 	// CALCULATING INTERMOLECULAR ENERGY AND GRADIENTS
-	calc_intermolecular_gradients(team_member, docking_params, consts.interintra, calc_coords,
-			     partial_energies, atom_gradients);
+	// Note - reduction is on energy, atom_gradients is reduced manually below
+	float energy_inter;
+        // loop over atoms
+        Kokkos::parallel_reduce (Kokkos::TeamThreadRange (team_member, (int)(docking_params.num_of_atoms)),
+                        [=] (int& idx, float& l_energy_inter) {
+                l_energy_inter += calc_intermolecular_gradients(idx, docking_params, consts.interintra, calc_coords, atom_gradients);
+        }, energy_inter);
 
 	// CALCULATING INTRAMOLECULAR ENERGY AND GRADIENTS
-	calc_intramolecular_gradients(team_member, docking_params, consts.intracontrib, consts.interintra, consts.intra, calc_coords,
-			     partial_energies, atom_gradients);
+	// Note - reduction is on energy, atom_gradients is reduced manually below
+	float energy_intra;
+        // loop over intraE contributors
+        Kokkos::parallel_reduce (Kokkos::TeamThreadRange (team_member, docking_params.num_of_intraE_contributors),
+                        [=] (int& idx, float& l_energy_intra) {
+                l_energy_intra += calc_intramolecular_gradients(idx, docking_params, consts.intracontrib, consts.interintra, consts.intra, calc_coords, atom_gradients);
+        }, energy_intra);
 
 	team_member.team_barrier();
+
+	// Get total energy
+	energy = energy_inter + energy_intra;
 
 	// ACCUMULATE INTER- AND INTRAMOLECULAR GRADIENTS
 	// Warning! Repurposes atom_gradients!
@@ -756,7 +752,7 @@ KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const 
 	team_member.team_barrier();
 
 	// Obtaining energy and translation-related gradients
-	reduce_energy_and_translation_gradients(team_member, docking_params, atom_gradients, partial_energies, energy, gradient);
+	reduce_translation_gradients(team_member, docking_params, atom_gradients, gradient);
 
 	team_member.team_barrier();
 
