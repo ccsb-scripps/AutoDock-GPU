@@ -367,14 +367,8 @@ KOKKOS_INLINE_FUNCTION float calc_intramolecular_energy(const int contributor_co
 template<class Device>
 KOKKOS_INLINE_FUNCTION float calc_energy(const member_type& team_member, const DockingParams<Device>& docking_params,const Constants<Device>& consts, Genotype genotype)
 {
-        // Get team and league ranks
-        int tidx = team_member.team_rank();
-        int lidx = team_member.league_rank();
-
         // Determine which run this team is doing - note this is a floor since integer division
-        int run_id = lidx/docking_params.pop_size;
-
-        team_member.team_barrier();
+        int run_id = team_member.league_rank()/docking_params.pop_size;
 
 	// GETTING ATOMIC POSITIONS
 	Coordinates calc_coords(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
@@ -405,7 +399,6 @@ KOKKOS_INLINE_FUNCTION float calc_energy(const member_type& team_member, const D
 
 	team_member.team_barrier();
 
-	// FIX ME This will break once multi-threading - ALS
 	// Loop over the rot bond list and carry out all the rotations
 	Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, docking_params.rotbondlist_length),
 			[=] (int& idx) {

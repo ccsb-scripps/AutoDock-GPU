@@ -19,7 +19,7 @@ void calc_init_pop(Generation<Device>& current, Dockpars* mypars,DockingParams<D
                 int lidx = team_member.league_rank();
 
 		Genotype genotype(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
-		copy_genotype(team_member, genotype, current, lidx);
+		copy_genotype(team_member, docking_params.num_of_genes, genotype, current, lidx);
 
 		team_member.team_barrier();
 

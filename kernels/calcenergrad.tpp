@@ -314,7 +314,7 @@ KOKKOS_INLINE_FUNCTION float calc_intramolecular_gradients(const int contributor
 template<class Device>
 KOKKOS_INLINE_FUNCTION void acculumate_interintra_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, AtomGradients atom_gradients)
 {
-int tidx = team_member.team_rank();
+	int tidx = team_member.team_rank();
 	for (int atom_cnt = tidx;
                   atom_cnt < docking_params.num_of_atoms;
                   atom_cnt+= team_member.team_size()) {
@@ -366,7 +366,7 @@ int tidx = team_member.team_rank();
 template<class Device>
 KOKKOS_INLINE_FUNCTION void reduce_translation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, AtomGradients atom_gradients, GenotypeAux gradient)
 {
-int tidx = team_member.team_rank();
+	int tidx = team_member.team_rank();
 	// reduction over partial energies and prepared "gradient_intra_*" values
         for (int off=(team_member.team_size())>>1; off>0; off >>= 1)
         {
@@ -400,7 +400,7 @@ int tidx = team_member.team_rank();
 template<class Device>
 KOKKOS_INLINE_FUNCTION void calc_rotation_gradients(const member_type& team_member, const DockingParams<Device>& docking_params, const AxisCorrection<Device>& axis_correction,float4struct& genrot_movingvec, float4struct& genrot_unitvec, Coordinates calc_coords, const float phi, const float theta, const float genrotangle, const bool is_theta_gt_pi, AtomGradients atom_gradients, GenotypeAux gradient)
 {
-int tidx = team_member.team_rank();
+	int tidx = team_member.team_rank();
 	// Transform gradients_inter_{x|y|z}
         // into local_gradients[i] (with four quaternion genes)
         // Derived from autodockdev/motions.py/forces_to_delta_genes()
@@ -713,7 +713,6 @@ KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const 
 
 	team_member.team_barrier();
 
-	// FIX ME This will break once multi-threading - ALS
 	// Loop over the rot bond list and carry out all the rotations
 	Kokkos::parallel_for (Kokkos::TeamThreadRange (team_member, docking_params.rotbondlist_length),
 	[=] (int& idx) {

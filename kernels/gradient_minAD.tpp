@@ -53,7 +53,7 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
 
 		// Copy genotype to local shared memory
                 Genotype genotype(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
-		copy_genotype(team_member, genotype, next, gpop_idx(0));
+		copy_genotype(team_member, docking_params.num_of_genes, genotype, next, gpop_idx(0));
 
 		team_member.team_barrier();
 
@@ -61,7 +61,7 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
 		float energy; // Dont need to init this since it's overwritten
 		float best_energy = INFINITY;
 		Genotype best_genotype(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
-                copy_genotype(team_member, best_genotype, genotype);
+                copy_genotype(team_member, docking_params.num_of_genes, best_genotype, genotype);
 
 		// Initializing variable arrays for gradient descent
 		GenotypeAux square_gradient(team_member.team_scratch(KOKKOS_TEAM_SCRATCH_OPT));
@@ -109,7 +109,7 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
 
 			// we need to be careful not to change best_energy until we had a chance to update the whole array
 			if (energy_improved(0)){
-				copy_genotype(team_member, best_genotype, genotype);
+				copy_genotype(team_member, docking_params.num_of_genes, best_genotype, genotype);
 				best_energy = energy;
 			}
 
@@ -177,7 +177,7 @@ void gradient_minAD(Generation<Device>& next, Dockpars* mypars,DockingParams<Dev
                         docking_params.evals_of_new_entities(gpop_idx(0)) += iteration_cnt;
                 }
 
-		copy_genotype(team_member, next, gpop_idx(0), best_genotype);
+		copy_genotype(team_member, docking_params.num_of_genes, next, gpop_idx(0), best_genotype);
 
                 team_member.team_barrier();
         });

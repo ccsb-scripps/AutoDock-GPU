@@ -90,7 +90,7 @@ void gen_alg_eval_new(Generation<Device>& current, Generation<Device>& next, Doc
 				docking_params.evals_of_new_entities(lidx) = 1;
 			}
 
-			copy_genotype(team_member, next, lidx, offspring_genotype);
+			copy_genotype(team_member, docking_params.num_of_genes, next, lidx, offspring_genotype);
 		}
         });
 }
