@@ -371,11 +371,8 @@ KOKKOS_INLINE_FUNCTION float calc_energy(const member_type& team_member, const D
         int tidx = team_member.team_rank();
         int lidx = team_member.league_rank();
 
-        // Determine which run this team is doing
-        int run_id;
-        if (tidx == 0) {
-                run_id = lidx/docking_params.pop_size;
-        }
+        // Determine which run this team is doing - note this is a floor since integer division
+        int run_id = lidx/docking_params.pop_size;
 
         team_member.team_barrier();
 

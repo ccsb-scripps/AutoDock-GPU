@@ -39,11 +39,8 @@ void gen_alg_eval_new(Generation<Device>& current, Generation<Device>& next, Doc
 				randnums[gene_counter] = rand_float(team_member, docking_params);
 			}
 
-			// Determine which run this team is doing
-			int run_id;
-			if (tidx == 0) {
-				run_id = lidx/docking_params.pop_size;
-			}
+			// Determine which run this team is doing - note this is a floor since integer division
+			int run_id = lidx/docking_params.pop_size;
 
 			team_member.team_barrier();
 

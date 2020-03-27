@@ -674,11 +674,8 @@ KOKKOS_INLINE_FUNCTION void calc_energrad(const member_type& team_member, const 
         int tidx = team_member.team_rank();
         int lidx = team_member.league_rank();
 
-        // Determine which run this team is doing
-        int run_id;
-        if (tidx == 0) {
-		run_id = lidx / docking_params.num_of_lsentities;
-        }
+        // Determine which run this team is doing - note this is a floor since integer division
+        int run_id = lidx / docking_params.num_of_lsentities;
 
         team_member.team_barrier();
 
