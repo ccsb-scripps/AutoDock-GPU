@@ -291,21 +291,13 @@ KOKKOS_INLINE_FUNCTION float calc_intramolecular_gradients(const int contributor
 	// Calculating gradients in xyz components.
 	// Gradients for both atoms in a single contributor pair
 	// have the same magnitude, but opposite directions
-/*		Kokkos::atomic_add(&(atom_gradients(1,0,atom1_id)), -priv_intra_gradient_x); // - ALS
+	Kokkos::atomic_add(&(atom_gradients(1,0,atom1_id)), -priv_intra_gradient_x);
 	Kokkos::atomic_add(&(atom_gradients(1,1,atom1_id)), -priv_intra_gradient_y);
 	Kokkos::atomic_add(&(atom_gradients(1,2,atom1_id)), -priv_intra_gradient_z);
 
 	Kokkos::atomic_add(&(atom_gradients(1,0,atom2_id)), priv_intra_gradient_x);
 	Kokkos::atomic_add(&(atom_gradients(1,1,atom2_id)), priv_intra_gradient_y);
 	Kokkos::atomic_add(&(atom_gradients(1,2,atom2_id)), priv_intra_gradient_z);
-*/
-	atom_gradients(1,0,atom1_id) -= priv_intra_gradient_x;
-	atom_gradients(1,1,atom1_id) -= priv_intra_gradient_y;
-	atom_gradients(1,2,atom1_id) -= priv_intra_gradient_z;
-
-	atom_gradients(1,0,atom2_id) += priv_intra_gradient_x;
-	atom_gradients(1,1,atom2_id) += priv_intra_gradient_y;
-	atom_gradients(1,2,atom2_id) += priv_intra_gradient_z;
 
 	return partial_energy;
 }
@@ -647,8 +639,7 @@ int tidx = team_member.team_rank();
 
                 // Assignment of gene-based gradient
                 // - this works because a * (a_1 + a_2 + ... + a_n) = a*a_1 + a*a_2 + ... + a*a_n
-		//Kokkos::atomic_add(&(gradient[rotbond_id+6]), torque_on_axis * DEG_TO_RAD); - ALS
-		gradient[rotbond_id+6]+=torque_on_axis * DEG_TO_RAD;
+		Kokkos::atomic_add(&(gradient(rotbond_id+6)), torque_on_axis * DEG_TO_RAD);
 	}
 }
 
