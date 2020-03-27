@@ -43,7 +43,16 @@ else ifeq ($(DEVICE), GPU)
 	TARGET:=$(TARGET)_gpu
 endif
 
-#KOKKOS_OPTS+=-DNUM_OF_THREADS_PER_BLOCK=$(NUM_OF_THREADS_PER_BLOCK)
+# Set number of threads per block (different defaults for CPU vs GPU)
+ifdef NUM_OF_THREADS_PER_BLOCK
+	KOKKOS_OPTS+=-DNUM_OF_THREADS_PER_BLOCK=$(NUM_OF_THREADS_PER_BLOCK)
+else
+	ifeq ($(DEVICE), GPU)
+		KOKKOS_OPTS+=-DNUM_OF_THREADS_PER_BLOCK=32
+	else
+		KOKKOS_OPTS+=-DNUM_OF_THREADS_PER_BLOCK=1
+	endif
+endif
 
 BIN := $(wildcard $(TARGET)*)
 

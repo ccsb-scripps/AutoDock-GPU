@@ -28,12 +28,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef DEFINES_H_
 #define DEFINES_H_
 
-// If the number of threads per block isn't specified, set to 1 for now //let Kokkos choose
-#ifdef NUM_OF_THREADS_PER_BLOCK
-#error SET NUM_OF_THREADS_PER_BLOCK TO 1, HIERARCHICAL PARALLELISM NOT READY YET
-#else
+// If the number of threads per block isn't specified
+// (at the moment, this is never encountered since these defaults are also set in the Makefile)
+#ifndef NUM_OF_THREADS_PER_BLOCK
 //#define NUM_OF_THREADS_PER_BLOCK Kokkos::AUTO()
+#ifdef USE_GPU
+#define NUM_OF_THREADS_PER_BLOCK 32
+#else
 #define NUM_OF_THREADS_PER_BLOCK 1
+#endif
 #endif
 
 // Which level of memory team scratch is placed in. 0 is kilobytes (L1), 1 is a few gigabytes, 2 is generally node capacity
