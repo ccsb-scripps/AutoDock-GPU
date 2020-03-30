@@ -273,7 +273,7 @@ void gpu_calc_energrad(
 	genrot_unitvec.y = s2*sin_angle*native_sin(phi);
 	genrot_unitvec.z = s2*native_cos(theta);
 	genrot_unitvec.w = native_cos(genrotangle*0.5f);
-	bool is_theta_gt_pi = 1.0-2.0*(float)(sin_angle < 0.0f);
+	float is_theta_gt_pi = 1.0-2.0*(float)(sin_angle < 0.0f);
 
 	uchar g1 = dockpars_gridsize_x;
 	uint  g2 = dockpars_gridsize_x_times_y;
