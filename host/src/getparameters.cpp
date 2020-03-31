@@ -141,6 +141,8 @@ void get_commandpars(const int* argc,
 	//default values
 	mypars->num_of_energy_evals	= 2500000;
 	mypars->num_of_generations	= 27000;
+	mypars->nev_provided		= false;
+	mypars->use_heuristics		= false; // Flag if we want to use Diogo's heuristics
 	mypars->abs_max_dmov		= 6.0/(*spacing); 	// +/-6A
 	mypars->abs_max_dang		= 90; 		// +/- 90°
 	mypars->mutation_rate		= 2; 		// 2%
@@ -193,9 +195,10 @@ void get_commandpars(const int* argc,
 			arg_recognized = 1;
 			sscanf(argv[i+1], "%ld", &tempint);
 
-			if ((tempint > 0) && (tempint < 260000000))
+			if ((tempint > 0) && (tempint < 260000000)){
 				mypars->num_of_energy_evals = (unsigned long) tempint;
-			else
+				mypars->nev_provided = true;
+			} else
 				printf("Warning: value of -nev argument ignored. Value must be between 0 and 260000000.\n");
 		}
 
@@ -210,6 +213,20 @@ void get_commandpars(const int* argc,
 			else
 				printf("Warning: value of -ngen argument ignored. Value must be between 0 and 16250000.\n");
 		}
+
+		// ----------------------------------
+		//Argument: Use Heuristics for number of evaluations (can be overwritten with -nev)
+		if (strcmp("-heuristics", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv [i+1], "%ld", &tempint);
+
+			if (tempint == 0)
+				mypars->use_heuristics = false;
+			else
+				mypars->use_heuristics = true;
+		}
+		// ----------------------------------
 
 		//Argument: maximal delta movement during mutation. Must be an integer between 1 and 16.
 		//N means that the maximal delta movement will be +/- 2^(N-10)*grid spacing angström.

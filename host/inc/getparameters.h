@@ -52,6 +52,8 @@ typedef struct
 {
 	unsigned long num_of_energy_evals;
 	unsigned long num_of_generations;
+		bool nev_provided;
+		bool use_heuristics;
 		float abs_max_dmov;
 		float abs_max_dang;
 		float mutation_rate;

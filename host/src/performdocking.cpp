@@ -573,6 +573,22 @@ filled with clock() */
 		//blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
 	}
 	
+	if(mypars->use_heuristics && !mypars->nev_provided){
+		printf("Using heuristics: ");
+		char newmethod[128];
+		if(myligand_init->num_of_rotbonds<8){ // use Solis-Wets
+			strcpy(newmethod,"sw");
+//			mypars->num_of_energy_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 3.5));
+			mypars->num_of_energy_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 4.0));
+			printf("-lsmet sw -nev %u\n",mypars->num_of_energy_evals);
+		} else{ // use ADAdelta
+			strcpy(newmethod,"ad");
+			mypars->num_of_energy_evals = (unsigned long)ceil(1000 * pow(2.0,0.4 * myligand_init->num_of_rotbonds + 7.0));
+			printf("-lsmet ad -nev %u\n",mypars->num_of_energy_evals);
+		}
+		strcpy(mypars->ls_method,newmethod);
+	}
+	
 	printf("Local-search chosen method is: %s\n", (dockpars.lsearch_rate == 0.0f)? "GA" :
 						      (
 						      (strcmp(mypars->ls_method, "sw")   == 0)?"Solis-Wets (sw)":
@@ -952,6 +968,7 @@ filled with clock() */
 	unsigned int avg_arr_size = (Ntop+1)*3;
 	float average_sd2_N[avg_arr_size];
 	unsigned long total_evals;
+	bool autostopped = false;
 	// -------- Replacing with memory maps! ------------
 #if defined (MAPPED_COPY)
 	while ((progress = check_progress(map_cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
@@ -1056,6 +1073,7 @@ filled with clock() */
 					printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
 					printf("\n%43s evaluation after reaching\n%40.2f +/-%8.2f kcal/mol combined.\n%34i samples, best energy %8.2f kcal/mol.\n","Finished",average(&average_sd2_N[0]),stddev(&average_sd2_N[0]),(unsigned int)average_sd2_N[2],overall_best_energy);
 					fflush(stdout);
+					autostopped = true;
 					break;
 				}
 			}
@@ -1235,7 +1253,6 @@ filled with clock() */
 			fflush(stdout);
 		}
 	}
-	printf("\n\n");
 	// ===============================================================================
 	// Modification based on:
 	// http://www.cc.gatech.edu/~vetter/keeneland/tutorial-2012-02-20/08-opencl.pdf
@@ -1249,6 +1266,63 @@ filled with clock() */
 		memcopyBufferObjectFromDevice(command_queue,cpu_final_populations,mem_dockpars_conformations_next,size_populations);
 		memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_next,size_energies);
 	}
+	if(mypars->autostop && !autostopped){ // at this point we still need to output the best energy for consistency ;-)
+		overall_best_energy = 1<<24;
+		for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
+		{
+			energies = cpu_energies+run_cnt*mypars->pop_size;
+			for (unsigned int i=0; i<mypars->pop_size; i++)
+			{
+				float energy = energies[i];
+				if(energy < overall_best_energy)
+					overall_best_energy = energy;
+				if(energy < threshold)
+				{
+					average_sd2_N[0] += energy;
+					average_sd2_N[1] += energy * energy;
+					average_sd2_N[2] += 1.0;
+					for(unsigned int m=0; m<Ntop; m++)
+						if(energy < (threshold-2.0*thres_stddev)+m*delta_energy)
+						{
+							average_sd2_N[3*(m+1)] += energy;
+							average_sd2_N[3*(m+1)+1] += energy*energy;
+							average_sd2_N[3*(m+1)+2] += 1.0;
+							break; // only one entry per bin
+						}
+				}
+			}
+		}
+		curr_avg = average(&average_sd2_N[0]);
+		curr_std = stddev(&average_sd2_N[0]);
+		bestN = average_sd2_N[2];
+		average_sd2_N[0] = 0.0;
+		average_sd2_N[1] = 0.0;
+		average_sd2_N[2] = 0.0;
+		unsigned int lowest_energy = 0;
+		for(unsigned int m=0; m<Ntop; m++)
+		{
+			if((average_sd2_N[3*(m+1)+2]>=1.0) && (lowest_energy<Ncream))
+			{
+				if((average_sd2_N[2]<4.0) || fabs(average(&average_sd2_N[0])-average(&average_sd2_N[3*(m+1)]))<2.0*mypars->stopstd)
+				{
+					average_sd2_N[0] += average_sd2_N[3*(m+1)];
+					average_sd2_N[1] += average_sd2_N[3*(m+1)+1];
+					average_sd2_N[2] += average_sd2_N[3*(m+1)+2];
+					lowest_energy++;
+				}
+			}
+		}
+		if(lowest_energy>0)
+		{
+			curr_avg = average(&average_sd2_N[0]);
+			curr_std = stddev(&average_sd2_N[0]);
+			bestN = average_sd2_N[2];
+		}
+		printf("%11u | %12u |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/mypars->num_of_runs,threshold,curr_avg,curr_std,bestN,overall_best_energy);
+		printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
+		printf("\n%43s evaluation after reaching\n%33u evaluations. Best energy %8.2f kcal/mol.\n","Finished",total_evals/mypars->num_of_runs,overall_best_energy);
+	}
+	printf("\n\n");
 #if defined (DOCK_DEBUG)
 	for (int cnt_pop=0;cnt_pop<size_populations/sizeof(float);cnt_pop++)
 		printf("total_num_pop: %u, cpu_final_populations[%u]: %f\n",(unsigned int)(size_populations/sizeof(float)),cnt_pop,cpu_final_populations[cnt_pop]);
