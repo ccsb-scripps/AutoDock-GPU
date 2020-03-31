@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <math.h>
 #include <stdio.h>
+#include <cstdint>
 
 #include "calcenergy_basic.h"
 #include "miscellaneous.h"
@@ -126,13 +127,13 @@ typedef struct
 
 typedef struct
 {
-       float atom_charges_const[MAX_NUM_OF_ATOMS];
-       char  atom_types_const  [MAX_NUM_OF_ATOMS];
+       float     atom_charges_const[MAX_NUM_OF_ATOMS];
+       uint32_t  atom_types_const  [MAX_NUM_OF_ATOMS];
 } kernelconstant_interintra;
 
 typedef struct
 {
-       char  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
+       uint32_t  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
 } kernelconstant_intracontrib;
 
 typedef struct

@@ -11,73 +11,37 @@
 # Choose OpenCL device
 # Valid values: CPU, GPU
 
+NVCC = nvcc
 CPP = g++
-LIB_OPENCL = -lOpenCL
 UNAME := $(shell uname)
 
-ifeq ($(UNAME), Darwin)
-# In case ScoreP (for profiling/tracing) is used,
-# need to link to a *.dylib for instrumentation
-ifneq (,$(findstring scorep,$(CPP)))
-# We're assuming that if the user sets the library
-# path there is a libOpenCL.so/dylib in it,
-# otherwise, we'll create a symbolic link from the
-# framework to link against
-ifeq ($(GPU_LIBRARY_PATH),)
-$(shell ln -sf /System/Library/Frameworks/OpenCL.framework/OpenCL ./libOpenCL.dylib)
-LIB_OPENCL = -L./ -lOpenCL
-endif
-else
-# in the normal case we can just include the framework
-LIB_OPENCL = -framework OpenCL
-endif
-endif
 
 ifeq ($(DEVICE), CPU)
 	DEV =-DCPU_DEVICE
-	OCLA_INC_PATH=$(CPU_INCLUDE_PATH)
-	OCLA_LIB_PATH=$(CPU_LIBRARY_PATH)
 else ifeq ($(DEVICE), GPU)
 	DEV =-DGPU_DEVICE
-	OCLA_INC_PATH=$(GPU_INCLUDE_PATH)
-	OCLA_LIB_PATH=$(GPU_LIBRARY_PATH)
 endif
 
 # ------------------------------------------------------
 # Project directories
 # opencl_lvs: wrapper for OpenCL APIs
 COMMON_DIR=./common
-OCL_INC_DIR=./wrapcl/inc
-OCL_SRC_DIR=./wrapcl/src
 HOST_INC_DIR=./host/inc
 HOST_SRC_DIR=./host/src
-KRNL_DIR=./device
+KRNL_DIR=./cuda
 KCMN_DIR=$(COMMON_DIR)
 BIN_DIR=./bin
+CUDA_FLAGS = -use_fast_math --ptxas-options="-v" -gencode arch=compute_70,code=sm_70 -std=c++11
+LIB_CUDA = kernels.o -lcurand -lcudart 
+
 
 # Host sources
-OCL_SRC=$(wildcard $(OCL_SRC_DIR)/*.cpp)
 HOST_SRC=$(wildcard $(HOST_SRC_DIR)/*.cpp)
-SRC=$(OCL_SRC) $(HOST_SRC)
+SRC=$(HOST_SRC)
 
-IFLAGS=-I$(COMMON_DIR) -I$(OCL_INC_DIR) -I$(HOST_INC_DIR) -I$(OCLA_INC_PATH)
-LFLAGS=-L$(OCLA_LIB_PATH)
-CFLAGS=$(IFLAGS) $(LFLAGS)
-
-# Device sources
-KRNL_MAIN=calcenergy.cl
-KRNL_SRC=$(KRNL_DIR)/$(KRNL_MAIN)
-# Kernel names
-K1_NAME="gpu_calc_initpop"
-K2_NAME="gpu_sum_evals"
-K3_NAME="perform_LS"
-K4_NAME="gpu_gen_and_eval_newpops"
-K5_NAME="gradient_minSD"
-K6_NAME="gradient_minFire"
-K7_NAME="gradient_minAD"
-K_NAMES=-DK1=$(K1_NAME) -DK2=$(K2_NAME) -DK3=$(K3_NAME) -DK4=$(K4_NAME) -DK5=$(K5_NAME) -DK6=$(K6_NAME) -DK7=$(K7_NAME)
-# Kernel flags
-KFLAGS=-DKRNL_SOURCE=$(KRNL_DIR)/$(KRNL_MAIN) -DKRNL_DIRECTORY=$(KRNL_DIR) -DKCMN_DIRECTORY=$(KCMN_DIR) $(K_NAMES)
+IFLAGS=-I$(COMMON_DIR) -I$(HOST_INC_DIR) -I$(GPU_INCLUDE_PATH) -I$(KRNL_DIR)
+LFLAGS=-L$(GPU_LIBRARY_PATH)
+CFLAGS=-std=c++11 $(IFLAGS) $(LFLAGS)
 
 TARGET := autodock
 ifeq ($(DEVICE), CPU)
@@ -106,6 +70,9 @@ else ifeq ($(NUMWI), 4)
 else ifeq ($(NUMWI), 8)
 	NWI=-DN8WI
 	TARGET:=$(TARGET)_8wi
+else ifeq ($(NUMWI), 12)
+        NWI=-DN12WI
+        TARGET:=$(TARGET)_12wi
 else ifeq ($(NUMWI), 16)
 	NWI=-DN16WI
 	TARGET:=$(TARGET)_16wi
@@ -139,27 +106,12 @@ endif
 CONFIG=RELEASE
 #CONFIG=FDEBUG
 
-OCL_DEBUG_BASIC=-DPLATFORM_ATTRIBUTES_DISPLAY\
-	      -DCMD_QUEUE_PROFILING_ENABLE \
-	        -DDEVICE_ATTRIBUTES_DISPLAY
 
-OCL_DEBUG_ALL=$(OCL_DEBUG_BASIC) \
-	      -DCONTEXT_INFO_DISPLAY \
-	      -DCMD_QUEUE_INFO_DISPLAY \
-	      -DCMD_QUEUE_PROFILING_ENABLE \
-	      -DPROGRAM_INFO_DISPLAY \
-	      -DPROGRAM_BUILD_INFO_DISPLAY \
-	      -DKERNEL_INFO_DISPLAY \
-	      -DKERNEL_WORK_GROUP_INFO_DISPLAY \
-	      -DBUFFER_OBJECT_INFO_DISPLAY
-ifneq ($(UNAME), Darwin) # out of order queues don't work on Mac OS X
-OCL_DEBUG_ALL += -DCMD_QUEUE_OUTORDER_ENABLE
-endif
 
 ifeq ($(CONFIG),FDEBUG)
-	OPT =-O0 -g3 -Wall $(OCL_DEBUG_ALL) -DDOCK_DEBUG
+	OPT =-O0 -g3 -Wall -DDOCK_DEBUG
 else ifeq ($(CONFIG),LDEBUG)
-	OPT =-O0 -g3 -Wall $(OCL_DEBUG_BASIC)
+	OPT =-O0 -g3 -Wall 
 else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
 else
@@ -233,14 +185,14 @@ CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
 
 # ------------------------------------------------------
 
-stringify:
-	./stringify_ocl_krnls.sh
+kernels: $(KERNEL_SRC)
+	$(NVCC) $(NWI) $(CUDA_FLAGS) $(IFLAGS) $(CUDA_INCLUDES) -c $(KRNL_DIR)/kernels.cu
 
-odock: check-env-all stringify $(SRC)
+odock: check-env-all kernels $(SRC)
 	$(CPP) \
 	$(SRC) \
 	$(CFLAGS) \
-	$(LIB_OPENCL) \
+	$(LIB_CUDA) \
 	-o$(BIN_DIR)/$(TARGET) \
 	$(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
 

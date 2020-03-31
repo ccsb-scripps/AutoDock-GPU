@@ -31,31 +31,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-//#include <math.h>
+#include <cuda.h>
+#include <curand.h>
+#include <cuda_runtime_api.h>
+#include <cassert>
 
+
+
+//#include <math.h>
 #include "processgrid.h"
 #include "miscellaneous.h"
 #include "processligand.h"
 #include "getparameters.h"
 #include "calcenergy.h"
 #include "processresult.h"
+#include "GpuData.h"
 
-#ifdef __APPLE__
-	#include "OpenCL/opencl.h"
-#else
-	#include "CL/opencl.h"
-#endif
-#include "commonMacros.h"
-#include "listAttributes.h"
-#include "Platforms.h"
-#include "Devices.h"
-#include "Contexts.h"
-#include "CommandQueues.h"
-#include "Programs.h"
-#include "Kernels.h"
-#include "ImportBinary.h"
-#include "ImportSource.h"
-#include "BufferObjects.h"
 
 #define ELAPSEDSECS(stop,start) ((float) stop-start)/((float) CLOCKS_PER_SEC)
 

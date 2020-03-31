@@ -63,13 +63,14 @@ int init_liganddata(const char* ligfilename,
 				fseek(fp, 25, SEEK_CUR);
 			else
 				fseek(fp, 27, SEEK_CUR);
-			fscanf(fp, "%*f");		//skipping fields
-			fscanf(fp, "%*f");
-			fscanf(fp, "%*f");
-			fscanf(fp, "%*s");
-			fscanf(fp, "%*s");
-			fscanf(fp, "%*f");
-			fscanf(fp, "%s", tempstr);	//reading atom type
+                        int result;
+			result = fscanf(fp, "%*f");		//skipping fields
+			result = fscanf(fp, "%*f");
+			result = fscanf(fp, "%*f");
+			result = fscanf(fp, "%*s");
+			result = fscanf(fp, "%*s");
+			result = fscanf(fp, "%*f");
+			result = fscanf(fp, "%s", tempstr);	//reading atom type
 
 			tempstr[3] = '\0';	//just to be sure strcpy wont fail even if something is wrong with position
 
