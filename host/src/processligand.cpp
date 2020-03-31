@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
+
+
 // Output showing the CG-G0 virtual bonds and pairs
 // #define CG_G0_INFO
 
