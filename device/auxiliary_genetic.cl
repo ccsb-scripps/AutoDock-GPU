@@ -120,19 +120,20 @@ void gpu_perform_elitist_selection(
 	int entity_counter;
 	int gene_counter;
 	float best_energy;
+	uint tidx = get_local_id(0);
 
-	if (get_local_id(0) < dockpars_pop_size) {
-		best_energies[get_local_id(0)] = dockpars_energies_current[get_group_id(0)+get_local_id(0)];
-		best_IDs[get_local_id(0)] = get_local_id(0);
+	if (tidx < dockpars_pop_size) {
+		best_energies[tidx] = dockpars_energies_current[get_group_id(0)+tidx];
+		best_IDs[tidx] = tidx;
 	}
 
-	for (entity_counter = NUM_OF_THREADS_PER_BLOCK+get_local_id(0);
+	for (entity_counter = NUM_OF_THREADS_PER_BLOCK+tidx;
 	     entity_counter < dockpars_pop_size;
 	     entity_counter+= NUM_OF_THREADS_PER_BLOCK) {
 
-	     if (dockpars_energies_current[get_group_id(0)+entity_counter] < best_energies[get_local_id(0)]) {
-		best_energies[get_local_id(0)] = dockpars_energies_current[get_group_id(0)+entity_counter];
-		best_IDs[get_local_id(0)] = entity_counter;
+	     if (dockpars_energies_current[get_group_id(0)+entity_counter] < best_energies[tidx]) {
+		best_energies[tidx] = dockpars_energies_current[get_group_id(0)+entity_counter];
+		best_IDs[tidx] = entity_counter;
 	     }
 	}
 
@@ -140,7 +141,7 @@ void gpu_perform_elitist_selection(
 
 	// This could be implemented with a tree-like structure
 	// which may be slightly faster
-	if (get_local_id(0) == 0)
+	if (tidx == 0)
 	{
 		best_energy = best_energies[0];
 		best_ID[0] = best_IDs[0];
@@ -166,7 +167,7 @@ void gpu_perform_elitist_selection(
 	// Copying genotype and energy value to the first entity of new population
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	for (gene_counter = get_local_id(0);
+	for (gene_counter = tidx;
 	     gene_counter < dockpars_num_of_genes;
 	     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 	     dockpars_conformations_next[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+gene_counter] = dockpars_conformations_current[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0) + GENOTYPE_LENGTH_IN_GLOBMEM*best_ID[0]+gene_counter];

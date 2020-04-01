@@ -92,6 +92,7 @@ gpu_gen_and_eval_newpops(
 	__local float partial_intraE [NUM_OF_THREADS_PER_BLOCK];
 	#endif
 
+	uint tidx = get_local_id(0);
 	// In this case this compute-unit is responsible for elitist selection
 	if ((get_group_id(0) % dockpars_pop_size) == 0) {
 		gpu_perform_elitist_selection(dockpars_pop_size,
@@ -111,45 +112,49 @@ gpu_gen_and_eval_newpops(
 		// [0..3] for parent candidates,
 		// [4..5] for binary tournaments, [6] for deciding crossover,
 		// [7..8] for crossover points, [9] for local search
-		for (gene_counter = get_local_id(0);
+		for (gene_counter = tidx;
 		     gene_counter < 10;
 		     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 			randnums[gene_counter] = gpu_randf(dockpars_prng_states);
 		}
 
 		// Determining run ID
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 			run_id = get_group_id(0) / dockpars_pop_size;
 		}
 
 		// Performing binary tournament selection
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (get_local_id(0) < 4)	//it is not ensured that the four candidates will be different...
-		{
-			parent_candidates[get_local_id(0)]  = (int) (dockpars_pop_size*randnums[get_local_id(0)]); //using randnums[0..3]
-			candidate_energies[get_local_id(0)] = dockpars_energies_current[run_id*dockpars_pop_size+parent_candidates[get_local_id(0)]];
+		for (gene_counter = tidx;
+		     gene_counter < 4;
+		     gene_counter+= NUM_OF_THREADS_PER_BLOCK) { //it is not ensured that the four candidates will be different...
+
+			parent_candidates[gene_counter]  = (int) (dockpars_pop_size*randnums[gene_counter]); //using randnums[0..3]
+			candidate_energies[gene_counter] = dockpars_energies_current[run_id*dockpars_pop_size+parent_candidates[gene_counter]];
 		}
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (get_local_id(0) < 2) 
-		{
+		for (gene_counter = tidx;
+		     gene_counter < 2;
+		     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
+
 			// Notice: dockpars_tournament_rate was scaled down to [0,1] in host
 			// to reduce number of operations in device
-			if (candidate_energies[2*get_local_id(0)] < candidate_energies[2*get_local_id(0)+1])
-				if (/*100.0f**/randnums[4+get_local_id(0)] < dockpars_tournament_rate) {		//using randnum[4..5]
-					parents[get_local_id(0)] = parent_candidates[2*get_local_id(0)];
+			if (candidate_energies[2*gene_counter] < candidate_energies[2*gene_counter+1])
+				if (/*100.0f**/randnums[4+gene_counter] < dockpars_tournament_rate) {		//using randnum[4..5]
+					parents[gene_counter] = parent_candidates[2*gene_counter];
 				}
 				else {
-					parents[get_local_id(0)] = parent_candidates[2*get_local_id(0)+1];
+					parents[gene_counter] = parent_candidates[2*gene_counter+1];
 				}
 			else
-				if (/*100.0f**/randnums[4+get_local_id(0)] < dockpars_tournament_rate) {
-					parents[get_local_id(0)] = parent_candidates[2*get_local_id(0)+1];
+				if (/*100.0f**/randnums[4+gene_counter] < dockpars_tournament_rate) {
+					parents[gene_counter] = parent_candidates[2*gene_counter+1];
 				}
 				else {
-					parents[get_local_id(0)] = parent_candidates[2*get_local_id(0)];
+					parents[gene_counter] = parent_candidates[2*gene_counter];
 				}
 		}
 
@@ -160,15 +165,18 @@ gpu_gen_and_eval_newpops(
 		// to reduce number of operations in device
 		if (/*100.0f**/randnums[6] < dockpars_crossover_rate)	// Using randnums[6]
 		{
-			if (get_local_id(0) < 2) {
+			for (gene_counter = tidx;
+			     gene_counter < 2;
+			     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
+
 				// Using randnum[7..8]
-				covr_point[get_local_id(0)] = (int) ((dockpars_num_of_genes-1)*randnums[7+get_local_id(0)]);
+				covr_point[gene_counter] = (int) ((dockpars_num_of_genes-1)*randnums[7+gene_counter]);
 			}
 
 			barrier(CLK_LOCAL_MEM_FENCE);
 			
 			// covr_point[0] should store the lower crossover-point
-			if (get_local_id(0) == 0) {
+			if (tidx == 0) {
 				if (covr_point[1] < covr_point[0]) {
 					temp_covr_point = covr_point[1];
 					covr_point[1]   = covr_point[0];
@@ -178,7 +186,7 @@ gpu_gen_and_eval_newpops(
 
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-			for (gene_counter = get_local_id(0);
+			for (gene_counter = tidx;
 			     gene_counter < dockpars_num_of_genes;
 			     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 			{
@@ -214,7 +222,7 @@ gpu_gen_and_eval_newpops(
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// Performing mutation
-		for (gene_counter = get_local_id(0);
+		for (gene_counter = tidx;
 		     gene_counter < dockpars_num_of_genes;
 		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
@@ -282,7 +290,7 @@ gpu_gen_and_eval_newpops(
 				);
 		// =============================================================
 
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 			dockpars_evals_of_new_entities[get_group_id(0)] = 1;
 			dockpars_energies_next[get_group_id(0)] = energy;
 

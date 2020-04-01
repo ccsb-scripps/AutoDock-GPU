@@ -106,7 +106,8 @@ gradient_minSD(
 	// Stepsize for the minimizer
 	__local float stepsize;
 
-	if (get_local_id(0) == 0)
+	uint tidx = get_local_id(0);
+	if (tidx == 0)
 	{
 		// Choosing a random entity out of the entire population
 		/*
@@ -190,7 +191,7 @@ gradient_minSD(
 
 	// Enable this for debugging SD from a defined initial genotype
 	#if defined (DEBUG_INITIAL_2BRT)
-	if (get_local_id(0) == 0) {
+	if (tidx == 0) {
 		// 2brt
 		genotype[0] = 24.093334;
 		genotype[1] = 24.658667;
@@ -262,7 +263,7 @@ gradient_minSD(
 	// WARNING: hardcoded has priority over LGA genotype.
 	// That means, if DEBUG_INITIAL_2BRT is defined, then
 	// LGA genotype is not used (only for debugging purposes)
-	if (get_local_id(0) == 0)
+	if (tidx == 0)
 	{
 		printf("\n");
 		printf("%20s \n", "hardcoded genotype: ");
@@ -404,13 +405,13 @@ gradient_minSD(
 
 		// Printing number of stepest-descent iterations
 		#if defined (DEBUG_MINIMIZER) 
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 			printf("%s\n", "----------------------------------------------------------");	
 		}
 		#endif
 		
 		#if defined (DEBUG_MINIMIZER) || defined (PRINT_MINIMIZER_ENERGY_EVOLUTION)
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 			printf("%-15s %-3u ", "# SD iteration: ", iteration_cnt);
 		}
 		#endif
@@ -478,7 +479,7 @@ gradient_minSD(
 		// This could be enabled back for double checking
 		#if 0
 		#if defined (DEBUG_ENERGY_KERNEL5)	
-		if (/*(get_group_id(0) == 0) &&*/ (get_local_id(0) == 0)) {
+		if (/*(get_group_id(0) == 0) &&*/ (tidx == 0)) {
 		
 			#if defined (PRINT_GENES_AND_GRADS)
 			for(uint i = 0; i < dockpars_num_of_genes; i++) {
@@ -505,7 +506,7 @@ gradient_minSD(
 		#endif
 		#endif
 
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 			// Finding maximum of the absolute value for the three translation gradients
 			max_trans_grad = fmax(fabs(gradient[0]), fabs(gradient[1]));
 			max_trans_grad = fmax(max_trans_grad, fabs(gradient[2]));
@@ -522,7 +523,7 @@ gradient_minSD(
 		}
 
 		// Copying torsions genes
-		for(uint i = get_local_id(0); 
+		for(uint i = tidx; 
 			 i < dockpars_num_of_genes-6; 
 			 i+= NUM_OF_THREADS_PER_BLOCK) {
 			torsions_gradient[i] = fabs(gradient[i+6]);
@@ -532,28 +533,28 @@ gradient_minSD(
 		// Calculating maximum absolute torsional gene
 		// https://stackoverflow.com/questions/36465581/opencl-find-max-in-array
 		for (uint i=(dockpars_num_of_genes-6)/2; i>=1; i/=2){
-			if (get_local_id(0) < i) {
+			if (tidx < i) {
 
 			// This could be enabled back for details
 			#if 0
 			#if defined (DEBUG_MINIMIZER)
-			printf("---====--- %u %u %10.10f %-0.10f\n", i, get_local_id(0), torsions_gradient[get_local_id(0)], torsions_gradient[get_local_id(0) + i]);
+			printf("---====--- %u %u %10.10f %-0.10f\n", i, tidx, torsions_gradient[tidx], torsions_gradient[tidx + i]);
 			#endif
 			#endif
 
-				if (torsions_gradient[get_local_id(0)] < torsions_gradient[get_local_id(0) + i]) {
-					torsions_gradient[get_local_id(0)] = torsions_gradient[get_local_id(0) + i];
+				if (torsions_gradient[tidx] < torsions_gradient[tidx + i]) {
+					torsions_gradient[tidx] = torsions_gradient[tidx + i];
 				}
 			}
 			barrier(CLK_LOCAL_MEM_FENCE);
 		}
-		if (get_local_id(0) == 0) {
-			max_tors_grad = torsions_gradient[get_local_id(0)];
+		if (tidx == 0) {
+			max_tors_grad = torsions_gradient[tidx];
 			max_tors_stepsize = native_divide(MAX_DEV_TORSION, max_tors_grad);
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 			// Calculating the maximum stepsize using previous three
 			max_stepsize = fmin(max_trans_stepsize, max_rota_stepsize);
 			max_stepsize = fmin(max_stepsize, max_tors_stepsize);
@@ -563,7 +564,7 @@ gradient_minSD(
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 		
-		for(uint i = get_local_id(0); i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {
+		for(uint i = tidx; i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {
 	     		// Taking step
 			candidate_genotype[i] = genotype[i] - stepsize * gradient[i];	
 
@@ -650,7 +651,7 @@ gradient_minSD(
 		// =============================================================
 
 		#if defined (DEBUG_ENERGY_KERNEL5)
-		if (/*(get_group_id(0) == 0) &&*/ (get_local_id(0) == 0)) {
+		if (/*(get_group_id(0) == 0) &&*/ (tidx == 0)) {
 			#if defined (PRINT_ENERGIES)
 			printf("\n");
 			printf("%-10s %-10.6f \n", "intra: ",  partial_intraE[0]);
@@ -684,7 +685,7 @@ gradient_minSD(
 		#endif
 
 		#if defined (DEBUG_MINIMIZER)
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 			printf("\n");
 			printf("%s\n", "After calculating energies:");
 			printf("%13s %5s %15s\n", "energy", "|", "cand.energy");
@@ -697,7 +698,7 @@ gradient_minSD(
 		// Checking if E(candidate_genotype) < E(genotype)
 		if (candidate_energy < energy){
 			
-			for(uint i = get_local_id(0); 
+			for(uint i = tidx; 
 			 	 i < dockpars_num_of_genes; 
 		 	 	 i+= NUM_OF_THREADS_PER_BLOCK) {
 
@@ -730,19 +731,19 @@ gradient_minSD(
 		}
 		else { 
 			#if defined (DEBUG_MINIMIZER)
-			if (get_local_id(0) == 0) {
+			if (tidx == 0) {
 				printf("%s\n", "NO energy improvement! ... then decrease stepsize:");
 			}
 			#endif		
 
-			if (get_local_id(0) == 0) {
+			if (tidx == 0) {
 				stepsize *= STEP_DECREASE;
 			}
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// Updating number of stepest-descent iterations (energy evaluations)
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 	    		iteration_cnt = iteration_cnt + 1;
 
 			#if defined (DEBUG_MINIMIZER) || defined (PRINT_MINIMIZER_ENERGY_EVOLUTION)
@@ -761,7 +762,7 @@ gradient_minSD(
 	// -----------------------------------------------------------------------------
 
   	// Updating eval counter and energy
-	if (get_local_id(0) == 0) {
+	if (tidx == 0) {
 		dockpars_evals_of_new_entities[run_id*dockpars_pop_size+entity_id] += iteration_cnt;
 		dockpars_energies_next[run_id*dockpars_pop_size+entity_id] = energy;
 
@@ -773,7 +774,7 @@ gradient_minSD(
 	}
 
 	// Mapping torsion angles
-	for (uint gene_counter = get_local_id(0);
+	for (uint gene_counter = tidx;
 	     	  gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 		   if (gene_counter >= 3) {

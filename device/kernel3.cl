@@ -99,9 +99,10 @@ perform_LS(
 	__local float partial_intraE [NUM_OF_THREADS_PER_BLOCK];
 	#endif
 
+	uint tidx = get_local_id(0);
 	// Determining run ID and entity ID
 	// Initializing offspring genotype
-	if (get_local_id(0) == 0)
+	if (tidx == 0)
 	{
 		run_id = get_group_id(0) / dockpars_num_of_lsentities;
 		entity_id = get_group_id(0) % dockpars_num_of_lsentities;
@@ -125,13 +126,13 @@ perform_LS(
 			      		   dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
                               		   dockpars_num_of_genes, 0);
 
-	for (gene_counter = get_local_id(0);
+	for (gene_counter = tidx;
 	     gene_counter < dockpars_num_of_genes;
 	     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 		   genotype_bias[gene_counter] = 0.0f;
 	}
 
-	if (get_local_id(0) == 0) {
+	if (tidx == 0) {
 		rho = 1.0f;
 		cons_succ = 0;
 		cons_fail = 0;
@@ -148,7 +149,7 @@ perform_LS(
 	while ((iteration_cnt < dockpars_max_num_of_iters) && (rho > dockpars_rho_lower_bound))
 	{
 		// New random deviate
-		for (gene_counter = get_local_id(0);
+		for (gene_counter = tidx;
 		     gene_counter < dockpars_num_of_genes;
 		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
@@ -165,7 +166,7 @@ perform_LS(
 		}
 
 		// Generating new genotype candidate
-		for (gene_counter = get_local_id(0);
+		for (gene_counter = tidx;
 		     gene_counter < dockpars_num_of_genes;
 		     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 			   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] + 
@@ -220,7 +221,7 @@ perform_LS(
 				);
 		// =================================================================
 
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 			evaluation_cnt++;
 
 			#if defined (DEBUG_ENERGY_KERNEL)
@@ -232,7 +233,7 @@ perform_LS(
 
 		if (candidate_energy < offspring_energy)	// If candidate is better, success
 		{
-			for (gene_counter = get_local_id(0);
+			for (gene_counter = tidx;
 			     gene_counter < dockpars_num_of_genes;
 			     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 			{
@@ -247,7 +248,7 @@ perform_LS(
 			// used in the previous if condition
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-			if (get_local_id(0) == 0)
+			if (tidx == 0)
 			{
 				offspring_energy = candidate_energy;
 				cons_succ++;
@@ -257,7 +258,7 @@ perform_LS(
 		else	// If candidate is worser, check the opposite direction
 		{
 			// Generating the other genotype candidate
-			for (gene_counter = get_local_id(0);
+			for (gene_counter = tidx;
 			     gene_counter < dockpars_num_of_genes;
 			     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 				   genotype_candidate[gene_counter] = offspring_genotype[gene_counter] - 
@@ -312,7 +313,7 @@ perform_LS(
 					);
 			// =================================================================
 
-			if (get_local_id(0) == 0) {
+			if (tidx == 0) {
 				evaluation_cnt++;
 
 				#if defined (DEBUG_ENERGY_KERNEL)
@@ -324,7 +325,7 @@ perform_LS(
 
 			if (candidate_energy < offspring_energy) // If candidate is better, success
 			{
-				for (gene_counter = get_local_id(0);
+				for (gene_counter = tidx;
 				     gene_counter < dockpars_num_of_genes;
 			       	     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 				{
@@ -339,7 +340,7 @@ perform_LS(
 				// used in the previous if condition
 				barrier(CLK_LOCAL_MEM_FENCE);
 
-				if (get_local_id(0) == 0)
+				if (tidx == 0)
 				{
 					offspring_energy = candidate_energy;
 					cons_succ++;
@@ -348,13 +349,13 @@ perform_LS(
 			}
 			else	// Failure in both directions
 			{
-				for (gene_counter = get_local_id(0);
+				for (gene_counter = tidx;
 				     gene_counter < dockpars_num_of_genes;
 				     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 					   // Updating genotype_bias
 					   genotype_bias[gene_counter] = 0.5f*genotype_bias[gene_counter];
 
-				if (get_local_id(0) == 0)
+				if (tidx == 0)
 				{
 					cons_succ = 0;
 					cons_fail++;
@@ -363,7 +364,7 @@ perform_LS(
 		}
 
 		// Changing rho if needed
-		if (get_local_id(0) == 0)
+		if (tidx == 0)
 		{
 			iteration_cnt++;
 
@@ -383,13 +384,13 @@ perform_LS(
 	}
 
 	// Updating eval counter and energy
-	if (get_local_id(0) == 0) {
+	if (tidx == 0) {
 		dockpars_evals_of_new_entities[run_id*dockpars_pop_size+entity_id] += evaluation_cnt;
 		dockpars_energies_next[run_id*dockpars_pop_size+entity_id] = offspring_energy;
 	}
 
 	// Mapping torsion angles
-	for (gene_counter = get_local_id(0);
+	for (gene_counter = tidx;
 	     gene_counter < dockpars_num_of_genes;
 	     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 		   if (gene_counter >= 3) {

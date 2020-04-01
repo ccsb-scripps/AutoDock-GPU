@@ -521,10 +521,6 @@ if (tidx == 0) {
 
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
 
-#if 0
-} // if (tidx) == 0) {
-#endif
-
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// reduction to calculate energy
@@ -542,18 +538,4 @@ if (tidx == 0) {
 	if (tidx == 0)
 		*energy = partial_energies[0];
 }
-
-// No needed to be included as all kernel sources are stringified
-#if 0
-#include "kernel1.cl"
-#include "kernel2.cl"
-#include "auxiliary_genetic.cl"
-#include "kernel4.cl"
-#include "kernel3.cl"
-#include "calcgradient.cl"
-#include "kernel_sd.cl"
-#include "kernel_fire.cl"
-#include "kernel_ad.cl"
-#include "calcEnerGrad.cl"
-#endif
 

@@ -131,13 +131,14 @@ gradient_minFire(
 	// Determining entity, and its run, energy, and genotype
 	__local int   entity_id;
 	__local int   run_id;
-  	__local float energy;
+	__local float energy;
 	__local float genotype[ACTUAL_GENOTYPE_LENGTH];
 
 	// Iteration counter fot the minimizer
-  	__local uint iteration_cnt;  	
+	__local uint iteration_cnt;
 
-	if (get_local_id(0) == 0)
+	uint tidx = get_local_id(0);
+	if (tidx == 0)
 	{
 		// Choosing a random entity out of the entire population
 		/*
@@ -226,7 +227,7 @@ gradient_minFire(
 
 	// Enable this for debugging FIRE from a defined initial genotype
 	#if defined (DEBUG_FIRE_INITIAL_2BRT)
-	if (get_local_id(0) == 0) {
+	if (tidx == 0) {
 		// 2brt
 		genotype[0]  = 24.093334;
 		genotype[1]  = 24.658667;
@@ -298,7 +299,7 @@ gradient_minFire(
 	// WARNING: hardcoded has priority over LGA genotype.
 	// That means, if DEBUG_INITIAL_2BRT is defined, then
 	// LGA genotype is not used (only for debugging purposes)
-	if (get_local_id(0) == 0)
+	if (tidx == 0)
 	{
 		printf("\n");
 		printf("%20s \n", "hardcoded genotype: ");
@@ -385,14 +386,14 @@ gradient_minFire(
 	__local float power;
 
 	// Calculating gradient-norm components
-	for (uint gene_counter = get_local_id(0);
+	for (uint gene_counter = tidx;
 	          gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 		 gradient_tmp [gene_counter] = gradient [gene_counter] * gradient [gene_counter];
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	if (get_local_id(0) == 0) {
+	if (tidx == 0) {
 		// nitializing
 		alpha         = ALPHA_START;
 		count_success = 0;
@@ -415,7 +416,7 @@ gradient_minFire(
 
 	// Starting velocity
 	// This equation was found by trial and error
-	for (uint gene_counter = get_local_id(0);
+	for (uint gene_counter = tidx;
 	          gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 		 velocity [gene_counter] = - gradient [gene_counter] * inv_gradient_norm;
@@ -424,7 +425,7 @@ gradient_minFire(
 
 	// Keeping track of best genotype which 
 	// may or may not be the last genotype
-	if (get_local_id(0) == 0) {
+	if (tidx == 0) {
 		best_energy = energy;
 
 		for (uint i = 0; i < dockpars_num_of_genes; i++) {
@@ -441,19 +442,19 @@ gradient_minFire(
 	do {
 		// Printing number of FIRE iterations
 		#if defined (DEBUG_FIRE_MINIMIZER) 
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 			printf("%s\n", "----------------------------------------------------------");	
 		}
 		#endif
 		
 		#if defined (DEBUG_FIRE_MINIMIZER) || defined (PRINT_FIRE_MINIMIZER_ENERGY_EVOLUTION)
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 			printf("%-15s %-3u ", "# FIRE iteration: ", iteration_cnt);
 		}
 		#endif
 
 		// Creating new (candidate) genotypes
-		for (uint gene_counter = get_local_id(0);
+		for (uint gene_counter = tidx;
 	        	  gene_counter < dockpars_num_of_genes;
 	        	  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {			
 			candidate_genotype [gene_counter] = genotype [gene_counter] + dt * velocity [gene_counter];	
@@ -647,7 +648,7 @@ gradient_minFire(
         	// force = -gradient
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		for (uint gene_counter = get_local_id(0);
+		for (uint gene_counter = tidx;
 	        	  gene_counter < dockpars_num_of_genes;
 	        	  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 			
@@ -656,7 +657,7 @@ gradient_minFire(
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 			power = 0.0f;
 
 			// Summing dot products
@@ -667,7 +668,7 @@ gradient_minFire(
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		#if defined (DEBUG_ENERGY_FIRE)
-		if (/*(get_group_id(0) == 0) &&*/ (get_local_id(0) == 0)) {
+		if (/*(get_group_id(0) == 0) &&*/ (tidx == 0)) {
 			#if defined (PRINT_FIRE_ENERGIES)
 			printf("\n");
 			printf("%-10s %-10.6f \n", "intra: ",  partial_intraE[0]);
@@ -723,7 +724,7 @@ gradient_minFire(
 
 			// Using same equation as for starting velocity
 
-			for (uint gene_counter = get_local_id(0);
+			for (uint gene_counter = tidx;
 				  gene_counter < dockpars_num_of_genes;
 				  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 				// Calculating gradient-norm
@@ -731,7 +732,7 @@ gradient_minFire(
 			}
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-			if (get_local_id(0) == 0) {
+			if (tidx == 0) {
 				inv_gradient_norm = 0.0f;
 
 				// Summing dot products
@@ -745,14 +746,14 @@ gradient_minFire(
 			}
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-			for (uint gene_counter = get_local_id(0);
+			for (uint gene_counter = tidx;
 		        	  gene_counter < dockpars_num_of_genes;
 		        	  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {		
 				velocity [gene_counter] = - gradient [gene_counter] * inv_gradient_norm;	
 			}
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-		 	if (get_local_id(0) == 0) {
+		 	if (tidx == 0) {
 				count_success = 0;
 				alpha         = ALPHA_START;
 				dt 	      = dt * DT_DEC; 
@@ -765,7 +766,7 @@ gradient_minFire(
 		}
 		// Going downhill
 		else {
-			if (get_local_id(0) == 0) {
+			if (tidx == 0) {
 				count_success ++;
 
 				#if defined PRINT_FIRE_PARAMETERS
@@ -794,7 +795,7 @@ gradient_minFire(
 
 		// --------------------------------------
 		// Always update: energy, genotype, gradient
-		for (uint gene_counter = get_local_id(0);
+		for (uint gene_counter = tidx;
 	        	  gene_counter < dockpars_num_of_genes;
 	        	  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 
@@ -809,14 +810,14 @@ gradient_minFire(
 
 		// --------------------------------------
 		// Calculating gradient-norm
-		for (uint gene_counter = get_local_id(0);
+		for (uint gene_counter = tidx;
 			  gene_counter < dockpars_num_of_genes;
 			  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 			gradient_tmp [gene_counter] = gradient [gene_counter] * gradient [gene_counter];
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 			inv_gradient_norm = 0.0f;
 
 			// Summing dot products
@@ -831,14 +832,14 @@ gradient_minFire(
 
 		// --------------------------------------
 		// Calculating velocity-norm
-		for (uint gene_counter = get_local_id(0);
+		for (uint gene_counter = tidx;
 			  gene_counter < dockpars_num_of_genes;
 			  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 			velocity_tmp [gene_counter] = velocity [gene_counter] * velocity [gene_counter];
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 			velocity_norm  = 0.0f;
 
 			// Summing dot products
@@ -854,7 +855,7 @@ gradient_minFire(
 
 		// --------------------------------------
 		// Calculating velocity
-		for (uint gene_counter = get_local_id(0);
+		for (uint gene_counter = tidx;
 			  gene_counter < dockpars_num_of_genes;
 			  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 			// NOTE: "velnorm_div_gradnorm" includes already the "alpha" factor
@@ -864,7 +865,7 @@ gradient_minFire(
 
 		// --------------------------------------
 		// Updating number of fire iterations (energy evaluations)
-		if (get_local_id(0) == 0) {
+		if (tidx == 0) {
 	    		iteration_cnt = iteration_cnt + 1;
 
 			#if defined (DEBUG_FIRE_MINIMIZER) || defined (PRINT_FIRE_MINIMIZER_ENERGY_EVOLUTION)
@@ -891,7 +892,7 @@ gradient_minFire(
 	// -----------------------------------------------------------------------------
 
   	// Updating eval counter and energy
-	if (get_local_id(0) == 0) {
+	if (tidx == 0) {
 		dockpars_evals_of_new_entities[run_id*dockpars_pop_size+entity_id] += iteration_cnt;
 		dockpars_energies_next[run_id*dockpars_pop_size+entity_id] = best_energy;
 
@@ -903,7 +904,7 @@ gradient_minFire(
 	}
 
 	// Mapping torsion angles
-	for (uint gene_counter = get_local_id(0);
+	for (uint gene_counter = tidx;
 	     	  gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
 		   if (gene_counter >= 3) {

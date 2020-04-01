@@ -38,28 +38,27 @@ gpu_sum_evals(
 //since each block performs the summation for one run.
 {
 	int entity_counter;
-	int sum_evals;
 	__local int partsum_evals[NUM_OF_THREADS_PER_BLOCK];
 
-	partsum_evals[get_local_id(0)] = 0;
+	uint tidx = get_local_id(0);
+	partsum_evals[tidx] = 0;
 
-  	for (entity_counter = get_local_id(0);
+	// calculate partial sums
+	for (entity_counter = tidx;
 	     entity_counter < pop_size;
 	     entity_counter+= NUM_OF_THREADS_PER_BLOCK) {
-		partsum_evals[get_local_id(0)] += dockpars_evals_of_new_entities[get_group_id(0)*pop_size + entity_counter];
+		partsum_evals[tidx] += dockpars_evals_of_new_entities[get_group_id(0)*pop_size + entity_counter];
 	}
-
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	if (get_local_id(0) == 0) {
-		sum_evals = partsum_evals[0];
-
-		for (entity_counter = 1;
-		     entity_counter < NUM_OF_THREADS_PER_BLOCK;
-		     entity_counter++) {
-			sum_evals += partsum_evals[entity_counter];
+	// reduction to calculate energy
+	for (uint off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
+	{
+		barrier(CLK_LOCAL_MEM_FENCE);
+		if (tidx < off)
+		{
+			partsum_evals[tidx] += partsum_evals[tidx+off];
 		}
-
-		evals_of_runs[get_group_id(0)] += sum_evals;
 	}
+	if (tidx == 0)
+		evals_of_runs[get_group_id(0)] += partsum_evals[0];
 }
+

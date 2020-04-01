@@ -41,8 +41,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //#define PRINT_GRAD_ROTATION_GENES
 //#define PRINT_GRAD_TORSION_GENES
 
-#define ENABLE_PARALLEL_GRAD_TORSION
-
 // The following is a scaling of gradients.
 // Initially all genotypes and gradients
 // were expressed in grid-units (translations)
@@ -171,9 +169,10 @@ void gpu_calc_gradient(
 		    __local float* gradient_genotype			
 )
 {
+	uint tidx = get_local_id(0);
 	// Initializing gradients (forces) 
 	// Derived from autodockdev/maps.py
-	for (uint atom_id = get_local_id(0);
+	for (uint atom_id = tidx;
 		  atom_id < dockpars_num_of_atoms;
 		  atom_id+= NUM_OF_THREADS_PER_BLOCK) {
 		// Intermolecular gradients
@@ -187,7 +186,7 @@ void gpu_calc_gradient(
 	}
 
 	// Initializing gradient genotypes
-	for (uint gene_cnt = get_local_id(0);
+	for (uint gene_cnt = tidx;
 		  gene_cnt < dockpars_num_of_genes;
 		  gene_cnt+= NUM_OF_THREADS_PER_BLOCK) {
 		gradient_genotype[gene_cnt] = 0.0f;
@@ -212,7 +211,7 @@ void gpu_calc_gradient(
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 	// ================================================
-	for (uint rotation_counter = get_local_id(0);
+	for (uint rotation_counter = tidx;
 	          rotation_counter < dockpars_rotbondlist_length;
 	          rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -361,7 +360,7 @@ void gpu_calc_gradient(
 	// ================================================
 	// CALCULATING INTERMOLECULAR GRADIENTS
 	// ================================================
-	for (uint atom_id = get_local_id(0);
+	for (uint atom_id = tidx;
 	          atom_id < dockpars_num_of_atoms;
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -613,7 +612,7 @@ void gpu_calc_gradient(
 	// ================================================
 	// CALCULATING INTRAMOLECULAR GRADIENTS
 	// ================================================
-	for (uint contributor_counter = get_local_id(0);
+	for (uint contributor_counter = tidx;
 	          contributor_counter < dockpars_num_of_intraE_contributors;
 	          contributor_counter+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -755,57 +754,11 @@ void gpu_calc_gradient(
 		atomicAdd_g_f(&gradient_intra_y[atom2_id], priv_intra_gradient_y);
 		atomicAdd_g_f(&gradient_intra_z[atom2_id], priv_intra_gradient_z);
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
-
 	
-	// Commented to remove unnecessary local storage which was
-	// required by gradient_per_intracontributor[MAX_INTRAE_CONTRIBUTORS]
-	/*
 	barrier(CLK_LOCAL_MEM_FENCE);
-
-	// Accumulating gradients from "gradient_per_intracontributor" for each each
-	if (get_local_id(0) == 0) {
-		for (uint contributor_counter = 0;
-			  contributor_counter < dockpars_num_of_intraE_contributors;
-			  contributor_counter ++) {
-
-			// Getting atom IDs
-			uint atom1_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter];
-			uint atom2_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+1];
-
-			// Calculating xyz distances in Angstroms of vector
-			// that goes from "atom1_id"-to-"atom2_id"
-			float subx = (calc_coords_x[atom2_id] - calc_coords_x[atom1_id]);
-			float suby = (calc_coords_y[atom2_id] - calc_coords_y[atom1_id]);
-			float subz = (calc_coords_z[atom2_id] - calc_coords_z[atom1_id]);
-			float dist = native_sqrt(subx*subx + suby*suby + subz*subz);
-
-			float subx_div_dist = native_divide(subx, dist);
-			float suby_div_dist = native_divide(suby, dist);
-			float subz_div_dist = native_divide(subz, dist);
-
-			// Calculating gradients in xyz components.
-			// Gradients for both atoms in a single contributor pair
-			// have the same magnitude, but opposite directions
-			gradient_intra_x[atom1_id] -= gradient_per_intracontributor[contributor_counter] * subx_div_dist;
-			gradient_intra_y[atom1_id] -= gradient_per_intracontributor[contributor_counter] * suby_div_dist;
-			gradient_intra_z[atom1_id] -= gradient_per_intracontributor[contributor_counter] * subz_div_dist;
-
-			gradient_intra_x[atom2_id] += gradient_per_intracontributor[contributor_counter] * subx_div_dist;
-			gradient_intra_y[atom2_id] += gradient_per_intracontributor[contributor_counter] * suby_div_dist;
-			gradient_intra_z[atom2_id] += gradient_per_intracontributor[contributor_counter] * subz_div_dist;
-
-			//printf("%-20s %-10u %-5u %-5u %-10.8f\n", "grad_intracontrib", contributor_counter, atom1_id, atom2_id, gradient_per_intracontributor[contributor_counter]);
-		}
-	}
-	*/	
-
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-
-
-
+	
 	// Accumulating inter- and intramolecular gradients
-	for (uint atom_cnt = get_local_id(0);
+	for (uint atom_cnt = tidx;
 		  atom_cnt < dockpars_num_of_atoms;
 		  atom_cnt+= NUM_OF_THREADS_PER_BLOCK) {
 
@@ -853,7 +806,7 @@ void gpu_calc_gradient(
 	// ------------------------------------------
 	// Obtaining translation-related gradients
 	// ------------------------------------------
-	if (get_local_id(0) == 0) {
+	if (tidx == 0) {
 		for (uint lig_atom_id = 0;
 			  lig_atom_id<dockpars_num_of_atoms;
 			  lig_atom_id++) {
@@ -892,7 +845,7 @@ void gpu_calc_gradient(
 	// into local_gradients[i] (with three Shoemake genes)
 	// Derived from autodockdev/motions.py/_get_cube3_gradient()
 	// ------------------------------------------
-	if (get_local_id(0) == 1) {
+	if ((tidx == 1) || (NUM_OF_THREADS_PER_BLOCK<1)) {
 
 		float3 torque_rot;
 		torque_rot.x = 0.0f;
@@ -1233,131 +1186,108 @@ void gpu_calc_gradient(
 	// Obtaining torsion-related gradients
 	// ------------------------------------------
 
-	#if defined (ENABLE_PARALLEL_GRAD_TORSION)
-	for (uint rotbond_id = get_local_id(0);
+	for (uint rotbond_id = tidx;
 		  rotbond_id < dockpars_num_of_genes-6;
 		  rotbond_id +=NUM_OF_THREADS_PER_BLOCK) {
-
 		#if defined (PRINT_GRAD_TORSION_GENES)
 		if (rotbond_id == 0) {
 			printf("\n%s\n", "NOTE: torsion gradients are calculated by many work-items");
 		}
 		#endif
-	#else
-	if (get_local_id(0) == 2) {
+		// Querying ids of atoms belonging to the rotatable bond in question
+		int atom1_id = rotbonds_const[2*rotbond_id];
+		int atom2_id = rotbonds_const[2*rotbond_id+1];
 
-		for (uint rotbond_id = 0;
-			  rotbond_id < dockpars_num_of_genes-6;
-			  rotbond_id ++) {
-	#endif
+		float3 atomRef_coords;
+		atomRef_coords.x = calc_coords[atom1_id].x;
+		atomRef_coords.y = calc_coords[atom1_id].y;
+		atomRef_coords.z = calc_coords[atom1_id].z;
 
-			// Querying ids of atoms belonging to the rotatable bond in question
-			int atom1_id = rotbonds_const[2*rotbond_id];
-			int atom2_id = rotbonds_const[2*rotbond_id+1];
+		#if defined (PRINT_GRAD_TORSION_GENES)
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-5s %3u \n\t %-5s %3i \n\t %-5s %3i\n", "gene: ", (rotbond_id+6), "atom1: ", atom1_id, "atom2: ", atom2_id);
+		#endif		
 
-			float3 atomRef_coords;
-			atomRef_coords.x = calc_coords[atom1_id].x;
-			atomRef_coords.y = calc_coords[atom1_id].y;
-			atomRef_coords.z = calc_coords[atom1_id].z;
+		float3 rotation_unitvec;
+		/*
+		rotation_unitvec.x = kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id];
+		rotation_unitvec.y = kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1];
+		rotation_unitvec.z = kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2];
+		*/
+		rotation_unitvec.x = calc_coords[atom2_id].x - calc_coords[atom1_id].x;
+		rotation_unitvec.y = calc_coords[atom2_id].y - calc_coords[atom1_id].y;
+		rotation_unitvec.z = calc_coords[atom2_id].z - calc_coords[atom1_id].z;
+		rotation_unitvec = fast_normalize(rotation_unitvec);
 
+		#if defined (PRINT_GRAD_TORSION_GENES)
+		printf("\n");
+		printf("%-15s \n\t %-10.6f %-10.6f %-10.6f\n", "unitvec: ", rotation_unitvec.x, rotation_unitvec.y, rotation_unitvec.z);
+		#endif	
+
+		// Torque of torsions
+		float3 torque_tor;
+		torque_tor.x = 0.0f;
+		torque_tor.y = 0.0f;
+		torque_tor.z = 0.0f;
+		// Iterating over each ligand atom that rotates 
+		// if the bond in question rotates
+		for (uint rotable_atom_cnt = 0;
+			  rotable_atom_cnt<num_rotating_atoms_per_rotbond_const[rotbond_id];
+			  rotable_atom_cnt++) {
+			uint lig_atom_id = rotbonds_atoms_const[MAX_NUM_OF_ATOMS*rotbond_id + rotable_atom_cnt];
+			// Calculating torque on point "A" 
+			// (could be any other point "B" along the rotation axis)
+			float3 atom_coords;
+			atom_coords.x = calc_coords[lig_atom_id].x;
+			atom_coords.y = calc_coords[lig_atom_id].y;
+			atom_coords.z = calc_coords[lig_atom_id].z;
+			// Temporal variable to calculate translation differences.
+			// They are converted back to Angstroms here
+			float3 r;
+			r.x = (atom_coords.x - atomRef_coords.x) * dockpars_grid_spacing;
+			r.y = (atom_coords.y - atomRef_coords.y) * dockpars_grid_spacing;
+			r.z = (atom_coords.z - atomRef_coords.z) * dockpars_grid_spacing;
+
+			// Re-using "gradient_inter_*" for total gradient (inter+intra)
+			float3 atom_force;
+			atom_force.x = gradient_inter_x[lig_atom_id]; 
+			atom_force.y = gradient_inter_y[lig_atom_id];
+			atom_force.z = gradient_inter_z[lig_atom_id];
+			torque_tor += cross(r, atom_force);
 			#if defined (PRINT_GRAD_TORSION_GENES)
-			printf("\n%s\n", "----------------------------------------------------------");
-			printf("%-5s %3u \n\t %-5s %3i \n\t %-5s %3i\n", "gene: ", (rotbond_id+6), "atom1: ", atom1_id, "atom2: ", atom2_id);
-			#endif		
-
-			float3 rotation_unitvec;
-			/*
-			rotation_unitvec.x = kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id];
-			rotation_unitvec.y = kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1];
-			rotation_unitvec.z = kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2];
-			*/
-			rotation_unitvec.x = calc_coords[atom2_id].x - calc_coords[atom1_id].x;
-			rotation_unitvec.y = calc_coords[atom2_id].y - calc_coords[atom1_id].y;
-			rotation_unitvec.z = calc_coords[atom2_id].z - calc_coords[atom1_id].z;
-			rotation_unitvec = fast_normalize(rotation_unitvec);
-
-			#if defined (PRINT_GRAD_TORSION_GENES)
-			printf("\n");
-			printf("%-15s \n\t %-10.6f %-10.6f %-10.6f\n", "unitvec: ", rotation_unitvec.x, rotation_unitvec.y, rotation_unitvec.z);
-			#endif	
-
-			// Torque of torsions
-			float3 torque_tor;
-			torque_tor.x = 0.0f;
-			torque_tor.y = 0.0f;
-			torque_tor.z = 0.0f;
-
-			// Iterating over each ligand atom that rotates 
-			// if the bond in question rotates
-			for (uint rotable_atom_cnt = 0;
-				  rotable_atom_cnt<num_rotating_atoms_per_rotbond_const[rotbond_id];
-				  rotable_atom_cnt++) {
-
-				uint lig_atom_id = rotbonds_atoms_const[MAX_NUM_OF_ATOMS*rotbond_id + rotable_atom_cnt];
-
-				// Calculating torque on point "A" 
-				// (could be any other point "B" along the rotation axis)
-				float3 atom_coords;
-				atom_coords.x = calc_coords[lig_atom_id].x;
-				atom_coords.y = calc_coords[lig_atom_id].y;
-				atom_coords.z = calc_coords[lig_atom_id].z;
-
-				// Temporal variable to calculate translation differences.
-				// They are converted back to Angstroms here
-				float3 r;
-				r.x = (atom_coords.x - atomRef_coords.x) * dockpars_grid_spacing;
-				r.y = (atom_coords.y - atomRef_coords.y) * dockpars_grid_spacing;
-				r.z = (atom_coords.z - atomRef_coords.z) * dockpars_grid_spacing;
-
-				// Re-using "gradient_inter_*" for total gradient (inter+intra)
-				float3 atom_force;
-				atom_force.x = gradient_inter_x[lig_atom_id]; 
-				atom_force.y = gradient_inter_y[lig_atom_id];
-				atom_force.z = gradient_inter_z[lig_atom_id];
-
-				torque_tor += cross(r, atom_force);
-
-				#if defined (PRINT_GRAD_TORSION_GENES)
-				if (rotable_atom_cnt == 0) {
-					printf("\n %-30s %3i\n", "contributor for gene : ", (rotbond_id+6));
-				}
-				//printf("%-15s %-10u\n", "rotable_atom_cnt: ", rotable_atom_cnt);
-				//printf("%-15s %-10u\n", "atom_id: ", lig_atom_id);
-				printf("\t %-15s %-10.6f %-10.6f %-10.6f \t %-15s %-10.6f %-10.6f %-10.6f\n", "atom_coords: ", atom_coords.x, atom_coords.y, atom_coords.z, "atom_force: ", atom_force.x, atom_force.y, atom_force.z);
-				//printf("%-15s %-10.6f %-10.6f %-10.6f\n", "r: ", r.x, r.y, r.z);
-
-				//printf("%-15s %-10.6f %-10.6f %-10.6f\n", "atom_force: ", atom_force.x, atom_force.y, atom_force.z);
-				//printf("%-15s %-10.6f %-10.6f %-10.6f\n", "torque_tor: ", torque_tor.x, torque_tor.y, torque_tor.z);
-				#endif
-
+			if (rotable_atom_cnt == 0) {
+				printf("\n %-30s %3i\n", "contributor for gene : ", (rotbond_id+6));
 			}
-			#if defined (PRINT_GRAD_TORSION_GENES)
-			printf("\n");
+			//printf("%-15s %-10u\n", "rotable_atom_cnt: ", rotable_atom_cnt);
+			//printf("%-15s %-10u\n", "atom_id: ", lig_atom_id);
+			printf("\t %-15s %-10.6f %-10.6f %-10.6f \t %-15s %-10.6f %-10.6f %-10.6f\n", "atom_coords: ", atom_coords.x, atom_coords.y, atom_coords.z, "atom_force: ", atom_force.x, atom_force.y, atom_force.z);
+			//printf("%-15s %-10.6f %-10.6f %-10.6f\n", "r: ", r.x, r.y, r.z);
+			//printf("%-15s %-10.6f %-10.6f %-10.6f\n", "atom_force: ", atom_force.x, atom_force.y, atom_force.z);
+			//printf("%-15s %-10.6f %-10.6f %-10.6f\n", "torque_tor: ", torque_tor.x, torque_tor.y, torque_tor.z);
 			#endif
 
-			// Projecting torque on rotation axis
-			float torque_on_axis = dot(rotation_unitvec, torque_tor);
+		}
+		#if defined (PRINT_GRAD_TORSION_GENES)
+		printf("\n");
+		#endif
 
-			// Assignment of gene-based gradient
-			gradient_genotype[rotbond_id+6] = torque_on_axis * DEG_TO_RAD /*(M_PI / 180.0f)*/;
+		// Projecting torque on rotation axis
+		float torque_on_axis = dot(rotation_unitvec, torque_tor);
 
-			#if defined (PRINT_GRAD_TORSION_GENES)
-			printf("gradient_torsion [%u] :%f\n", rotbond_id+6, gradient_genotype [rotbond_id+6]);
-			#endif
-			
-		} // End of iterations over rotatable bonds
+		// Assignment of gene-based gradient
+		gradient_genotype[rotbond_id+6] = torque_on_axis * DEG_TO_RAD /*(M_PI / 180.0f)*/;
 
-	#if defined (ENABLE_PARALLEL_GRAD_TORSION)
-	
-	#else
-	}
-	#endif
+		#if defined (PRINT_GRAD_TORSION_GENES)
+		printf("gradient_torsion [%u] :%f\n", rotbond_id+6, gradient_genotype [rotbond_id+6]);
+		#endif
+		
+	} // End of iterations over rotatable bonds
 	//----------------------------------
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	#if defined (CONVERT_INTO_ANGSTROM_RADIAN)
-	for (uint gene_cnt = get_local_id(0);
+	for (uint gene_cnt = tidx;
 		  gene_cnt < dockpars_num_of_genes;
 		  gene_cnt+= NUM_OF_THREADS_PER_BLOCK) {
 

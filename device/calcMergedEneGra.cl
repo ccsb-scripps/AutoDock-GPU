@@ -81,8 +81,6 @@ typedef struct
 //#define PRINT_GRAD_ROTATION_GENES
 //#define PRINT_GRAD_TORSION_GENES
 
-#define ENABLE_PARALLEL_GRAD_TORSION
-
 // The following is a scaling of gradients.
 // Initially all genotypes and gradients
 // were expressed in grid-units (translations)
