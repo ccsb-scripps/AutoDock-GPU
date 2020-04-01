@@ -62,6 +62,7 @@ typedef struct
 		float smooth;
 	unsigned long num_of_ls;
 		char  ls_method[128];
+		int initial_sw_generations;
 		float tournament_rate;
 		float rho_lower_bound;
 		float base_dmov_mul_sqrt3;

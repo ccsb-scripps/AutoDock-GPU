@@ -596,6 +596,8 @@ filled with clock() */
 						      (strcmp(mypars->ls_method, "fire") == 0)?"FIRE (fire)":
 						      (strcmp(mypars->ls_method, "ad") == 0)?"ADADELTA (ad)": "Unknown")
 						      );
+	if((mypars->initial_sw_generations>0) && (strcmp(mypars->ls_method, "sw") != 0))
+		printf("Using Solis-Wets (sw) for the first %d generations.\n",mypars->initial_sw_generations);
 
 	/*
 	printf("dockpars.num_of_intraE_contributors:%u\n", dockpars.num_of_intraE_contributors);
@@ -732,7 +734,7 @@ filled with clock() */
 
 	if (dockpars.lsearch_rate != 0.0f) {
 
-		if (strcmp(mypars->ls_method, "sw") == 0) {
+		if ((strcmp(mypars->ls_method, "sw") == 0) || (mypars->initial_sw_generations>0)) {
 			// Kernel3
   			setKernelArg(kernel3,0, sizeof(dockpars.num_of_atoms),                  &dockpars.num_of_atoms);
   			setKernelArg(kernel3,1, sizeof(dockpars.num_of_atypes),                 &dockpars.num_of_atypes);
@@ -774,7 +776,8 @@ filled with clock() */
 	  		printf("%-25s %10s %8u %10s %4u\n", "K_LS_SOLISWETS", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
   			#endif
 			// End of Kernel3
-		} else if (strcmp(mypars->ls_method, "sd") == 0) {
+		}
+		if (strcmp(mypars->ls_method, "sd") == 0) {
 			// Kernel5
   			setKernelArg(kernel5,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
   			setKernelArg(kernel5,1, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
@@ -820,7 +823,8 @@ filled with clock() */
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_SDESCENT", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel5
-		} else if (strcmp(mypars->ls_method, "fire") == 0) {
+		}
+		if (strcmp(mypars->ls_method, "fire") == 0) {
 			// Kernel6
   			setKernelArg(kernel6,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
   			setKernelArg(kernel6,1, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
@@ -865,7 +869,8 @@ filled with clock() */
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_FIRE", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel6
-		} else if (strcmp(mypars->ls_method, "ad") == 0) {
+		}
+		if (strcmp(mypars->ls_method, "ad") == 0) {
 			// Kernel7
 			setKernelArg(kernel7,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
 			setKernelArg(kernel7,1, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
@@ -1107,7 +1112,7 @@ filled with clock() */
 		#endif
 		// End of Kernel4
 		if (dockpars.lsearch_rate != 0.0f) {
-			if (strcmp(mypars->ls_method, "sw") == 0) {
+			if ((strcmp(mypars->ls_method, "sw") == 0) || ((strcmp(mypars->ls_method, "ad") == 0) && (generation_cnt<mypars->initial_sw_generations))) {
 				// Kernel3
 				#ifdef DOCK_DEBUG
 					printf("%-25s", "\tK_LS_SOLISWETS");fflush(stdout);
@@ -1192,7 +1197,7 @@ filled with clock() */
 			setKernelArg(kernel4,15,sizeof(mem_dockpars_conformations_next),                &mem_dockpars_conformations_next);
 			setKernelArg(kernel4,16,sizeof(mem_dockpars_energies_next),                     &mem_dockpars_energies_next);
 			if (dockpars.lsearch_rate != 0.0f) {
-				if (strcmp(mypars->ls_method, "sw") == 0) {
+				if ((strcmp(mypars->ls_method, "sw") == 0) || ((strcmp(mypars->ls_method, "ad") == 0) && (generation_cnt<mypars->initial_sw_generations))){
 					// Kernel 3
 					setKernelArg(kernel3,13,sizeof(mem_dockpars_conformations_next),		&mem_dockpars_conformations_next);
 					setKernelArg(kernel3,14,sizeof(mem_dockpars_energies_next),			&mem_dockpars_energies_next);
@@ -1218,7 +1223,7 @@ filled with clock() */
 			setKernelArg(kernel4,15,sizeof(mem_dockpars_conformations_current),             &mem_dockpars_conformations_current);
 			setKernelArg(kernel4,16,sizeof(mem_dockpars_energies_current),                  &mem_dockpars_energies_current);
 			if (dockpars.lsearch_rate != 0.0f) {
-				if (strcmp(mypars->ls_method, "sw") == 0) {
+				if ((strcmp(mypars->ls_method, "sw") == 0) || ((strcmp(mypars->ls_method, "ad") == 0) && (generation_cnt<mypars->initial_sw_generations))){
 						// Kernel 3
 						setKernelArg(kernel3,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
 						setKernelArg(kernel3,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
@@ -1230,7 +1235,7 @@ filled with clock() */
 						// Kernel 6
 						setKernelArg(kernel6,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
 						setKernelArg(kernel6,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);
-				} else if (strcmp(mypars->ls_method, "ad") == 0) {
+				} else if (strcmp(mypars->ls_method, "ad") == 0){
 						// Kernel 7
 						setKernelArg(kernel7,13,sizeof(mem_dockpars_conformations_current),	&mem_dockpars_conformations_current);
 			 			setKernelArg(kernel7,14,sizeof(mem_dockpars_energies_current),		&mem_dockpars_energies_current);

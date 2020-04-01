@@ -154,6 +154,7 @@ void get_commandpars(const int* argc,
 							// "sd": Steepest-Descent
 							// "fire": FIRE, https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
 							// "ad": ADADELTA, https://arxiv.org/abs/1212.5701
+	mypars->initial_sw_generations  = 0;
 	mypars->smooth			= 0.5f;
 	mypars->tournament_rate		= 60;		// 60%
 	mypars->rho_lower_bound		= 0.01;		// 0.01
@@ -212,6 +213,18 @@ void get_commandpars(const int* argc,
 				mypars->num_of_generations = (unsigned long) tempint;
 			else
 				printf("Warning: value of -ngen argument ignored. Value must be between 0 and 16250000.\n");
+		}
+
+		//Argument: initial sw number of generations. Must be a positive integer.
+		if (strcmp("-initswgens", argv[i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv[i+1], "%ld", &tempint);
+
+			if ((tempint > 0) && (tempint < 16250000))
+				mypars->initial_sw_generations = (unsigned long) tempint;
+			else
+				printf("Warning: value of -initswgens argument ignored. Value must be between 0 and 16250000.\n");
 		}
 
 		// ----------------------------------
