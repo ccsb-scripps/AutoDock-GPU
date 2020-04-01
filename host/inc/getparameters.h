@@ -79,6 +79,7 @@ typedef struct
 		float ref_ori_angles [3];
 	unsigned long devnum;
 		bool  autostop;
+	unsigned int  as_frequency;
 		float stopstd;
 		char  cgmaps;
 	unsigned long num_of_runs;

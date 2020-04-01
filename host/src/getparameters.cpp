@@ -170,6 +170,7 @@ void get_commandpars(const int* argc,
 				    // float ref_ori_angles [3]
 	mypars->devnum			= 0;
 	mypars->autostop		= 0;
+	mypars->as_frequency		= 5;
 	mypars->stopstd			= 0.15;
 	mypars->num_of_runs		= 1;
 	mypars->reflig_en_reqired	= 0;
@@ -534,6 +535,19 @@ void get_commandpars(const int* argc,
 				mypars->autostop = 0;
 			else
 				mypars->autostop = 1;
+		}
+		// ----------------------------------
+
+		// ----------------------------------
+		//Argument: Test frequency for auto-stopping criterion
+		if (strcmp("-asfreq", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv [i+1], "%u", &tempint);
+			if ((tempint >= 1) && (tempint <= 100))
+				mypars->as_frequency = (unsigned int) tempint;
+			else
+				printf("Warning: value of -asfreq argument ignored. Value must be an integer between 1 and 100.\n");
 		}
 		// ----------------------------------
 

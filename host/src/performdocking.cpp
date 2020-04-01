@@ -610,7 +610,7 @@ filled with clock() */
 #ifndef DOCK_DEBUG
 	if (mypars->autostop)
 	{
-		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation\nof the best molecules, %u generations, or %u evaluations, whichever comes first:\n\n",mypars->stopstd,mypars->num_of_generations,mypars->num_of_energy_evals);
+		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation of\nthe best molecules of the last 4 * %u generations, %u generations, or %u evaluations:\n\n",mypars->stopstd,mypars->as_frequency,mypars->num_of_generations,mypars->num_of_energy_evals);
 		printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
 		printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
 	}
@@ -984,8 +984,11 @@ filled with clock() */
 	{
 		if (mypars->autostop)
 		{
-			if (generation_cnt % 10 == 0) {
-				memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_current,size_energies);
+			if (generation_cnt % mypars->as_frequency == 0) {
+				if (generation_cnt % 2 == 0)
+					memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_current,size_energies);
+				else
+					memcopyBufferObjectFromDevice(command_queue,cpu_energies,mem_dockpars_energies_next,size_energies);
 				for(unsigned int count=0; (count<1+8*(generation_cnt==0)) && (fabs(curr_avg-prev_avg)>0.00001); count++)
 				{
 					threshold_used = threshold;
@@ -1073,7 +1076,7 @@ filled with clock() */
 				average_sd2_N[1] = rolling[1] + rolling[4] + rolling[7] + rolling[10];
 				average_sd2_N[2] = rolling[2] + rolling[5] + rolling[8] + rolling[11];
 				// Finish when the std.dev. of the last 4 rounds is below 0.1 kcal/mol
-				if((stddev(&average_sd2_N[0])<mypars->stopstd) && (generation_cnt>30))
+				if((stddev(&average_sd2_N[0])<mypars->stopstd) && (generation_cnt>=4*mypars->as_frequency))
 				{
 					printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
 					printf("\n%43s evaluation after reaching\n%40.2f +/-%8.2f kcal/mol combined.\n%34i samples, best energy %8.2f kcal/mol.\n","Finished",average(&average_sd2_N[0]),stddev(&average_sd2_N[0]),(unsigned int)average_sd2_N[2],overall_best_energy);
