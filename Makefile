@@ -109,16 +109,16 @@ CONFIG=FDEBUG
 
 ifeq ($(CONFIG),FDEBUG)
 	OPT =-O0 -g3 -Wall -DDOCK_DEBUG
-    CUDA_FLAGS = -g -use_fast_math --ptxas-options="-v" -gencode arch=compute_75,code=sm_75 -std=c++11	
+    CUDA_FLAGS = -G -use_fast_math --ptxas-options="-v" -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70 -std=c++11	
 else ifeq ($(CONFIG),LDEBUG)
 	OPT =-O0 -g3 -Wall 
-	CUDA_FLAGS = -use_fast_math --ptxas-options="-v" -gencode arch=compute_75,code=sm_75 -std=c++11	
+	CUDA_FLAGS = -use_fast_math --ptxas-options="-v" -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70 -std=c++11	
 else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
-	CUDA_FLAGS = -use_fast_math --ptxas-options="-v" -gencode arch=compute_75,code=sm_75 -std=c++11
+	CUDA_FLAGS = -use_fast_math --ptxas-options="-v" -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70 -std=c++11
 else
 	OPT =
-    CUDA_FLAGS = -use_fast_math --ptxas-options="-v" -gencode arch=compute_75,code=sm_75 -std=c++11	
+    CUDA_FLAGS = -use_fast_math --ptxas-options="-v" -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70 -std=c++11	
 endif
 
 # ------------------------------------------------------
