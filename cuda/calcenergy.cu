@@ -219,7 +219,6 @@ __device__ void gpu_calc_energy(
         __syncthreads();
 
 	} // End rotation_counter for-loop
-    return;
 
 	// ================================================
 	// CALCULATING INTERMOLECULAR ENERGY
@@ -263,7 +262,7 @@ __device__ void gpu_calc_energy(
 		weights [idx_111] = dx*dy*dz;
 
 		// Grid value at 000
-		float* grid_value_000 = cData.dockpars.fgrids + ((x_low  + y_low*g1  + z_low*g2)<<2);
+		float* grid_value_000 = cData.pMem_fgrids + ((x_low  + y_low*g1  + z_low*g2)<<2);
 		ulong mul_tmp = atom_typeid*g3<<2;
 		// Calculating affinity energy
 		energy += TRILININTERPOL((grid_value_000+mul_tmp), weights);

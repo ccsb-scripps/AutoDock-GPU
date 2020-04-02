@@ -44,7 +44,6 @@ typedef struct
         int             gridsize_x_times_y;
         int             gridsize_x_times_y_times_z;
         float           grid_spacing;
-        float*          fgrids;
         int             rotbondlist_length;
         float           coeff_elec;
         float           coeff_desolv;
