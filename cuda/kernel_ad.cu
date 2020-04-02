@@ -90,7 +90,7 @@ gpu_gradient_minAD_kernel(
 		if (entity_id == 0) {
 			// If entity 0 is not selected according to LS-rate,
 			// choosing another entity
-			if (100.0f*gpu_randf(cData.dockpars.prng_states) > cData.dockpars.lsearch_rate) {
+			if (100.0f*gpu_randf(cData.pMem_prng_states) > cData.dockpars.lsearch_rate) {
 				entity_id = cData.dockpars.num_of_lsentities; // AT - Should this be (uint)(dockpars_pop_size * gpu_randf(dockpars_prng_states))?
 			}
 		}
@@ -422,4 +422,12 @@ void gpu_gradient_minAD(
 {
     gpu_gradient_minAD_kernel<<<blocks, threads>>>(pMem_conformations_next, pMem_energies_next);
     LAUNCHERROR("gpu_gradient_minAD_kernel");     
+#if 0  
+    cudaError_t status;
+    status = cudaDeviceSynchronize();
+    RTERROR(status, "gpu_gradient_minAD_kernel");
+    status = cudaDeviceReset();
+    RTERROR(status, "failed to shut down");
+    exit(0);
+#endif
 }

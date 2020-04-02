@@ -9,7 +9,8 @@
         exit(-1); \
     }
     
-    
+
+#define SYNCHRONOUS    
 #ifdef SYNCHRONOUS
 #define LAUNCHERROR(s) \
     { \
@@ -19,7 +20,8 @@
             cudaDeviceReset(); \
             exit(-1); \
         } \
-        cudaDeviceSynchronize(); \
+        status = cudaDeviceSynchronize(); \
+        RTERROR(status, s); \
     }
 #else
 #define LAUNCHERROR(s) \
@@ -48,7 +50,6 @@ typedef struct
         float           coeff_elec;
         float           coeff_desolv;
         int*            evals_of_new_entities;
-        unsigned int*   prng_states;
         int             pop_size;
         int             num_of_genes;
         float           tournament_rate;
