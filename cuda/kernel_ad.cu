@@ -81,7 +81,7 @@ gpu_gradient_minAD_kernel(
 	__shared__ float genotype[ACTUAL_GENOTYPE_LENGTH];
 
 	// Iteration counter for the minimizer
-	uint32_t iteration_cnt; 
+	uint32_t iteration_cnt = 0; 
 
 	if (threadIdx.x == 0)
 	{
@@ -96,9 +96,6 @@ gpu_gradient_minAD_kernel(
 		}
 		
 		energy = pMem_energies_next[run_id * cData.dockpars.pop_size + entity_id];
-
-		// Initializing gradient-minimizer counters and flags
-		iteration_cnt  = 0;
 
 		#if defined (DEBUG_ADADELTA_MINIMIZER) || defined (PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION)
 		printf("\n");
@@ -404,7 +401,7 @@ gpu_gradient_minAD_kernel(
 
 	// Updating eval counter and energy
 	if (threadIdx.x == 0) {
-		cData.dockpars.evals_of_new_entities[run_id * cData.dockpars.pop_size + entity_id] += iteration_cnt;
+		cData.pMem_evals_of_new_entities[run_id * cData.dockpars.pop_size + entity_id] += iteration_cnt;
 		pMem_energies_next[run_id * cData.dockpars.pop_size + entity_id] = best_energy;
 
 		#if defined (DEBUG_ADADELTA_MINIMIZER) || defined (PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION)
