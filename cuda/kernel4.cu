@@ -71,8 +71,8 @@ gpu_gen_and_eval_newpops_kernel(
             energy = 1000000000000.0f;
         }
         
-        // Scan through population
-        for (int i = blockIdx.x + blockDim.x; i < blockIdx.x + cData.dockpars.pop_size; i += blockDim.x)
+        // Scan through population (we already picked up a blockDim's worth above so skip)
+        for (int i = blockIdx.x + blockDim.x + threadIdx.x; i < blockIdx.x + cData.dockpars.pop_size; i += blockDim.x)
         {
             float e = pMem_energies_current[i];
             if (e < energy)
@@ -305,4 +305,11 @@ void gpu_gen_and_eval_newpops(
 {
     gpu_gen_and_eval_newpops_kernel<<<blocks, threadsPerBlock>>>(pMem_conformations_current, pMem_energies_current, pMem_conformations_next, pMem_energies_next);
     LAUNCHERROR("gpu_gen_and_eval_newpops_kernel");    
+#if 0 
+    cudaError_t status;
+    status = cudaDeviceSynchronize();
+    RTERROR(status, "gpu_gen_and_eval_newpops_kernel");
+    status = cudaDeviceReset();
+    RTERROR(status, "failed to shut down");
+#endif   
 }
