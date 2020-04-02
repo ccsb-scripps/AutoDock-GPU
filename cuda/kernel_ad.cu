@@ -81,7 +81,7 @@ gpu_gradient_minAD_kernel(
 	__shared__ float genotype[ACTUAL_GENOTYPE_LENGTH];
 
 	// Iteration counter for the minimizer
-	uint iteration_cnt; 
+	uint32_t iteration_cnt; 
 
 	if (threadIdx.x == 0)
 	{
@@ -326,6 +326,7 @@ gpu_gradient_minAD_kernel(
 		#endif
 
 		// Updating number of ADADELTA iterations (energy evaluations)
+        iteration_cnt = iteration_cnt + 1;
 		if (threadIdx.x == 0) {
 			if (energy < best_energy)
 			{
@@ -343,7 +344,7 @@ gpu_gradient_minAD_kernel(
 			}
 #endif
 
-			iteration_cnt = iteration_cnt + 1;
+
 
 			#if defined (DEBUG_ADADELTA_MINIMIZER) || defined (PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION)
 			printf("%20s %10.6f\n", "new.energy: ", energy);
@@ -359,11 +360,13 @@ gpu_gradient_minAD_kernel(
 				cons_succ = 0;
 			}
 			else
+            {
 				if (cons_fail >= 4)
 				{
 					rho *= LS_CONT_FACTOR;
 					cons_fail = 0;
 				}
+            }
 #endif
 		}
 		__threadfence();
