@@ -61,10 +61,13 @@ void gpu_calc_initpop(uint32_t blocks, uint32_t threadsPerBlock, float* pConform
 {
     gpu_calc_initpop_kernel<<<blocks, threadsPerBlock>>>(pConformations_current, pEnergies_current);
     LAUNCHERROR("gpu_calc_initpop_kernel");
+#if 0    
     cudaError_t status;
     status = cudaDeviceSynchronize();
     RTERROR(status, "gpu_calc_initpop_kernel");
     status = cudaDeviceReset();
     RTERROR(status, "failed to shut down");
+    exit(0);
+#endif
 }
 
