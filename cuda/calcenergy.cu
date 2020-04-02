@@ -219,6 +219,7 @@ __device__ void gpu_calc_energy(
         __syncthreads();
 
 	} // End rotation_counter for-loop
+    return;
 
 	// ================================================
 	// CALCULATING INTERMOLECULAR ENERGY

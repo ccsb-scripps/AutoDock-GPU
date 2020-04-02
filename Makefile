@@ -31,7 +31,6 @@ HOST_SRC_DIR=./host/src
 KRNL_DIR=./cuda
 KCMN_DIR=$(COMMON_DIR)
 BIN_DIR=./bin
-CUDA_FLAGS = -use_fast_math --ptxas-options="-v" -gencode arch=compute_70,code=sm_70 -std=c++11
 LIB_CUDA = kernels.o -lcurand -lcudart 
 
 
@@ -103,19 +102,23 @@ endif
 # FDEBUG (full) : enables debugging on both host + device
 # LDEBUG (light): enables debugging on host
 # RELEASE
-CONFIG=RELEASE
-#CONFIG=FDEBUG
+#CONFIG=RELEASE
+CONFIG=FDEBUG
 
 
 
 ifeq ($(CONFIG),FDEBUG)
 	OPT =-O0 -g3 -Wall -DDOCK_DEBUG
+    CUDA_FLAGS = -g -use_fast_math --ptxas-options="-v" -gencode arch=compute_75,code=sm_75 -std=c++11	
 else ifeq ($(CONFIG),LDEBUG)
 	OPT =-O0 -g3 -Wall 
+	CUDA_FLAGS = -use_fast_math --ptxas-options="-v" -gencode arch=compute_75,code=sm_75 -std=c++11	
 else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
+	CUDA_FLAGS = -use_fast_math --ptxas-options="-v" -gencode arch=compute_75,code=sm_75 -std=c++11
 else
 	OPT =
+    CUDA_FLAGS = -use_fast_math --ptxas-options="-v" -gencode arch=compute_75,code=sm_75 -std=c++11	
 endif
 
 # ------------------------------------------------------

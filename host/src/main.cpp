@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 	FILE*      fp;
 	char report_file_name [256];
 
-	clock_t clock_start_program, clock_stop_program;
+	clock_t clock_start_program; //, clock_stop_program;
 	clock_start_program = clock();
 
 #ifndef _WIN32
@@ -77,14 +77,14 @@ int main(int argc, char* argv[])
 	// since we need it at grid creation time
 	//------------------------------------------------------------
 	mypars.cgmaps = 0; // default is 0 (use one maps for every CGx or Gx atom types, respectively)
-	for (unsigned int i=1; i<argc-1; i+=2)
+	for (int i=1; i<argc-1; i+=2)
 	{
 		// ----------------------------------
 		//Argument: Use individual maps for CG-G0 instead of the same one
 		if (strcmp("-cgmaps", argv [i]) == 0)
 		{
 			int tempint;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 			if (tempint == 0)
 				mypars.cgmaps = 0;
 			else

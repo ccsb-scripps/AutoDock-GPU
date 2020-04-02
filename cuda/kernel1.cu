@@ -35,7 +35,7 @@ gpu_calc_initpop_kernel(
 	// and then passed to non-kernel functions.
 	__shared__ float4 calc_coords[MAX_NUM_OF_ATOMS];
     __shared__ unsigned long long int sAccumulator64;
-	float  energy;
+	float  energy = 0.0f;
 	int    run_id = blockIdx.x / cData.dockpars.pop_size;
     float* pGenotype = pMem_conformations_current + blockIdx.x * GENOTYPE_LENGTH_IN_GLOBMEM;
 
@@ -47,8 +47,7 @@ gpu_calc_initpop_kernel(
 			calc_coords,
             &sAccumulator64
 			);
-	// =============================================================
-    
+	// =============================================================  
 
     // Write out final energy
 	if (threadIdx.x == 0) 
@@ -61,5 +60,11 @@ gpu_calc_initpop_kernel(
 void gpu_calc_initpop(uint32_t blocks, uint32_t threadsPerBlock, float* pConformations_current, float* pEnergies_current)
 {
     gpu_calc_initpop_kernel<<<blocks, threadsPerBlock>>>(pConformations_current, pEnergies_current);
+    LAUNCHERROR("gpu_calc_initpop_kernel");
+    cudaError_t status;
+    status = cudaDeviceSynchronize();
+    RTERROR(status, "gpu_calc_initpop_kernel");
+    status = cudaDeviceReset();
+    RTERROR(status, "failed to shut down");
 }
 

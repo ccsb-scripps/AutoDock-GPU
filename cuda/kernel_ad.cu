@@ -421,4 +421,5 @@ void gpu_gradient_minAD(
 )
 {
     gpu_gradient_minAD_kernel<<<blocks, threads>>>(pMem_conformations_next, pMem_energies_next);
+    LAUNCHERROR("gpu_gradient_minAD_kernel");     
 }

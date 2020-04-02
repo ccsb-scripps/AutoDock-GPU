@@ -25,24 +25,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <chrono>
 
 
-// CUDA kernels
-void gpu_calc_initpop(uint32_t blocks, uint32_t threadsPerBlock, float* pConformations_current, float* pEnergies_current);
-void gpu_sum_evals(uint32_t blocks, uint32_t threadsPerBlock);
-void gpu_gen_and_eval_newpops(
-    uint32_t blocks,
-    uint32_t threadsPerBlock,
-    float* pMem_conformations_current,
-    float* pMem_energies_current,
-    float* pMem_conformations_next,
-    float* pMem_energies_next
-);
-void gpu_gradient_minAD(
-    uint32_t blocks,
-    uint32_t threads,
-    float* pMem_conformations_next,
-	float* pMem_energies_next
-);
-
 
 #if defined (N1WI)
 	#define KNWI " -DN1WI "
@@ -52,8 +34,6 @@ void gpu_gradient_minAD(
 	#define KNWI " -DN4WI "
 #elif defined (N8WI)
 	#define KNWI " -DN8WI "
-#elif defined (N12WI)
-	#define KNWI " -DN12WI "
 #elif defined (N16WI)
 	#define KNWI " -DN16WI "
 #elif defined (N32WI)
@@ -99,6 +79,27 @@ void gpu_gradient_minAD(
 #include "performdocking.h"
 #include "correct_grad_axisangle.h"
 #include "GpuData.h"
+
+
+// CUDA kernels
+void SetKernelsGpuData(GpuData* pData);
+void GetKernelsGpuData(GpuData* pData);
+void gpu_calc_initpop(uint32_t blocks, uint32_t threadsPerBlock, float* pConformations_current, float* pEnergies_current);
+void gpu_sum_evals(uint32_t blocks, uint32_t threadsPerBlock);
+void gpu_gen_and_eval_newpops(
+    uint32_t blocks,
+    uint32_t threadsPerBlock,
+    float* pMem_conformations_current,
+    float* pMem_energies_current,
+    float* pMem_conformations_next,
+    float* pMem_energies_next
+);
+void gpu_gradient_minAD(
+    uint32_t blocks,
+    uint32_t threads,
+    float* pMem_conformations_next,
+	float* pMem_energies_next
+);
 
 template <typename Clock, typename Duration1, typename Duration2>
 double elapsed_seconds(std::chrono::time_point<Clock, Duration1> start,
@@ -161,7 +162,6 @@ filled with clock() */
     int device                                      = -1;
     int gpuCount                                    = 0;
     cudaError_t status;
-    cudaDeviceProp deviceProp;
     status = cudaGetDeviceCount(&gpuCount);
     RTERROR(status, "cudaGetDeviceCount failed");
     if (gpuCount == 0)
@@ -175,6 +175,8 @@ filled with clock() */
         // Select GPU with most memory available
         device = 1; // HACK to not use display GPU for now
     }
+    status = cudaSetDevice(device);
+    RTERROR(status, "cudaSetDevice failed");   
     cudaFree(NULL);   // Trick driver into creating context on current device
     
 
@@ -313,8 +315,6 @@ filled with clock() */
 					  3*MAX_NUM_OF_ROTBONDS*sizeof(float) + 
 					  3*MAX_NUM_OF_ROTBONDS*sizeof(float) + 
 					  4*MAX_NUM_OF_RUNS*sizeof(float);
-                      
-    size_t sz_grads_const       = 
 
     // Allocate kernel constant GPU memory
     status = cudaMalloc((void**)&cData.pKerconst_interintra, sz_interintra_const);
@@ -416,9 +416,6 @@ filled with clock() */
 	cData.dockpars.abs_max_dmov                 = mypars->abs_max_dmov;
 	cData.dockpars.qasp 		                = mypars->qasp;
 	cData.dockpars.smooth 	                    = mypars->smooth;
-	unsigned int g2                             = cData.dockpars.gridsize_x * cData.dockpars.gridsize_y;
-	unsigned int g3                             = cData.dockpars.gridsize_x * cData.dockpars.gridsize_y * cData.dockpars.gridsize_z;
-
 	cData.dockpars.lsearch_rate                 = mypars->lsearch_rate;
 
 	if (cData.dockpars.lsearch_rate != 0.0f) 
@@ -474,6 +471,7 @@ filled with clock() */
 #else
 	printf("\n");
 #endif
+    SetKernelsGpuData(&cData);
 	curr_progress_cnt = 0;
 
 #ifdef DOCK_DEBUG
@@ -497,7 +495,7 @@ filled with clock() */
 	*/
 
 	// Kernel1
-	uint32_t kernel1_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
+	uint32_t kernel1_gxsize = blocksPerGridForEachEntity;
 	uint32_t kernel1_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
 	printf("%-25s %10s %8lu %10s %4u\n", "K_INIT", "gSize: ", kernel1_gxsize, "lSize: ", kernel1_lxsize); fflush(stdout);
@@ -505,7 +503,7 @@ filled with clock() */
 	// End of Kernel1
 
 	// Kernel2
-  	uint32_t kernel2_gxsize = blocksPerGridForEachRun * threadsPerBlock;
+  	uint32_t kernel2_gxsize = blocksPerGridForEachRun;
   	uint32_t kernel2_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
 	printf("%-25s %10s %8lu %10s %4u\n", "K_EVAL", "gSize: ", kernel2_gxsize, "lSize: ",  kernel2_lxsize); fflush(stdout);
@@ -513,7 +511,7 @@ filled with clock() */
 	// End of Kernel2
 
 	// Kernel4
-  	uint32_t kernel4_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
+  	uint32_t kernel4_gxsize = blocksPerGridForEachEntity;
   	uint32_t kernel4_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
 	printf("%-25s %10s %8u %10s %4u\n", "K_GA_GENERATION", "gSize: ",  kernel4_gxsize, "lSize: ", kernel4_lxsize); fflush(stdout);
@@ -552,7 +550,7 @@ filled with clock() */
 			// End of Kernel6
 		} else if (strcmp(mypars->ls_method, "ad") == 0) {
 			// Kernel7
-			kernel7_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
+			kernel7_gxsize = blocksPerGridForEachGradMinimizerEntity;
 			kernel7_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_ADADELTA", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
@@ -587,6 +585,7 @@ filled with clock() */
 	#endif
 	// End of Kernel2
 	// ===============================================================================
+
 
 
 	#if 0
@@ -626,7 +625,7 @@ filled with clock() */
 		{
 			if (generation_cnt % 10 == 0) {
                 cudaError_t status;
-                cudaMemcpy(cpu_energies, pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
+                status = cudaMemcpy(cpu_energies, pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
                 RTERROR(status, "cudaMemcpy: couldn't downloaded pMem_energies_current");
 				for(unsigned int count=0; (count<1+8*(generation_cnt==0)) && (fabs(curr_avg-prev_avg)>0.00001); count++)
 				{
@@ -864,6 +863,7 @@ filled with clock() */
 		}
 	}
 	printf("\n\n");
+    exit(0);
 	// ===============================================================================
 	// Modification based on:
 	// http://www.cc.gatech.edu/~vetter/keeneland/tutorial-2012-02-20/08-opencl.pdf

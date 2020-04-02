@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 
-
+#include <cstdint>
 
 
 #include "getparameters.h"
@@ -867,7 +867,7 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 	//only the required angles are generated here,
 	//but the angles possibly read from file are ignored
 
-	for (i=0; i<mypars->num_of_runs; i++)
+	for (uint32_t i=0; i<mypars->num_of_runs; i++)
 	{
 #if defined (REPRO)
 		ref_ori_angles[3*i]   = 190.279;

@@ -279,7 +279,7 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 
 
 	//reference orientation quaternions
-	for (i=0; i<mypars->num_of_runs; i++)
+	for (uint32_t i=0; i<mypars->num_of_runs; i++)
 	{
 		//printf("Pregenerated angles for run %d: %f %f %f\n", i, cpu_ref_ori_angles[3*i], cpu_ref_ori_angles[3*i+1], cpu_ref_ori_angles[3*i+2]);
 
@@ -467,7 +467,7 @@ int gen_rotlist(Liganddata* myligand, int rotlist[MAX_NUM_OF_ROTATIONS])
 	char atom_wasnt_rotated_yet[MAX_NUM_OF_ATOMS];
 	int new_rotlist_element;
 	char rotbond_found;
-	char rotbond_candidate;
+	int rotbond_candidate;
 	char remaining_rots_around_rotbonds;
 
 

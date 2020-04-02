@@ -16,7 +16,7 @@
         cudaError_t status = cudaGetLastError(); \
         if (status != cudaSuccess) { \
             printf("Error: %s launching kernel %s\n", cudaGetErrorString(status), s); \
-            getGpu().Shutdown(); \
+            cudaDeviceReset(); \
             exit(-1); \
         } \
         cudaDeviceSynchronize(); \
@@ -27,7 +27,7 @@
         cudaError_t status = cudaGetLastError(); \
         if (status != cudaSuccess) { \
             printf("Error: %s launching kernel %s\n", cudaGetErrorString(status), s); \
-            getGpu().Shutdown(); \
+            cudaDeviceReset(); \
             exit(-1); \
         } \
     }

@@ -304,4 +304,5 @@ void gpu_gen_and_eval_newpops(
 )
 {
     gpu_gen_and_eval_newpops_kernel<<<blocks, threadsPerBlock>>>(pMem_conformations_current, pMem_energies_current, pMem_conformations_next, pMem_energies_next);
+    LAUNCHERROR("gpu_gen_and_eval_newpops_kernel");    
 }
