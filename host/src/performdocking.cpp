@@ -790,6 +790,7 @@ filled with clock() */
 					printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
 				#endif
                 // runKernel1D(command_queue,kernel7,kernel7_gxsize,kernel7_lxsize,&time_start_kernel,&time_end_kernel);
+                gpu_gradient_minAD(kernel7_gxsize, kernel7_lxsize, pMem_conformations_next, pMem_energies_next);
 				#ifdef DOCK_DEBUG
 					printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
