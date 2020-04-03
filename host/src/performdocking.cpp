@@ -328,6 +328,18 @@ filled with clock() */
     status = cudaMalloc((void**)&cData.pKerconst_conform, sz_conform_const);
     RTERROR(status, "cData.pKerconst_conform: failed to allocate GPU memory.\n");  
     
+    // Upload kernel constant data
+    status = cudaMemcpy(cData.pKerconst_interintra, &KerConst_interintra, sz_interintra_const, cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pKerconst_interintra: failed to upload to GPU memory.\n");
+    status = cudaMemcpy(cData.pKerconst_intracontrib, &KerConst_intracontrib, sz_intracontrib_const, cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pKerconst_intracontrib: failed to upload to GPU memory.\n");
+    status = cudaMemcpy(cData.pKerconst_intra, &KerConst_intra, sz_intra_const, cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pKerconst_intra: failed to upload to GPU memory.\n");
+    status = cudaMemcpy(cData.pKerconst_rotlist, &KerConst_rotlist, sz_rotlist_const, cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pKerconst_rotlist: failed to upload to GPU memory.\n");
+    status = cudaMemcpy(cData.pKerconst_conform, &KerConst_conform, sz_conform_const, cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pKerconst_conform: failed to upload to GPU memory.\n");
+
     memcpy(cData.mem_angle_const, angle, 1000 * sizeof(float));
     memcpy(cData.mem_dependence_on_theta_const, dependence_on_theta, 1000 * sizeof(float));
     memcpy(cData.mem_dependence_on_rotangle_const, dependence_on_rotangle, 1000 * sizeof(float));        
@@ -380,8 +392,7 @@ filled with clock() */
     // Set CUDA constants
     cData.warpmask = 31;
     cData.warpbits = 5;
-    
-    
+
     // Upload data
     status = cudaMemcpy(pMem_fgrids, cpu_floatgrids, size_floatgrids, cudaMemcpyHostToDevice);
     RTERROR(status, "pMem_fgrids: failed to upload to GPU memory.\n"); 
