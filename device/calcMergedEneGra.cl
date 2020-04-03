@@ -844,6 +844,7 @@ void gpu_calc_energrad(
 		// Derived from rotation.py/axisangle_to_q()
 		// genes[3:7] = rotation.axisangle_to_q(torque, rad)
 		float torque_length = fast_length(torque_rot);
+		torque_length += (torque_length<1e-20)*1e-20;
 		
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
