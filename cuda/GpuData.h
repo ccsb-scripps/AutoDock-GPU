@@ -49,7 +49,6 @@ typedef struct
         int             rotbondlist_length;
         float           coeff_elec;
         float           coeff_desolv;
-        int*            evals_of_new_entities;
         int             pop_size;
         int             num_of_genes;
         float           tournament_rate;

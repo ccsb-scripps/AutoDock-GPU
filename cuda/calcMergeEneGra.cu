@@ -32,6 +32,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // Then, statements corresponding to enery calculations were added gradually.
 // The latter can be distinguised this way: they are place within lines without indentation.
 
+
+#define CONVERT_INTO_ANGSTROM_RADIAN
+#define SCFACTOR_ANGSTROM_RADIAN ((0.375 * 0.375)/(DEG_TO_RAD * DEG_TO_RAD))
+
 __device__ void gpu_calc_energrad(
 			float* genotype,
 			float& global_energy,
@@ -112,7 +116,7 @@ __device__ void gpu_calc_energrad(
 	genrot_unitvec.y = s2*sin_angle*sin(phi);
 	genrot_unitvec.z = s2*cos(theta);
 	genrot_unitvec.w = cos(genrotangle*0.5f);
-	bool is_theta_gt_pi = 1.0-2.0*(float)(sin_angle < 0.0f);
+	float is_theta_gt_pi = 1.0-2.0*(float)(sin_angle < 0.0f);
 
 	uint32_t  g1 = cData.dockpars.gridsize_x;
 	uint32_t  g2 = cData.dockpars.gridsize_x_times_y;
@@ -154,14 +158,12 @@ __device__ void gpu_calc_energrad(
                 rotation_movingvec.x = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id];
                 rotation_movingvec.y = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1];
                 rotation_movingvec.z = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2];
-                rotation_movingvec.w = 0.0f;
                 
 				// Performing additionally the first movement which
 				// is needed only if rotating around rotatable bond
 				atom_to_rotate.x -= rotation_movingvec.x;
 				atom_to_rotate.y -= rotation_movingvec.y;
 				atom_to_rotate.z -= rotation_movingvec.z;
-				atom_to_rotate.w -= rotation_movingvec.w;
 			}
 
 			float4 quatrot_left = rotation_unitvec;
@@ -186,7 +188,6 @@ __device__ void gpu_calc_energrad(
 			calc_coords[atom_id].x = qt.x + rotation_movingvec.x;
 			calc_coords[atom_id].y = qt.y + rotation_movingvec.y;
 			calc_coords[atom_id].z = qt.z + rotation_movingvec.z;            
-			calc_coords[atom_id].w = qt.w + rotation_movingvec.w;
 
 		} // End if-statement not dummy rotation
         __threadfence();
@@ -618,7 +619,7 @@ __device__ void gpu_calc_energrad(
 		// but AutoDock-GPU translational genes are within in grids
 		gradient_genotype[0] = gx * cData.dockpars.grid_spacing;
 		gradient_genotype[1] = gy * cData.dockpars.grid_spacing;
-		gradient_genotype[2] = gy * cData.dockpars.grid_spacing;
+		gradient_genotype[2] = gz * cData.dockpars.grid_spacing;
 
 		#if defined (PRINT_GRAD_TRANSLATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -654,7 +655,6 @@ __device__ void gpu_calc_energrad(
         r.x = (calc_coords[atom_cnt].x - genrot_movingvec.x) * cData.dockpars.grid_spacing;
         r.y = (calc_coords[atom_cnt].y - genrot_movingvec.y) * cData.dockpars.grid_spacing;
         r.z = (calc_coords[atom_cnt].z - genrot_movingvec.z) * cData.dockpars.grid_spacing;
-        r.w = (calc_coords[atom_cnt].w - genrot_movingvec.w) * cData.dockpars.grid_spacing;
 
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)
 		float4 force;
@@ -685,7 +685,7 @@ __device__ void gpu_calc_energrad(
 
 		// Derived from rotation.py/axisangle_to_q()
 		// genes[3:7] = rotation.axisangle_to_q(torque, rad)
-		float torque_length = norm4df(torque_rot.x, torque_rot.y, torque_rot.z, torque_rot.w);
+		float torque_length = norm3df(torque_rot.x, torque_rot.y, torque_rot.z);
 		
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -892,12 +892,10 @@ __device__ void gpu_calc_energrad(
         rotation_unitvec.x = calc_coords[atom2_id].x - atomRef_coords.x;
         rotation_unitvec.y = calc_coords[atom2_id].y - atomRef_coords.y;
         rotation_unitvec.z = calc_coords[atom2_id].z - atomRef_coords.z;
-        rotation_unitvec.w = calc_coords[atom2_id].w - atomRef_coords.w;
-        float l = 1.0f / norm4d(rotation_unitvec.x, rotation_unitvec.y, rotation_unitvec.z, rotation_unitvec.w);
+        float l = rnorm3df(rotation_unitvec.x, rotation_unitvec.y, rotation_unitvec.z);
         rotation_unitvec.x *= l;
         rotation_unitvec.y *= l;
         rotation_unitvec.z *= l;
-        rotation_unitvec.w *= l;
 
 		// Torque of torsions
 		uint lig_atom_id = cData.mem_rotbonds_atoms_const[MAX_NUM_OF_ATOMS*rotbond_id + rotable_atom_cnt];
@@ -908,19 +906,17 @@ __device__ void gpu_calc_energrad(
 		r.x = (calc_coords[lig_atom_id].x - atomRef_coords.x);
         r.y = (calc_coords[lig_atom_id].y - atomRef_coords.y);
         r.z = (calc_coords[lig_atom_id].z - atomRef_coords.z);
-        r.w = (calc_coords[lig_atom_id].w - atomRef_coords.w);
+
 
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)
 		atom_force.x = gradient_inter_x[lig_atom_id]; 
 		atom_force.y = gradient_inter_y[lig_atom_id];
 		atom_force.z = gradient_inter_z[lig_atom_id];
-		atom_force.w = 0.0f;
 
 		torque_tor = cross(r, atom_force);
-        float torque_on_axis = (rotation_unitvec.x * torque_tor.x +
-                                rotation_unitvec.y * torque_tor.y +
-                                rotation_unitvec.z * torque_tor.z +
-                                rotation_unitvec.w * torque_tor.w) * cData.dockpars.grid_spacing;
+        float torque_on_axis = (rotation_unitvec.x * torque_tor.x  +
+                                rotation_unitvec.y * torque_tor.y  +
+                                rotation_unitvec.z * torque_tor.z) * cData.dockpars.grid_spacing;
 
 		// Assignment of gene-based gradient
 		// - this works because a * (a_1 + a_2 + ... + a_n) = a*a_1 + a*a_2 + ... + a*a_n

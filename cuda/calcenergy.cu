@@ -83,7 +83,7 @@ __forceinline__ __device__ float4 quaternion_rotate(float4 v, float4 rot)
     result.x = v.x + z.x * rot.w + c.x;
     result.y = v.y + z.y * rot.w + c.y;    
     result.z = v.z + z.z * rot.w + c.z;
-    result.w = v.w + z.w * rot.w + c.w;    	
+    result.w = 0.0f;	
 	return result;
 }
 
@@ -179,14 +179,12 @@ __device__ void gpu_calc_energy(
                 rotation_movingvec.x = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id];
                 rotation_movingvec.y = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1];
                 rotation_movingvec.z = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2];
-                rotation_movingvec.w = 0.0f;
                 
 				// Performing additionally the first movement which
 				// is needed only if rotating around rotatable bond
 				atom_to_rotate.x -= rotation_movingvec.x;
 				atom_to_rotate.y -= rotation_movingvec.y;
 				atom_to_rotate.z -= rotation_movingvec.z;
-				atom_to_rotate.w -= rotation_movingvec.w;                                
 			}
 
 			float4 quatrot_left = rotation_unitvec;
@@ -211,7 +209,6 @@ __device__ void gpu_calc_energy(
 			calc_coords[atom_id].x = qt.x + rotation_movingvec.x;
 			calc_coords[atom_id].y = qt.y + rotation_movingvec.y;
 			calc_coords[atom_id].z = qt.z + rotation_movingvec.z;            
-			calc_coords[atom_id].w = qt.w + rotation_movingvec.w;
 
 		} // End if-statement not dummy rotation
 

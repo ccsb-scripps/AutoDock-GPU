@@ -171,7 +171,7 @@ gpu_gradient_minAD_kernel(
 	// Enable this for debugging ADADELTA from a defined initial genotype
 
 	// Initializing vectors
-	for(uint i = threadIdx.x; 
+	for(uint32_t i = threadIdx.x; 
 		 i < cData.dockpars.num_of_genes; 
 		 i+= blockDim.x) {
 		gradient[i]        = 0.0f;
@@ -246,6 +246,7 @@ gpu_gradient_minAD_kernel(
 				gradient,
                 &sAccumulator64
 				);
+
 		// =============================================================
 		// =============================================================
 		// =============================================================
