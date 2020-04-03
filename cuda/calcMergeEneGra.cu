@@ -189,9 +189,9 @@ __device__ void gpu_calc_energrad(
 			calc_coords[atom_id].w = qt.w + rotation_movingvec.w;
 
 		} // End if-statement not dummy rotation
-
-        __syncthreads();
         __threadfence();
+        __syncthreads();
+
 
 	} // End rotation_counter for-loop
 

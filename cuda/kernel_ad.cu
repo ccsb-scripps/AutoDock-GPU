@@ -217,8 +217,8 @@ gpu_gradient_minAD_kernel(
 		// =============================================================
 		// =============================================================
 		// Calculating energy & gradient
-		__syncthreads();
         __threadfence();
+		__syncthreads();
 
 		gpu_calc_energrad(
 				// Some OpenCL compilers don't allow declaring 
