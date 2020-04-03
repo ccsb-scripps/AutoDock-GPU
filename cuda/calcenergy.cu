@@ -295,7 +295,7 @@ __device__ void gpu_calc_energy(
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
 
 #if defined (DEBUG_ENERGY_KERNEL)
-    REDUCEFLOATSUM(interE. pAccumulator)
+    REDUCEFLOATSUM(interE, pAccumulator)
 #endif
 
 	// In paper: intermolecular and internal energy calculation
