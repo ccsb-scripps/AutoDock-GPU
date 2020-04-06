@@ -139,7 +139,15 @@ gpu_gen_and_eval_newpops_kernel(
 		     gene_counter += blockDim.x) {
 			 randnums[gene_counter] = gpu_randf(cData.pMem_prng_states);
 		}
-
+#if 0
+        if ((threadIdx.x == 0) && (blockIdx.x == 1))
+        {
+            printf("%06d ", blockIdx.x);
+            for (int i = 0; i < 10; i++)
+                printf("%12.6f ", randnums[i]);
+            printf("\n");
+        }
+#endif
 		// Determining run ID
         run_id = blockIdx.x / cData.dockpars.pop_size;
         __threadfence();
@@ -288,9 +296,17 @@ gpu_gen_and_eval_newpops_kernel(
 		     gene_counter < cData.dockpars.num_of_genes;
 		     gene_counter+= blockDim.x)
         {
-            pMem_conformations_next[(run_id*cData.dockpars.pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM + gene_counter] = offspring_genotype[gene_counter];
+            pMem_conformations_next[blockIdx.x * GENOTYPE_LENGTH_IN_GLOBMEM + gene_counter] = offspring_genotype[gene_counter];
         }        
     }
+#if 0
+    if ((threadIdx.x == 0) && (blockIdx.x == 151))
+    {
+        printf("%06d %16.8f ", blockIdx.x, pMem_energies_next[blockIdx.x]);
+        for (int i = 0; i < cData.dockpars.num_of_genes; i++)
+            printf("%12.6f ", pMem_conformations_next[GENOTYPE_LENGTH_IN_GLOBMEM*blockIdx.x + i]);
+    }
+#endif
 }
 
 
@@ -305,11 +321,12 @@ void gpu_gen_and_eval_newpops(
 {
     gpu_gen_and_eval_newpops_kernel<<<blocks, threadsPerBlock>>>(pMem_conformations_current, pMem_energies_current, pMem_conformations_next, pMem_energies_next);
     LAUNCHERROR("gpu_gen_and_eval_newpops_kernel");    
-#if 0 
+#if 0
     cudaError_t status;
     status = cudaDeviceSynchronize();
     RTERROR(status, "gpu_gen_and_eval_newpops_kernel");
     status = cudaDeviceReset();
     RTERROR(status, "failed to shut down");
+    exit(0);
 #endif   
 }
