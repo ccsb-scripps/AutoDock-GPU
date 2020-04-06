@@ -203,7 +203,7 @@ __device__ void gpu_calc_energrad(
 	float cube[8];
 	for (uint32_t atom_id = threadIdx.x;
 	              atom_id < cData.dockpars.num_of_atoms;
-	              atom_id+= blockIdx.x)
+	              atom_id+= blockDim.x)
 	{
 		float x = calc_coords[atom_id].x;
 		float y = calc_coords[atom_id].y;
