@@ -189,7 +189,7 @@ CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
 # ------------------------------------------------------
 
 kernels: $(KERNEL_SRC)
-	$(NVCC) $(NWI) $(CUDA_FLAGS) $(IFLAGS) $(CUDA_INCLUDES) -c $(KRNL_DIR)/kernels.cu
+	$(NVCC) $(NWI) $(REP) $(CUDA_FLAGS) $(IFLAGS) $(CUDA_INCLUDES) -c $(KRNL_DIR)/kernels.cu
 
 odock: check-env-all kernels $(SRC)
 	$(CPP) \
