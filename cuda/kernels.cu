@@ -24,9 +24,9 @@ __device__ inline int64_t ullitolli(uint64_t u)
         float v1    = v0; \
         int k1      = k0; \
         int otgx    = tgx ^ mask; \
-        float v2    = __shfl_sync(0xffffffff, k0, otgx); \
+        float v2    = __shfl_sync(0xffffffff, v0, otgx); \
         int k2      = __shfl_sync(0xffffffff, k0, otgx); \
-        int flag    = ((k1 > k2) ^ (tgx > otgx)) && (k1 != k2); \
+        int flag    = ((v1 < v2) ^ (tgx > otgx)) && (v1 != v2); \
         k0          = flag ? k1 : k2; \
         v0          = flag ? v1 : v2; \
     }
