@@ -148,7 +148,6 @@ void get_commandpars(const int* argc,
 	mypars->mutation_rate		= 2; 		// 2%
 	mypars->crossover_rate		= 80;		// 80%
 	mypars->lsearch_rate		= 80;		// 80%
-				    // unsigned long num_of_ls
 
 	strcpy(mypars->ls_method, "sw");		// "sw": Solis-Wets, 
 							// "sd": Steepest-Descent
@@ -163,22 +162,19 @@ void get_commandpars(const int* argc,
 	mypars->cons_limit		= 4;		// 4
 	mypars->max_num_of_iters	= 300;
 	mypars->pop_size		= 150;
-	mypars->initpop_gen_or_loadfile	= 0;
+	mypars->initpop_gen_or_loadfile	= false;
 	mypars->gen_pdbs		= 0;
-				    // char fldfile [128]
-				    // char ligandfile [128]
-				    // float ref_ori_angles [3]
+
 	mypars->devnum			= 0;
 	mypars->autostop		= 0;
 	mypars->as_frequency		= 5;
 	mypars->stopstd			= 0.15;
 	mypars->num_of_runs		= 1;
-	mypars->reflig_en_reqired	= 0;
-				    // char unbound_model
-				    // AD4_free_energy_coeffs coeffs
-	mypars->handle_symmetry		= 1;
-	mypars->gen_finalpop		= 0;
-	mypars->gen_best		= 0;
+	mypars->reflig_en_required	= false;
+
+	mypars->handle_symmetry		= true;
+	mypars->gen_finalpop		= false;
+	mypars->gen_best		= false;
 	strcpy(mypars->resname, "docking");
 	mypars->qasp			= 0.01097f;
 	mypars->rmsd_tolerance 		= 2.0;			//2 Angstroem
@@ -461,9 +457,9 @@ void get_commandpars(const int* argc,
 			sscanf(argv [i+1], "%ld", &tempint);
 
 			if (tempint == 0)
-				mypars->initpop_gen_or_loadfile = 0;
+				mypars->initpop_gen_or_loadfile = false;
 			else
-				mypars->initpop_gen_or_loadfile = 1;
+				mypars->initpop_gen_or_loadfile = true;
 		}
 
 		//Argument: number of pdb files to be generated.
@@ -587,9 +583,9 @@ void get_commandpars(const int* argc,
 			sscanf(argv [i+1], "%ld", &tempint);
 
 			if (tempint == 0)
-				mypars->reflig_en_reqired = 0;
+				mypars->reflig_en_required = false;
 			else
-				mypars->reflig_en_reqired = 1;
+				mypars->reflig_en_required = true;
 		}
 
 		// ---------------------------------
@@ -613,9 +609,9 @@ void get_commandpars(const int* argc,
 			sscanf(argv [i+1], "%ld", &tempint);
 
 			if (tempint == 0)
-				mypars->handle_symmetry = 0;
+				mypars->handle_symmetry = false;
 			else
-				mypars->handle_symmetry = 1;
+				mypars->handle_symmetry = true;
 		}
 
 		//Argument: generate final population result files.
@@ -626,9 +622,9 @@ void get_commandpars(const int* argc,
 			sscanf(argv [i+1], "%ld", &tempint);
 
 			if (tempint == 0)
-				mypars->gen_finalpop = 0;
+				mypars->gen_finalpop = false;
 			else
-				mypars->gen_finalpop = 1;
+				mypars->gen_finalpop = true;
 		}
 
 		//Argument: generate best.pdbqt
@@ -639,9 +635,9 @@ void get_commandpars(const int* argc,
 			sscanf(argv [i+1], "%ld", &tempint);
 
 			if (tempint == 0)
-				mypars->gen_best = 0;
+				mypars->gen_best = false;
 			else
-				mypars->gen_best = 1;
+				mypars->gen_best = true;
 		}
 
 		//Argument: name of result files.
@@ -738,7 +734,7 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 	gen_pop = 0;
 
 	//Reading initial population from file if only 1 run was requested
-	if (mypars->initpop_gen_or_loadfile == 1)
+	if (mypars->initpop_gen_or_loadfile)
 	{
 		if (mypars->num_of_runs != 1)
 		{

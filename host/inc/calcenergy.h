@@ -44,12 +44,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // the evaluation counters and the random number generator states.
 typedef struct
 {
-	char  	 	num_of_atoms;
-	char   		num_of_atypes;
+	int  	 	num_of_atoms;
+	int   		num_of_atypes;
 	int    		num_of_intraE_contributors;
-	char   		gridsize_x;
-	char   		gridsize_y;
-	char   		gridsize_z;
+	int   		gridsize_x;
+	int   		gridsize_y;
+	int   		gridsize_z;
 	float  		grid_spacing;
 	float* 		fgrids;
 	int    		rotbondlist_length;
@@ -127,12 +127,12 @@ typedef struct
 typedef struct
 {
        float atom_charges_const[MAX_NUM_OF_ATOMS];
-       char  atom_types_const  [MAX_NUM_OF_ATOMS];
+       int atom_types_const  [MAX_NUM_OF_ATOMS];
 } kernelconstant_interintra;
 
 typedef struct
 {
-       char  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
+       int  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
 } kernelconstant_intracontrib;
 
 typedef struct
@@ -191,9 +191,9 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 				 kernelconstant_conform*	KerConst_conform,
 				 kernelconstant_grads*          KerConst_grads);
 
-void make_reqrot_ordering(char number_of_req_rotations[MAX_NUM_OF_ATOMS],
-			  char atom_id_of_numrots[MAX_NUM_OF_ATOMS],
-		          int  num_of_atoms);
+void make_reqrot_ordering(int number_of_req_rotations[MAX_NUM_OF_ATOMS],
+			  int atom_id_of_numrots[MAX_NUM_OF_ATOMS],
+		          int num_of_atoms);
 
 int gen_rotlist(Liganddata* myligand,
 		int         rotlist[MAX_NUM_OF_ROTATIONS]);

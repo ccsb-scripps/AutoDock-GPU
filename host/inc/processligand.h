@@ -142,7 +142,7 @@ void move_ligand(Liganddata*, const double []);
 
 void scale_ligand(Liganddata*, const double);
 
-double calc_rmsd(const Liganddata*, const Liganddata*, const int);
+double calc_rmsd(const Liganddata*, const Liganddata*, const bool);
 
 double calc_ddd_Mehler_Solmajer(double);
 
@@ -205,7 +205,7 @@ void calc_interE_peratom_f(const Gridinfo* 	mygrid,
 #if 0
 float calc_intraE_f(const Liganddata* 	myligand,
 		    float 		dcutoff,
-		    char 		ignore_desolv,
+		    bool 		ignore_desolv,
 		    const float 	scaled_AD4_coeff_elec,
 		    const float 	AD4_coeff_desolv,
 		    const float 	qasp,
@@ -215,7 +215,7 @@ float calc_intraE_f(const Liganddata* 	myligand,
 float calc_intraE_f(const Liganddata* 	myligand,
 		    float 		dcutoff,
 		    float 		smooth,
-		    char 		ignore_desolv,
+		    bool 		ignore_desolv,
 		    const float 	scaled_AD4_coeff_elec,
 		    const float 	AD4_coeff_desolv,
 		    const float 	qasp,

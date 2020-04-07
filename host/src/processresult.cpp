@@ -101,7 +101,7 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 	fprintf(fp, "Number of pdb files to be generated:       %d\n", mypars->gen_pdbs);
 
 	fprintf(fp, "Initial population:                        ");
-	if (mypars->initpop_gen_or_loadfile == 0)
+	if (!mypars->initpop_gen_or_loadfile)
 		fprintf(fp, "GENERATE\n");
 	else
 		fprintf(fp, "LOAD FROM FILE (initpop.txt)\n");
@@ -181,7 +181,7 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	fprintf(fp, "Limit of consecutive successes/failures:   %ld\n\n", mypars->cons_limit);
 
 		fprintf(fp, "Handle symmetry during clustering:         ");
-	if (mypars->handle_symmetry != 0)
+	if (mypars->handle_symmetry)
 		fprintf(fp, "YES\n");
 	else
 		fprintf(fp, "NO\n");
@@ -269,7 +269,7 @@ void make_resfiles(float* final_population,
 
 	sprintf(temp_filename, "final_population_run%d.txt", run_cnt+1);
 
-	if (mypars->gen_finalpop != 0)	//if final population files are not required, no file will be opened.
+	if (mypars->gen_finalpop)	//if final population files are not required, no file will be opened.
 	{
 		fp = fopen(temp_filename, "w");
 
@@ -337,7 +337,7 @@ void make_resfiles(float* final_population,
 			{
 				best_energy_of_all = accurate_interE [i] + accurate_intraE [i];
 
-				if (mypars->gen_best != 0)
+				if (mypars->gen_best)
 					gen_new_pdbfile(mypars->ligandfile, "best.pdbqt", &temp_docked);
 			}
 
@@ -348,7 +348,7 @@ void make_resfiles(float* final_population,
 		}
 	}
 
-	if (mypars->gen_finalpop != 0)
+	if (mypars->gen_finalpop)
 	{
 
 		fprintf(fp, "     STATE OF FINAL POPULATION     \n");

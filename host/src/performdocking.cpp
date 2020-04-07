@@ -359,27 +359,6 @@ filled with clock() */
 	// Constant data holding struct data
 	// Created because structs containing array
 	// are not supported as OpenCL kernel args
-/*
-  	cl_mem mem_atom_charges_const;
-	cl_mem mem_atom_types_const;
-  	cl_mem mem_intraE_contributors_const;
-  	cl_mem mem_reqm_const;
-  	cl_mem mem_reqm_hbond_const;
-  	cl_mem mem_atom1_types_reqm_const;
-  	cl_mem mem_atom2_types_reqm_const;
-  	cl_mem mem_VWpars_AC_const;
-  	cl_mem mem_VWpars_BD_const;
-  	cl_mem mem_dspars_S_const;
-  	cl_mem mem_dspars_V_const;
-  	cl_mem mem_rotlist_const;
-  	cl_mem mem_ref_coords_x_const;
-  	cl_mem mem_ref_coords_y_const;
-  	cl_mem mem_ref_coords_z_const;
-  	cl_mem mem_rotbonds_moving_vectors_const;
-  	cl_mem mem_rotbonds_unit_vectors_const;
-  	cl_mem mem_ref_orientation_quats_const;
-*/
-
 	cl_mem mem_interintra_const;
 	cl_mem mem_intracontrib_const;
 	cl_mem mem_intra_const;
@@ -387,9 +366,9 @@ filled with clock() */
 	cl_mem mem_conform_const;
 
 	size_t sz_interintra_const	= MAX_NUM_OF_ATOMS*sizeof(float) + 
-					  MAX_NUM_OF_ATOMS*sizeof(char);
+					  MAX_NUM_OF_ATOMS*sizeof(int);
 
-	size_t sz_intracontrib_const	= 3*MAX_INTRAE_CONTRIBUTORS*sizeof(char);
+	size_t sz_intracontrib_const	= 3*MAX_INTRAE_CONTRIBUTORS*sizeof(int);
 
 	size_t sz_intra_const		= ATYPE_NUM*sizeof(float) + 
 					  ATYPE_NUM*sizeof(float) + 
@@ -419,27 +398,6 @@ filled with clock() */
 	// These constants are allocated in global memory since
 	// there is a limited number of constants that can be passed
 	// as arguments to kernel
-/*
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(float),                         &mem_atom_charges_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(char),                          &mem_atom_types_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,3*MAX_INTRAE_CONTRIBUTORS*sizeof(char),                 &mem_intraE_contributors_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(float),				    &mem_reqm_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(float),				    &mem_reqm_hbond_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(unsigned int),			    &mem_atom1_types_reqm_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,ATYPE_NUM*sizeof(unsigned int),                         &mem_atom2_types_reqm_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float),      &mem_VWpars_AC_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float),      &mem_VWpars_BD_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*sizeof(float),                        &mem_dspars_S_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATYPES*sizeof(float),                        &mem_dspars_V_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ROTATIONS*sizeof(int),                       &mem_rotlist_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(float),                         &mem_ref_coords_x_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(float),                         &mem_ref_coords_y_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*sizeof(float),                         &mem_ref_coords_z_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,3*MAX_NUM_OF_ROTBONDS*sizeof(float),                    &mem_rotbonds_moving_vectors_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,3*MAX_NUM_OF_ROTBONDS*sizeof(float),                    &mem_rotbonds_unit_vectors_const);
-	mallocBufferObject(context,CL_MEM_READ_ONLY,4*MAX_NUM_OF_RUNS*sizeof(float),                        &mem_ref_orientation_quats_const);
-*/
-
 	mallocBufferObject(context,CL_MEM_READ_ONLY,sz_interintra_const,	&mem_interintra_const);
 	mallocBufferObject(context,CL_MEM_READ_ONLY,sz_intracontrib_const,   	&mem_intracontrib_const);
 	mallocBufferObject(context,CL_MEM_READ_ONLY,sz_intra_const,             &mem_intra_const);
@@ -454,27 +412,6 @@ filled with clock() */
 	mallocBufferObject(context,CL_MEM_READ_ONLY,1000*sizeof(float),&mem_dependence_on_theta_const);
 	mallocBufferObject(context,CL_MEM_READ_ONLY,1000*sizeof(float),&mem_dependence_on_rotangle_const);
    	
-/*
-	memcopyBufferObjectToDevice(command_queue,mem_atom_charges_const,			false,  &KerConst.atom_charges_const,           MAX_NUM_OF_ATOMS*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_atom_types_const,           		false,	&KerConst.atom_types_const,             MAX_NUM_OF_ATOMS*sizeof(char));
-	memcopyBufferObjectToDevice(command_queue,mem_intraE_contributors_const,  		false,  &KerConst.intraE_contributors_const,    3*MAX_INTRAE_CONTRIBUTORS*sizeof(char));
-	memcopyBufferObjectToDevice(command_queue,mem_reqm_const,         			false,  &KerConst.reqm_const,           	ATYPE_NUM*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_reqm_hbond_const,         		false,	&KerConst.reqm_hbond_const,           	ATYPE_NUM*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_atom1_types_reqm_const,         		false,  &KerConst.atom1_types_reqm_const,       ATYPE_NUM*sizeof(unsigned int));
-	memcopyBufferObjectToDevice(command_queue,mem_atom2_types_reqm_const,         		false,	&KerConst.atom2_types_reqm_const,       ATYPE_NUM*sizeof(unsigned int));
-	memcopyBufferObjectToDevice(command_queue,mem_VWpars_AC_const,            		false,	&KerConst.VWpars_AC_const,              MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_VWpars_BD_const,            		false,	&KerConst.VWpars_BD_const,              MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_dspars_S_const,             		false,	&KerConst.dspars_S_const,               MAX_NUM_OF_ATYPES*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_dspars_V_const,             		false,	&KerConst.dspars_V_const,               MAX_NUM_OF_ATYPES*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_rotlist_const,              		false,	&KerConst.rotlist_const,                MAX_NUM_OF_ROTATIONS*sizeof(int));
-	memcopyBufferObjectToDevice(command_queue,mem_ref_coords_x_const,         		false,	&KerConst.ref_coords_x_const,           MAX_NUM_OF_ATOMS*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_ref_coords_y_const,         		false,	&KerConst.ref_coords_y_const,           MAX_NUM_OF_ATOMS*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_ref_coords_z_const,         		false,	&KerConst.ref_coords_z_const,           MAX_NUM_OF_ATOMS*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_rotbonds_moving_vectors_const,		false,	&KerConst.rotbonds_moving_vectors_const,3*MAX_NUM_OF_ROTBONDS*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_rotbonds_unit_vectors_const,  		false,	&KerConst.rotbonds_unit_vectors_const,  3*MAX_NUM_OF_ROTBONDS*sizeof(float));
-	memcopyBufferObjectToDevice(command_queue,mem_ref_orientation_quats_const, 		false,	&KerConst.ref_orientation_quats_const,  4*MAX_NUM_OF_RUNS*sizeof(float));
-*/
-	
 	memcopyBufferObjectToDevice(command_queue,mem_interintra_const,		false,	&KerConst_interintra,	sz_interintra_const);
 	memcopyBufferObjectToDevice(command_queue,mem_intracontrib_const,      	false,	&KerConst_intracontrib, sz_intracontrib_const);
 	memcopyBufferObjectToDevice(command_queue,mem_intra_const,       	false,	&KerConst_intra,       	sz_intra_const);
@@ -526,12 +463,12 @@ filled with clock() */
 	memcopyBufferObjectToDevice(command_queue,mem_dockpars_prng_states,     	false, cpu_prng_seeds,      	size_prng_seeds);
 
 	//preparing parameter struct
-	dockpars.num_of_atoms  = ((char)  myligand_reference.num_of_atoms);
-	dockpars.num_of_atypes = ((char)  myligand_reference.num_of_atypes);
+	dockpars.num_of_atoms  = ((int)  myligand_reference.num_of_atoms);
+	dockpars.num_of_atypes = ((int)  myligand_reference.num_of_atypes);
 	dockpars.num_of_intraE_contributors = ((int) myligand_reference.num_of_intraE_contributors);
-	dockpars.gridsize_x    = ((char)  mygrid->size_xyz[0]);
-	dockpars.gridsize_y    = ((char)  mygrid->size_xyz[1]);
-	dockpars.gridsize_z    = ((char)  mygrid->size_xyz[2]);
+	dockpars.gridsize_x    = ((int)  mygrid->size_xyz[0]);
+	dockpars.gridsize_y    = ((int)  mygrid->size_xyz[1]);
+	dockpars.gridsize_z    = ((int)  mygrid->size_xyz[2]);
 	dockpars.grid_spacing  = ((float) mygrid->spacing);
 	dockpars.rotbondlist_length = ((int) NUM_OF_THREADS_PER_BLOCK*(myligand_reference.num_of_rotcyc));
 	dockpars.coeff_elec    = ((float) mypars->coeffs.scaled_AD4_coeff_elec);
@@ -568,7 +505,7 @@ filled with clock() */
 		// by default, it is the same as the number of entities that undergo the Solis-Wets minimizer
 		blocksPerGridForEachGradMinimizerEntity = dockpars.num_of_lsentities*mypars->num_of_runs;
 
-		// Enable only for debugging.
+		// Enable only for debugging.P
 		// Only one entity per reach run, undergoes gradient minimization
 		//blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
 	}
@@ -584,6 +521,7 @@ filled with clock() */
 		} else{ // use ADAdelta
 			strcpy(newmethod,"ad");
 			mypars->num_of_energy_evals = (unsigned long)ceil(1000 * pow(2.0,0.4 * myligand_init->num_of_rotbonds + 7.0));
+			mypars->num_of_energy_evals *= 5e7/(5e7 + mypars->num_of_energy_evals);
 			printf("-lsmet ad -nev %u\n",mypars->num_of_energy_evals);
 		}
 		strcpy(mypars->ls_method,newmethod);
@@ -1363,26 +1301,6 @@ filled with clock() */
 					 mygrid, argc, argv, ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs,
 					 ELAPSEDSECS(clock_stop_program_before_clustering, clock_start_program),generation_cnt,total_evals/mypars->num_of_runs);
 	clock_stop_docking = clock();
-/*
-	clReleaseMemObject(mem_atom_charges_const);
-        clReleaseMemObject(mem_atom_types_const);
-        clReleaseMemObject(mem_intraE_contributors_const);
-  	clReleaseMemObject(mem_reqm_const);
-  	clReleaseMemObject(mem_reqm_hbond_const);
-  	clReleaseMemObject(mem_atom1_types_reqm_const);
-  	clReleaseMemObject(mem_atom2_types_reqm_const);
-        clReleaseMemObject(mem_VWpars_AC_const);
-	clReleaseMemObject(mem_VWpars_BD_const);
-	clReleaseMemObject(mem_dspars_S_const);
-	clReleaseMemObject(mem_dspars_V_const);
-        clReleaseMemObject(mem_rotlist_const);
-	clReleaseMemObject(mem_ref_coords_x_const);
-	clReleaseMemObject(mem_ref_coords_y_const);
-	clReleaseMemObject(mem_ref_coords_z_const);
-	clReleaseMemObject(mem_rotbonds_moving_vectors_const);
-	clReleaseMemObject(mem_rotbonds_unit_vectors_const);
-	clReleaseMemObject(mem_ref_orientation_quats_const);
-*/
 
 	clReleaseMemObject(mem_interintra_const);
 	clReleaseMemObject(mem_intracontrib_const);
@@ -1402,9 +1320,7 @@ filled with clock() */
 	clReleaseMemObject(mem_dockpars_evals_of_new_entities);
 	clReleaseMemObject(mem_dockpars_prng_states);
 	clReleaseMemObject(mem_gpu_evals_of_runs);
-	/*
-	clReleaseMemObject(mem_gradpars_conformation_min_perturbation);
-	*/
+
 	clReleaseMemObject(mem_angle_const);
 	clReleaseMemObject(mem_dependence_on_theta_const);
 	clReleaseMemObject(mem_dependence_on_rotangle_const);

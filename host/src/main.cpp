@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
 	// Testing command line arguments for cgmaps parameter
 	// since we need it at grid creation time
 	//------------------------------------------------------------
-	mypars.cgmaps = 0; // default is 0 (use one maps for every CGx or Gx atom types, respectively)
+	mypars.cgmaps = false; // default is false (use one maps for every CGx or Gx atom types, respectively)
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
 		// ----------------------------------
@@ -84,9 +84,9 @@ int main(int argc, char* argv[])
 			int tempint;
 			sscanf(argv [i+1], "%ld", &tempint);
 			if (tempint == 0)
-				mypars.cgmaps = 0;
+				mypars.cgmaps = false;
 			else
-				mypars.cgmaps = 1;
+				mypars.cgmaps = true;
 		}
 		// ----------------------------------
 	}
@@ -131,11 +131,11 @@ int main(int argc, char* argv[])
 	// Calculating energies of reference ligand if required
 	//------------------------------------------------------------
 #if 0
-	if (mypars.reflig_en_reqired == 1)
+	if (mypars.reflig_en_required)
 		print_ref_lig_energies_f(myligand_init, mygrid, floatgrids, mypars.coeffs.scaled_AD4_coeff_elec, mypars.coeffs.AD4_coeff_desolv, mypars.qasp);
 #endif
 
-	if (mypars.reflig_en_reqired == 1) {
+	if (mypars.reflig_en_required) {
 		print_ref_lig_energies_f(myligand_init,
 					 mypars.smooth,
 					 mygrid,

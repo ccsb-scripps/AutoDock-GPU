@@ -74,12 +74,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gradient_minFire(	
-			    char   dockpars_num_of_atoms,
-			    char   dockpars_num_of_atypes,
+			    int    dockpars_num_of_atoms,
+			    int    dockpars_num_of_atypes,
 			    int    dockpars_num_of_intraE_contributors,
-			    char   dockpars_gridsize_x,
-			    char   dockpars_gridsize_y,
-			    char   dockpars_gridsize_z,
+			    int    dockpars_gridsize_x,
+			    int    dockpars_gridsize_y,
+			    int    dockpars_gridsize_z,
 							    		// g1 = gridsize_x
 			    uint   dockpars_gridsize_x_times_y, 	// g2 = gridsize_x * gridsize_y
 			    uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z

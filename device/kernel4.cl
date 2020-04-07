@@ -22,18 +22,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
-
+// if defined, new (experimental) GA genotype mutation, similar to experimental SW move,
+// dependent on nr of atoms on torsions of ligand is used, not ready yet ...
+// #define GA_MUTATION_TEST
 
 //#define DEBUG_ENERGY_KERNEL4
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gpu_gen_and_eval_newpops(
-			 char   dockpars_num_of_atoms,
-			 char   dockpars_num_of_atypes,
+			 int    dockpars_num_of_atoms,
+			 int    dockpars_num_of_atypes,
 			 int    dockpars_num_of_intraE_contributors,
-			 char   dockpars_gridsize_x,
-			 char   dockpars_gridsize_y,
-			 char   dockpars_gridsize_z,
+			 int    dockpars_gridsize_x,
+			 int    dockpars_gridsize_y,
+			 int    dockpars_gridsize_z,
 							    		// g1 = gridsize_x
   			 uint   dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
 			 uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
@@ -222,14 +224,39 @@ gpu_gen_and_eval_newpops(
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// Performing mutation
+#ifdef GA_MUTATION_TEST
+		float lig_scale = 1.0f/sqrt((float)dockpars_num_of_atoms);
+#endif
 		for (gene_counter = tidx;
 		     gene_counter < dockpars_num_of_genes;
 		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
 			// Notice: dockpars_mutation_rate was scaled down to [0,1] in host
 			// to reduce number of operations in device
+#ifdef GA_MUTATION_TEST
+			if (/*100.0f**/gpu_randf(dockpars_prng_states) < lig_scale)
+#else
 			if (/*100.0f**/gpu_randf(dockpars_prng_states) < dockpars_mutation_rate)
+#endif
 			{
+#ifdef GA_MUTATION_TEST
+				float pmone = (2.0f*gpu_randf(dockpars_prng_states)-1.0f);
+
+				// Translation genes
+				if (gene_counter < 3) {
+					offspring_genotype[gene_counter] += pmone * dockpars_abs_max_dmov;
+				}
+				// Orientation and torsion genes
+				else {
+					float tors_scale = 1.0f/sqrt((float)dockpars_num_of_genes-5);
+					if (gene_counter < 6) {
+						offspring_genotype[gene_counter] += pmone * dockpars_abs_max_dang * tors_scale;
+					} else {
+						offspring_genotype[gene_counter] += pmone * dockpars_abs_max_dang * tors_scale;
+					}
+					map_angle(&(offspring_genotype[gene_counter]));
+				}
+#else
 				// Translation genes
 				if (gene_counter < 3) {
 					offspring_genotype[gene_counter] += dockpars_abs_max_dmov*(2*gpu_randf(dockpars_prng_states)-1);
@@ -239,7 +266,7 @@ gpu_gen_and_eval_newpops(
 					offspring_genotype[gene_counter] += dockpars_abs_max_dang*(2*gpu_randf(dockpars_prng_states)-1);
 					map_angle(&(offspring_genotype[gene_counter]));
 				}
-
+#endif
 			}
 		} // End of mutation
 

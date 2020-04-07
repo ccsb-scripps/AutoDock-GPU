@@ -36,12 +36,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 typedef struct
 {
        float atom_charges_const[MAX_NUM_OF_ATOMS];
-       char  atom_types_const  [MAX_NUM_OF_ATOMS];
+       int  atom_types_const  [MAX_NUM_OF_ATOMS];
 } kernelconstant_interintra;
 
 typedef struct
 {
-       char  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
+       int  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
 } kernelconstant_intracontrib;
 
 typedef struct
@@ -159,15 +159,15 @@ void atomicSub_g_f(volatile __local float *addr, float val)
 
 void gpu_calc_energrad(
 				int    dockpars_rotbondlist_length,
-				char   dockpars_num_of_atoms,
-				char   dockpars_gridsize_x,
-				char   dockpars_gridsize_y,
-				char   dockpars_gridsize_z,
+				int    dockpars_num_of_atoms,
+				int    dockpars_gridsize_x,
+				int    dockpars_gridsize_y,
+				int    dockpars_gridsize_z,
 								    		// g1 = gridsize_x
 				uint   dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
 				uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 		 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
-				char   dockpars_num_of_atypes,
+				int    dockpars_num_of_atypes,
 				int    dockpars_num_of_intraE_contributors,
 				float  dockpars_grid_spacing,
 				float  dockpars_coeff_elec,
@@ -273,9 +273,9 @@ void gpu_calc_energrad(
 	genrot_unitvec.w = native_cos(genrotangle*0.5f);
 	float is_theta_gt_pi = 1.0-2.0*(float)(sin_angle < 0.0f);
 
-	uchar g1 = dockpars_gridsize_x;
-	uint  g2 = dockpars_gridsize_x_times_y;
-	uint  g3 = dockpars_gridsize_x_times_y_times_z;
+	uint g1 = dockpars_gridsize_x;
+	uint g2 = dockpars_gridsize_x_times_y;
+	uint g3 = dockpars_gridsize_x_times_y_times_z;
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 

@@ -36,6 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define RLIST_FIRSTROT_MASK  	0x00010000
 #define RLIST_GENROT_MASK 	0x00020000
 #define RLIST_DUMMY_MASK 	0x00040000
+
 #define DEG_TO_RAD 		0.0174533f
 
 // LCG: linear congruential generator constants

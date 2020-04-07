@@ -110,15 +110,15 @@ void atomicSub_g_f(volatile __local float *addr, float val)
 
 void gpu_calc_gradient(	    
 				int    dockpars_rotbondlist_length,
-				char   dockpars_num_of_atoms,
-			    	char   dockpars_gridsize_x,
-			    	char   dockpars_gridsize_y,
-			    	char   dockpars_gridsize_z,
+				int    dockpars_num_of_atoms,
+			    	int    dockpars_gridsize_x,
+			    	int    dockpars_gridsize_y,
+			    	int    dockpars_gridsize_z,
 								    		// g1 = gridsize_x
 				uint   dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
 				uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 		 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
-		            	char   dockpars_num_of_atypes,
+		            	int    dockpars_num_of_atypes,
 		            	int    dockpars_num_of_intraE_contributors,
 			    	float  dockpars_grid_spacing,
 			    	float  dockpars_coeff_elec,
@@ -204,9 +204,9 @@ void gpu_calc_gradient(
 	genrot_unitvec [1] = sin_angle*native_sin(phi);
 	genrot_unitvec [2] = native_cos(theta);
 
-	uchar g1 = dockpars_gridsize_x;
-	uint  g2 = dockpars_gridsize_x_times_y;
-  	uint  g3 = dockpars_gridsize_x_times_y_times_z;
+	uint g1 = dockpars_gridsize_x;
+	uint g2 = dockpars_gridsize_x_times_y;
+  	uint g3 = dockpars_gridsize_x_times_y_times_z;
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS

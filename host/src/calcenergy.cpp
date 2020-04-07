@@ -93,11 +93,11 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 	int i, j;
 	int type_id1, type_id2;
 	float* floatpoi;
-	char* charpoi;
+	int* intpoi;
 	float phi, theta, genrotangle;
 	float atom_charges[MAX_NUM_OF_ATOMS];
-	char  atom_types[MAX_NUM_OF_ATOMS];
-	char  intraE_contributors[3*MAX_INTRAE_CONTRIBUTORS];
+	int  atom_types[MAX_NUM_OF_ATOMS];
+	int  intraE_contributors[3*MAX_INTRAE_CONTRIBUTORS];
 	float reqm [ATYPE_NUM];
         float reqm_hbond [ATYPE_NUM];
 	unsigned int atom1_types_reqm [ATYPE_NUM];
@@ -140,14 +140,14 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 
 	//charges and type id-s
 	floatpoi = atom_charges;
-	charpoi = atom_types;
+	intpoi = atom_types;
 
 	for (i=0; i < myligand_reference->num_of_atoms; i++)
 	{
 		*floatpoi = (float) myligand_reference->atom_idxyzq[i][4];
-		*charpoi = (char) myligand_reference->atom_idxyzq[i][0];
+		*intpoi = (int) myligand_reference->atom_idxyzq[i][0];
 		floatpoi++;
-		charpoi++;
+		intpoi++;
 	}
 
 	//intramolecular energy contributors
@@ -166,24 +166,24 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 		return 1;
 	}
 
-	charpoi = intraE_contributors;
+	intpoi = intraE_contributors;
 	for (i=0; i<myligand_reference->num_of_atoms-1; i++)
 		for (j=i+1; j<myligand_reference->num_of_atoms; j++)
 		{
 			if (myligand_reference->intraE_contributors[i][j] == 1)
 			{
-				*charpoi = (char) i;
-				charpoi++;
-				*charpoi = (char) j;
-				charpoi++;
+				*intpoi = (int) i;
+				intpoi++;
+				*intpoi = (int) j;
+				intpoi++;
 				type_id1 = (int) myligand_reference->atom_idxyzq [i][0];
 				type_id2 = (int) myligand_reference->atom_idxyzq [j][0];
 
 				if (is_H_bond(myligand_reference->atom_types[type_id1], myligand_reference->atom_types[type_id2]) != 0)
-					*charpoi = (char) 1;
+					*intpoi = (int) 1;
 				else
-					*charpoi = (char) 0;
-				charpoi++;
+					*intpoi = (int) 0;
+				intpoi++;
 			}
 		}
 
@@ -306,10 +306,6 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 		num_rotating_atoms_per_rotbond [i] = 0;
 	}
 
-
-	int* intpoi;
-	//intpoi = rotbonds_atoms;
-
 	for (i=0; i < myligand_reference->num_of_rotbonds; i++)
 	{	
 		// Pointing to the mem area corresponding to a given rotbond
@@ -401,9 +397,9 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 
 
 
-void make_reqrot_ordering(char number_of_req_rotations[MAX_NUM_OF_ATOMS],
-			  char atom_id_of_numrots[MAX_NUM_OF_ATOMS],
-			  int  num_of_atoms)
+void make_reqrot_ordering(int number_of_req_rotations[MAX_NUM_OF_ATOMS],
+			  int atom_id_of_numrots[MAX_NUM_OF_ATOMS],
+			  int num_of_atoms)
 //The function puts the first array into a descending order and
 //performs the same operations on the second array (since element i of
 //number_or_req_rotations and element i of atom_id_of_numrots correspond to each other).
@@ -412,7 +408,7 @@ void make_reqrot_ordering(char number_of_req_rotations[MAX_NUM_OF_ATOMS],
 //to the number of ligand atoms
 {
 	int i, j;
-	char temp;
+	int temp;
 
 	for (j=0; j<num_of_atoms-1; j++)
 		for (i=num_of_atoms-2; i>=j; i--)
@@ -442,13 +438,13 @@ int gen_rotlist(Liganddata* myligand, int rotlist[MAX_NUM_OF_ROTATIONS])
 //prepare_const_fields_for_gpu(). The structure of this array is described at that function.
 {
 	int atom_id, rotb_id, parallel_rot_id, rotlist_id;
-	char number_of_req_rotations[MAX_NUM_OF_ATOMS];
-	char atom_id_of_numrots[MAX_NUM_OF_ATOMS];
-	char atom_wasnt_rotated_yet[MAX_NUM_OF_ATOMS];
+	int number_of_req_rotations[MAX_NUM_OF_ATOMS];
+	int atom_id_of_numrots[MAX_NUM_OF_ATOMS];
+	bool atom_wasnt_rotated_yet[MAX_NUM_OF_ATOMS];
 	int new_rotlist_element;
-	char rotbond_found;
-	char rotbond_candidate;
-	char remaining_rots_around_rotbonds;
+	bool rotbond_found;
+	int rotbond_candidate;
+	int remaining_rots_around_rotbonds;
 
 
 	myligand->num_of_rotcyc = 0;
@@ -461,7 +457,7 @@ int gen_rotlist(Liganddata* myligand, int rotlist[MAX_NUM_OF_ROTATIONS])
 	for (atom_id=0; atom_id<myligand->num_of_atoms; atom_id++)
 	{
 		atom_id_of_numrots[atom_id] = atom_id;
-		atom_wasnt_rotated_yet[atom_id] = 1;
+		atom_wasnt_rotated_yet[atom_id] = true;
 
 		number_of_req_rotations[atom_id] = 1;
 
@@ -494,21 +490,21 @@ int gen_rotlist(Liganddata* myligand, int rotlist[MAX_NUM_OF_ROTATIONS])
 					new_rotlist_element |= RLIST_GENROT_MASK;
 				else
 				{
-					rotbond_found = 0;
+					rotbond_found = false;
 					rotbond_candidate = myligand->num_of_rotbonds - 1;
 					remaining_rots_around_rotbonds = number_of_req_rotations[parallel_rot_id] - 1;	//-1 because of genrot
 
-					while (rotbond_found == 0)
+					while (!rotbond_found)
 					{
 						if (myligand->atom_rotbonds[atom_id][rotbond_candidate] != 0)	//if the atom has to be rotated around current candidate
 						{
 							if (remaining_rots_around_rotbonds == 1)	//if current value of remaining rots is 1, the proper rotbond is found
-								rotbond_found = 1;
+								rotbond_found = true;
 							else
 								remaining_rots_around_rotbonds--;	//if not, decresing remaining rots (that is, skipping rotations which have to be performed later
 						}
 
-						if (rotbond_found == 0)
+						if (!rotbond_found)
 							rotbond_candidate--;
 
 						if (rotbond_candidate < 0)
@@ -518,11 +514,11 @@ int gen_rotlist(Liganddata* myligand, int rotlist[MAX_NUM_OF_ROTATIONS])
 					new_rotlist_element |= (((int) rotbond_candidate) << RLIST_RBONDID_SHIFT) & RLIST_RBONDID_MASK;
 				}
 
-				if (atom_wasnt_rotated_yet[atom_id] != 0)
+				if (atom_wasnt_rotated_yet[atom_id])
 					new_rotlist_element |= RLIST_FIRSTROT_MASK;
 
 				//put atom_id's next rotation to rotlist
-				atom_wasnt_rotated_yet[atom_id] = 0;
+				atom_wasnt_rotated_yet[atom_id] = false;
 				(number_of_req_rotations[parallel_rot_id])--;
 			}
 

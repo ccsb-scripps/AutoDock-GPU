@@ -22,17 +22,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
-
+// if defined, new (experimental) SW genotype moves that are dependent
+// on nr of atoms and nr of torsions of ligand are used
+// #define SW_MOVE_TEST
 
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 perform_LS(		
-			char   dockpars_num_of_atoms,
-			char   dockpars_num_of_atypes,
+			int    dockpars_num_of_atoms,
+			int    dockpars_num_of_atypes,
 			int    dockpars_num_of_intraE_contributors,
-			char   dockpars_gridsize_x,
-			char   dockpars_gridsize_y,
-			char   dockpars_gridsize_z,
+			int    dockpars_gridsize_x,
+			int    dockpars_gridsize_y,
+			int    dockpars_gridsize_z,
 							    		// g1 = gridsize_x
   			uint   dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
 			uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
@@ -153,6 +155,24 @@ perform_LS(
 		     gene_counter < dockpars_num_of_genes;
 		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
+#ifdef SW_MOVE_TEST
+			float lig_scale = 1.0f/sqrt((float)dockpars_num_of_atoms);
+			genotype_deviate[gene_counter] = rho * (2*gpu_randf(dockpars_prng_states)-1) * (gpu_randf(dockpars_prng_states) < lig_scale);
+
+			// Translation genes
+			if (gene_counter < 3) {
+				genotype_deviate[gene_counter] *= dockpars_base_dmov_mul_sqrt3 * lig_scale * 2.0;
+			}
+			// Orientation and torsion genes
+			else {
+				if (gene_counter < 6) {
+					genotype_deviate[gene_counter] *= dockpars_base_dang_mul_sqrt3 * lig_scale;
+				} else {
+					float tors_scale = 1.0f/sqrt((float)dockpars_num_of_genes-5);
+					genotype_deviate[gene_counter] *= dockpars_base_dang_mul_sqrt3 * tors_scale;
+				}
+			}
+#else
 			genotype_deviate[gene_counter] = rho*(2*gpu_randf(dockpars_prng_states)-1);
 
 			// Translation genes
@@ -163,6 +183,7 @@ perform_LS(
 			else {
 				genotype_deviate[gene_counter] *= dockpars_base_dang_mul_sqrt3;
 			}
+#endif
 		}
 
 		// Generating new genotype candidate

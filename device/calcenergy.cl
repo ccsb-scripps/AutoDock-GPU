@@ -34,12 +34,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 typedef struct
 {
        float atom_charges_const[MAX_NUM_OF_ATOMS];
-       char  atom_types_const  [MAX_NUM_OF_ATOMS];
+       int  atom_types_const  [MAX_NUM_OF_ATOMS];
 } kernelconstant_interintra;
 
 typedef struct
 {
-       char  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
+       int  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
 } kernelconstant_intracontrib;
 
 typedef struct
@@ -115,15 +115,15 @@ inline float4 quaternion_rotate(float4 v, float4 rot)
 
 void gpu_calc_energy(	    
 				int    dockpars_rotbondlist_length,
-				char   dockpars_num_of_atoms,
-			    	char   dockpars_gridsize_x,
-			    	char   dockpars_gridsize_y,
-			    	char   dockpars_gridsize_z,
+				int    dockpars_num_of_atoms,
+			    	int    dockpars_gridsize_x,
+			    	int    dockpars_gridsize_y,
+			    	int    dockpars_gridsize_z,
 								    		// g1 = gridsize_x
 				uint   dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
 				uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 		 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
-		            	char   dockpars_num_of_atypes,
+		            	int    dockpars_num_of_atypes,
 		            	int    dockpars_num_of_intraE_contributors,
 			    	float  dockpars_grid_spacing,
 			    	float  dockpars_coeff_elec,

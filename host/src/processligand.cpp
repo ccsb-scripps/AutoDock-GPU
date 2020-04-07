@@ -172,8 +172,8 @@ void get_intraE_contributors(Liganddata* myligand)
 {
 
 	int  atom_id1, atom_id2, atom_id3, rotb_id1, rotb_id2;
-	char atom_neighbours [MAX_NUM_OF_ATOMS];
-	char atom_neighbours_temp [MAX_NUM_OF_ATOMS];
+	unsigned int atom_neighbours [MAX_NUM_OF_ATOMS];
+	unsigned int atom_neighbours_temp [MAX_NUM_OF_ATOMS];
 	int  atom_id_a, atom_id_b, structure_id_A, structure_id_B;
 	int  atom_id_a2, atom_id_b2;
 
@@ -382,7 +382,7 @@ int get_bonds(Liganddata* myligand)
 {
 	char atom_names [ATYPE_GETBONDS][3];
 	// Values from atomic parameter file AD4.1_bound_dat / "bond_index"
-	char bondtype_id [ATYPE_GETBONDS] = {
+	unsigned int bondtype_id [ATYPE_GETBONDS] = {
 					     0, // "C"
 					     0, // "A"
 					     3, // "Hx"
@@ -924,7 +924,7 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 	int endbranch_counter;
 	int branches [MAX_NUM_OF_ROTBONDS][3];
 	int i,j,k;
-	char atom_rotbonds_temp [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ROTBONDS];
+	unsigned int atom_rotbonds_temp [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ROTBONDS];
 	int current_rigid_struct_id, reserved_highest_rigid_struct_id;
 
 	atom_counter = 0;
@@ -1187,7 +1187,7 @@ void scale_ligand(Liganddata* myligand, const double scale_factor)
 			myligand->atom_idxyzq [i][j] = myligand->atom_idxyzq [i][j]*scale_factor;
 }
 
-double calc_rmsd(const Liganddata* myligand_ref, const Liganddata* myligand, const int handle_symmetry)
+double calc_rmsd(const Liganddata* myligand_ref, const Liganddata* myligand, const bool handle_symmetry)
 //The function calculates the RMSD value (root mean square deviation of the
 //atomic distances for two conformations of the same ligand) and returns it.
 //If the handle_symmetry parameter is 0, symmetry is not handled, and the
@@ -1209,7 +1209,7 @@ double calc_rmsd(const Liganddata* myligand_ref, const Liganddata* myligand, con
 
 	sumdist2 = 0;
 
-	if (handle_symmetry == 0)
+	if (!handle_symmetry)
 	{
 		for (i=0; i<myligand->num_of_atoms; i++)
 		{
@@ -1396,11 +1396,11 @@ void change_conform_f(Liganddata* myligand,
 	double movvec_to_origo [3];
 	double phi, theta;
 	int atom_id, rotbond_id, i;
-	double genotype [40];
+	double genotype [ACTUAL_GENOTYPE_LENGTH];
 	double refori_unitvec [3];
 	double refori_angle;
 
-	for (i=0; i<40; i++)
+	for (i=0; i<ACTUAL_GENOTYPE_LENGTH; i++)
 		genotype [i] = genotype_f [i];
 
 	phi = (genotype [3])/180*PI;
@@ -1505,7 +1505,7 @@ void change_conform_f(Liganddata* myligand,
 	double phi, theta;
 */
 	int atom_id, rotbond_id, i;
-	double genotype [40];
+	double genotype [ACTUAL_GENOTYPE_LENGTH];
 
 	double refori_shoemake [3];
 
@@ -1520,7 +1520,7 @@ void change_conform_f(Liganddata* myligand,
 */
 
 
-	for (i=0; i<40; i++)
+	for (i=0; i<ACTUAL_GENOTYPE_LENGTH; i++)
 		genotype [i] = genotype_f [i];
 
 	shoemake [0] = (genotype [3]);
@@ -2003,7 +2003,7 @@ void calc_interE_peratom_f(const Gridinfo* mygrid,
 #if 0
 float calc_intraE_f(const Liganddata* myligand,
 		    float dcutoff,
-		    char ignore_desolv,
+		    bool ignore_desolv,
 		    const float scaled_AD4_coeff_elec,
 		    const float AD4_coeff_desolv,
 		    const float qasp, int debug)
@@ -2024,7 +2024,7 @@ float calc_intraE_f(const Liganddata* myligand,
 
 	//The following tables will contain the 1/r^6, 1/r^10, 1/r^12, W_el/(r*eps(r)) and W_des*exp(-r^2/(2sigma^2)) functions for
 	//distances 0.01:0.01:20.48 A
-	static char first_call = 1;
+	static bool first_call = true;
 	static float r_6_table [2048];
 	static float r_10_table [2048];
 	static float r_12_table [2048];
@@ -2038,11 +2038,11 @@ float calc_intraE_f(const Liganddata* myligand,
 	static float qasp_mul_absq [256];
 
 	//when first call, calculating tables
-	if (first_call == 1)
+	if (first_call)
 	{
 		calc_distdep_tables_f(r_6_table, r_10_table, r_12_table, r_epsr_table, desolv_table, scaled_AD4_coeff_elec, AD4_coeff_desolv);
 		calc_q_tables_f(myligand, qasp, q1q2, qasp_mul_absq);
-		first_call = 0;
+		first_call = false;
 	}
 
 	vW = 0;
@@ -2117,7 +2117,7 @@ float calc_intraE_f(const Liganddata* myligand,
 	if (debug == 1)
 		printf("\nFinal energies: van der Waals = %lf, electrostatic = %lf, desolvation = %lf, total = %lf\n\n", vW, el, desolv, vW + el + desolv);
 
-	if (ignore_desolv == 0)
+	if (!ignore_desolv)
 		return (vW + el + desolv);
 	else
 		return (vW + el);
@@ -2128,7 +2128,7 @@ float calc_intraE_f(const Liganddata* myligand,
 float calc_intraE_f(const Liganddata* myligand,
 		          float       dcutoff,
 		          float       smooth,
-		          char        ignore_desolv,
+		          bool        ignore_desolv,
 		    const float       scaled_AD4_coeff_elec,
 		    const float       AD4_coeff_desolv,
 		    const float       qasp, 
@@ -2151,7 +2151,7 @@ float calc_intraE_f(const Liganddata* myligand,
 
 	//The following tables will contain the 1/r^6, 1/r^10, 1/r^12, W_el/(r*eps(r)) and W_des*exp(-r^2/(2sigma^2)) functions for
 	//distances 0.01:0.01:20.48 A
-	static char first_call = 1;
+	static bool first_call = true;
 	static float r_6_table [2048];
 	static float r_10_table [2048];
 	static float r_12_table [2048];
@@ -2165,11 +2165,11 @@ float calc_intraE_f(const Liganddata* myligand,
 	static float qasp_mul_absq [MAX_NUM_OF_ATOMS];
 
 	//when first call, calculating tables
-	if (first_call == 1)
+	if (first_call)
 	{
 		calc_distdep_tables_f(r_6_table, r_10_table, r_12_table, r_epsr_table, desolv_table, scaled_AD4_coeff_elec, AD4_coeff_desolv);
 		calc_q_tables_f(myligand, qasp, q1q2, qasp_mul_absq);
-		first_call = 0;
+		first_call = false;
 	}
 
 	vW = 0;
@@ -2299,7 +2299,7 @@ float calc_intraE_f(const Liganddata* myligand,
 	if (debug == 1)
 		printf("\nFinal energies: van der Waals = %lf, electrostatic = %lf, desolvation = %lf, total = %lf\n\n", vW, el, desolv, vW + el + desolv);
 
-	if (ignore_desolv == 0)
+	if (!ignore_desolv)
 		return (vW + el + desolv);
 	else
 		return (vW + el);
