@@ -875,8 +875,7 @@ filled with clock() */
 			fflush(stdout);
 		}
 	}
-	printf("\n\n");
-    exit(0);
+
 	// ===============================================================================
 	// Modification based on:
 	// http://www.cc.gatech.edu/~vetter/keeneland/tutorial-2012-02-20/08-opencl.pdf
