@@ -178,7 +178,8 @@ filled with clock() */
     status = cudaSetDevice(device);
     RTERROR(status, "cudaSetDevice failed");   
     cudaFree(NULL);   // Trick driver into creating context on current device
-    
+    status = cudaDeviceSetLimit(cudaLimitPrintfFifoSize, 200000000ull);
+    RTERROR(status, "cudaDeviceSetLimit failed");      
 
     auto const t1 = std::chrono::steady_clock::now();
     printf("CUDA Setup time %fs\n", elapsed_seconds(t0 ,t1));
