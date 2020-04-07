@@ -162,7 +162,7 @@ gpu_gradient_minAD_kernel(
 	// Squared updates E[dx^2]
 	__shared__ float square_delta[ACTUAL_GENOTYPE_LENGTH];
     
-    __shared__ unsigned long long int sAccumulator64;
+    __shared__ long long int sAccumulator64;
 
 	// Asynchronous copy should be finished by here
 	__threadfence();
@@ -196,6 +196,7 @@ gpu_gradient_minAD_kernel(
 		cons_fail = 0;
 	}
 #endif
+
 	// Perform adadelta iterations
 
 	// The termination criteria is based on 
@@ -284,6 +285,26 @@ gpu_gradient_minAD_kernel(
 		__threadfence();
         __syncthreads();
 		#endif // DEBUG_ENERGY_ADADELTA
+
+#if 0
+        if ((blockIdx.x == 0) && (threadIdx.x == 0))
+        {
+            printf("\n%d %16.8f\n", blockIdx.x);
+            float sum = 0.0;
+            for (uint32_t i = 0;
+            i < cData.dockpars.num_of_genes;
+            i++) {
+                //printf("%06d | %12.6f\n", i, gradient[i]);
+                //printf("%06d | %12.6f %12.6f %12.6f | %12.6f %12.6f %12.6f\n", i, gradient_inter_x[i], gradient_inter_y[i], gradient_inter_z[i], gradient_intra_x[i], gradient_intra_y[i], gradient_intra_z[i]);
+            }
+        }
+        float xx = gradient_intra_x[threadIdx.x];
+        REDUCEFLOATSUM(xx, &sAccumulator64);
+        if ((blockIdx.x == 0) && (threadIdx.x == 0))
+        {
+            printf("MOE %12.6f\n", xx);
+        }
+#endif
 
 		for(int i = threadIdx.x;
 			 i < cData.dockpars.num_of_genes;
@@ -423,7 +444,7 @@ void gpu_gradient_minAD(
 {
     gpu_gradient_minAD_kernel<<<blocks, threads>>>(pMem_conformations_next, pMem_energies_next);
     LAUNCHERROR("gpu_gradient_minAD_kernel");     
-#if 0  
+#if 0
     cudaError_t status;
     status = cudaDeviceSynchronize();
     RTERROR(status, "gpu_gradient_minAD_kernel");

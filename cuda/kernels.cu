@@ -88,7 +88,7 @@ static const float ONEOVEREDUCESCALEF       = (float)1.0 / REDUCESCALEF;
         value                  += __shfl_sync(0xffffffff, value, tgx ^ 16); \
         if (tgx == 0) \
         { \
-            atomicAdd(pAccumulator, llitoulli(llrintf(REDUCESCALEF * value))); \
+            atomicAdd((unsigned long long int*)pAccumulator, llitoulli(llrintf(REDUCESCALEF * value))); \
         } \
     } \
     __threadfence(); \

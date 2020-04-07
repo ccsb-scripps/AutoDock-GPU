@@ -34,7 +34,7 @@ gpu_calc_initpop_kernel(
 	// These local variables must be declared in a kernel, 
 	// and then passed to non-kernel functions.
 	__shared__ float4 calc_coords[MAX_NUM_OF_ATOMS];
-    __shared__ unsigned long long int sAccumulator64;
+    __shared__ long long int sAccumulator64;
 	float  energy = 0.0f;
 	int    run_id = blockIdx.x / cData.dockpars.pop_size;
     float* pGenotype = pMem_conformations_current + blockIdx.x * GENOTYPE_LENGTH_IN_GLOBMEM;
@@ -61,7 +61,7 @@ void gpu_calc_initpop(uint32_t blocks, uint32_t threadsPerBlock, float* pConform
 {
     gpu_calc_initpop_kernel<<<blocks, threadsPerBlock>>>(pConformations_current, pEnergies_current);
     LAUNCHERROR("gpu_calc_initpop_kernel");
-#if 0    
+#if 0
     cudaError_t status;
     status = cudaDeviceSynchronize();
     RTERROR(status, "gpu_calc_initpop_kernel");

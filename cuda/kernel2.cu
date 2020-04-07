@@ -49,7 +49,9 @@ gpu_sum_evals_kernel()
     // Perform warp-wise reduction
     REDUCEINTEGERSUM(partsum_evals, &sSum_evals);
     if (threadIdx.x == 0)
-		cData.pMem_gpu_evals_of_runs[blockIdx.x] += sSum_evals;  
+    {
+        cData.pMem_gpu_evals_of_runs[blockIdx.x] += sSum_evals;
+    }
 }
 
 void gpu_sum_evals(uint32_t blocks, uint32_t threadsPerBlock)

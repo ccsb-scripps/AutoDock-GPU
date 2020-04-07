@@ -94,7 +94,7 @@ __device__ void gpu_calc_energy(
     float& energy,
     int& run_id,
     float4* calc_coords,  
-    unsigned long long int* pAccumulator
+    long long int* pAccumulator
 ) 
 
 //The GPU device function calculates the energy of the entity described by genotype, dockpars and the liganddata
@@ -208,8 +208,7 @@ __device__ void gpu_calc_energy(
             float4 qt = quaternion_rotate(atom_to_rotate,quatrot_left);
 			calc_coords[atom_id].x = qt.x + rotation_movingvec.x;
 			calc_coords[atom_id].y = qt.y + rotation_movingvec.y;
-			calc_coords[atom_id].z = qt.z + rotation_movingvec.z;            
-
+			calc_coords[atom_id].z = qt.z + rotation_movingvec.z;
 		} // End if-statement not dummy rotation
 
         __threadfence();
@@ -353,11 +352,11 @@ __device__ void gpu_calc_energy(
 			if (atomic_distance >= (opt_distance + delta_distance)) {
 				smoothed_distance = atomic_distance - delta_distance;
 			}
+
 			// Calculating van der Waals / hydrogen bond term
 			uint idx = atom1_typeid * cData.dockpars.num_of_atypes + atom2_typeid;
 			energy +=   (cData.pKerconst_intra->VWpars_AC_const[idx] / pow(smoothed_distance,12)) -
                         (cData.pKerconst_intra->VWpars_BD_const[idx] / pow(smoothed_distance,6+4*hbond));
-
 
 			#if defined (DEBUG_ENERGY_KERNEL)
 			intraE +=   (cData.pKerconst_intra->VWpars_AC_const[idx] / pow(smoothed_distance,12)) -

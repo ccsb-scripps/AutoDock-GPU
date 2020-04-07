@@ -60,7 +60,7 @@ __device__ void gpu_calc_energrad(
 			float* gradient_intra_y,
 			float* gradient_intra_z,
 			float* gradient_genotype,
-            unsigned long long int* pAccumulator64
+            long long int* pAccumulator64
 )
 {
 	float energy = 0.0f;
@@ -540,10 +540,8 @@ __device__ void gpu_calc_energrad(
 		ATOMICADDF32(&gradient_intra_y[atom2_id], priv_intra_gradient_y);
 		ATOMICADDF32(&gradient_intra_z[atom2_id], priv_intra_gradient_z);
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
-	__threadfence();
+    __threadfence();
     __syncthreads();
-    
-
 
 	// Accumulating inter- and intramolecular gradients
 	for (uint32_t atom_cnt = threadIdx.x;
@@ -667,7 +665,6 @@ __device__ void gpu_calc_energrad(
 		gradient_intra_y[threadIdx.x] += torque_rot.y;
 		gradient_intra_z[threadIdx.x] += torque_rot.z;
 	}
-    
 
 	// Do a reduction over the total gradient containing prepared "gradient_intra_*" values    
     float4 torque_rot;
@@ -676,7 +673,7 @@ __device__ void gpu_calc_energrad(
     torque_rot.z = gradient_intra_z[threadIdx.x];
     REDUCEFLOATSUM(torque_rot.x, pAccumulator64);
     REDUCEFLOATSUM(torque_rot.y, pAccumulator64);
-    REDUCEFLOATSUM(torque_rot.z, pAccumulator64);    
+    REDUCEFLOATSUM(torque_rot.z, pAccumulator64);
 	if (threadIdx.x == 0) {
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -686,6 +683,7 @@ __device__ void gpu_calc_energrad(
 		// Derived from rotation.py/axisangle_to_q()
 		// genes[3:7] = rotation.axisangle_to_q(torque, rad)
 		float torque_length = norm3df(torque_rot.x, torque_rot.y, torque_rot.z);
+		torque_length += (torque_length<1e-20)*1e-20;
 		
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
