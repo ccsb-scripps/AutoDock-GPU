@@ -122,7 +122,7 @@ gpu_gen_and_eval_newpops_kernel(
         
         // Copy best genome to next generation
         int dOffset = blockIdx.x * GENOTYPE_LENGTH_IN_GLOBMEM;
-        int sOffset = (blockIdx.x + sBestID[0]) * GENOTYPE_LENGTH_IN_GLOBMEM;
+        int sOffset = sBestID[0] * GENOTYPE_LENGTH_IN_GLOBMEM;
         for (int i = threadIdx.x ; i < cData.dockpars.num_of_genes; i += blockDim.x)
         {
             pMem_conformations_next[dOffset + i] = pMem_conformations_current[sOffset + i];
