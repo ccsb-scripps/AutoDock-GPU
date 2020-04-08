@@ -45,14 +45,14 @@ inline __device__ uint32_t gpu_rand(
 #else
   	// Current state of the threads own PRNG
   	// state = prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)];
-	state = prng_states[blockIdx.x];
+	state = prng_states[blockIdx.x * blockDim.x + threadIdx.x];
 
 	// Calculating next state
   	state = (RAND_A*state+RAND_C);
 #endif
   	// Saving next state to memory
   	// prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)] = state;
-	prng_states[blockIdx.x] = state;
+	prng_states[blockIdx.x * blockDim.x + threadIdx.x] = state;
 
   return state;
 }
