@@ -50,7 +50,7 @@ gpu_gen_and_eval_newpops_kernel(
 	__shared__ float randnums[10];
     __shared__ float sBestEnergy[32];
     __shared__ int sBestID[32];
-	__shared__ float4 calc_coords[MAX_NUM_OF_ATOMS];
+	__shared__ float3 calc_coords[MAX_NUM_OF_ATOMS];
     __shared__ float sFloatAccumulator;
 	int run_id;    
 	int temp_covr_point;

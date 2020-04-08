@@ -41,7 +41,7 @@ __device__ void gpu_calc_energrad(
 			float& global_energy,
 			int&   run_id,
 
-            float4* calc_coords,
+            float3* calc_coords,
 #if defined (DEBUG_ENERGY_KERNEL)
 			float& interE,
 			float& pintraE,
@@ -78,7 +78,6 @@ __device__ void gpu_calc_energrad(
 		calc_coords[atom_id].x = cData.pKerconst_conform->ref_coords_const[3*atom_id];
         calc_coords[atom_id].y = cData.pKerconst_conform->ref_coords_const[3*atom_id+1];
         calc_coords[atom_id].z = cData.pKerconst_conform->ref_coords_const[3*atom_id+2];
-        calc_coords[atom_id].w = 0.0f;
 
 		// Intermolecular gradients
 		gradient_inter_x[atom_id] = (float)0;
@@ -139,8 +138,12 @@ __device__ void gpu_calc_energrad(
 			uint32_t atom_id = rotation_list_element & RLIST_ATOMID_MASK;
 
 			// Capturing atom coordinates
-			float4 atom_to_rotate = calc_coords[atom_id];
-
+			float4 atom_to_rotate;
+            atom_to_rotate.x = calc_coords[atom_id].x;
+            atom_to_rotate.y = calc_coords[atom_id].y;
+            atom_to_rotate.z = calc_coords[atom_id].z;
+            atom_to_rotate.w = 0.0f;
+            
 			// initialize with general rotation values
 			float4 rotation_unitvec = genrot_unitvec;
 			float4 rotation_movingvec = genrot_movingvec;
@@ -654,17 +657,16 @@ __device__ void gpu_calc_energrad(
 	for (uint32_t atom_cnt = threadIdx.x;
 		  atom_cnt < cData.dockpars.num_of_atoms;
 		  atom_cnt+= blockDim.x) {
-		float4 r;
+		float3 r;
         r.x = (calc_coords[atom_cnt].x - genrot_movingvec.x) * cData.dockpars.grid_spacing;
         r.y = (calc_coords[atom_cnt].y - genrot_movingvec.y) * cData.dockpars.grid_spacing;
         r.z = (calc_coords[atom_cnt].z - genrot_movingvec.z) * cData.dockpars.grid_spacing;
 
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)
-		float4 force;
+		float3 force;
 		force.x = gradient_inter_x[atom_cnt];
 		force.y = gradient_inter_y[atom_cnt]; 
 		force.z = gradient_inter_z[atom_cnt];
-		force.w = 0.0;
 		float4 torque_rot = cross(r, force);
 		gradient_intra_x[threadIdx.x] += torque_rot.x;
 		gradient_intra_y[threadIdx.x] += torque_rot.y;
@@ -889,9 +891,12 @@ __device__ void gpu_calc_energrad(
 		int atom1_id = cData.mem_rotbonds_const[2*rotbond_id];
 		int atom2_id = cData.mem_rotbonds_const[2*rotbond_id+1];
 
-		float4 atomRef_coords;
-		atomRef_coords = calc_coords[atom1_id];
-		float4 rotation_unitvec;
+		float3 atomRef_coords;
+		atomRef_coords.x = calc_coords[atom1_id].x;
+		atomRef_coords.y = calc_coords[atom1_id].y;
+		atomRef_coords.z = calc_coords[atom1_id].z;        
+        
+		float3 rotation_unitvec;
         rotation_unitvec.x = calc_coords[atom2_id].x - atomRef_coords.x;
         rotation_unitvec.y = calc_coords[atom2_id].y - atomRef_coords.y;
         rotation_unitvec.z = calc_coords[atom2_id].z - atomRef_coords.z;
@@ -902,7 +907,8 @@ __device__ void gpu_calc_energrad(
 
 		// Torque of torsions
 		uint lig_atom_id = cData.mem_rotbonds_atoms_const[MAX_NUM_OF_ATOMS*rotbond_id + rotable_atom_cnt];
-		float4 torque_tor, r, atom_force;
+		float4 torque_tor;
+        float3 r, atom_force;
 
 		// Calculating torque on point "A" 
 		// They are converted back to Angstroms here

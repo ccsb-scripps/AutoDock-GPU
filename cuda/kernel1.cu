@@ -33,7 +33,7 @@ gpu_calc_initpop_kernel(
 	// local variables within non-kernel functions.
 	// These local variables must be declared in a kernel, 
 	// and then passed to non-kernel functions.
-	__shared__ float4 calc_coords[MAX_NUM_OF_ATOMS];
+	__shared__ float3 calc_coords[MAX_NUM_OF_ATOMS];
     __shared__ float sFloatAccumulator;
 	float  energy = 0.0f;
 	int    run_id = blockIdx.x / cData.dockpars.pop_size;

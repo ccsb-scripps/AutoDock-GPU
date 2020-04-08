@@ -77,8 +77,43 @@ gpu_gradient_minAD_kernel(
 	// Determining entity, and its run, energy, and genotype
 	int   run_id = blockIdx.x / cData.dockpars.num_of_lsentities;
 	int   entity_id = blockIdx.x - run_id * cData.dockpars.num_of_lsentities;
-	float energy;
+	float energy;  
+	// Energy may go up, so we keep track of the best energy ever calculated.
+	// Then, we return the genotype corresponding 
+	// to the best observed energy, i.e. "best_genotype"
+	__shared__ float best_energy;
+    __shared__ float sFloatAccumulator;
+    
+	// Gradient of the intermolecular energy per each ligand atom
+	// Also used to store the accummulated gradient per each ligand atom
+	__shared__ float gradient_inter_x[MAX_NUM_OF_ATOMS];
+	__shared__ float gradient_inter_y[MAX_NUM_OF_ATOMS];
+	__shared__ float gradient_inter_z[MAX_NUM_OF_ATOMS];
+
+	// Gradient of the intramolecular energy per each ligand atom
+	__shared__ float gradient_intra_x[MAX_NUM_OF_ATOMS];
+	__shared__ float gradient_intra_y[MAX_NUM_OF_ATOMS];
+	__shared__ float gradient_intra_z[MAX_NUM_OF_ATOMS];
+
+	// Ligand-atom position and partial energies
+	__shared__ float3 calc_coords[MAX_NUM_OF_ATOMS];    
+
+
 	__shared__ float genotype[ACTUAL_GENOTYPE_LENGTH];
+	__shared__ float best_genotype[ACTUAL_GENOTYPE_LENGTH];  
+
+
+	// Partial results of the gradient step
+	__shared__ float gradient[ACTUAL_GENOTYPE_LENGTH];
+
+	// Squared updates E[dx^2]
+	__shared__ float square_delta[ACTUAL_GENOTYPE_LENGTH];
+
+	// Vector for storing squared gradients E[g^2]
+	__shared__ float square_gradient[ACTUAL_GENOTYPE_LENGTH];    
+
+
+    
 
 	// Iteration counter for the minimizer
 	uint32_t iteration_cnt = 0; 
@@ -119,50 +154,28 @@ gpu_gradient_minAD_kernel(
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
          
-	// Partial results of the gradient step
-	__shared__ float gradient[ACTUAL_GENOTYPE_LENGTH];
 
-	// Energy may go up, so we keep track of the best energy ever calculated.
-	// Then, we return the genotype corresponding 
-	// to the best observed energy, i.e. "best_genotype"
-	__shared__ float best_energy;
-	__shared__ float best_genotype[ACTUAL_GENOTYPE_LENGTH];
+
+
+
 
 	// -------------------------------------------------------------------
 	// Calculate gradients (forces) for intermolecular energy
 	// Derived from autodockdev/maps.py
 	// -------------------------------------------------------------------
-	// Gradient of the intermolecular energy per each ligand atom
-	// Also used to store the accummulated gradient per each ligand atom
-	__shared__ float gradient_inter_x[MAX_NUM_OF_ATOMS];
-	__shared__ float gradient_inter_y[MAX_NUM_OF_ATOMS];
-	__shared__ float gradient_inter_z[MAX_NUM_OF_ATOMS];
 
-	// Gradient of the intramolecular energy per each ligand atom
-	__shared__ float gradient_intra_x[MAX_NUM_OF_ATOMS];
-	__shared__ float gradient_intra_y[MAX_NUM_OF_ATOMS];
-	__shared__ float gradient_intra_z[MAX_NUM_OF_ATOMS];
-
-	// Ligand-atom position and partial energies
-	__shared__ float4 calc_coords[MAX_NUM_OF_ATOMS];
 
 	#if defined (DEBUG_ENERGY_KERNEL)
 	float interE;
 	float intraE;
 	#endif
 
-	// Vector for storing squared gradients E[g^2]
-	__shared__ float square_gradient[ACTUAL_GENOTYPE_LENGTH];
+
 
 	// Update vector, i.e., "delta".
 	// It is added to the genotype to create the next genotype.
 	// E.g. in steepest descent "delta" is -1.0 * stepsize * gradient
-	__shared__ float delta[ACTUAL_GENOTYPE_LENGTH];
 
-	// Squared updates E[dx^2]
-	__shared__ float square_delta[ACTUAL_GENOTYPE_LENGTH];
-    
-    __shared__ float sFloatAccumulator;
 
 	// Asynchronous copy should be finished by here
 	__threadfence();
@@ -176,7 +189,6 @@ gpu_gradient_minAD_kernel(
 		 i+= blockDim.x) {
 		gradient[i]        = 0.0f;
 		square_gradient[i] = 0.0f;
-		delta[i]           = 0.0f;
 		square_delta[i]    = 0.0f;
 		best_genotype[i] = genotype[i];
 	}
@@ -312,14 +324,14 @@ gpu_gradient_minAD_kernel(
 			square_gradient[i] = RHO * square_gradient[i] + (1.0f - RHO) * gradient[i] * gradient[i];
 
 			// Computing update (eq.9 in the paper)
-			delta[i] = -1.0f * gradient[i] * sqrt((float)(square_delta[i] + EPSILON) / (float)(square_gradient[i] + EPSILON));
+			float delta = -1.0f * gradient[i] * sqrt((float)(square_delta[i] + EPSILON) / (float)(square_gradient[i] + EPSILON));
 
 			// Accumulating update^2
 			// square_delta corresponds to E[dx^2]
-			square_delta[i] = RHO * square_delta[i] + (1.0f - RHO) * delta[i] * delta [i];
+			square_delta[i] = RHO * square_delta[i] + (1.0f - RHO) * delta * delta;
 
 			// Applying update
-			genotype[i] += delta[i];
+			genotype[i] += delta;
 		}
 		__threadfence();
         __syncthreads();

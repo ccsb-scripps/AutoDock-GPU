@@ -53,6 +53,16 @@ __forceinline__ __device__ float fast_acos(float cosine)
 	return copysign(ac,cosine) + (cosine<0.0f)*PI_FLOAT;
 }
 
+__forceinline__ __device__ float4 cross(float3& u, float3& v)
+{
+    float4 result;
+    result.x = u.y * v.z - v.y * u.z;
+    result.y = v.x * u.z - u.x * v.z;
+    result.z = u.x * v.y - v.x * u.y;
+    result.w = 0.0f;
+    return result;
+}
+
 __forceinline__ __device__ float4 cross(float4& u, float4& v)
 {
     float4 result;
@@ -87,13 +97,14 @@ __forceinline__ __device__ float4 quaternion_rotate(float4 v, float4 rot)
 	return result;
 }
 
+
 // All related pragmas are in defines.h (accesible by host and device code)
 
 __device__ void gpu_calc_energy(	    
     float* pGenotype,
     float& energy,
     int& run_id,
-    float4* calc_coords,  
+    float3* calc_coords,  
     float* pFloatAccumulator
 ) 
 
@@ -117,7 +128,6 @@ __device__ void gpu_calc_energy(
         calc_coords[atom_id].x = cData.pKerconst_conform->ref_coords_const[3*atom_id];
         calc_coords[atom_id].y = cData.pKerconst_conform->ref_coords_const[3*atom_id+1];
         calc_coords[atom_id].z = cData.pKerconst_conform->ref_coords_const[3*atom_id+2];
-        calc_coords[atom_id].w = 0.0f;
 	}
 
 	// General rotation moving vector
@@ -160,7 +170,11 @@ __device__ void gpu_calc_energy(
 			uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
 
 			// Capturing atom coordinates
-			float4 atom_to_rotate = calc_coords[atom_id];
+			float4 atom_to_rotate;
+            atom_to_rotate.x = calc_coords[atom_id].x;
+            atom_to_rotate.y = calc_coords[atom_id].y;
+            atom_to_rotate.z = calc_coords[atom_id].z;
+            atom_to_rotate.w = 0.0f;
 
 			// initialize with general rotation values
 			float4 rotation_unitvec = genrot_unitvec;
