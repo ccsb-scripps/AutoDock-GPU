@@ -102,8 +102,8 @@ endif
 # FDEBUG (full) : enables debugging on both host + device
 # LDEBUG (light): enables debugging on host
 # RELEASE
-#CONFIG=RELEASE
-CONFIG=FDEBUG
+CONFIG=RELEASE
+#CONFIG=FDEBUG
 
 
 
