@@ -66,11 +66,6 @@ __device__ inline int64_t ullitolli(uint64_t u)
 
 #define ATOMICADDF32(pAccumulator, value) atomicAdd(pAccumulator, (value))
 #define ATOMICSUBF32(pAccumulator, value) atomicAdd(pAccumulator, -(value))
-
-
-#define RSCALE  (1ll << 30)
-static const float REDUCESCALEF             = (float)RSCALE;
-static const float ONEOVEREDUCESCALEF       = (float)1.0 / REDUCESCALEF;
 #define REDUCEFLOATSUM(value, pAccumulator) \
     if (threadIdx.x == 0) \
     { \
@@ -88,12 +83,12 @@ static const float ONEOVEREDUCESCALEF       = (float)1.0 / REDUCESCALEF;
         value                  += __shfl_sync(0xffffffff, value, tgx ^ 16); \
         if (tgx == 0) \
         { \
-            atomicAdd((unsigned long long int*)pAccumulator, llitoulli(llrintf(REDUCESCALEF * value))); \
+            atomicAdd(pAccumulator, value); \
         } \
     } \
     __threadfence(); \
     __syncthreads(); \
-    value = (float)(*pAccumulator) * ONEOVEREDUCESCALEF; \
+    value = (float)(*pAccumulator); \
     __syncthreads();
 
 

@@ -162,7 +162,7 @@ gpu_gradient_minAD_kernel(
 	// Squared updates E[dx^2]
 	__shared__ float square_delta[ACTUAL_GENOTYPE_LENGTH];
     
-    __shared__ long long int sAccumulator64;
+    __shared__ float sFloatAccumulator;
 
 	// Asynchronous copy should be finished by here
 	__threadfence();
@@ -245,7 +245,7 @@ gpu_gradient_minAD_kernel(
 				gradient_intra_y,
 				gradient_intra_z,
 				gradient,
-                &sAccumulator64
+                &sFloatAccumulator
 				);
 
 		// =============================================================
@@ -298,12 +298,6 @@ gpu_gradient_minAD_kernel(
                 //printf("%06d | %12.6f %12.6f %12.6f | %12.6f %12.6f %12.6f\n", i, gradient_inter_x[i], gradient_inter_y[i], gradient_inter_z[i], gradient_intra_x[i], gradient_intra_y[i], gradient_intra_z[i]);
             }
         }
-        float xx = gradient_intra_x[threadIdx.x];
-        REDUCEFLOATSUM(xx, &sAccumulator64);
-        if ((blockIdx.x == 0) && (threadIdx.x == 0))
-        {
-            printf("MOE %12.6f\n", xx);
-        }
 #endif
 
 		for(int i = threadIdx.x;
@@ -313,14 +307,14 @@ gpu_gradient_minAD_kernel(
 			if (energy < best_energy) // we need to be careful not to change best_energy until we had a chance to update the whole array
 				best_genotype[i] = genotype[i];
 
-			// Accummulating gradient^2 (eq.8 in the paper)
+			// Accumulating gradient^2 (eq.8 in the paper)
 			// square_gradient corresponds to E[g^2]
 			square_gradient[i] = RHO * square_gradient[i] + (1.0f - RHO) * gradient[i] * gradient[i];
 
 			// Computing update (eq.9 in the paper)
 			delta[i] = -1.0f * gradient[i] * sqrt((float)(square_delta[i] + EPSILON) / (float)(square_gradient[i] + EPSILON));
 
-			// Accummulating update^2
+			// Accumulating update^2
 			// square_delta corresponds to E[dx^2]
 			square_delta[i] = RHO * square_delta[i] + (1.0f - RHO) * delta[i] * delta [i];
 

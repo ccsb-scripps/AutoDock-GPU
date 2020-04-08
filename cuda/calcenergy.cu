@@ -94,7 +94,7 @@ __device__ void gpu_calc_energy(
     float& energy,
     int& run_id,
     float4* calc_coords,  
-    long long int* pAccumulator
+    float* pFloatAccumulator
 ) 
 
 //The GPU device function calculates the energy of the entity described by genotype, dockpars and the liganddata
@@ -291,7 +291,7 @@ __device__ void gpu_calc_energy(
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
 
 #if defined (DEBUG_ENERGY_KERNEL)
-    REDUCEFLOATSUM(interE, pAccumulator)
+    REDUCEFLOATSUM(interE, pFloatAccumulator)
 #endif
 
 	// In paper: intermolecular and internal energy calculation
@@ -312,7 +312,7 @@ __device__ void gpu_calc_energy(
 		// Getting atom IDs
 		uint atom1_id = cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter];
 		uint atom2_id = cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter+1];
-		uint hbond = (uint)(cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1);	// evaluates to 1 in case of H-bond, 0 otherwise
+		bool hbond = (cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1);	// evaluates to 1 in case of H-bond, 0 otherwise
 
 		// Calculating vector components of vector going
 		// from first atom's to second atom's coordinates
@@ -340,7 +340,7 @@ __device__ void gpu_calc_energy(
 			//       (sum of the vdW radii of two like atoms (A)) in the case of vdW
 			// reqm_hbond: equilibrium internuclear separation
 			//  	 (sum of the vdW radii of two like atoms (A)) in the case of hbond 
-			float opt_distance = (cData.pKerconst_intra->reqm_const [atom1_type_vdw_hb+ATYPE_NUM*hbond] + cData.pKerconst_intra->reqm_const [atom2_type_vdw_hb+ATYPE_NUM*hbond]);
+			float opt_distance = (cData.pKerconst_intra->reqm_const [atom1_type_vdw_hb+ATYPE_NUM*(uint32_t)hbond] + cData.pKerconst_intra->reqm_const [atom2_type_vdw_hb+ATYPE_NUM*(uint32_t)hbond]);
 
 			// Getting smoothed distance
 			// smoothed_distance = function(atomic_distance, opt_distance)
@@ -355,12 +355,17 @@ __device__ void gpu_calc_energy(
 
 			// Calculating van der Waals / hydrogen bond term
 			uint idx = atom1_typeid * cData.dockpars.num_of_atypes + atom2_typeid;
-			energy +=   (cData.pKerconst_intra->VWpars_AC_const[idx] / pow(smoothed_distance,12)) -
-                        (cData.pKerconst_intra->VWpars_BD_const[idx] / pow(smoothed_distance,6+4*hbond));
+            float s2 = smoothed_distance * smoothed_distance;
+            float s4 = s2 * s2;
+            float s6 = s2 * s4;
+            float s12 = s6 * s6;
+            float s10 = s6 * (hbond ? s4 : 1.0f);
+			energy +=   (cData.pKerconst_intra->VWpars_AC_const[idx] / s12) -
+                        (cData.pKerconst_intra->VWpars_BD_const[idx] / s10);
 
 			#if defined (DEBUG_ENERGY_KERNEL)
-			intraE +=   (cData.pKerconst_intra->VWpars_AC_const[idx] / pow(smoothed_distance,12)) -
-                        (cData.pKerconst_intra->VWpars_BD_const[idx] / pow(smoothed_distance,6+4*hbond));
+			intraE +=   (cData.pKerconst_intra->VWpars_AC_const[idx] / s12) -
+                        (cData.pKerconst_intra->VWpars_BD_const[idx] / s10);
 			#endif
 		} // if cuttoff1 - internuclear-distance at 8A
 
@@ -415,9 +420,9 @@ __device__ void gpu_calc_energy(
 
 
 	// reduction to calculate energy
-    REDUCEFLOATSUM(energy, pAccumulator)
+    REDUCEFLOATSUM(energy, pFloatAccumulator)
 #if defined (DEBUG_ENERGY_KERNEL)
-    REDUCEFLOATSUM(intraE, pAccumulator)
+    REDUCEFLOATSUM(intraE, pFloatAccumulator)
 #endif
 }
 

@@ -51,7 +51,7 @@ gpu_gen_and_eval_newpops_kernel(
     __shared__ float sBestEnergy[32];
     __shared__ int sBestID[32];
 	__shared__ float4 calc_coords[MAX_NUM_OF_ATOMS];
-    __shared__ long long int sAccumulator;
+    __shared__ float sFloatAccumulator;
 	int run_id;    
 	int temp_covr_point;
 	float energy;
@@ -277,7 +277,7 @@ gpu_gen_and_eval_newpops_kernel(
 			energy,
 			run_id,
 			calc_coords,
-            &sAccumulator
+            &sFloatAccumulator
 		);
         
         
@@ -300,7 +300,7 @@ gpu_gen_and_eval_newpops_kernel(
         }        
     }
 #if 0
-    if ((threadIdx.x == 0) && (blockIdx.x == 151))
+    if ((threadIdx.x == 0) && (blockIdx.x == 0))
     {
         printf("%06d %16.8f ", blockIdx.x, pMem_energies_next[blockIdx.x]);
         for (int i = 0; i < cData.dockpars.num_of_genes; i++)

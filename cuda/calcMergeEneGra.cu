@@ -60,7 +60,7 @@ __device__ void gpu_calc_energrad(
 			float* gradient_intra_y,
 			float* gradient_intra_z,
 			float* gradient_genotype,
-            long long int* pAccumulator64
+            float* pFloatAccumulator
 )
 {
 	float energy = 0.0f;
@@ -411,7 +411,7 @@ __device__ void gpu_calc_energrad(
 		// Getting atom IDs
 		uint32_t atom1_id = cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter];
 		uint32_t atom2_id = cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter+1];
-		uint32_t hbond = (uint32_t)(cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1);	// evaluates to 1 in case of H-bond, 0 otherwise
+        bool hbond = (cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1);	// evaluates to 1 in case of H-bond, 0 otherwise
 
 		// Calculating vector components of vector going
 		// from first atom's to second atom's coordinates
@@ -453,7 +453,7 @@ __device__ void gpu_calc_energrad(
 			//       (sum of the vdW radii of two like atoms (A)) in the case of vdW
 			// reqm_hbond: equilibrium internuclear separation
 			//  	 (sum of the vdW radii of two like atoms (A)) in the case of hbond 
-			float opt_distance = (cData.pKerconst_intra->reqm_const [atom1_type_vdw_hb+ATYPE_NUM*hbond] + cData.pKerconst_intra->reqm_const [atom2_type_vdw_hb+ATYPE_NUM*hbond]);
+			float opt_distance = (cData.pKerconst_intra->reqm_const [atom1_type_vdw_hb+ATYPE_NUM*(uint32_t)hbond] + cData.pKerconst_intra->reqm_const [atom2_type_vdw_hb+ATYPE_NUM*(uint32_t)hbond]);
 
 			// Getting smoothed distance
 			// smoothed_distance = function(atomic_distance, opt_distance)
@@ -464,10 +464,15 @@ __device__ void gpu_calc_energrad(
 			// Calculating van der Waals / hydrogen bond term
 			uint32_t idx = atom1_typeid * cData.dockpars.num_of_atypes + atom2_typeid;
 			float nvbond = 1.0 - vbond;
-			float A = nvbond * cData.pKerconst_intra->VWpars_AC_const[idx] / pow(smoothed_distance,12);
-			float B = nvbond * cData.pKerconst_intra->VWpars_BD_const[idx] / pow(smoothed_distance,6+4*hbond);
+            float s2 = smoothed_distance * smoothed_distance;
+            float s4 = s2 * s2;
+            float s6 = s2 * s4;
+            float s12 = s6 * s6;
+            float s10 = s6 * (hbond ? s4 : 1.0f);
+			float A = nvbond * cData.pKerconst_intra->VWpars_AC_const[idx] / s12;
+			float B = nvbond * cData.pKerconst_intra->VWpars_BD_const[idx] / s10;
 			energy += A - B;
-			priv_gradient_per_intracontributor += ((6.0f+4.0f*hbond) * B - 12.0f * A) / smoothed_distance;
+			priv_gradient_per_intracontributor += ((6.0f+4.0f*(uint32_t)hbond) * B - 12.0f * A) / smoothed_distance;
 			#if defined (DEBUG_ENERGY_KERNEL)
 			intraE += A - B;
 			#endif
@@ -597,16 +602,16 @@ __device__ void gpu_calc_energrad(
 	// Obtaining energy and translation-related gradients
 	// -------------------------------------------------------
 	// reduction over partial energies and prepared "gradient_intra_*" values
-    REDUCEFLOATSUM(energy, pAccumulator64);
+    REDUCEFLOATSUM(energy, pFloatAccumulator);
 #if defined (DEBUG_ENERGY_KERNEL)
-    REDUCEFLOATSUM(intraE, pAccumulator64);
+    REDUCEFLOATSUM(intraE, pFloatAccumulator);
 #endif    
     float gx = gradient_intra_x[threadIdx.x];
     float gy = gradient_intra_y[threadIdx.x];
     float gz = gradient_intra_z[threadIdx.x];
-    REDUCEFLOATSUM(gx, pAccumulator64);
-    REDUCEFLOATSUM(gy, pAccumulator64);    
-    REDUCEFLOATSUM(gz, pAccumulator64);    
+    REDUCEFLOATSUM(gx, pFloatAccumulator);
+    REDUCEFLOATSUM(gy, pFloatAccumulator);
+    REDUCEFLOATSUM(gz, pFloatAccumulator);
     
     global_energy = energy;
 	if (threadIdx.x == 0) {
@@ -671,9 +676,9 @@ __device__ void gpu_calc_energrad(
     torque_rot.x = gradient_intra_x[threadIdx.x];
     torque_rot.y = gradient_intra_y[threadIdx.x];
     torque_rot.z = gradient_intra_z[threadIdx.x];
-    REDUCEFLOATSUM(torque_rot.x, pAccumulator64);
-    REDUCEFLOATSUM(torque_rot.y, pAccumulator64);
-    REDUCEFLOATSUM(torque_rot.z, pAccumulator64);
+    REDUCEFLOATSUM(torque_rot.x, pFloatAccumulator);
+    REDUCEFLOATSUM(torque_rot.y, pFloatAccumulator);
+    REDUCEFLOATSUM(torque_rot.z, pFloatAccumulator);
 	if (threadIdx.x == 0) {
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -737,10 +742,10 @@ __device__ void gpu_calc_energrad(
 		// target_oclacube = quaternion_to_oclacube(target_q, theta_larger_than_pi)
 		// Derived from autodockdev/motions.py/quaternion_to_oclacube()
 		// In our terms means quaternion_to_oclacube(target_q{w|x|y|z}, theta_larger_than_pi)
-		target_rotangle = 2.0f * acos(target_q.w); // = 2.0f * ang;
+		target_rotangle = 2.0f * fast_acos(target_q.w); // = 2.0f * ang;
 		float sin_ang = sqrt(1.0f-target_q.w*target_q.w); // = native_sin(ang);
 
-		target_theta = PI_TIMES_2 + is_theta_gt_pi * acos(target_q.z / sin_ang );
+		target_theta = PI_TIMES_2 + is_theta_gt_pi * fast_acos(target_q.z / sin_ang );
 		target_phi   = fmod_pi2((atan2( is_theta_gt_pi*target_q.y, is_theta_gt_pi*target_q.x) + PI_TIMES_2));
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
