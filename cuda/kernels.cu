@@ -95,12 +95,14 @@ __device__ inline int64_t ullitolli(uint64_t u)
 
 
 static __constant__ GpuData cData;
+static GpuData cpuData;
 
 void SetKernelsGpuData(GpuData* pData)
 {
     cudaError_t status;
     status = cudaMemcpyToSymbol(cData, pData, sizeof(GpuData));
     RTERROR(status, "SetKernelsGpuData copy to cData failed");
+    memcpy(&cpuData, pData, sizeof(GpuData));
 }
 
 void GetKernelsGpuData(GpuData* pData)

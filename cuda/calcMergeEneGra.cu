@@ -53,12 +53,8 @@ __device__ void gpu_calc_energrad(
 		    // "is_enabled_gradient_calc": enables gradient calculation.
 		    // In Genetic-Generation: no need for gradients
 		    // In Gradient-Minimizer: must calculate gradients
-			float* gradient_inter_x,
-			float* gradient_inter_y,
-			float* gradient_inter_z,
-			float* gradient_intra_x,
-			float* gradient_intra_y,
-			float* gradient_intra_z,
+			float3* gradient_inter,
+			float3* gradient_intra,
 			float* gradient_genotype,
             float* pFloatAccumulator
 )
@@ -72,7 +68,7 @@ __device__ void gpu_calc_energrad(
 	// Initializing gradients (forces) 
 	// Derived from autodockdev/maps.py
 	for (uint32_t atom_id = threadIdx.x;
-		  atom_id < MAX_NUM_OF_ATOMS; // makes sure that gradient sum reductions give correct results if dockpars_num_atoms < NUM_OF_THREADS_PER_BLOCK
+		  atom_id < cData.dockpars.num_of_atoms; // makes sure that gradient sum reductions give correct results if dockpars_num_atoms < NUM_OF_THREADS_PER_BLOCK
 		  atom_id+= blockDim.x) {
 		// Initialize coordinates
 		calc_coords[atom_id].x = cData.pKerconst_conform->ref_coords_const[3*atom_id];
@@ -80,13 +76,13 @@ __device__ void gpu_calc_energrad(
         calc_coords[atom_id].z = cData.pKerconst_conform->ref_coords_const[3*atom_id+2];
 
 		// Intermolecular gradients
-		gradient_inter_x[atom_id] = (float)0;
-		gradient_inter_y[atom_id] = (float)0;
-		gradient_inter_z[atom_id] = (float)0;
+		gradient_inter[atom_id].x = (float)0;
+		gradient_inter[atom_id].y = (float)0;
+		gradient_inter[atom_id].z = (float)0;
 		// Intramolecular gradients
-		gradient_intra_x[atom_id] = (float)0;
-		gradient_intra_y[atom_id] = (float)0;
-		gradient_intra_z[atom_id] = (float)0;
+		gradient_intra[atom_id].x = (float)0;
+		gradient_intra[atom_id].y = (float)0;
+		gradient_intra[atom_id].z = (float)0;
 	}
 
 	// Initializing gradient genotypes
@@ -227,9 +223,9 @@ __device__ void gpu_calc_energrad(
 			// Setting gradients (forces) penalties.
 			// The idea here is to push the offending
 			// molecule towards the center rather
-			gradient_inter_x[atom_id] += 42.0f * x;
-			gradient_inter_y[atom_id] += 42.0f * y;
-			gradient_inter_z[atom_id] += 42.0f * z;
+			gradient_inter[atom_id].x += 42.0f * x;
+			gradient_inter[atom_id].y += 42.0f * y;
+			gradient_inter[atom_id].z += 42.0f * z;
 			continue;
 		}
 		// Getting coordinates
@@ -315,13 +311,13 @@ __device__ void gpu_calc_energrad(
 
 		// AT - all in one go with no intermediate variables (following calcs are similar)
 		// Vector in x-direction
-		gradient_inter_x[atom_id] += omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
+		gradient_inter[atom_id].x += omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
 		                               dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011]));
 		// Vector in y-direction
-		gradient_inter_y[atom_id] += omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
+		gradient_inter[atom_id].y += omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
 		                               dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101]));
 		// Vectors in z-direction
-		gradient_inter_z[atom_id] += omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
+		gradient_inter[atom_id].z += omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
 		                               dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110]));
 		// -------------------------------------------------------------------
 		// Calculating gradients (forces) corresponding to 
@@ -349,13 +345,13 @@ __device__ void gpu_calc_energrad(
 		#endif
 
 		// Vector in x-direction
-		gradient_inter_x[atom_id] += q * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
+		gradient_inter[atom_id].x += q * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
 		                                     dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011])));
 		// Vector in y-direction
-		gradient_inter_y[atom_id] += q * ( omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
+		gradient_inter[atom_id].y += q * ( omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
 		                                     dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101])));
 		// Vectors in z-direction
-		gradient_inter_z[atom_id] += q * ( omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
+		gradient_inter[atom_id].z += q * ( omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
 		                                     dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110])));
 		// -------------------------------------------------------------------
 		// Calculating gradients (forces) corresponding to 
@@ -382,13 +378,13 @@ __device__ void gpu_calc_energrad(
 		#endif
 
 		// Vector in x-direction
-		gradient_inter_x[atom_id] += q * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
+		gradient_inter[atom_id].x += q * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
 		                                     dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011])));
 		// Vector in y-direction
-		gradient_inter_y[atom_id] += q * ( omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
+		gradient_inter[atom_id].y += q * ( omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
 		                                     dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101])));
 		// Vectors in z-direction
-		gradient_inter_z[atom_id] += q * ( omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
+		gradient_inter[atom_id].z += q * ( omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
 		                                     dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110])));
 		// -------------------------------------------------------------------
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
@@ -540,13 +536,13 @@ __device__ void gpu_calc_energrad(
 		// Calculating gradients in xyz components.
 		// Gradients for both atoms in a single contributor pair
 		// have the same magnitude, but opposite directions
-		ATOMICSUBF32(&gradient_intra_x[atom1_id], priv_intra_gradient_x);
-		ATOMICSUBF32(&gradient_intra_y[atom1_id], priv_intra_gradient_y);
-		ATOMICSUBF32(&gradient_intra_z[atom1_id], priv_intra_gradient_z);
+		ATOMICSUBF32(&gradient_intra[atom1_id].x, priv_intra_gradient_x);
+		ATOMICSUBF32(&gradient_intra[atom1_id].y, priv_intra_gradient_y);
+		ATOMICSUBF32(&gradient_intra[atom1_id].z, priv_intra_gradient_z);
 
-		ATOMICADDF32(&gradient_intra_x[atom2_id], priv_intra_gradient_x);
-		ATOMICADDF32(&gradient_intra_y[atom2_id], priv_intra_gradient_y);
-		ATOMICADDF32(&gradient_intra_z[atom2_id], priv_intra_gradient_z);
+		ATOMICADDF32(&gradient_intra[atom2_id].x, priv_intra_gradient_x);
+		ATOMICADDF32(&gradient_intra[atom2_id].y, priv_intra_gradient_y);
+		ATOMICADDF32(&gradient_intra[atom2_id].z, priv_intra_gradient_z);
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
     __threadfence();
     __syncthreads();
@@ -561,9 +557,9 @@ __device__ void gpu_calc_energrad(
 
 		// Intramolecular gradients were already in Angstrom,
 		// so no scaling for them is required.
-		float grad_total_x = (gradient_inter_x[atom_cnt] / cData.dockpars.grid_spacing);
-		float grad_total_y = (gradient_inter_y[atom_cnt] / cData.dockpars.grid_spacing);
-		float grad_total_z = (gradient_inter_z[atom_cnt] / cData.dockpars.grid_spacing);
+		float grad_total_x = (gradient_inter[atom_cnt].x / cData.dockpars.grid_spacing);
+		float grad_total_y = (gradient_inter[atom_cnt].y / cData.dockpars.grid_spacing);
+		float grad_total_z = (gradient_inter[atom_cnt].z / cData.dockpars.grid_spacing);
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		if (atom_cnt == 0) {
@@ -574,19 +570,19 @@ __device__ void gpu_calc_energrad(
 		printf("%10u %13.6f %13.6f %13.6f %5s %13.6f %13.6f %13.6f\n", atom_cnt, grad_total_x, grad_total_y, grad_total_z, "|", gradient_intra_x[atom_cnt], gradient_intra_y[atom_cnt], gradient_intra_z[atom_cnt]);
 		#endif
 
-		grad_total_x += gradient_intra_x[atom_cnt];
-		grad_total_y += gradient_intra_y[atom_cnt];
-		grad_total_z += gradient_intra_z[atom_cnt];
+		grad_total_x += gradient_intra[atom_cnt].x;
+		grad_total_y += gradient_intra[atom_cnt].y;
+		grad_total_z += gradient_intra[atom_cnt].z;
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)
-		gradient_inter_x[atom_cnt] = grad_total_x;
-		gradient_inter_y[atom_cnt] = grad_total_y;
-		gradient_inter_z[atom_cnt] = grad_total_z;
+		gradient_inter[atom_cnt].x = grad_total_x;
+		gradient_inter[atom_cnt].y = grad_total_y;
+		gradient_inter[atom_cnt].z = grad_total_z;
 		
 		// Re-use "gradient_intra_*" for total gradient to do reduction below
 		// - need to prepare by doing thread-wise reduction
-		gradient_intra_x[threadIdx.x] += (float)(atom_cnt==threadIdx.x)*(-gradient_intra_x[threadIdx.x])+grad_total_x; // We need to start sum from 0 but I don't want an if statement
-		gradient_intra_y[threadIdx.x] += (float)(atom_cnt==threadIdx.x)*(-gradient_intra_y[threadIdx.x])+grad_total_y;
-		gradient_intra_z[threadIdx.x] += (float)(atom_cnt==threadIdx.x)*(-gradient_intra_z[threadIdx.x])+grad_total_z;
+		gradient_intra[threadIdx.x].x += (float)(atom_cnt==threadIdx.x)*(-gradient_intra[threadIdx.x].x)+grad_total_x; // We need to start sum from 0 but I don't want an if statement
+		gradient_intra[threadIdx.x].y += (float)(atom_cnt==threadIdx.x)*(-gradient_intra[threadIdx.x].y)+grad_total_y;
+		gradient_intra[threadIdx.x].z += (float)(atom_cnt==threadIdx.x)*(-gradient_intra[threadIdx.x].z)+grad_total_z;
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		if (atom_cnt == 0) {
@@ -609,9 +605,9 @@ __device__ void gpu_calc_energrad(
 #if defined (DEBUG_ENERGY_KERNEL)
     REDUCEFLOATSUM(intraE, pFloatAccumulator);
 #endif    
-    float gx = gradient_intra_x[threadIdx.x];
-    float gy = gradient_intra_y[threadIdx.x];
-    float gz = gradient_intra_z[threadIdx.x];
+    float gx = (threadIdx.x < cData.dockpars.num_of_atoms) ? gradient_intra[threadIdx.x].x : 0.0f;
+    float gy = (threadIdx.x < cData.dockpars.num_of_atoms) ? gradient_intra[threadIdx.x].y : 0.0f;
+    float gz = (threadIdx.x < cData.dockpars.num_of_atoms) ? gradient_intra[threadIdx.x].z : 0.0f;
     REDUCEFLOATSUM(gx, pFloatAccumulator);
     REDUCEFLOATSUM(gy, pFloatAccumulator);
     REDUCEFLOATSUM(gz, pFloatAccumulator);
@@ -651,9 +647,10 @@ __device__ void gpu_calc_energrad(
 	// ------------------------------------------
 
 	// start by populating "gradient_intra_*" with torque values
-	gradient_intra_x[threadIdx.x] = 0.0;
-	gradient_intra_y[threadIdx.x] = 0.0;
-	gradient_intra_z[threadIdx.x] = 0.0;
+    float4 torque_rot;
+    torque_rot.x = 0.0f;
+    torque_rot.y = 0.0f;
+    torque_rot.z = 0.0f;
 	for (uint32_t atom_cnt = threadIdx.x;
 		  atom_cnt < cData.dockpars.num_of_atoms;
 		  atom_cnt+= blockDim.x) {
@@ -664,20 +661,16 @@ __device__ void gpu_calc_energrad(
 
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)
 		float3 force;
-		force.x = gradient_inter_x[atom_cnt];
-		force.y = gradient_inter_y[atom_cnt]; 
-		force.z = gradient_inter_z[atom_cnt];
-		float4 torque_rot = cross(r, force);
-		gradient_intra_x[threadIdx.x] += torque_rot.x;
-		gradient_intra_y[threadIdx.x] += torque_rot.y;
-		gradient_intra_z[threadIdx.x] += torque_rot.z;
+		force.x = gradient_inter[atom_cnt].x;
+		force.y = gradient_inter[atom_cnt].y; 
+		force.z = gradient_inter[atom_cnt].z;
+		float4 tr = cross(r, force);
+		torque_rot.x += tr.x;
+        torque_rot.y += tr.y;
+        torque_rot.z += tr.z;
 	}
 
 	// Do a reduction over the total gradient containing prepared "gradient_intra_*" values    
-    float4 torque_rot;
-    torque_rot.x = gradient_intra_x[threadIdx.x];
-    torque_rot.y = gradient_intra_y[threadIdx.x];
-    torque_rot.z = gradient_intra_z[threadIdx.x];
     REDUCEFLOATSUM(torque_rot.x, pFloatAccumulator);
     REDUCEFLOATSUM(torque_rot.y, pFloatAccumulator);
     REDUCEFLOATSUM(torque_rot.z, pFloatAccumulator);
@@ -918,9 +911,9 @@ __device__ void gpu_calc_energrad(
 
 
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)
-		atom_force.x = gradient_inter_x[lig_atom_id]; 
-		atom_force.y = gradient_inter_y[lig_atom_id];
-		atom_force.z = gradient_inter_z[lig_atom_id];
+		atom_force.x = gradient_inter[lig_atom_id].x; 
+		atom_force.y = gradient_inter[lig_atom_id].y;
+		atom_force.z = gradient_inter[lig_atom_id].z;
 
 		torque_tor = cross(r, atom_force);
         float torque_on_axis = (rotation_unitvec.x * torque_tor.x  +

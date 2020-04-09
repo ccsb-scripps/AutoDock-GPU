@@ -83,34 +83,34 @@ gpu_gradient_minAD_kernel(
 	// to the best observed energy, i.e. "best_genotype"
 	__shared__ float best_energy;
     __shared__ float sFloatAccumulator;
+    extern __shared__ float sFloatBuff[];
+
+	// Ligand-atom position and partial energies
+	float3* calc_coords = (float3*)sFloatBuff;  
     
 	// Gradient of the intermolecular energy per each ligand atom
 	// Also used to store the accummulated gradient per each ligand atom
-	__shared__ float gradient_inter_x[MAX_NUM_OF_ATOMS];
-	__shared__ float gradient_inter_y[MAX_NUM_OF_ATOMS];
-	__shared__ float gradient_inter_z[MAX_NUM_OF_ATOMS];
+	float3* gradient_inter = calc_coords + cData.dockpars.num_of_atoms;
 
 	// Gradient of the intramolecular energy per each ligand atom
-	__shared__ float gradient_intra_x[MAX_NUM_OF_ATOMS];
-	__shared__ float gradient_intra_y[MAX_NUM_OF_ATOMS];
-	__shared__ float gradient_intra_z[MAX_NUM_OF_ATOMS];
-
-	// Ligand-atom position and partial energies
-	__shared__ float3 calc_coords[MAX_NUM_OF_ATOMS];    
+	float3* gradient_intra = gradient_inter + cData.dockpars.num_of_atoms;
 
 
-	__shared__ float genotype[ACTUAL_GENOTYPE_LENGTH];
-	__shared__ float best_genotype[ACTUAL_GENOTYPE_LENGTH];  
+  
+
+    // Genotype pointers
+	float* genotype = (float*)(gradient_intra + cData.dockpars.num_of_atoms);
+	float* best_genotype = genotype + cData.dockpars.num_of_genes;  
 
 
 	// Partial results of the gradient step
-	__shared__ float gradient[ACTUAL_GENOTYPE_LENGTH];
+	float* gradient = best_genotype + cData.dockpars.num_of_genes;
 
 	// Squared updates E[dx^2]
-	__shared__ float square_delta[ACTUAL_GENOTYPE_LENGTH];
+	float* square_delta = gradient + cData.dockpars.num_of_genes;
 
 	// Vector for storing squared gradients E[g^2]
-	__shared__ float square_gradient[ACTUAL_GENOTYPE_LENGTH];    
+	float* square_gradient = square_delta + cData.dockpars.num_of_genes;    
 
 
     
@@ -250,12 +250,8 @@ gpu_gradient_minAD_kernel(
 				// Gradient-related arguments
 				// Calculate gradients (forces) for intermolecular energy
 				// Derived from autodockdev/maps.py
-				gradient_inter_x,
-				gradient_inter_y,
-				gradient_inter_z,
-				gradient_intra_x,
-				gradient_intra_y,
-				gradient_intra_z,
+				gradient_inter,
+				gradient_intra,
 				gradient,
                 &sFloatAccumulator
 				);
@@ -448,7 +444,8 @@ void gpu_gradient_minAD(
 	float* pMem_energies_next
 )
 {
-    gpu_gradient_minAD_kernel<<<blocks, threads>>>(pMem_conformations_next, pMem_energies_next);
+    size_t sz_shared = (9 * cpuData.dockpars.num_of_atoms + 5 * cpuData.dockpars.num_of_genes) * sizeof(float);
+    gpu_gradient_minAD_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
     LAUNCHERROR("gpu_gradient_minAD_kernel");     
 #if 0
     cudaError_t status;
