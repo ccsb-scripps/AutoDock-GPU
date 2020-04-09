@@ -26,7 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // on nr of atoms and nr of torsions of ligand are used
 // #define SW_MOVE_TEST
 
-
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 perform_LS(		
 			int    dockpars_num_of_atoms,
@@ -157,7 +156,8 @@ perform_LS(
 		{
 #ifdef SW_MOVE_TEST
 			float lig_scale = 1.0f/sqrt((float)dockpars_num_of_atoms);
-			genotype_deviate[gene_counter] = rho * (2*gpu_randf(dockpars_prng_states)-1) * (gpu_randf(dockpars_prng_states) < lig_scale);
+			float gene_scale = 1.0f/sqrt((float)dockpars_num_of_genes);
+			genotype_deviate[gene_counter] = rho * (2*gpu_randf(dockpars_prng_states)-1) * (gpu_randf(dockpars_prng_states) < gene_scale);
 
 			// Translation genes
 			if (gene_counter < 3) {
@@ -168,12 +168,11 @@ perform_LS(
 				if (gene_counter < 6) {
 					genotype_deviate[gene_counter] *= dockpars_base_dang_mul_sqrt3 * lig_scale;
 				} else {
-					float tors_scale = 1.0f/sqrt((float)dockpars_num_of_genes-5);
-					genotype_deviate[gene_counter] *= dockpars_base_dang_mul_sqrt3 * tors_scale;
+					genotype_deviate[gene_counter] *= dockpars_base_dang_mul_sqrt3 * gene_scale;
 				}
 			}
 #else
-			genotype_deviate[gene_counter] = rho*(2*gpu_randf(dockpars_prng_states)-1);
+			genotype_deviate[gene_counter] = rho*(2*gpu_randf(dockpars_prng_states)-1) * (gpu_randf(dockpars_prng_states) < 0.3);
 
 			// Translation genes
 			if (gene_counter < 3) {

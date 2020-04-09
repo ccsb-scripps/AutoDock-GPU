@@ -225,7 +225,7 @@ gpu_gen_and_eval_newpops(
 
 		// Performing mutation
 #ifdef GA_MUTATION_TEST
-		float lig_scale = 1.0f/sqrt((float)dockpars_num_of_atoms);
+		float gene_scale = 1.0f/sqrt((float)dockpars_num_of_genes);
 #endif
 		for (gene_counter = tidx;
 		     gene_counter < dockpars_num_of_genes;
@@ -233,11 +233,7 @@ gpu_gen_and_eval_newpops(
 		{
 			// Notice: dockpars_mutation_rate was scaled down to [0,1] in host
 			// to reduce number of operations in device
-#ifdef GA_MUTATION_TEST
-			if (/*100.0f**/gpu_randf(dockpars_prng_states) < lig_scale)
-#else
 			if (/*100.0f**/gpu_randf(dockpars_prng_states) < dockpars_mutation_rate)
-#endif
 			{
 #ifdef GA_MUTATION_TEST
 				float pmone = (2.0f*gpu_randf(dockpars_prng_states)-1.0f);
@@ -248,11 +244,10 @@ gpu_gen_and_eval_newpops(
 				}
 				// Orientation and torsion genes
 				else {
-					float tors_scale = 1.0f/sqrt((float)dockpars_num_of_genes-5);
 					if (gene_counter < 6) {
-						offspring_genotype[gene_counter] += pmone * dockpars_abs_max_dang * tors_scale;
+						offspring_genotype[gene_counter] += pmone * dockpars_abs_max_dang * gene_scale;
 					} else {
-						offspring_genotype[gene_counter] += pmone * dockpars_abs_max_dang * tors_scale;
+						offspring_genotype[gene_counter] += pmone * dockpars_abs_max_dang * gene_scale;
 					}
 					map_angle(&(offspring_genotype[gene_counter]));
 				}

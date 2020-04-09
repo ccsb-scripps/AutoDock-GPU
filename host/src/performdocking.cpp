@@ -517,11 +517,12 @@ filled with clock() */
 			strcpy(newmethod,"sw");
 //			mypars->num_of_energy_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 3.5));
 			mypars->num_of_energy_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 4.0));
+			mypars->num_of_energy_evals = (unsigned long)ceil(mypars->num_of_energy_evals*(float)mypars->heuristics_max/(mypars->heuristics_max+mypars->num_of_energy_evals));
 			printf("-lsmet sw -nev %u\n",mypars->num_of_energy_evals);
 		} else{ // use ADAdelta
 			strcpy(newmethod,"ad");
 			mypars->num_of_energy_evals = (unsigned long)ceil(1000 * pow(2.0,0.4 * myligand_init->num_of_rotbonds + 7.0));
-			mypars->num_of_energy_evals *= 5e7/(5e7 + mypars->num_of_energy_evals);
+			mypars->num_of_energy_evals = (unsigned long)ceil(mypars->num_of_energy_evals*(float)mypars->heuristics_max/(mypars->heuristics_max+mypars->num_of_energy_evals));
 			printf("-lsmet ad -nev %u\n",mypars->num_of_energy_evals);
 		}
 		strcpy(mypars->ls_method,newmethod);

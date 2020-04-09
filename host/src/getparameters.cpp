@@ -142,7 +142,8 @@ void get_commandpars(const int* argc,
 	mypars->num_of_energy_evals	= 2500000;
 	mypars->num_of_generations	= 27000;
 	mypars->nev_provided		= false;
-	mypars->use_heuristics		= false; // Flag if we want to use Diogo's heuristics
+	mypars->use_heuristics		= false;	// Flag if we want to use Diogo's heuristics
+	mypars->heuristics_max		= 50000000;	// Maximum number of evaluations under the heuristics (50M evaluates to 80% at 12.5M evals calculated by heuristics)
 	mypars->abs_max_dmov		= 6.0/(*spacing); 	// +/-6A
 	mypars->abs_max_dang		= 90; 		// +/- 90°
 	mypars->mutation_rate		= 2; 		// 2%

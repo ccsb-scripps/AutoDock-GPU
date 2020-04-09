@@ -54,6 +54,7 @@ typedef struct
 	unsigned long num_of_generations;
 		bool nev_provided;
 		bool use_heuristics;
+	unsigned long heuristics_max;
 		float abs_max_dmov;
 		float abs_max_dang;
 		float mutation_rate;
