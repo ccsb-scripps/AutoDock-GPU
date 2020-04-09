@@ -81,12 +81,12 @@ struct GpuData {
     int*                            pMem_evals_of_new_entities;
     int*                            pMem_gpu_evals_of_runs;
     uint32_t*                       pMem_prng_states;
-    int                             mem_rotbonds_const[2*MAX_NUM_OF_ROTBONDS];
-    int                             mem_rotbonds_atoms_const[MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS];
-    int                             mem_num_rotating_atoms_per_rotbond_const[MAX_NUM_OF_ROTBONDS];
-    float                           mem_angle_const[1000];
-    float                           mem_dependence_on_theta_const[1000];
-    float                           mem_dependence_on_rotangle_const[1000];
+    int*                            pMem_rotbonds_const;
+    int*                            pMem_rotbonds_atoms_const;
+    int*                            pMem_num_rotating_atoms_per_rotbond_const;
+    float*                          pMem_angle_const;
+    float*                          pMem_dependence_on_theta_const;
+    float*                          pMem_dependence_on_rotangle_const;
     
     // CUDA-specific constants
     unsigned int                    warpmask;

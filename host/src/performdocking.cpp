@@ -341,13 +341,42 @@ filled with clock() */
     status = cudaMemcpy(cData.pKerconst_conform, &KerConst_conform, sz_conform_const, cudaMemcpyHostToDevice);
     RTERROR(status, "cData.pKerconst_conform: failed to upload to GPU memory.\n");
 
+    // Allocate mem data
+    status = cudaMalloc((void**)&cData.pMem_angle_const, 1000 * sizeof(float));
+    RTERROR(status, "cData.pMem_angle_const: failed to allocate GPU memory.\n");
+    status = cudaMalloc((void**)&cData.pMem_dependence_on_theta_const, 1000 * sizeof(float));
+    RTERROR(status, "cData.pMem_dependence_on_theta_const: failed to allocate GPU memory.\n");
+    status = cudaMalloc((void**)&cData.pMem_dependence_on_rotangle_const, 1000 * sizeof(float));
+    RTERROR(status, "cData.pMem_dependence_on_rotangle_const: failed to allocate GPU memory.\n");
+    status = cudaMalloc((void**)&cData.pMem_rotbonds_const, 2*MAX_NUM_OF_ROTBONDS*sizeof(int));
+    RTERROR(status, "cData.pMem_rotbonds_const: failed to allocate GPU memory.\n");
+    status = cudaMalloc((void**)&cData.pMem_rotbonds_atoms_const, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
+    RTERROR(status, "cData.pMem_rotbonds_atoms_const: failed to allocate GPU memory.\n");
+    status = cudaMalloc((void**)&cData.pMem_num_rotating_atoms_per_rotbond_const, MAX_NUM_OF_ROTBONDS*sizeof(int));
+    RTERROR(status, "cData.pMem_num_rotiating_atoms_per_rotbond_const: failed to allocate GPU memory.\n");
+
+    // Upload mem data
+    cudaMemcpy(cData.pMem_angle_const, angle, 1000 * sizeof(float), cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pMem_angle_const: failed to upload to GPU memory.\n");
+    cudaMemcpy(cData.pMem_dependence_on_theta_const, dependence_on_theta, 1000 * sizeof(float), cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pMem_dependence_on_theta_const: failed to upload to GPU memory.\n");
+    cudaMemcpy(cData.pMem_dependence_on_rotangle_const, dependence_on_rotangle, 1000 * sizeof(float), cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pMem_dependence_on_rotangle_const: failed to upload to GPU memory.\n");       
+    cudaMemcpy(cData.pMem_rotbonds_const, KerConst_grads.rotbonds, 2*MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pMem_rotbonds_const: failed to upload to GPU memory.\n");
+    cudaMemcpy(cData.pMem_rotbonds_atoms_const, KerConst_grads.rotbonds_atoms, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pMem_rotbonds_atoms_const: failed to upload to GPU memory.\n");
+    cudaMemcpy(cData.pMem_num_rotating_atoms_per_rotbond_const, KerConst_grads.num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pMem_num_rotating_atoms_per_rotbond_const failed to upload to GPU memory.\n"); 
+    
+/*    
     memcpy(cData.mem_angle_const, angle, 1000 * sizeof(float));
     memcpy(cData.mem_dependence_on_theta_const, dependence_on_theta, 1000 * sizeof(float));
     memcpy(cData.mem_dependence_on_rotangle_const, dependence_on_rotangle, 1000 * sizeof(float));        
     memcpy(cData.mem_rotbonds_const, KerConst_grads.rotbonds, 2*MAX_NUM_OF_ROTBONDS*sizeof(int));
     memcpy(cData.mem_rotbonds_atoms_const, KerConst_grads.rotbonds_atoms, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
     memcpy(cData.mem_num_rotating_atoms_per_rotbond_const, KerConst_grads.num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int));
-
+*/
  	//allocating GPU memory for populations, floatgirds,
 	//energies, evaluation counters and random number generator states
 	size_floatgrids = 4 * (sizeof(float)) * (mygrid->num_of_atypes+2) * (mygrid->size_xyz[0]) * (mygrid->size_xyz[1]) * (mygrid->size_xyz[2]);    

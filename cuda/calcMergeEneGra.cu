@@ -795,8 +795,8 @@ __device__ void gpu_calc_energrad(
 		// Finding the index-position of "grad_delta" in the "angle_const" array
 		//uint index_theta    = floor(native_divide(current_theta    - angle_const[0], angle_delta));
 		//uint index_rotangle = floor(native_divide(current_rotangle - angle_const[0], angle_delta));
-		uint index_theta    = floor((current_theta    - cData.mem_angle_const[0]) * inv_angle_delta);
-		uint index_rotangle = floor((current_rotangle - cData.mem_angle_const[0]) * inv_angle_delta);
+		uint index_theta    = floor((current_theta    - cData.pMem_angle_const[0]) * inv_angle_delta);
+		uint index_rotangle = floor((current_rotangle - cData.pMem_angle_const[0]) * inv_angle_delta);
 
 		// Interpolating theta values
 		// X0 -> index - 1
@@ -815,13 +815,13 @@ __device__ void gpu_calc_energrad(
 		// Using interpolation on out-of-bounds elements results in hang
 		if ((index_theta <= 0) || (index_theta >= 999))
 		{
-			dependence_on_theta = cData.mem_dependence_on_theta_const[stick_to_bounds(index_theta,0,999)];
+			dependence_on_theta = cData.pMem_dependence_on_theta_const[stick_to_bounds(index_theta,0,999)];
 		} else
 		{
-			X0 = cData.mem_angle_const[index_theta];
-			X1 = cData.mem_angle_const[index_theta+1];
-			Y0 = cData.mem_dependence_on_theta_const[index_theta];
-			Y1 = cData.mem_dependence_on_theta_const[index_theta+1];
+			X0 = cData.pMem_angle_const[index_theta];
+			X1 = cData.pMem_angle_const[index_theta+1];
+			Y0 = cData.pMem_dependence_on_theta_const[index_theta];
+			Y1 = cData.pMem_dependence_on_theta_const[index_theta+1];
 			dependence_on_theta = (Y0 * (X1-current_theta) + Y1 * (current_theta-X0)) * inv_angle_delta;
 		}
 		
@@ -836,13 +836,13 @@ __device__ void gpu_calc_energrad(
 		// Using interpolation on out-of-bounds elements results in hang
 		if ((index_rotangle <= 0) || (index_rotangle >= 999))
 		{
-			dependence_on_rotangle = cData.mem_dependence_on_rotangle_const[stick_to_bounds(index_rotangle,0,999)];
+			dependence_on_rotangle = cData.pMem_dependence_on_rotangle_const[stick_to_bounds(index_rotangle,0,999)];
 		} else
 		{
-			X0 = cData.mem_angle_const[index_rotangle];
-			X1 = cData.mem_angle_const[index_rotangle+1];
-			Y0 = cData.mem_dependence_on_rotangle_const[index_rotangle];
-			Y1 = cData.mem_dependence_on_rotangle_const[index_rotangle+1];
+			X0 = cData.pMem_angle_const[index_rotangle];
+			X1 = cData.pMem_angle_const[index_rotangle+1];
+			Y0 = cData.pMem_dependence_on_rotangle_const[index_rotangle];
+			Y1 = cData.pMem_dependence_on_rotangle_const[index_rotangle+1];
 			dependence_on_rotangle = (Y0 * (X1-current_rotangle) + Y1 * (current_rotangle-X0)) * inv_angle_delta;
 		}
 
@@ -877,12 +877,12 @@ __device__ void gpu_calc_energrad(
 		uint32_t rotable_atom_cnt = idx / num_torsion_genes;
 		uint32_t rotbond_id = idx - rotable_atom_cnt * num_torsion_genes; // this is a bit cheaper than % (modulo)
 
-		if (rotable_atom_cnt >= cData.mem_num_rotating_atoms_per_rotbond_const[rotbond_id])
+		if (rotable_atom_cnt >= cData.pMem_num_rotating_atoms_per_rotbond_const[rotbond_id])
 			continue; // Nothing to do
 
 		// Querying ids of atoms belonging to the rotatable bond in question
-		int atom1_id = cData.mem_rotbonds_const[2*rotbond_id];
-		int atom2_id = cData.mem_rotbonds_const[2*rotbond_id+1];
+		int atom1_id = cData.pMem_rotbonds_const[2*rotbond_id];
+		int atom2_id = cData.pMem_rotbonds_const[2*rotbond_id+1];
 
 		float3 atomRef_coords;
 		atomRef_coords.x = calc_coords[atom1_id].x;
@@ -899,7 +899,7 @@ __device__ void gpu_calc_energrad(
         rotation_unitvec.z *= l;
 
 		// Torque of torsions
-		uint lig_atom_id = cData.mem_rotbonds_atoms_const[MAX_NUM_OF_ATOMS*rotbond_id + rotable_atom_cnt];
+		uint lig_atom_id = cData.pMem_rotbonds_atoms_const[MAX_NUM_OF_ATOMS*rotbond_id + rotable_atom_cnt];
 		float4 torque_tor;
         float3 r, atom_force;
 
