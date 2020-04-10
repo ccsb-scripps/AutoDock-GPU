@@ -239,6 +239,18 @@ void get_commandpars(const int* argc,
 		}
 		// ----------------------------------
 
+		//Argument: initial sw number of generations. Must be a positive integer.
+		if (strcmp("-heurmax", argv[i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv[i+1], "%ld", &tempint);
+
+			if ((tempint > 0) && (tempint < 16250000))
+				mypars->heuristics_max = (unsigned long) tempint;
+			else
+				printf("Warning: value of -heurmax argument ignored. Value must be between 0 and 16250000.\n");
+		}
+
 		//Argument: maximal delta movement during mutation. Must be an integer between 1 and 16.
 		//N means that the maximal delta movement will be +/- 2^(N-10)*grid spacing angström.
 		if (strcmp("-dmov", argv[i]) == 0)
