@@ -101,6 +101,13 @@ void gpu_gradient_minAD(
 	float* pMem_energies_next
 );
 
+void gpu_perform_LS(
+    uint32_t blocks,
+    uint32_t threads,
+    float* pMem_conformations_next,
+	float* pMem_energies_next
+);
+
 template <typename Clock, typename Duration1, typename Duration2>
 double elapsed_seconds(std::chrono::time_point<Clock, Duration1> start,
                        std::chrono::time_point<Clock, Duration2> end)
@@ -170,14 +177,7 @@ filled with clock() */
         cudaDeviceReset();
         exit(-1);
     }
-    else
-    {
-        // Select GPU with most memory available
-        device = 1; // HACK to not use display GPU for now
-    }
-    status = cudaSetDevice(device);
-    RTERROR(status, "cudaSetDevice failed");   
-    cudaFree(NULL);   // Trick driver into creating context on current device
+    status = cudaFree(NULL);   // Trick driver into creating context on current device
     status = cudaDeviceSetLimit(cudaLimitPrintfFifoSize, 200000000ull);
     RTERROR(status, "cudaDeviceSetLimit failed");      
 
@@ -567,7 +567,7 @@ filled with clock() */
 
 		if (strcmp(mypars->ls_method, "sw") == 0) {
 			// Kernel3
-			kernel3_gxsize = blocksPerGridForEachLSEntity * threadsPerBlock;
+			kernel3_gxsize = blocksPerGridForEachLSEntity;
 			kernel3_lxsize = threadsPerBlock;
   			#ifdef DOCK_DEBUG
 	  		printf("%-25s %10s %8u %10s %4u\n", "K_LS_SOLISWETS", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
@@ -575,7 +575,7 @@ filled with clock() */
 			// End of Kernel3
 		} else if (strcmp(mypars->ls_method, "sd") == 0) {
 			// Kernel5
-  			kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
+  			kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity;
   			kernel5_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_SDESCENT", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
@@ -583,7 +583,7 @@ filled with clock() */
 			// End of Kernel5
 		} else if (strcmp(mypars->ls_method, "fire") == 0) {
 			// Kernel6
-  			kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
+  			kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity;
   			kernel6_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_FIRE", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
@@ -801,6 +801,7 @@ filled with clock() */
 					printf("%-25s", "\tK_LS_SOLISWETS");fflush(stdout);
 				#endif
 				//runKernel1D(command_queue,kernel3,kernel3_gxsize,kernel3_lxsize,&time_start_kernel,&time_end_kernel);
+                gpu_perform_LS(kernel3_gxsize, kernel3_lxsize, pMem_conformations_next, pMem_energies_next);                
 				#ifdef DOCK_DEBUG
 					printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
@@ -948,9 +949,17 @@ filled with clock() */
 					 ELAPSEDSECS(clock_stop_program_before_clustering, clock_start_program),generation_cnt,total_evals/mypars->num_of_runs);
 	clock_stop_docking = clock();
     
-    
-    
     // Release all CUDA objects
+    status = cudaFree(cData.pKerconst_interintra);
+    RTERROR(status, "cudaFree: error freeing cData.pKerconst_interintra\n");    
+    status = cudaFree(cData.pKerconst_intracontrib);
+    RTERROR(status, "cudaFree: error freeing cData.pKerconst_intracontrib\n");
+    status = cudaFree(cData.pKerconst_intra);
+    RTERROR(status, "cudaFree: error freeing cData.pKerconst_intra\n");
+    status = cudaFree(cData.pKerconst_rotlist);
+    RTERROR(status, "cudaFree: error freeing cData.pKerconst_rotlist\n");                      
+    status = cudaFree(cData.pKerconst_conform);
+    RTERROR(status, "cudaFree: error freeing cData.pKerconst_conform\n");    
     status = cudaFree(pMem_fgrids);
     RTERROR(status, "cudaFree: error freeing pMem_fgrids");
     status = cudaFree(pMem_conformations1);
@@ -967,8 +976,19 @@ filled with clock() */
     RTERROR(status, "cudaFree: error freeing pMem_gpu_evals_of_runs");
     status = cudaFree(pMem_prng_states);
     RTERROR(status, "cudaFree: error freeing pMem_prng_states");
+    status = cudaFree(cData.pMem_rotbonds_const);
+    RTERROR(status, "cudaFree: error freeing cData.pMem_rotbonds_const");    
+    status = cudaFree(cData.pMem_rotbonds_atoms_const);
+    RTERROR(status, "cudaFree: error freeing cData.pMem_rotbonds_atoms_const");
+    status = cudaFree(cData.pMem_num_rotating_atoms_per_rotbond_const);
+    RTERROR(status, "cudaFree: error freeing cData.pMem_num_rotating_atoms_per_rotbond_const");          
+    status = cudaFree(cData.pMem_angle_const);
+    RTERROR(status, "cudaFree: error freeing cData.pMem_angle_const");     
+    status = cudaFree(cData.pMem_dependence_on_theta_const);
+    RTERROR(status, "cudaFree: error freeing cData.pMem_dependence_on_theta_const");     
+    status = cudaFree(cData.pMem_dependence_on_rotangle_const);
+    RTERROR(status, "cudaFree: error freeing cData.pMem_dependence_on_rotangle_const");  
     cudaDeviceReset();
-    
     
 	free(cpu_init_populations);
 	free(cpu_energies);

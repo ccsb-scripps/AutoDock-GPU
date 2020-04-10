@@ -119,5 +119,6 @@ void GetKernelsGpuData(GpuData* pData)
 #include "auxiliary_genetic.cu"
 #include "kernel1.cu"
 #include "kernel2.cu"
+#include "kernel3.cu"
 #include "kernel4.cu"
 #include "kernel_ad.cu"

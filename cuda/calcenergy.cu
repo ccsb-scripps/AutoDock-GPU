@@ -384,7 +384,7 @@ __device__ void gpu_calc_energy(
 		} // if cuttoff1 - internuclear-distance at 8A
 
 		// Calculating energy contributions
-		// Cuttoff2: internuclear-distance at 20.48A only for el and sol.
+		// Cutoff2: internuclear-distance at 20.48A only for el and sol.
 		if (atomic_distance < 20.48f)
 		{
 			float q1 = cData.pKerconst_interintra->atom_charges_const[atom1_id];
