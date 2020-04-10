@@ -93,7 +93,7 @@ typedef struct
 // Scaling factor to multiply the gradients of 
 // the genes expressed in degrees (all genes except the first three) 
 // (GRID-SPACING * GRID-SPACING) / (DEG_TO_RAD * DEG_TO_RAD) = 461.644
-#define SCFACTOR_ANGSTROM_RADIAN ((0.375 * 0.375)/(DEG_TO_RAD * DEG_TO_RAD))
+#define SCFACTOR_ANGSTROM_RADIAN 1.0f/(DEG_TO_RAD * DEG_TO_RAD)
 
 #define INV_360 1.0f/360.0f
 
@@ -1071,7 +1071,7 @@ void gpu_calc_energrad(
 	for (uint gene_cnt = tidx+3; // Only for gene_cnt > 2 means start gene_cnt at 3
 		  gene_cnt < dockpars_num_of_genes;
 		  gene_cnt+= NUM_OF_THREADS_PER_BLOCK) {
-		gradient_genotype[gene_cnt] *= SCFACTOR_ANGSTROM_RADIAN;
+		gradient_genotype[gene_cnt] *= dockpars_grid_spacing * dockpars_grid_spacing * SCFACTOR_ANGSTROM_RADIAN;
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	#endif

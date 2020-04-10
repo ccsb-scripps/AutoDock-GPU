@@ -691,7 +691,7 @@ gradient_minFire(
 					//printf("\n%s\n", "----------------------------------------------------------");
 					printf("%13s %13s %5s %15s %21s %15s\n", "gene_id", "genotype", "|", "gradient", "(autodockdevpy units)", "velocity");
 				}
-				printf("%13u %13.6f %5s %15.6f %21.6f %15.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/0.375f):(gradient[i]*180.0f/PI_FLOAT), velocity[i]);
+				printf("%13u %13.6f %5s %15.6f %21.6f %15.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/dockpars_grid_spacing):(gradient[i]*180.0f/PI_FLOAT), velocity[i]);
 			}
 
 			for(uint i = 0; i < dockpars_num_of_genes; i++) {

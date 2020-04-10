@@ -320,9 +320,9 @@ gradient_minSD(
 		// xyz_gene_gridspace = gridcenter_gridspace + (input_gene_realspace - gridcenter_realspace)/gridsize
 
 		// 1ac8				
-		genotype[0] = 30 + (31.79575  - 31.924) / 0.375;
-		genotype[1] = 30 + (93.743875 - 93.444) / 0.375;
-		genotype[2] = 30 + (47.699875 - 47.924) / 0.375;
+		genotype[0] = 30 + (31.79575  - 31.924) / dockpars_grid_spacing;
+		genotype[1] = 30 + (93.743875 - 93.444) / dockpars_grid_spacing;
+		genotype[2] = 30 + (47.699875 - 47.924) / dockpars_grid_spacing;
 		genotype[3] = 0.1f;
 		genotype[4] = 0.5f;
 		genotype[5] = 0.9f;
@@ -330,9 +330,9 @@ gradient_minSD(
 
 		#if 0
 		// 3tmn
-		genotype[0] = 30 + (ligand_center_x - grid_center_x) / 0.375;
-		genotype[1] = 30 + (ligand_center_y - grid_center_y) / 0.375;
-		genotype[2] = 30 + (ligand_center_z - grid_center_z) / 0.375;
+		genotype[0] = 30 + (ligand_center_x - grid_center_x) / dockpars_grid_spacing;
+		genotype[1] = 30 + (ligand_center_y - grid_center_y) / dockpars_grid_spacing;
+		genotype[2] = 30 + (ligand_center_z - grid_center_z) / dockpars_grid_spacing;
 		genotype[3] = shoemake_gene_u1;
 		genotype[4] = shoemake_gene_u2;
 		genotype[5] = shoemake_gene_u3;
@@ -487,7 +487,7 @@ gradient_minSD(
 					printf("\n%s\n", "----------------------------------------------------------");
 					printf("%13s %13s %5s %15s %15s\n", "gene_id", "gene.value", "|", "gene.grad", "(autodockdevpy units)");
 				}
-				printf("%13u %13.6f %5s %15.6f %15.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/0.375f):(gradient[i]*180.0f/PI_FLOAT));
+				printf("%13u %13.6f %5s %15.6f %15.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/dockpars_grid_spacing):(gradient[i]*180.0f/PI_FLOAT));
 			}
 			#endif
 
@@ -584,7 +584,7 @@ gradient_minSD(
 						printf("\n%s\n", "After calculating gradients:");
 						printf("%13s %13s %5s %15s %20s\n", "gene_id", "gene", "|", "grad", " grad (devpy units)");
 					}
-					printf("%13u %13.6f %5s %15.6f %18.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/0.375f):(gradient[i]*180.0f/PI_FLOAT));
+					printf("%13u %13.6f %5s %15.6f %18.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/dockpars_grid_spacing):(gradient[i]*180.0f/PI_FLOAT));
 				}
 				#endif
 
@@ -665,7 +665,7 @@ gradient_minSD(
 					printf("\n%s\n", "----------------------------------------------------------");
 					printf("%13s %13s %5s %15s %15s\n", "gene_id", "cand-gene.value"/* "gene.value"*/, "|", "gene.grad", "(autodockdevpy units)");
 				}
-				printf("%13u %13.6f %5s %15.6f %15.6f\n", i, candidate_genotype[i] /*genotype[i]*/, "|", gradient[i], (i<3)? (gradient[i]/0.375f):(gradient[i]*180.0f/PI_FLOAT));
+				printf("%13u %13.6f %5s %15.6f %15.6f\n", i, candidate_genotype[i] /*genotype[i]*/, "|", gradient[i], (i<3)? (gradient[i]/dockpars_grid_spacing):(gradient[i]*180.0f/PI_FLOAT));
 			}
 			#endif
 

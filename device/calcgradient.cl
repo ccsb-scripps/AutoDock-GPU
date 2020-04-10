@@ -53,7 +53,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // Scaling factor to multiply the gradients of 
 // the genes expressed in degrees (all genes except the first three) 
 // (GRID-SPACING * GRID-SPACING) / (DEG_TO_RAD * DEG_TO_RAD) = 461.644
-#define SCFACTOR_ANGSTROM_RADIAN ((0.375 * 0.375)/(DEG_TO_RAD * DEG_TO_RAD))
+#define SCFACTOR_ANGSTROM_RADIAN 1.0/(DEG_TO_RAD * DEG_TO_RAD)
 
 void map_priv_angle(float* angle)
 // The GPU device function maps
@@ -1292,7 +1292,7 @@ void gpu_calc_gradient(
 		  gene_cnt+= NUM_OF_THREADS_PER_BLOCK) {
 
 		if (gene_cnt > 2) {
-			gradient_genotype[gene_cnt] *= SCFACTOR_ANGSTROM_RADIAN;
+			gradient_genotype[gene_cnt] *= dockpars_grid_spacing * dockpars_grid_spacing * SCFACTOR_ANGSTROM_RADIAN;
 		}
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
