@@ -161,7 +161,7 @@ perform_LS(
 
 			// Translation genes
 			if (gene_counter < 3) {
-				genotype_deviate[gene_counter] *= dockpars_base_dmov_mul_sqrt3 * lig_scale * 2.0;
+				genotype_deviate[gene_counter] *= dockpars_base_dmov_mul_sqrt3;
 			}
 			// Orientation and torsion genes
 			else {
