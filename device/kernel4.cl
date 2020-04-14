@@ -225,6 +225,7 @@ gpu_gen_and_eval_newpops(
 
 		// Performing mutation
 #ifdef GA_MUTATION_TEST
+		float lig_scale = 1.0f/sqrt((float)dockpars_num_of_atoms);
 		float gene_scale = 1.0f/sqrt((float)dockpars_num_of_genes);
 #endif
 		for (gene_counter = tidx;
@@ -245,7 +246,7 @@ gpu_gen_and_eval_newpops(
 				// Orientation and torsion genes
 				else {
 					if (gene_counter < 6) {
-						offspring_genotype[gene_counter] += pmone * dockpars_abs_max_dang * gene_scale;
+						offspring_genotype[gene_counter] += pmone * dockpars_abs_max_dang * lig_scale;
 					} else {
 						offspring_genotype[gene_counter] += pmone * dockpars_abs_max_dang * gene_scale;
 					}

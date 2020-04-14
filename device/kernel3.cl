@@ -147,6 +147,10 @@ perform_LS(
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
+#ifdef SW_MOVE_TEST
+	float lig_scale = 1.0f/sqrt((float)dockpars_num_of_atoms);
+	float gene_scale = 1.0f/sqrt((float)dockpars_num_of_genes);
+#endif
 	while ((iteration_cnt < dockpars_max_num_of_iters) && (rho > dockpars_rho_lower_bound))
 	{
 		// New random deviate
@@ -155,8 +159,6 @@ perform_LS(
 		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
 #ifdef SW_MOVE_TEST
-			float lig_scale = 1.0f/sqrt((float)dockpars_num_of_atoms);
-			float gene_scale = 1.0f/sqrt((float)dockpars_num_of_genes);
 			genotype_deviate[gene_counter] = rho * (2*gpu_randf(dockpars_prng_states)-1) * (gpu_randf(dockpars_prng_states) < gene_scale);
 
 			// Translation genes
