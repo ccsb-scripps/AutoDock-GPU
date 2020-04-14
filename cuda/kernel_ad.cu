@@ -90,16 +90,11 @@ gpu_gradient_minAD_kernel(
     
 	// Gradient of the intermolecular energy per each ligand atom
 	// Also used to store the accummulated gradient per each ligand atom
-	float3* gradient_inter = calc_coords + cData.dockpars.num_of_atoms;
+	float3* cartesian_gradient = calc_coords + cData.dockpars.num_of_atoms;
 
-	// Gradient of the intramolecular energy per each ligand atom
-	float3* gradient_intra = gradient_inter + cData.dockpars.num_of_atoms;
-
-
-  
 
     // Genotype pointers
-	float* genotype = (float*)(gradient_intra + cData.dockpars.num_of_atoms);
+	float* genotype = (float*)(cartesian_gradient + cData.dockpars.num_of_atoms);
 	float* best_genotype = genotype + cData.dockpars.num_of_genes;  
 
 
@@ -250,8 +245,7 @@ gpu_gradient_minAD_kernel(
 				// Gradient-related arguments
 				// Calculate gradients (forces) for intermolecular energy
 				// Derived from autodockdev/maps.py
-				gradient_inter,
-				gradient_intra,
+				cartesian_gradient,
 				gradient,
                 &sFloatAccumulator
 				);
@@ -444,7 +438,7 @@ void gpu_gradient_minAD(
 	float* pMem_energies_next
 )
 {
-    size_t sz_shared = (9 * cpuData.dockpars.num_of_atoms + 5 * cpuData.dockpars.num_of_genes) * sizeof(float);
+    size_t sz_shared = (6 * cpuData.dockpars.num_of_atoms + 5 * cpuData.dockpars.num_of_genes) * sizeof(float);
     gpu_gradient_minAD_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
     LAUNCHERROR("gpu_gradient_minAD_kernel");     
 #if 0
