@@ -95,6 +95,10 @@ typedef struct
 // (GRID-SPACING * GRID-SPACING) / (DEG_TO_RAD * DEG_TO_RAD) = 461.644
 #define SCFACTOR_ANGSTROM_RADIAN 1.0f/(DEG_TO_RAD * DEG_TO_RAD)
 
+// Enable restoring map gradient
+// Currently, this is not a good idea
+// #define RESTORING_MAP_GRADIENT
+
 #define INV_360 1.0f/360.0f
 
 void map_priv_angle(float* angle)
@@ -363,16 +367,26 @@ void gpu_calc_energrad(
 			x -= 0.5f * dockpars_gridsize_x;
 			y -= 0.5f * dockpars_gridsize_y;
 			z -= 0.5f * dockpars_gridsize_z;
+#ifdef RESTORING_MAP_GRADIENT
 			partial_energies[tidx] += 21.0f * (x*x+y*y+z*z); //100000.0f;
+#else
+			partial_energies[tidx] += 16777216.0f; //100000.0f;
+#endif
 			#if defined (DEBUG_ENERGY_KERNEL)
 			partial_interE[tidx] += 21.0f * (x*x+y*y+z*z);
 			#endif
+#ifdef RESTORING_MAP_GRADIENT
 			// Setting gradients (forces) penalties.
 			// The idea here is to push the offending
-			// molecule towards the center rather
+			// molecule towards the center
 			gradient_inter_x[atom_id] += 42.0f * x;
 			gradient_inter_y[atom_id] += 42.0f * y;
 			gradient_inter_z[atom_id] += 42.0f * z;
+#else
+			gradient_inter_x[atom_id] += 16777216.0f;
+			gradient_inter_y[atom_id] += 16777216.0f;
+			gradient_inter_z[atom_id] += 16777216.0f;
+#endif
 			continue;
 		}
 		// Getting coordinates
