@@ -122,3 +122,4 @@ void GetKernelsGpuData(GpuData* pData)
 #include "kernel3.cu"
 #include "kernel4.cu"
 #include "kernel_ad.cu"
+#include "kernel_adam.cu"

@@ -150,19 +150,23 @@ void get_commandpars(const int* argc,
 	mypars->mutation_rate		= 2; 		// 2%
 	mypars->crossover_rate		= 80;		// 80%
 	mypars->lsearch_rate		= 80;		// 80%
+    mypars->adam_beta1          = 0.9f;
+    mypars->adam_beta2          = 0.999f;
+    mypars->adam_epsilon        = 1.0e-8f;    
 				    // unsigned long num_of_ls
 
 	strcpy(mypars->ls_method, "sw");		// "sw": Solis-Wets, 
 							// "sd": Steepest-Descent
 							// "fire": FIRE, https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
 							// "ad": ADADELTA, https://arxiv.org/abs/1212.5701
+                            // "adam": ADAM, 
 	mypars->smooth			= 0.5f;
 	mypars->tournament_rate		= 60;		// 60%
 	mypars->rho_lower_bound		= 0.01;		// 0.01
 	mypars->base_dmov_mul_sqrt3	= 2.0/(*spacing)*sqrt(3.0);	// 2 A
 	mypars->base_dang_mul_sqrt3	= 75.0*sqrt(3.0);		// 75°
 	mypars->cons_limit		= 4;		// 4
-	mypars->max_num_of_iters	= 300;
+	mypars->max_num_of_iters	= 300; //300;
 	mypars->pop_size		= 150;
 	mypars->initpop_gen_or_loadfile	= 0;
 	mypars->gen_pdbs		= 0;
@@ -320,6 +324,7 @@ void get_commandpars(const int* argc,
 		// "sd": Steepest-Descent
 		// "fire": FIRE
 		// "ad": ADADELTA
+        // "adam" : ADAM
 		if (strcmp("-lsmet", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -341,6 +346,9 @@ void get_commandpars(const int* argc,
 				//mypars->max_num_of_iters = 30;
 			}
 			else if (strcmp(temp, "ad") == 0) {
+				strcpy(mypars->ls_method, temp);
+				//mypars->max_num_of_iters = 30;
+			} if (strcmp(temp, "adam") == 0) {
 				strcpy(mypars->ls_method, temp);
 				//mypars->max_num_of_iters = 30;
 			}

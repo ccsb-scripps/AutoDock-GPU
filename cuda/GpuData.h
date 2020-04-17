@@ -65,6 +65,9 @@ typedef struct
         unsigned int    cons_limit;
         unsigned int    max_num_of_iters;
         float           qasp;
+        float           adam_beta1;
+        float           adam_beta2;
+        float           adam_epsilon;
 } GpuDockparameters;
 
 struct GpuData {

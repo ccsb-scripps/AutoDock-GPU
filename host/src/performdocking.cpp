@@ -101,6 +101,13 @@ void gpu_gradient_minAD(
 	float* pMem_energies_next
 );
 
+void gpu_gradient_minAdam(
+    uint32_t blocks,
+    uint32_t threads,
+    float* pMem_conformations_next,
+	float* pMem_energies_next
+);
+
 void gpu_perform_LS(
     uint32_t blocks,
     uint32_t threads,
@@ -458,6 +465,9 @@ filled with clock() */
 	cData.dockpars.qasp 		                = mypars->qasp;
 	cData.dockpars.smooth 	                    = mypars->smooth;
 	cData.dockpars.lsearch_rate                 = mypars->lsearch_rate;
+    cData.dockpars.adam_beta1                   = mypars->adam_beta1;
+    cData.dockpars.adam_beta2                   = mypars->adam_beta2;
+    cData.dockpars.adam_epsilon                 = mypars->adam_epsilon;
 
 	if (cData.dockpars.lsearch_rate != 0.0f) 
 	{
@@ -485,6 +495,7 @@ filled with clock() */
 						      (strcmp(mypars->ls_method, "sw")   == 0)?"Solis-Wets (sw)":
 						      (strcmp(mypars->ls_method, "sd")   == 0)?"Steepest-Descent (sd)": 
 						      (strcmp(mypars->ls_method, "fire") == 0)?"FIRE (fire)":
+                              (strcmp(mypars->ls_method, "adam") == 0)?"ADAM (adam)":
 						      (strcmp(mypars->ls_method, "ad") == 0)?"ADADELTA (ad)": "Unknown")
 						      );
 
@@ -563,6 +574,7 @@ filled with clock() */
     uint32_t kernel5_gxsize, kernel5_lxsize;
     uint32_t kernel6_gxsize, kernel6_lxsize;
     uint32_t kernel7_gxsize, kernel7_lxsize;            
+    uint32_t kernel8_gxsize, kernel8_lxsize; 
 	if (cData.dockpars.lsearch_rate != 0.0f) {
 
 		if (strcmp(mypars->ls_method, "sw") == 0) {
@@ -597,6 +609,15 @@ filled with clock() */
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_ADADELTA", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel7
+		}
+        else if (strcmp(mypars->ls_method, "adam") == 0) {
+			// Kernel8
+			kernel8_gxsize = blocksPerGridForEachGradMinimizerEntity;
+			kernel8_lxsize = threadsPerBlock;
+			#ifdef DOCK_DEBUG
+			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_ADADELTA", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
+			#endif
+			// End of Kernel8
 		}
 	} // End if (dockpars.lsearch_rate != 0.0f)
 
@@ -837,6 +858,17 @@ filled with clock() */
 					printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
 				// End of Kernel7
+			} else if (strcmp(mypars->ls_method, "adam") == 0) {
+				// Kernel8
+				#ifdef DOCK_DEBUG
+					printf("%-25s", "\tK_LS_GRAD_ADAM");fflush(stdout);
+				#endif
+                // runKernel1D(command_queue,kernel8,kernel8_gxsize,kernel8_lxsize,&time_start_kernel,&time_end_kernel);
+                gpu_gradient_minAdam(kernel8_gxsize, kernel8_lxsize, pMem_conformations_next, pMem_energies_next);
+				#ifdef DOCK_DEBUG
+					printf("%15s" ," ... Finished\n");fflush(stdout);
+				#endif
+				// End of Kernel8
 			}
 		} // End if (dockpars.lsearch_rate != 0.0f)
 		// -------- Replacing with memory maps! ------------
