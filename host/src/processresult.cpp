@@ -150,7 +150,7 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	char temp_filename [128];
 	int i;
 
-	fprintf(fp, "AutoDock-GPU version: %s\n\n", VERSION);
+	fprintf(fp, "AutoDock-GPU version: %s\n\n", "sd-tsri-195-g25d913d6d79b52a64961714de0f358e0ecc7d4a4");
 
 	fprintf(fp, "**********************************************************\n");
 	fprintf(fp, "**    AutoDock-GPU AUTODOCKTOOLS-COMPATIBLE DLG FILE    **\n");
@@ -530,7 +530,7 @@ void cluster_analysis(Ligandresult myresults [], int num_of_runs, char* report_f
 
 void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddata* ligand_ref,
 					 const Dockpars* mypars, const Gridinfo* mygrid, const int* argc, char** argv, const double docking_avg_runtime,
-					 const double program_runtime, unsigned long generations_used, unsigned long evals_performed)
+					 unsigned long generations_used, unsigned long evals_performed)
 //The function performs ranked cluster analisys similar to that of AutoDock and creates a file with report_file_name name, the result
 //will be written to it.
 {

@@ -25,155 +25,178 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-
-
-//#include <stdio.h>
-//#include <stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
+#ifdef USE_PIPELINE
+#include <omp.h>
+#endif
+#include <vector>
 
 #include "processgrid.h"
-//include "processresult.h"
 #include "processligand.h"
 #include "getparameters.h"
 #include "performdocking.h"
+#include "filelist.hpp"
+#include "setup.hpp"
+#include "profile.hpp"
 
 #ifndef _WIN32
 // ------------------------
 // Time measurement
 #include <sys/time.h>
 // ------------------------
+
+inline double seconds_since(timeval& time_start)
+{
+	timeval time_end;
+	gettimeofday(&time_end,NULL);
+        double num_sec     = time_end.tv_sec  - time_start.tv_sec;
+        double num_usec    = time_end.tv_usec - time_start.tv_usec;
+        return (num_sec + (num_usec/1000000));
+}
 #endif
 
 int main(int argc, char* argv[])
 {
-	Gridinfo 	 mygrid;
-	Liganddata myligand_init;
-	Dockpars   mypars;
-	float*     floatgrids;
-	FILE*      fp;
-	char report_file_name [256];
-
-	clock_t clock_start_program; //, clock_stop_program;
-	clock_start_program = clock();
-
+	FileList filelist;
+	int n_files = 1; // default
+	bool overlap = false; // default
+	int setup_thread = 0; // thread the performs the setup
+	int execution_thread = 0; // thread that performs the execution
+	int err = 0;
 #ifndef _WIN32
-	// ------------------------
-	// Time measurement
-	double num_sec, num_usec, elapsed_sec;
-	timeval time_start,time_end;
+	// Start full timer
+	timeval time_start, loop_time_start;
 	gettimeofday(&time_start,NULL);
-	// ------------------------
-#endif
-	//------------------------------------------------------------
-	// Capturing names of grid parameter file and ligand pdbqt file
-	//------------------------------------------------------------
-
-	// Filling the filename and coeffs fields of mypars according to command line arguments
-	if (get_filenames_and_ADcoeffs(&argc, argv, &mypars) != 0)
-		return 1;
-
-	//------------------------------------------------------------
-	// Testing command line arguments for cgmaps parameter
-	// since we need it at grid creation time
-	//------------------------------------------------------------
-	mypars.cgmaps = 0; // default is 0 (use one maps for every CGx or Gx atom types, respectively)
-	for (int i=1; i<argc-1; i+=2)
-	{
-		// ----------------------------------
-		//Argument: Use individual maps for CG-G0 instead of the same one
-		if (strcmp("-cgmaps", argv [i]) == 0)
-		{
-			int tempint;
-			sscanf(argv [i+1], "%d", &tempint);
-			if (tempint == 0)
-				mypars.cgmaps = 0;
-			else
-				mypars.cgmaps = 1;
-		}
-		// ----------------------------------
-	}
-
-	//------------------------------------------------------------
-	// Processing receptor and ligand files
-	//------------------------------------------------------------
-
-	// Filling mygrid according to the gpf file
-	if (get_gridinfo(mypars.fldfile, &mygrid) != 0)
-		return 1;
-
-	// Filling the atom types filed of myligand according to the grid types
-	if (init_liganddata(mypars.ligandfile, &myligand_init, &mygrid, mypars.cgmaps) != 0)
-		return 1;
-
-	// Filling myligand according to the pdbqt file
-	if (get_liganddata(mypars.ligandfile, &myligand_init, mypars.coeffs.AD4_coeff_vdW, mypars.coeffs.AD4_coeff_hb) != 0)
-		return 1;
-
-	//Reading the grid files and storing values in the memory region pointed by floatgrids
-	if (get_gridvalues_f(&mygrid, &floatgrids, mypars.cgmaps) != 0)
-		return 1;
-
-	//------------------------------------------------------------
-	// Capturing algorithm parameters (command line args)
-	//------------------------------------------------------------
-	get_commandpars(&argc, argv, &(mygrid.spacing), &mypars);
-
-	Liganddata myxrayligand;
-	Gridinfo   mydummygrid;
-	// if -lxrayfile provided, then read xray ligand data
-	if (mypars.given_xrayligandfile == true) {
-			if (init_liganddata(mypars.xrayligandfile, &myxrayligand, &mydummygrid, mypars.cgmaps) != 0)
-				return 1;
-
-			if (get_liganddata(mypars.xrayligandfile, &myxrayligand, mypars.coeffs.AD4_coeff_vdW, mypars.coeffs.AD4_coeff_hb) != 0)
-				return 1;
-	}
-
-	//------------------------------------------------------------
-	// Calculating energies of reference ligand if required
-	//------------------------------------------------------------
-#if 0
-	if (mypars.reflig_en_reqired == 1)
-		print_ref_lig_energies_f(myligand_init, mygrid, floatgrids, mypars.coeffs.scaled_AD4_coeff_elec, mypars.coeffs.AD4_coeff_desolv, mypars.qasp);
+	double exec_time, setup_time;
+	double total_savings=0;
+	double total_could_save=0;
 #endif
 
-	if (mypars.reflig_en_reqired == 1) {
-		print_ref_lig_energies_f(myligand_init,
-					 mypars.smooth,
-					 mygrid,
-					 floatgrids,
-					 mypars.coeffs.scaled_AD4_coeff_elec,
-					 mypars.coeffs.AD4_coeff_desolv,
-					 mypars.qasp);
+	// Objects that are arguments of docking_with_gpu
+	// These must each have 2
+	Dockpars   mypars[2];
+	Liganddata myligand_init[2];
+	Gridinfo   mygrid[2];
+	Liganddata myxrayligand[2];
+	std::vector<float> floatgrids[2];
+
+	// Read all the file names if -filelist option is on
+	if (get_filelist(&argc, argv, filelist) != 0)
+		      return 1;
+
+	// Setup using filelist
+	if (filelist.used){
+		n_files = filelist.nfiles;
+		printf("\nRunning %d jobs in pipeline mode ", n_files);
+#ifdef USE_PIPELINE
+		overlap=true; // Not set up to work with nested OpenMP (yet)
+		execution_thread = 1; // Assign Thread 1 to do the execution
+#endif
 	}
 
-	//------------------------------------------------------------
-	// Starting Docking
-	//------------------------------------------------------------
+	// Set up run profiles for timing
+	std::vector<Profile> profiles;
 
+	// Print version info
 	printf("\nAutoDock-GPU version: %s\n", VERSION);
 
-	if (docking_with_gpu(&mygrid, floatgrids, &mypars, &myligand_init, &myxrayligand, &argc, argv, clock_start_program) != 0)
-		return 1;
+	for (int i_file=0;i_file<(n_files+1);i_file++){ // one extra iteration since its a pipeline
+		int s_id = i_file % 2;    // Alternate which set is undergoing setup (s_id)
+		int r_id = (i_file+1) %2; // and which is being used in the run (r_id)
+		if (filelist.used) {
+			printf("\n\n-------------------------------------------------------------------");
+			if (i_file<n_files){
+				printf("\n(Prepping Job #%d: )", i_file);
+				printf("\n(   Reading fields: %s )",  filelist.fld_files[i_file].c_str());
+				printf("\n(   Reading ligands: %s )", filelist.ligand_files[i_file].c_str()); fflush(stdout);
+			}
+			if (i_file>0){
+				if (i_file<n_files) printf("\nMeanwhile, running ");
+				if (i_file==n_files) printf("\nRunning ");
+				printf("Job #%d: ", i_file-1);
+				printf("\n   Fields from: %s",  filelist.fld_files[i_file-1].c_str());
+				printf("\n   Ligands from: %s", filelist.ligand_files[i_file-1].c_str()); fflush(stdout);
+			}
+		}
+#ifndef _WIN32
+		// Time measurement: start of loop
+		gettimeofday(&loop_time_start,NULL);
+#endif
+		// Branch into two threads
+		//   setup_thread reads files and prepares the inputs to docking_with_gpu
+		//   execution_thread runs docking_with_gpu
+#ifdef USE_PIPELINE
+		#pragma omp parallel
+		{
+			int thread_id = omp_get_thread_num();
+#else
+		{
+			int thread_id = 0;
+#endif
+			// Thread 0 does the setup, unless its the last run (so nothing left to load)
+			if ((thread_id==setup_thread) && i_file<n_files) {
+				// Load files, read inputs, prepare arrays for docking stage
+				if (setup(mygrid[s_id], floatgrids[s_id], mypars[s_id], myligand_init[s_id], myxrayligand[s_id], filelist, i_file, argc, argv) != 0)
+					{printf("\n\nError in setup, stopped job."); err = 1;}
+			}
 
-	free(floatgrids);
+			// Do the execution on thread 1, except on the first iteration since nothing is loaded yet
+			if ((thread_id==execution_thread) && i_file>0) {
+				Profile newprofile(i_file-1);
+				profiles.push_back(newprofile);
+				// Starting Docking
+				if (docking_with_gpu(&(mygrid[r_id]), floatgrids[r_id].data(), &(mypars[r_id]), &(myligand_init[r_id]), &(myxrayligand[r_id]), profiles[i_file-1], &argc, argv ) != 0)
+					{printf("\n\nError in docking_with_gpu, stopped job."); err = 1;}
+
+			}
+#ifndef _WIN32
+			if (thread_id==setup_thread && overlap) setup_time = seconds_since(loop_time_start);
+			if (thread_id==execution_thread && overlap) exec_time = seconds_since(loop_time_start);
+#endif
+		} // End of openmp parallel region, implicit thread barrier
+		if (err==1) return 1; // Couldnt return immediately while in parallel region
 
 #ifndef _WIN32
-	// ------------------------
-	// Time measurement
-	gettimeofday(&time_end,NULL);
-	num_sec     = time_end.tv_sec  - time_start.tv_sec;
-	num_usec    = time_end.tv_usec - time_start.tv_usec;
-	elapsed_sec = num_sec + (num_usec/1000000);
-	printf("Program run time %.3f sec \n\n", elapsed_sec);
+		// Time measurement of this loop
+		double loop_time = seconds_since(loop_time_start);
+		printf("\nLoop run time %.3f sec \n", loop_time);
+		// Determine overlap savings (no overlap at beginning and end of pipeline)
+		if (overlap && i_file>0 && i_file<n_files){
+			double savings = overlap ? (setup_time + exec_time - loop_time) : 0;
+			total_savings += savings;
+			printf("Savings from overlap: %.3f sec \n", savings);
+			double could_save = setup_time-exec_time;
+			if (could_save>0) {
+				printf("WARNING: Setup time exceeded exec time by %.3f sec - consider adding a second a pipeline\n", could_save);
+				total_could_save += could_save;
+			}
+			printf("Cumulative savings: %.3f sec; Cumulative potential additional savings: %.3f sec", total_savings, total_could_save);
+		}
 
-    // Append time information to .dlg file
-	strcpy(report_file_name, mypars.resname);
-	strcat(report_file_name, ".dlg");
-	fp = fopen(report_file_name, "a");
-	fprintf(fp, "\n\n\nProgram run time %.3f sec\n", elapsed_sec);
-	fclose(fp);
-	//// ------------------------
+		if (i_file>0){
+			// Append time information to .dlg file
+			char report_file_name[256];
+			strcpy(report_file_name, mypars[r_id].resname);
+			strcat(report_file_name, ".dlg");
+			FILE* fp = fopen(report_file_name, "a");
+			fprintf(fp, "\n\n\nRun time %.3f sec\n", loop_time);
+			fclose(fp);
+
+			// Detailed timing information to .timing
+			profiles[i_file-1].exec_time = exec_time;
+			profiles[i_file-1].write_to_file(filelist.filename);
+		}
 #endif
+		if (err==1) return 1;
+	} // end of i_file loop
+
+#ifndef _WIN32
+	// Total time measurement
+	printf("\nRun time of entire job set (%d files): %.3f sec", n_files, seconds_since(time_start));
+	if (overlap) printf("\nTotal savings from overlap: %.3f sec \n\n", total_savings); 
+#endif
+
 	return 0;
 }

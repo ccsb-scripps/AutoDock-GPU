@@ -36,7 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <cuda_runtime_api.h>
 #include <cassert>
 
-
+#include "profile.hpp"
 
 //#include <math.h>
 #include "processgrid.h"
@@ -70,9 +70,9 @@ int docking_with_gpu(const Gridinfo* 		mygrid,
 		           Dockpars*		mypars,
 		     const Liganddata* 	 	myligand_init,
 		     const Liganddata* 		myxrayligand,
+                        Profile&                profile,
 		     const int* 		argc,
-		     char**			argv,
-		           clock_t 		clock_start_program);
+		     char**			argv);
 
 double check_progress(int* evals_of_runs,
 		      int generation_cnt,

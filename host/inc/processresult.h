@@ -114,7 +114,6 @@ void clusanal_gendlg(Ligandresult myresults [],
 		     const int*        argc,
                                char**  argv,
                      const double docking_avg_runtime,
-		     const double program_runtime,
 		     unsigned long generations_used,
 		     unsigned long evals_performed);
 

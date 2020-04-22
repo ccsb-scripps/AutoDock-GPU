@@ -76,6 +76,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define OPT_PROG INC KNWI REP KGDB
 
+#include <vector>
+
+#include "autostop.hpp"
 #include "performdocking.h"
 #include "correct_grad_axisangle.h"
 #include "GpuData.h"
@@ -146,9 +149,9 @@ int docking_with_gpu(   const Gridinfo*  	mygrid,
                         Dockpars*   		mypars,
                         const Liganddata*   myligand_init,
                         const Liganddata* 	myxrayligand,
+			Profile&                profile,
                         const int*        	argc,
-                        char**      		argv,
-                        clock_t     		clock_start_program)
+                        char**      		argv)
 /* The function performs the docking algorithm and generates the corresponding result files.
 parameter mygrid:
 		describes the grid
@@ -489,6 +492,28 @@ filled with clock() */
 		// Only one entity per reach run, undergoes gradient minimization
 		//blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
 	}
+
+        // Adjust ls_method and num_of_energy_evals based on heuristics
+        if(mypars->use_heuristics && !mypars->nev_provided){
+                printf("\nUsing heuristics: ");
+                char newmethod[128];
+                if(myligand_init->num_of_rotbonds<8){ // use Solis-Wets
+                        strcpy(newmethod,"sw");
+                        mypars->num_of_energy_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 4.0));
+                        printf("-lsmet sw -nev %u\n",mypars->num_of_energy_evals);
+                } else{ // use ADAdelta
+                        strcpy(newmethod,"ad");
+                        mypars->num_of_energy_evals = (unsigned long)ceil(1000 * pow(2.0,0.4 * myligand_init->num_of_rotbonds + 7.0));
+                        printf("-lsmet ad -nev %u\n",mypars->num_of_energy_evals);
+                }
+                strcpy(mypars->ls_method,newmethod);
+
+                if (mypars->num_of_energy_evals>mypars->max_num_of_energy_evals){
+                        printf("Overriding heuristics, setting -nev to -maxnev ( = %u) instead.\n",mypars->max_num_of_energy_evals);
+                        mypars->num_of_energy_evals = mypars->max_num_of_energy_evals;
+                        profile.capped = true;
+                }
+        }
 	
 	printf("Local-search chosen method is: %s\n", (cData.dockpars.lsearch_rate == 0.0f)? "GA" :
 						      (
@@ -499,6 +524,12 @@ filled with clock() */
 						      (strcmp(mypars->ls_method, "ad") == 0)?"ADADELTA (ad)": "Unknown")
 						      );
 
+        // Get profile for timing
+	profile.adadelta=(strcmp(mypars->ls_method, "ad")==0);
+        profile.n_evals = mypars->num_of_energy_evals;
+        profile.num_atoms = myligand_reference.num_of_atoms;
+        profile.num_rotbonds = myligand_init->num_of_rotbonds;
+
 	/*
 	printf("dockpars.num_of_intraE_contributors:%u\n", dockpars.num_of_intraE_contributors);
 	printf("dockpars.rotbondlist_length:%u\n", dockpars.rotbondlist_length);
@@ -507,13 +538,12 @@ filled with clock() */
 	clock_start_docking = clock();
 
 	//print progress bar
+	AutoStop autostop(mypars->pop_size, mypars->num_of_runs, mypars->stopstd);
 #ifndef DOCK_DEBUG
-	if (mypars->autostop)
-	{
-		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation\nof the best molecules, %lu generations, or %lu evaluations, whichever comes first:\n\n",mypars->stopstd,mypars->num_of_generations,mypars->num_of_energy_evals);
-		printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
-		printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
-	}
+        if (mypars->autostop)
+        {
+                autostop.print_intro(mypars->num_of_generations, mypars->num_of_energy_evals);
+        }
 	else
 	{
 		printf("\nExecuting docking runs:\n");
@@ -683,107 +713,14 @@ filled with clock() */
 	while ((progress = check_progress(pMem_gpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
 	// -------- Replacing with memory maps! ------------
 	{
-		if (mypars->autostop)
-		{
-			if (generation_cnt % 10 == 0) {
-                cudaError_t status;
-                status = cudaMemcpy(cpu_energies, pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
-                RTERROR(status, "cudaMemcpy: couldn't downloaded pMem_energies_current");
-				for(unsigned int count=0; (count<1+8*(generation_cnt==0)) && (fabs(curr_avg-prev_avg)>0.00001); count++)
-				{
-					threshold_used = threshold;
-					overall_best_energy = 1<<24;
-					memset(&average_sd2_N[0],0,avg_arr_size*sizeof(float));
-					for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
-					{
-						energies = cpu_energies+run_cnt*mypars->pop_size;
-						for (unsigned int i=0; i<mypars->pop_size; i++)
-						{
-							float energy = energies[i];
-							if(energy < overall_best_energy)
-								overall_best_energy = energy;
-							if(energy < threshold)
-							{
-								average_sd2_N[0] += energy;
-								average_sd2_N[1] += energy * energy;
-								average_sd2_N[2] += 1.0;
-								for(unsigned int m=0; m<Ntop; m++)
-									if(energy < (threshold-2.0*thres_stddev)+m*delta_energy)
-									{
-										average_sd2_N[3*(m+1)] += energy;
-										average_sd2_N[3*(m+1)+1] += energy*energy;
-										average_sd2_N[3*(m+1)+2] += 1.0;
-										break; // only one entry per bin
-									}
-							}
-						}
-					}
-					if(first_time)
-					{
-						curr_avg = average(&average_sd2_N[0]);
-						curr_std = stddev(&average_sd2_N[0]);
-						bestN = average_sd2_N[2];
-						thres_stddev = curr_std;
-						threshold = curr_avg + thres_stddev;
-						delta_energy = 2.0 * thres_stddev / (Ntop-1);
-						first_time = false;
-					}
-					else
-					{
-						curr_avg = average(&average_sd2_N[0]);
-						curr_std = stddev(&average_sd2_N[0]);
-						bestN = average_sd2_N[2];
-						average_sd2_N[0] = 0.0;
-						average_sd2_N[1] = 0.0;
-						average_sd2_N[2] = 0.0;
-						unsigned int lowest_energy = 0;
-						for(unsigned int m=0; m<Ntop; m++)
-						{
-							if((average_sd2_N[3*(m+1)+2]>=1.0) && (lowest_energy<Ncream))
-							{
-								if((average_sd2_N[2]<4.0) || fabs(average(&average_sd2_N[0])-average(&average_sd2_N[3*(m+1)]))<2.0*mypars->stopstd)
-								{
-//									printf("Adding %f +/- %f (%i)\n",average(&average_sd2_N[3*(m+1)]),stddev(&average_sd2_N[3*(m+1)]),(unsigned int)average_sd2_N[3*(m+1)+2]);
-									average_sd2_N[0] += average_sd2_N[3*(m+1)];
-									average_sd2_N[1] += average_sd2_N[3*(m+1)+1];
-									average_sd2_N[2] += average_sd2_N[3*(m+1)+2];
-									lowest_energy++;
-								}
-							}
-						}
-//						printf("---\n");
-						if(lowest_energy>0)
-						{
-							curr_avg = average(&average_sd2_N[0]);
-							curr_std = stddev(&average_sd2_N[0]);
-							bestN = average_sd2_N[2];
-						}
-						if(curr_std<0.5f*mypars->stopstd)
-							thres_stddev = mypars->stopstd;
-						else
-							thres_stddev = curr_std;
-						threshold = curr_avg + Ncream * thres_stddev / bestN;
-						delta_energy = 2.0 * thres_stddev / (Ntop-1);
-					}
-				}
-				printf("%11lu | %12d |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/mypars->num_of_runs,threshold_used,curr_avg,curr_std,bestN,overall_best_energy);
-				fflush(stdout);
-				rolling[3*roll_count] = curr_avg * bestN;
-				rolling[3*roll_count+1] = (curr_std*curr_std + curr_avg*curr_avg)*bestN;
-				rolling[3*roll_count+2] = bestN;
-				roll_count = (roll_count + 1) % 4;
-				average_sd2_N[0] = rolling[0] + rolling[3] + rolling[6] + rolling[9];
-				average_sd2_N[1] = rolling[1] + rolling[4] + rolling[7] + rolling[10];
-				average_sd2_N[2] = rolling[2] + rolling[5] + rolling[8] + rolling[11];
-				// Finish when the std.dev. of the last 4 rounds is below 0.1 kcal/mol
-				if((stddev(&average_sd2_N[0])<mypars->stopstd) && (generation_cnt>30))
-				{
-					printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
-					printf("\n%43s evaluation after reaching\n%40.2f +/-%8.2f kcal/mol combined.\n%34i samples, best energy %8.2f kcal/mol.\n","Finished",average(&average_sd2_N[0]),stddev(&average_sd2_N[0]),(unsigned int)average_sd2_N[2],overall_best_energy);
-					fflush(stdout);
-					break;
-				}
-			}
+		if (mypars->autostop) {
+                        if (generation_cnt % 10 == 0) {
+                                cudaError_t status;
+                		status = cudaMemcpy(cpu_energies, pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
+		                RTERROR(status, "cudaMemcpy: couldn't downloaded pMem_energies_current");
+                                if (autostop.check_if_satisfactory(generation_cnt, cpu_energies, total_evals))
+                                        break; // Exit loop
+                        }
 		}
 		else
 		{
@@ -926,6 +863,9 @@ filled with clock() */
     auto const t3 = std::chrono::steady_clock::now();
     printf("\nDocking time %fs\n", elapsed_seconds(t2, t3));
 
+        // Profiler
+        profile.nev_at_stop = total_evals/mypars->num_of_runs;
+        profile.autostopped = autostop.did_stop();
 
 	clock_stop_docking = clock();
 	if (mypars->autostop==0)
@@ -947,6 +887,9 @@ filled with clock() */
     RTERROR(status, "cudaMemcpy: couldn't copy pMem_conformations_current to host.\n");
     status = cudaMemcpy(cpu_energies, pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
     RTERROR(status, "cudaMemcpy: couldn't copy pMem_energies_current to host.\n");
+
+        // Final autostop statistics output
+        if (mypars->autostop) autostop.output_final_stddev(generation_cnt, cpu_energies, total_evals);
 
 #if defined (DOCK_DEBUG)
 	for (int cnt_pop=0;cnt_pop<size_populations/sizeof(float);cnt_pop++)
@@ -978,8 +921,10 @@ filled with clock() */
 	clock_stop_program_before_clustering = clock();
 	clusanal_gendlg(cpu_result_ligands, mypars->num_of_runs, myligand_init, mypars,
 					 mygrid, argc, argv, ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs,
-					 ELAPSEDSECS(clock_stop_program_before_clustering, clock_start_program),generation_cnt,total_evals/mypars->num_of_runs);
+					 generation_cnt,total_evals/mypars->num_of_runs);
 	clock_stop_docking = clock();
+    
+    
     
     // Release all CUDA objects
     status = cudaFree(cData.pKerconst_interintra);
@@ -1021,6 +966,7 @@ filled with clock() */
     status = cudaFree(cData.pMem_dependence_on_rotangle_const);
     RTERROR(status, "cudaFree: error freeing cData.pMem_dependence_on_rotangle_const");  
     cudaDeviceReset();
+    
     
 	free(cpu_init_populations);
 	free(cpu_energies);

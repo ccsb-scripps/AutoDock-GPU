@@ -24,13 +24,67 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 #include <cstdint>
-
-
 #include "getparameters.h"
+#include <fstream>
+
+int get_filelist(const int* argc,
+                      char** argv,
+		   FileList& filelist)
+//The function checks if a filelist has been provided according to the proper command line arguments.
+//If it is, it loads the .fld, .pdbqt, and resname files into vectors
+{
+        for (int i=1; i<(*argc)-1; i++)
+        {
+                //Argument: file name that contains list of files.
+                if (strcmp("-filelist", argv[i]) == 0)
+                {
+                        filelist.used = true;
+                        strcpy(filelist.filename, argv[i+1]);
+                }
+        }
+
+	if (filelist.used){
+		std::ifstream file(filelist.filename);
+		std::string line;
+		bool prev_line_was_fld=false;
+		while(std::getline(file, line)) {
+			int len = line.size();
+			if (len>=4 && line.compare(len-4,4,".fld") == 0){
+				if (prev_line_was_fld){ // Overwrite the previous fld file if two in a row
+					filelist.fld_files[filelist.fld_files.size()] = line;
+					printf("\n\nWarning: a listed .fld file was not used!");
+				} else {
+					// Add the .fld file
+					filelist.fld_files.push_back(line);
+					prev_line_was_fld=true;
+				}
+			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
+				// Add the .pdbqt
+				filelist.ligand_files.push_back(line);
+				if (filelist.ligand_files.size()>filelist.fld_files.size()){
+					// If this ligand doesnt have a protein preceding it, use the previous protein
+					filelist.fld_files.push_back(filelist.fld_files[filelist.fld_files.size()-1]);
+				}
+				prev_line_was_fld=false;
+			} else if (len>0) {
+				// Anything else in the file is assumed to be the resname
+				filelist.resnames.push_back(line);
+			}
+		}
+
+		filelist.nfiles = filelist.ligand_files.size();
+
+		if (filelist.ligand_files.size() != filelist.resnames.size() && filelist.resnames.size()>0)
+			{printf("\n\nError: Inconsistent number of resnames!"); return 1;}
+	}
+
+	return 0;
+}
 
 int get_filenames_and_ADcoeffs(const int* argc,
 			       char** argv,
-			       Dockpars* mypars)
+			       Dockpars* mypars,
+			       const bool multiple_files)
 //The function fills the file name and coeffs fields of mypars parameter
 //according to the proper command line arguments.
 {
@@ -70,18 +124,20 @@ int get_filenames_and_ADcoeffs(const int* argc,
 
 	for (i=1; i<(*argc)-1; i++)
 	{
-		//Argument: grid parameter file name.
-		if (strcmp("-ffile", argv[i]) == 0)
-		{
-			ffile_given = 1;
-			strcpy(mypars->fldfile, argv[i+1]);
-		}
+		if (!multiple_files){
+			//Argument: grid parameter file name.
+			if (strcmp("-ffile", argv[i]) == 0)
+			{
+				ffile_given = 1;
+				strcpy(mypars->fldfile, argv[i+1]);
+			}
 
-		//Argument: ligand pdbqt file name
-		if (strcmp("-lfile", argv[i]) == 0)
-		{
-			lfile_given = 1;
-			strcpy(mypars->ligandfile, argv[i+1]);
+			//Argument: ligand pdbqt file name
+			if (strcmp("-lfile", argv[i]) == 0)
+			{
+				lfile_given = 1;
+				strcpy(mypars->ligandfile, argv[i+1]);
+			}
 		}
 
 		//Argument: unbound model to be used.
@@ -110,13 +166,13 @@ int get_filenames_and_ADcoeffs(const int* argc,
 		}
 	}
 
-	if (ffile_given == 0)
+	if (ffile_given == 0 && !multiple_files)
 	{
 		printf("Error: grid fld file was not defined. Use -ffile argument!\n");
 		return 1;
 	}
 
-	if (lfile_given == 0)
+	if (lfile_given == 0 && !multiple_files)
 	{
 		printf("Error: ligand pdbqt file was not defined. Use -lfile argument!\n");
 		return 1;
@@ -145,6 +201,7 @@ void get_commandpars(const int* argc,
 	mypars->num_of_generations	= 27000;
 	mypars->nev_provided		= false;
 	mypars->use_heuristics		= false; // Flag if we want to use Diogo's heuristics
+	mypars->max_num_of_energy_evals = 50000000; // By default, dont let heuristics set nev > 50M
 	mypars->abs_max_dmov		= 6.0/(*spacing); 	// +/-6A
 	mypars->abs_max_dang		= 90; 		// +/- 90°
 	mypars->mutation_rate		= 2; 		// 2%
@@ -166,7 +223,7 @@ void get_commandpars(const int* argc,
 	mypars->base_dmov_mul_sqrt3	= 2.0/(*spacing)*sqrt(3.0);	// 2 A
 	mypars->base_dang_mul_sqrt3	= 75.0*sqrt(3.0);		// 75°
 	mypars->cons_limit		= 4;		// 4
-	mypars->max_num_of_iters	= 300; //300;
+	mypars->max_num_of_iters	= 300;
 	mypars->pop_size		= 150;
 	mypars->initpop_gen_or_loadfile	= 0;
 	mypars->gen_pdbs		= 0;
@@ -233,6 +290,19 @@ void get_commandpars(const int* argc,
 				mypars->use_heuristics = true;
 		}
 		// ----------------------------------
+
+		//Argument: number of energy evaluations. Must be a positive integer.
+		if (strcmp("-maxnev", argv[i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv[i+1], "%ld", &tempint);
+
+			if ((tempint > 0) && (tempint < 260000000)){
+				mypars->max_num_of_energy_evals = (unsigned long) tempint;
+			} else
+				printf("Warning: value of -maxnev argument ignored. Value must be between 0 and 260000000.\n");
+		}
+
 
 		//Argument: maximal delta movement during mutation. Must be an integer between 1 and 16.
 		//N means that the maximal delta movement will be +/- 2^(N-10)*grid spacing angström.
@@ -474,6 +544,13 @@ void get_commandpars(const int* argc,
 			else
 				mypars->gen_pdbs = tempint;
 		}
+
+		// ---------------------------------
+		// UPDATED in : get_filelist()
+		// ---------------------------------
+		// Argument: name of file containing file list
+		if (strcmp("-filelist", argv [i]) == 0)
+			arg_recognized = 1;
 
 		// ---------------------------------
 		// MISSING: char fldfile [128]

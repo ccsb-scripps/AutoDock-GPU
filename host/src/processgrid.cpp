@@ -138,7 +138,7 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 	return 0;
 }
 
-int get_gridvalues_f(const Gridinfo* mygrid, float** fgrids, bool cgmaps)
+int get_gridvalues_f(const Gridinfo* mygrid, float* fgrids, bool cgmaps)
 //The function reads the grid point values from the .map files
 //that correspond to the receptor given by the first parameter.
 //It allocates the proper amount of memory and stores the data there,
@@ -151,17 +151,7 @@ int get_gridvalues_f(const Gridinfo* mygrid, float** fgrids, bool cgmaps)
 	char tempstr [128];
 	float* mypoi;
 
-	*fgrids = (float*) malloc(4*(sizeof(float))*(mygrid->num_of_atypes+2)*
-						    (mygrid->size_xyz[0])*
-						    (mygrid->size_xyz[1])*
-						    (mygrid->size_xyz[2]));
-	if (*fgrids == NULL)
-	{
-		printf("Error: not enough memory!\n");
-		return 1;
-	}
-
-	mypoi = *fgrids;
+	mypoi = fgrids;
 
 	for (t=0; t < mygrid->num_of_atypes+2; t++)
 	{

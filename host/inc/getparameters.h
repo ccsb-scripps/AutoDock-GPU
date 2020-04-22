@@ -37,12 +37,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+#include <vector>
 
 #include "defines.h"
 #include "processligand.h"
 #include "processgrid.h"
 #include "miscellaneous.h"
 #include "calcenergy_basic.h"
+#include "filelist.hpp"
 
 typedef struct
 {
@@ -60,6 +62,7 @@ typedef struct
 	unsigned long num_of_generations;
 		bool nev_provided;
 		bool use_heuristics;
+	unsigned long max_num_of_energy_evals;
 		float abs_max_dmov;
 		float abs_max_dang;
 		float mutation_rate;
@@ -101,9 +104,14 @@ typedef struct
         float adam_epsilon;
 } Dockpars;
 
+int get_filelist(const int* argc,
+                      char** argv,
+		     FileList& filelist);
+
 int get_filenames_and_ADcoeffs(const int*,
 			           char**,
-				Dockpars*);
+				Dockpars*,
+				const bool);
 
 void get_commandpars(const int*,
 		         char**,
