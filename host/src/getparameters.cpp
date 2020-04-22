@@ -418,7 +418,7 @@ void get_commandpars(const int* argc,
 			else if (strcmp(temp, "ad") == 0) {
 				strcpy(mypars->ls_method, temp);
 				//mypars->max_num_of_iters = 30;
-			} if (strcmp(temp, "adam") == 0) {
+			} else if (strcmp(temp, "adam") == 0) {
 				strcpy(mypars->ls_method, temp);
 				//mypars->max_num_of_iters = 30;
 			}
