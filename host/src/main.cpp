@@ -225,6 +225,7 @@ int main(int argc, char* argv[])
 	// Total time measurement
 	printf("\nRun time of entire job set (%d files): %.3f sec", n_files, seconds_since(time_start));
 	printf("\nSavings from pipelining: %.3f sec",(total_setup_time+total_exec_time) - seconds_since(time_start));
+	printf("\nIdle time of execution thread: %.3f sec",seconds_since(time_start) - total_exec_time);
 #endif
 
 	return 0;
