@@ -189,7 +189,8 @@ int main(int argc, char* argv[])
 				// Starting Docking
 				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiles[(get_profiles ? i_job : 0)], &argc, argv, sim_state[i_queue] ) != 0)
 					{printf("\n\nError in docking_with_gpu, stopped job."); err = 1;}
-
+				process_result(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), &argc,argv, sim_state[i_queue]);
+				sim_state[i_queue].free_all();
 
 				ready_to_launch[i_queue]=false; // Indicate this queue is ready for a new setup
                                 n_finished_jobs++;

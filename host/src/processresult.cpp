@@ -869,7 +869,7 @@ void process_result(	const Gridinfo*         mygrid,
                 arrange_result(sim_state.cpu_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, sim_state.cpu_energies+run_cnt*mypars->pop_size, mypars->pop_size);
                 make_resfiles(sim_state.cpu_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM,
                               sim_state.cpu_energies+run_cnt*mypars->pop_size,
-                              sim_state.myligand_reference,
+                              &(sim_state.myligand_reference),
                               myligand_init,
                               myxrayligand,
                               mypars,

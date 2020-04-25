@@ -49,12 +49,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 struct SimulationState{
 	float*                  cpu_populations;
 	float*                  cpu_energies;
-	Liganddata*       	myligand_reference;
+	Liganddata       	myligand_reference;
 	int*              	cpu_evals_of_runs;
 	int                     generation_cnt;
 	float*                  cpu_ref_ori_angles;
 	float                   sec_per_run;
 	unsigned long           total_evals;
+
+	void free_all(){
+		free(cpu_populations);
+		free(cpu_energies);
+		free(cpu_evals_of_runs);
+		free(cpu_ref_ori_angles);
+	}
 };
 
 #endif
