@@ -852,3 +852,48 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 	fclose(fp_xml);
 }
 
+void process_result(	float*			cpu_final_populations,
+			float*			cpu_energies,
+			const Liganddata*	myligand_reference,
+			const Liganddata*	myligand_init,
+			const Liganddata*	myxrayligand,
+			const Dockpars*		mypars,
+			const int*		cpu_evals_of_runs,
+			int			generation_cnt,
+			const Gridinfo*		mygrid,
+			const float*		cpu_floatgrids,
+			float*			cpu_ref_ori_angles,
+			const int*		argc,
+			char**			argv,
+			float			sec_per_run,
+			unsigned long		total_evals)
+{
+	std::vector<Ligandresult> cpu_result_ligands(mypars->num_of_runs);
+
+	// Fill in cpu_result_ligands
+        for (unsigned long run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
+        {
+                arrange_result(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_energies+run_cnt*mypars->pop_size, mypars->pop_size);
+                make_resfiles(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM,
+                              cpu_energies+run_cnt*mypars->pop_size,
+                              myligand_reference,
+                              myligand_init,
+                              myxrayligand,
+                              mypars,
+                              cpu_evals_of_runs[run_cnt],
+                              generation_cnt,
+                              mygrid,
+                              cpu_floatgrids,
+                              cpu_ref_ori_angles+3*run_cnt,
+                              argc,
+                              argv,
+                              /*1*/0,
+                              run_cnt,
+                              &(cpu_result_ligands [run_cnt]));
+        }
+
+	// Do clustering analysis and generate dlg file
+        clusanal_gendlg(cpu_result_ligands.data(), mypars->num_of_runs, myligand_init, mypars,
+                                         mygrid, argc, argv, sec_per_run,
+                                         generation_cnt,total_evals/mypars->num_of_runs);
+}

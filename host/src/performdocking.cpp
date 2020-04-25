@@ -192,7 +192,7 @@ filled with clock() */
     RTERROR(status, "cudaDeviceSetLimit failed");      
 
     auto const t1 = std::chrono::steady_clock::now();
-    printf("CUDA Setup time %fs\n", elapsed_seconds(t0 ,t1));
+    printf("\nCUDA Setup time %fs\n", elapsed_seconds(t0 ,t1));
 
 
 	Liganddata myligand_reference;
@@ -200,7 +200,6 @@ filled with clock() */
 	float* cpu_init_populations;
 	float* cpu_final_populations;
 	float* cpu_energies;
-	Ligandresult* cpu_result_ligands;
 	unsigned int* cpu_prng_seeds;
 	int* cpu_evals_of_runs;
 	float* cpu_ref_ori_angles;
@@ -217,7 +216,6 @@ filled with clock() */
 	int blocksPerGridForEachLSEntity;
 	int blocksPerGridForEachGradMinimizerEntity;
 
-	unsigned long run_cnt;	/* int run_cnt; */
 	int generation_cnt;
 	int i;
 	double progress;
@@ -227,7 +225,6 @@ filled with clock() */
 
 	clock_t clock_start_docking;
 	clock_t	clock_stop_docking;
-	clock_t clock_stop_program_before_clustering;
 
 	//setting number of blocks and threads
 	threadsPerBlock = NUM_OF_THREADS_PER_BLOCK;
@@ -242,7 +239,6 @@ filled with clock() */
 	//allocating CPU memory for results
 	size_energies = mypars->pop_size * mypars->num_of_runs * sizeof(float);
 	cpu_energies = (float*) malloc(size_energies);
-	cpu_result_ligands = (Ligandresult*) malloc(sizeof(Ligandresult)*(mypars->num_of_runs));
 	cpu_final_populations = cpu_init_populations;
 
 	//allocating memory in CPU for reference orientation angles
@@ -706,7 +702,7 @@ filled with clock() */
 	unsigned long total_evals;
 
     auto const t2 = std::chrono::steady_clock::now();
-    printf("Rest of Setup time %fs\n", elapsed_seconds(t1 ,t2));
+    printf("\nRest of Setup time %fs\n", elapsed_seconds(t1 ,t2));
 
 
 	// -------- Replacing with memory maps! ------------
@@ -898,32 +894,10 @@ filled with clock() */
 		printf("total_num_energies: %u, cpu_energies[%u]: %f\n",    (unsigned int)(size_energies/sizeof(float)),cnt_pop,cpu_energies[cnt_pop]);
 #endif
 	// ===============================================================================
-	for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
-	{
-		arrange_result(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_energies+run_cnt*mypars->pop_size, mypars->pop_size);
-		make_resfiles(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, 
-			      cpu_energies+run_cnt*mypars->pop_size, 
-			      &myligand_reference,
-			      myligand_init,
-			      myxrayligand, 
-			      mypars, 
-			      cpu_evals_of_runs[run_cnt], 
-			      generation_cnt, 
-			      mygrid, 
-			      cpu_floatgrids, 
-			      cpu_ref_ori_angles+3*run_cnt, 
-			      argc, 
-			      argv, 
-                              /*1*/0,
-			      run_cnt, 
-			      &(cpu_result_ligands [run_cnt]));
-	}
-	clock_stop_program_before_clustering = clock();
-	clusanal_gendlg(cpu_result_ligands, mypars->num_of_runs, myligand_init, mypars,
-					 mygrid, argc, argv, ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs,
-					 generation_cnt,total_evals/mypars->num_of_runs);
-	clock_stop_docking = clock();
-    
+	process_result(cpu_final_populations,cpu_energies,&myligand_reference,myligand_init,myxrayligand,
+			mypars,cpu_evals_of_runs,generation_cnt,mygrid,cpu_floatgrids,cpu_ref_ori_angles,argc,argv,
+			ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs,total_evals);
+
     
     
     // Release all CUDA objects
@@ -970,13 +944,12 @@ filled with clock() */
     
 	free(cpu_init_populations);
 	free(cpu_energies);
-	free(cpu_result_ligands);
 	free(cpu_prng_seeds);
 	free(cpu_evals_of_runs);
 	free(cpu_ref_ori_angles);
 
     auto const t4 = std::chrono::steady_clock::now();
-    printf("Shutdown time %fs\n", elapsed_seconds(t3, t4));
+    printf("\nShutdown time %fs\n", elapsed_seconds(t3, t4));
 	return 0;
 }
 
