@@ -82,11 +82,12 @@ int main(int argc, char* argv[])
 
 	// Timer initializations
 #ifndef _WIN32
-	timeval time_start, idle_timer, setup_timer, exec_timer;
+	timeval time_start, idle_timer, setup_timer, exec_timer, processing_timer;
 	start_timer(time_start);
 	start_timer(idle_timer);
 #endif
 	double total_setup_time=0;
+	double total_processing_time=0;
 	double total_exec_time=0;
 	double idle_time;
 
@@ -124,7 +125,8 @@ int main(int argc, char* argv[])
 
 	bool finished_all=false;
 	std::vector<int> job_in_queue(nqueues,-1);
-	std::vector<bool> ready_to_launch(nqueues,false);
+	enum Stage { Setup, Launch, Processing }; 
+	std::vector<Stage> stage(nqueues,Setup); // Each queue can be in one of three stages
 	int n_finished_jobs=0;
 	int next_job_to_setup=0;
 	int err = 0;
@@ -137,8 +139,8 @@ int main(int argc, char* argv[])
 	int t_id = 0;
 #endif
 	while (!finished_all && err==0){
-		if(t_id!=execution_thread || nthreads==1) { // This thread handles setup
-			if (!ready_to_launch[t_id] && next_job_to_setup<n_files){ // If not ready for execution
+		if(t_id!=execution_thread || nthreads==1) { // This thread handles setup and processing
+			if (stage[t_id]==Setup && next_job_to_setup<n_files){ // If setup needed
 				int i_job;
 				// Grab the next job in atomic capture so two threads don't set up the same job
 #ifdef USE_PIPELINE
@@ -148,7 +150,7 @@ int main(int argc, char* argv[])
 
 				// Setup the next file in the queue
 				if (i_job<n_files) {
-					printf ("\n(Thread %d is setting up job %d)",t_id,i_job); fflush(stdout);
+					printf ("\n(Thread %d is setting up Job %d)",t_id,i_job); fflush(stdout);
 					job_in_queue[t_id]=i_job;
 					start_timer(setup_timer);
 					// Load files, read inputs, prepare arrays for docking stage
@@ -162,19 +164,33 @@ int main(int argc, char* argv[])
 					#pragma omp atomic update
 #endif
 					total_setup_time+=seconds_since(setup_timer);
-					ready_to_launch[t_id]=true; // Indicate this queue is ready for use
+					stage[t_id]=Launch; // Indicate this queue is ready for use
 				}
-			} else { // Job is ready to go, just waiting for the GPU to free up
-				// Wait
 			}
+			if (stage[t_id]==Processing){ // If ready for processing
+				int i_job = job_in_queue[t_id];
+				printf ("\n(Thread %d is processing Job %d)",t_id,i_job); fflush(stdout);
+
+				start_timer(processing_timer);
+                                process_result(&(mygrid[t_id]), floatgrids[t_id].data(), &(mypars[t_id]), &(myligand_init[t_id]), &(myxrayligand[t_id]), &argc,argv, sim_state[t_id]);
+                                sim_state[t_id].free_all();
+
+#ifdef USE_PIPELINE
+				#pragma omp atomic update
+#endif
+				total_processing_time+=seconds_since(processing_timer);
+				stage[t_id]=Setup; // Indicate this queue is ready for use
+				n_finished_jobs++;
+                                if (n_finished_jobs==n_files) finished_all=true;
+                        }
 		}
 
 		if(t_id==execution_thread) { // This thread handles the GPU
 			// Check if there is a job ready to launch
 			int i_queue=-1;
 			int i_job = -1;
-			for (int i=0;i<ready_to_launch.size();i++){
-				if (ready_to_launch[i]){
+			for (int i=0;i<stage.size();i++){
+				if (stage[i]==Launch){
 					i_queue=i;
 					i_job=job_in_queue[i_queue];
 					break;
@@ -189,12 +205,8 @@ int main(int argc, char* argv[])
 				// Starting Docking
 				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiles[(get_profiles ? i_job : 0)], &argc, argv, sim_state[i_queue] ) != 0)
 					{printf("\n\nError in docking_with_gpu, stopped job."); err = 1;}
-				process_result(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), &argc,argv, sim_state[i_queue]);
-				sim_state[i_queue].free_all();
+				stage[i_queue]=Processing; // Indicate this queue is ready for a new setup
 
-				ready_to_launch[i_queue]=false; // Indicate this queue is ready for a new setup
-                                n_finished_jobs++;
-				if (n_finished_jobs==n_files) finished_all=true;
 
 #ifndef _WIN32
 				double exec_time = seconds_since(exec_timer);
@@ -227,7 +239,7 @@ int main(int argc, char* argv[])
 #ifndef _WIN32
 	// Total time measurement
 	printf("\nRun time of entire job set (%d files): %.3f sec", n_files, seconds_since(time_start));
-	printf("\nSavings from pipelining: %.3f sec",(total_setup_time+total_exec_time) - seconds_since(time_start));
+	printf("\nSavings from pipelining: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
 	printf("\nIdle time of execution thread: %.3f sec",seconds_since(time_start) - total_exec_time);
 #endif
 
