@@ -866,9 +866,9 @@ void process_result(	const Gridinfo*         mygrid,
 	// Fill in cpu_result_ligands
         for (unsigned long run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
         {
-                arrange_result(sim_state.cpu_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, sim_state.cpu_energies+run_cnt*mypars->pop_size, mypars->pop_size);
-                make_resfiles(sim_state.cpu_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM,
-                              sim_state.cpu_energies+run_cnt*mypars->pop_size,
+                arrange_result(sim_state.cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, sim_state.cpu_energies.data()+run_cnt*mypars->pop_size, mypars->pop_size);
+                make_resfiles(sim_state.cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM,
+                              sim_state.cpu_energies.data()+run_cnt*mypars->pop_size,
                               &(sim_state.myligand_reference),
                               myligand_init,
                               myxrayligand,
@@ -877,7 +877,7 @@ void process_result(	const Gridinfo*         mygrid,
                               sim_state.generation_cnt,
                               mygrid,
                               cpu_floatgrids,
-                              sim_state.cpu_ref_ori_angles+3*run_cnt,
+                              sim_state.cpu_ref_ori_angles.data()+3*run_cnt,
                               argc,
                               argv,
                               /*1*/0,

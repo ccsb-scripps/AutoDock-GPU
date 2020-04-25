@@ -47,21 +47,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "processresult.h"
 
 struct SimulationState{
-	float*                  cpu_populations;
-	float*                  cpu_energies;
+	std::vector<float>	cpu_populations;
+	std::vector<float>	cpu_energies;
 	Liganddata       	myligand_reference;
-	int*              	cpu_evals_of_runs;
+	std::vector<int>	cpu_evals_of_runs;
 	int                     generation_cnt;
-	float*                  cpu_ref_ori_angles;
+	std::vector<float>	cpu_ref_ori_angles;
 	float                   sec_per_run;
 	unsigned long           total_evals;
-
-	void free_all(){
-		free(cpu_populations);
-		free(cpu_energies);
-		free(cpu_evals_of_runs);
-		free(cpu_ref_ori_angles);
-	}
 };
 
 #endif

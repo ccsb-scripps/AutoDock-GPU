@@ -231,22 +231,22 @@ filled with clock() */
 
 	//allocating CPU memory for initial populations
 	size_populations = mypars->num_of_runs * mypars->pop_size * GENOTYPE_LENGTH_IN_GLOBMEM*sizeof(float);
-	sim_state.cpu_populations = (float*) malloc(size_populations);
-	memset(sim_state.cpu_populations, 0, size_populations);
+	sim_state.cpu_populations.resize(size_populations);
+	memset(sim_state.cpu_populations.data(), 0, size_populations);
 
 	//allocating CPU memory for results
 	size_energies = mypars->pop_size * mypars->num_of_runs * sizeof(float);
-	sim_state.cpu_energies = (float*) malloc(size_energies);
-	cpu_init_populations = sim_state.cpu_populations;
-	cpu_final_populations = sim_state.cpu_populations;
+	sim_state.cpu_energies.resize(size_energies);
+	cpu_init_populations = sim_state.cpu_populations.data();
+	cpu_final_populations = sim_state.cpu_populations.data();
 
 	//allocating memory in CPU for reference orientation angles
-	sim_state.cpu_ref_ori_angles = (float*) malloc(mypars->num_of_runs*3*sizeof(float));
+	sim_state.cpu_ref_ori_angles.resize(mypars->num_of_runs*3);
 
 	//generating initial populations and random orientation angles of reference ligand
 	//(ligand will be moved to origo and scaled as well)
 	myligand_reference = *myligand_init;
-	gen_initpop_and_reflig(mypars, cpu_init_populations, sim_state.cpu_ref_ori_angles, &myligand_reference, mygrid);
+	gen_initpop_and_reflig(mypars, cpu_init_populations, sim_state.cpu_ref_ori_angles.data(), &myligand_reference, mygrid);
 
 	//allocating memory in CPU for pseudorandom number generator seeds and
 	//generating them (seed for each thread during GA)
@@ -264,8 +264,8 @@ filled with clock() */
 
 	//allocating memory in CPU for evaluation counters
 	size_evals_of_runs = mypars->num_of_runs*sizeof(int);
-	sim_state.cpu_evals_of_runs = (int*) malloc(size_evals_of_runs);
-	memset(sim_state.cpu_evals_of_runs, 0, size_evals_of_runs);
+	sim_state.cpu_evals_of_runs.resize(size_evals_of_runs);
+	memset(sim_state.cpu_evals_of_runs.data(), 0, size_evals_of_runs);
 
 	//preparing the constant data fields for the GPU
 	// ----------------------------------------------------------------------
@@ -291,7 +291,7 @@ filled with clock() */
 	kernelconstant_grads            KerConst_grads;    
     
     
-	if (prepare_const_fields_for_gpu(&myligand_reference, mypars, sim_state.cpu_ref_ori_angles, 
+	if (prepare_const_fields_for_gpu(&myligand_reference, mypars, sim_state.cpu_ref_ori_angles.data(), 
 					 &KerConst_interintra, 
 					 &KerConst_intracontrib, 
 					 &KerConst_intra, 
@@ -433,7 +433,7 @@ filled with clock() */
     RTERROR(status, "pMem_fgrids: failed to upload to GPU memory.\n"); 
     status = cudaMemcpy(pMem_conformations_current, cpu_init_populations, size_populations, cudaMemcpyHostToDevice);
     RTERROR(status, "pMem_conformations_current: failed to upload to GPU memory.\n"); 
-    status = cudaMemcpy(pMem_gpu_evals_of_runs, sim_state.cpu_evals_of_runs, size_evals_of_runs, cudaMemcpyHostToDevice);
+    status = cudaMemcpy(pMem_gpu_evals_of_runs, sim_state.cpu_evals_of_runs.data(), size_evals_of_runs, cudaMemcpyHostToDevice);
     RTERROR(status, "pMem_gpu_evals_of_runs: failed to upload to GPU memory.\n"); 
     status = cudaMemcpy(pMem_prng_states, cpu_prng_seeds, size_prng_seeds, cudaMemcpyHostToDevice);
     RTERROR(status, "pMem_prng_states: failed to upload to GPU memory.\n");
@@ -711,9 +711,9 @@ filled with clock() */
 		if (mypars->autostop) {
                         if (generation_cnt % 10 == 0) {
                                 cudaError_t status;
-                		status = cudaMemcpy(sim_state.cpu_energies, pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
+                		status = cudaMemcpy(sim_state.cpu_energies.data(), pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
 		                RTERROR(status, "cudaMemcpy: couldn't downloaded pMem_energies_current");
-                                if (autostop.check_if_satisfactory(generation_cnt, sim_state.cpu_energies, total_evals))
+                                if (autostop.check_if_satisfactory(generation_cnt, sim_state.cpu_energies.data(), total_evals))
                                         break; // Exit loop
                         }
 		}
@@ -821,7 +821,7 @@ filled with clock() */
 #if defined (MAPPED_COPY)
 		//map_cpu_evals_of_runs = (int*) memMap(command_queue, mem_gpu_evals_of_runs, CL_MAP_READ, size_evals_of_runs);
 #else
-		cudaMemcpy(sim_state.cpu_evals_of_runs, pMem_gpu_evals_of_runs, size_evals_of_runs, cudaMemcpyDeviceToHost);
+		cudaMemcpy(sim_state.cpu_evals_of_runs.data(), pMem_gpu_evals_of_runs, size_evals_of_runs, cudaMemcpyDeviceToHost);
 #endif
 		// -------- Replacing with memory maps! ------------
 		generation_cnt++;
@@ -880,11 +880,11 @@ filled with clock() */
 	//processing results
     status = cudaMemcpy(cpu_final_populations, pMem_conformations_current, size_populations, cudaMemcpyDeviceToHost);
     RTERROR(status, "cudaMemcpy: couldn't copy pMem_conformations_current to host.\n");
-    status = cudaMemcpy(sim_state.cpu_energies, pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
+    status = cudaMemcpy(sim_state.cpu_energies.data(), pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
     RTERROR(status, "cudaMemcpy: couldn't copy pMem_energies_current to host.\n");
 
         // Final autostop statistics output
-        if (mypars->autostop) autostop.output_final_stddev(generation_cnt, sim_state.cpu_energies, total_evals);
+        if (mypars->autostop) autostop.output_final_stddev(generation_cnt, sim_state.cpu_energies.data(), total_evals);
 
 #if defined (DOCK_DEBUG)
 	for (int cnt_pop=0;cnt_pop<size_populations/sizeof(float);cnt_pop++)

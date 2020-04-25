@@ -173,7 +173,6 @@ int main(int argc, char* argv[])
 
 				start_timer(processing_timer);
                                 process_result(&(mygrid[t_id]), floatgrids[t_id].data(), &(mypars[t_id]), &(myligand_init[t_id]), &(myxrayligand[t_id]), &argc,argv, sim_state[t_id]);
-                                sim_state[t_id].free_all();
 
 #ifdef USE_PIPELINE
 				#pragma omp atomic update
