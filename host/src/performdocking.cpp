@@ -151,7 +151,8 @@ int docking_with_gpu(   const Gridinfo*  	mygrid,
                         const Liganddata* 	myxrayligand,
 			Profile&                profile,
                         const int*        	argc,
-                        char**      		argv)
+                        char**      		argv,
+			SimulationState&	sim_state)
 /* The function performs the docking algorithm and generates the corresponding result files.
 parameter mygrid:
 		describes the grid
@@ -893,11 +894,18 @@ filled with clock() */
 	for (int cnt_pop=0;cnt_pop<size_energies/sizeof(float);cnt_pop++)
 		printf("total_num_energies: %u, cpu_energies[%u]: %f\n",    (unsigned int)(size_energies/sizeof(float)),cnt_pop,cpu_energies[cnt_pop]);
 #endif
+
+	sim_state.cpu_populations = cpu_final_populations;
+	sim_state.cpu_energies = cpu_energies;
+	sim_state.myligand_reference = &myligand_reference;
+	sim_state.cpu_evals_of_runs = cpu_evals_of_runs;
+	sim_state.generation_cnt = generation_cnt;
+	sim_state.cpu_ref_ori_angles = cpu_ref_ori_angles;
+	sim_state.sec_per_run = ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs;
+	sim_state.total_evals = total_evals;
+
 	// ===============================================================================
-	process_result(mygrid,cpu_floatgrids,mypars,myligand_init,myxrayligand,argc,argv,
-			cpu_final_populations,cpu_energies,&myligand_reference,
-			cpu_evals_of_runs,generation_cnt,cpu_ref_ori_angles,
-			ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs,total_evals);
+	process_result(mygrid,cpu_floatgrids,mypars,myligand_init,myxrayligand,argc,argv,sim_state);
 
     
     

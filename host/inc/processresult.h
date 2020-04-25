@@ -41,6 +41,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "defines.h"
 #include "processligand.h"
 #include "getparameters.h"
+#include "simulation_state.hpp"
 
 #define PRINT1000(file, x) fprintf(file,  ((fabs((x)) >= 0.0) && ((fabs(x)) <= 1000.)) ? "%+7.2f" : "%+11.2e" , (x));
 
@@ -124,13 +125,6 @@ void process_result(    const Gridinfo*         mygrid,
                         const Liganddata*       myxrayligand,
                         const int*              argc,
                         char**                  argv,
-                        float*                  cpu_final_populations,
-                        float*                  cpu_energies,
-                        const Liganddata*       myligand_reference,
-                        const int*              cpu_evals_of_runs,
-                        int                     generation_cnt,
-                        float*                  cpu_ref_ori_angles,
-                        float                   sec_per_run,
-                        unsigned long           total_evals);
+			SimulationState&        sim_state);
 
 #endif /* PROCESSRESULT_H_ */

@@ -859,32 +859,25 @@ void process_result(	const Gridinfo*         mygrid,
 			const Liganddata*       myxrayligand,
 			const int*              argc,
 			char**                  argv,
-			float*			cpu_final_populations,
-			float*			cpu_energies,
-			const Liganddata*	myligand_reference,
-			const int*		cpu_evals_of_runs,
-			int			generation_cnt,
-			float*			cpu_ref_ori_angles,
-			float			sec_per_run,
-			unsigned long		total_evals)
+			SimulationState&	sim_state)
 {
 	std::vector<Ligandresult> cpu_result_ligands(mypars->num_of_runs);
 
 	// Fill in cpu_result_ligands
         for (unsigned long run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
         {
-                arrange_result(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_energies+run_cnt*mypars->pop_size, mypars->pop_size);
-                make_resfiles(cpu_final_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM,
-                              cpu_energies+run_cnt*mypars->pop_size,
-                              myligand_reference,
+                arrange_result(sim_state.cpu_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, sim_state.cpu_energies+run_cnt*mypars->pop_size, mypars->pop_size);
+                make_resfiles(sim_state.cpu_populations+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM,
+                              sim_state.cpu_energies+run_cnt*mypars->pop_size,
+                              sim_state.myligand_reference,
                               myligand_init,
                               myxrayligand,
                               mypars,
-                              cpu_evals_of_runs[run_cnt],
-                              generation_cnt,
+                              sim_state.cpu_evals_of_runs[run_cnt],
+                              sim_state.generation_cnt,
                               mygrid,
                               cpu_floatgrids,
-                              cpu_ref_ori_angles+3*run_cnt,
+                              sim_state.cpu_ref_ori_angles+3*run_cnt,
                               argc,
                               argv,
                               /*1*/0,
@@ -894,6 +887,6 @@ void process_result(	const Gridinfo*         mygrid,
 
 	// Do clustering analysis and generate dlg file
         clusanal_gendlg(cpu_result_ligands.data(), mypars->num_of_runs, myligand_init, mypars,
-                                         mygrid, argc, argv, sec_per_run,
-                                         generation_cnt,total_evals/mypars->num_of_runs);
+                                         mygrid, argc, argv, sim_state.sec_per_run,
+                                         sim_state.generation_cnt,sim_state.total_evals/mypars->num_of_runs);
 }

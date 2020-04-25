@@ -40,6 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "filelist.hpp"
 #include "setup.hpp"
 #include "profile.hpp"
+#include "simulation_state.hpp"
 
 #ifndef _WIN32
 // Time measurement
@@ -108,6 +109,7 @@ int main(int argc, char* argv[])
         Gridinfo   mygrid[nqueues];
         Liganddata myxrayligand[nqueues];
         std::vector<float> floatgrids[nqueues];
+	SimulationState sim_state[nqueues];
 
 	// Set up run profiles for timing
 	bool get_profiles = false; // hard-coded switch to use ALS's job profiler
@@ -185,7 +187,7 @@ int main(int argc, char* argv[])
                                 printf("\n   Fields from: %s",  filelist.fld_files[i_job].c_str());
                                 printf("\n   Ligands from: %s", filelist.ligand_files[i_job].c_str()); fflush(stdout);
 				// Starting Docking
-				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiles[(get_profiles ? i_job : 0)], &argc, argv ) != 0)
+				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiles[(get_profiles ? i_job : 0)], &argc, argv, sim_state[i_queue] ) != 0)
 					{printf("\n\nError in docking_with_gpu, stopped job."); err = 1;}
 
 
