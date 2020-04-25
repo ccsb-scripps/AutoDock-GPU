@@ -894,8 +894,9 @@ filled with clock() */
 		printf("total_num_energies: %u, cpu_energies[%u]: %f\n",    (unsigned int)(size_energies/sizeof(float)),cnt_pop,cpu_energies[cnt_pop]);
 #endif
 	// ===============================================================================
-	process_result(cpu_final_populations,cpu_energies,&myligand_reference,myligand_init,myxrayligand,
-			mypars,cpu_evals_of_runs,generation_cnt,mygrid,cpu_floatgrids,cpu_ref_ori_angles,argc,argv,
+	process_result(mygrid,cpu_floatgrids,mypars,myligand_init,myxrayligand,argc,argv,
+			cpu_final_populations,cpu_energies,&myligand_reference,
+			cpu_evals_of_runs,generation_cnt,cpu_ref_ori_angles,
 			ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs,total_evals);
 
     

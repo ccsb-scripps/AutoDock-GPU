@@ -852,19 +852,19 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 	fclose(fp_xml);
 }
 
-void process_result(	float*			cpu_final_populations,
+void process_result(	const Gridinfo*         mygrid,
+			const float*            cpu_floatgrids,
+			const Dockpars*         mypars,
+			const Liganddata*       myligand_init,
+			const Liganddata*       myxrayligand,
+			const int*              argc,
+			char**                  argv,
+			float*			cpu_final_populations,
 			float*			cpu_energies,
 			const Liganddata*	myligand_reference,
-			const Liganddata*	myligand_init,
-			const Liganddata*	myxrayligand,
-			const Dockpars*		mypars,
 			const int*		cpu_evals_of_runs,
 			int			generation_cnt,
-			const Gridinfo*		mygrid,
-			const float*		cpu_floatgrids,
 			float*			cpu_ref_ori_angles,
-			const int*		argc,
-			char**			argv,
 			float			sec_per_run,
 			unsigned long		total_evals)
 {
