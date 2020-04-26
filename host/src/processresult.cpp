@@ -530,7 +530,7 @@ void cluster_analysis(Ligandresult myresults [], int num_of_runs, char* report_f
 
 void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddata* ligand_ref,
 					 const Dockpars* mypars, const Gridinfo* mygrid, const int* argc, char** argv, const double docking_avg_runtime,
-					 unsigned long generations_used, unsigned long evals_performed)
+					 unsigned long generations_used, unsigned long evals_performed, double exec_time, double idle_time)
 //The function performs ranked cluster analisys similar to that of AutoDock and creates a file with report_file_name name, the result
 //will be written to it.
 {
@@ -816,6 +816,10 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 			}
 	}
 
+	// Add execution and idle time information
+	fprintf(fp, "\nRun time %.3f sec", exec_time);
+	fprintf(fp, "\nIdle time %.3f sec\n", idle_time);
+
 	fclose(fp);
 
 	//if xml has to be generated
@@ -888,5 +892,6 @@ void process_result(	const Gridinfo*         mygrid,
 	// Do clustering analysis and generate dlg file
         clusanal_gendlg(cpu_result_ligands.data(), mypars->num_of_runs, myligand_init, mypars,
                                          mygrid, argc, argv, sim_state.sec_per_run,
-                                         sim_state.generation_cnt,sim_state.total_evals/mypars->num_of_runs);
+                                         sim_state.generation_cnt,sim_state.total_evals/mypars->num_of_runs,
+					 sim_state.exec_time, sim_state.idle_time);
 }

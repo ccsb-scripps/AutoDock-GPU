@@ -180,7 +180,6 @@ int main(int argc, char* argv[])
 
 				start_timer(processing_timer);
                                 process_result(&(mygrid[t_id]), floatgrids[t_id].data(), &(mypars[t_id]), &(myligand_init[t_id]), &(myxrayligand[t_id]), &argc,argv, sim_state[t_id]);
-
 #ifdef USE_PIPELINE
 				#pragma omp atomic update
 #endif
@@ -204,7 +203,7 @@ int main(int argc, char* argv[])
 			}
 			if (i_queue>=0){
 				int i_job = job_in_queue[i_queue];
-				idle_time = seconds_since(idle_timer);
+				sim_state[i_queue].idle_time = seconds_since(idle_timer);
 				start_timer(exec_timer);
 				printf("\nRunning Job #%d: ", i_job);
                                 printf("\n   Fields from: %s",  filelist.fld_files[i_job].c_str());
@@ -221,28 +220,18 @@ int main(int argc, char* argv[])
 					n_finished_jobs+=1;
 					stage[i_queue]=Setup;
 				} else { // Successful run
-					stage[i_queue]=Processing; // Indicate this queue is ready for a new setup
 #ifndef _WIN32
-					double exec_time = seconds_since(exec_timer);
-					total_exec_time+=exec_time;
-					printf("\nJob took %.3f sec after waiting %.3f sec for setup", exec_time, idle_time);
+					sim_state[i_queue].exec_time = seconds_since(exec_timer);
+					total_exec_time+=sim_state[i_queue].exec_time;
+					printf("\nJob #%d took %.3f sec after waiting %.3f sec for setup", i_job, sim_state[i_queue].exec_time, sim_state[i_queue].idle_time);
 					start_timer(idle_timer);
-		                        // Append time information to .dlg file
-		                        char report_file_name[256];
-		                        strcpy(report_file_name, mypars[i_queue].resname);
-		                        strcat(report_file_name, ".dlg");
-		                        FILE* fp = fopen(report_file_name, "a");
-		                        fprintf(fp, "\n\n");
-					fprintf(fp, "\nRun time %.3f sec", exec_time);
-					fprintf(fp, "\nIdle time %.3f sec\n", idle_time);
-		                        fclose(fp);
-
 					if (get_profiles){
 		                        	// Detailed timing information to .timing
-		                        	profiles[i_job].exec_time = exec_time;
+		                        	profiles[i_job].exec_time = sim_state[i_queue].exec_time;
 		                        	profiles[i_job].write_to_file(filelist.filename);
 					}
 #endif
+					stage[i_queue]=Processing; // Indicate this queue is ready for a new setup
 				}
 			} else { // No job is ready to launch
 				// Wait

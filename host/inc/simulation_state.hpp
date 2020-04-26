@@ -55,6 +55,8 @@ struct SimulationState{
 	std::vector<float>	cpu_ref_ori_angles;
 	float                   sec_per_run;
 	unsigned long           total_evals;
+	double			exec_time;
+	double			idle_time;
 };
 
 #endif

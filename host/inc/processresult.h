@@ -116,7 +116,9 @@ void clusanal_gendlg(Ligandresult myresults [],
                                char**  argv,
                      const double docking_avg_runtime,
 		     unsigned long generations_used,
-		     unsigned long evals_performed);
+		     unsigned long evals_performed,
+		     double exec_time,
+		     double idle_time);
 
 void process_result(    const Gridinfo*         mygrid, 
                         const float*            cpu_floatgrids,
