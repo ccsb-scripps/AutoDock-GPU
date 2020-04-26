@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
 	{
 	int t_id = 0;
 #endif
-	while (!finished_all && err==0){
+	while (!finished_all){
 		if(t_id!=execution_thread || nthreads==1) { // This thread handles setup and processing
 			if (stage[t_id]==Setup && next_job_to_setup<n_files){ // If setup needed
 				int i_job;
@@ -155,16 +155,23 @@ int main(int argc, char* argv[])
 					start_timer(setup_timer);
 					// Load files, read inputs, prepare arrays for docking stage
 					if (setup(mygrid[t_id], floatgrids[t_id], mypars[t_id], myligand_init[t_id], myxrayligand[t_id], filelist, i_job, argc, argv) != 0) {
+						// If error encountered: Set error flag to 1; Add to count of finished jobs
+						// Keep in setup stage rather than moving to launch stage so a different job will be set up
 						printf("\n\nError in setup of Job #%d:", i_job);
                 		                printf("\n(   Field file: %s )",  filelist.fld_files[i_job].c_str());
 		                                printf("\n(   Ligand file: %s )", filelist.ligand_files[i_job].c_str()); fflush(stdout);
 						err = 1;
-					}
 #ifdef USE_PIPELINE
-					#pragma omp atomic update
+						#pragma omp atomic update
 #endif
-					total_setup_time+=seconds_since(setup_timer);
-					stage[t_id]=Launch; // Indicate this queue is ready for use
+						n_finished_jobs+=1;
+					} else { // Successful setup
+#ifdef USE_PIPELINE
+						#pragma omp atomic update
+#endif
+						total_setup_time+=seconds_since(setup_timer);
+						stage[t_id]=Launch; // Indicate this queue is ready for use
+					}
 				}
 			}
 			if (stage[t_id]==Processing){ // If ready for processing
@@ -179,59 +186,69 @@ int main(int argc, char* argv[])
 #endif
 				total_processing_time+=seconds_since(processing_timer);
 				stage[t_id]=Setup; // Indicate this queue is ready for use
-				n_finished_jobs++;
-                                if (n_finished_jobs==n_files) finished_all=true;
+#ifdef USE_PIPELINE
+				#pragma omp atomic update
+#endif
+				n_finished_jobs+=1;
                         }
 		}
 
 		if(t_id==execution_thread) { // This thread handles the GPU
 			// Check if there is a job ready to launch
 			int i_queue=-1;
-			int i_job = -1;
 			for (int i=0;i<stage.size();i++){
 				if (stage[i]==Launch){
 					i_queue=i;
-					i_job=job_in_queue[i_queue];
 					break;
 				}
 			}
-			if (i_queue>=0){ 
+			if (i_queue>=0){
+				int i_job = job_in_queue[i_queue];
 				idle_time = seconds_since(idle_timer);
 				start_timer(exec_timer);
 				printf("\nRunning Job #%d: ", i_job);
                                 printf("\n   Fields from: %s",  filelist.fld_files[i_job].c_str());
                                 printf("\n   Ligands from: %s", filelist.ligand_files[i_job].c_str()); fflush(stdout);
 				// Starting Docking
-				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiles[(get_profiles ? i_job : 0)], &argc, argv, sim_state[i_queue] ) != 0)
-					{printf("\n\nError in docking_with_gpu, stopped job."); err = 1;}
-				stage[i_queue]=Processing; // Indicate this queue is ready for a new setup
-
-
-#ifndef _WIN32
-				double exec_time = seconds_since(exec_timer);
-				total_exec_time+=exec_time;
-				printf("\nJob took %.3f sec after waiting %.3f sec for setup", exec_time, idle_time);
-				start_timer(idle_timer);
-	                        // Append time information to .dlg file
-	                        char report_file_name[256];
-	                        strcpy(report_file_name, mypars[i_queue].resname);
-	                        strcat(report_file_name, ".dlg");
-	                        FILE* fp = fopen(report_file_name, "a");
-	                        fprintf(fp, "\n\n");
-				fprintf(fp, "\nRun time %.3f sec", exec_time);
-				fprintf(fp, "\nIdle time %.3f sec\n", idle_time);
-	                        fclose(fp);
-
-				if (get_profiles){
-	                        	// Detailed timing information to .timing
-	                        	profiles[i_job].exec_time = exec_time;
-	                        	profiles[i_job].write_to_file(filelist.filename);
-				}
+				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiles[(get_profiles ? i_job : 0)], &argc, argv, sim_state[i_queue] ) != 0){
+					// If error encountered: Set error flag to 1; Add to count of finished jobs
+					// Set back to setup stage rather than moving to processing stage so a different job will be set up
+					printf("\n\nError in docking_with_gpu, stopped Job %d.",i_job);
+					err = 1;
+#ifdef USE_PIPELINE
+					#pragma omp atomic update
 #endif
+					n_finished_jobs+=1;
+					stage[i_queue]=Setup;
+				} else { // Successful run
+					stage[i_queue]=Processing; // Indicate this queue is ready for a new setup
+#ifndef _WIN32
+					double exec_time = seconds_since(exec_timer);
+					total_exec_time+=exec_time;
+					printf("\nJob took %.3f sec after waiting %.3f sec for setup", exec_time, idle_time);
+					start_timer(idle_timer);
+		                        // Append time information to .dlg file
+		                        char report_file_name[256];
+		                        strcpy(report_file_name, mypars[i_queue].resname);
+		                        strcat(report_file_name, ".dlg");
+		                        FILE* fp = fopen(report_file_name, "a");
+		                        fprintf(fp, "\n\n");
+					fprintf(fp, "\nRun time %.3f sec", exec_time);
+					fprintf(fp, "\nIdle time %.3f sec\n", idle_time);
+		                        fclose(fp);
+
+					if (get_profiles){
+		                        	// Detailed timing information to .timing
+		                        	profiles[i_job].exec_time = exec_time;
+		                        	profiles[i_job].write_to_file(filelist.filename);
+					}
+#endif
+				}
 			} else { // No job is ready to launch
 				// Wait
 			}
-		} 
+		}
+		if (n_finished_jobs==n_files) finished_all=true;
 	} // end of while loop
 	} // end of parallel section
 
@@ -241,6 +258,7 @@ int main(int argc, char* argv[])
 	printf("\nSavings from pipelining: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
 	printf("\nIdle time of execution thread: %.3f sec",seconds_since(time_start) - total_exec_time);
 #endif
+	if (err==1) printf("\nWARNING: Not all jobs were successful. Search output for 'Error' for details.");
 
 	return 0;
 }
