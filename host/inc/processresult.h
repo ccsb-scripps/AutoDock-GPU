@@ -41,6 +41,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "defines.h"
 #include "processligand.h"
 #include "getparameters.h"
+#include "simulation_state.hpp"
 
 #define PRINT1000(file, x) fprintf(file,  ((fabs((x)) >= 0.0) && ((fabs(x)) <= 1000.)) ? "%+7.2f" : "%+11.2e" , (x));
 
@@ -115,6 +116,17 @@ void clusanal_gendlg(Ligandresult myresults [],
                                char**  argv,
                      const double docking_avg_runtime,
 		     unsigned long generations_used,
-		     unsigned long evals_performed);
+		     unsigned long evals_performed,
+		     double exec_time,
+		     double idle_time);
+
+void process_result(    const Gridinfo*         mygrid, 
+                        const float*            cpu_floatgrids,
+                        const Dockpars*         mypars,
+                        const Liganddata*       myligand_init,
+                        const Liganddata*       myxrayligand,
+                        const int*              argc,
+                        char**                  argv,
+			SimulationState&        sim_state);
 
 #endif /* PROCESSRESULT_H_ */

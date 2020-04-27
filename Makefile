@@ -50,6 +50,11 @@ else ifeq ($(DEVICE), GPU)
 	TARGET:=$(TARGET)_gpu
 endif
 
+ifeq ($(OVERLAP), ON)
+	PIPELINE=-DUSE_PIPELINE -fopenmp
+endif
+
+
 BIN := $(wildcard $(TARGET)*)
 
 # ------------------------------------------------------
@@ -197,7 +202,7 @@ odock: check-env-all kernels $(SRC)
 	$(CFLAGS) \
 	$(LIB_CUDA) \
 	-o$(BIN_DIR)/$(TARGET) \
-	$(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
+	$(DEV) $(NWI) $(PIPELINE) $(OPT) $(DD) $(REP) $(KFLAGS)
 
 # Example
 # 1ac8: for testing gradients of translation and rotation genes

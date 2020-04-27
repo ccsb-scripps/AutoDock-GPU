@@ -530,7 +530,7 @@ void cluster_analysis(Ligandresult myresults [], int num_of_runs, char* report_f
 
 void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddata* ligand_ref,
 					 const Dockpars* mypars, const Gridinfo* mygrid, const int* argc, char** argv, const double docking_avg_runtime,
-					 unsigned long generations_used, unsigned long evals_performed)
+					 unsigned long generations_used, unsigned long evals_performed, double exec_time, double idle_time)
 //The function performs ranked cluster analisys similar to that of AutoDock and creates a file with report_file_name name, the result
 //will be written to it.
 {
@@ -816,6 +816,10 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 			}
 	}
 
+	// Add execution and idle time information
+	fprintf(fp, "\nRun time %.3f sec", exec_time);
+	fprintf(fp, "\nIdle time %.3f sec\n", idle_time);
+
 	fclose(fp);
 
 	//if xml has to be generated
@@ -852,3 +856,42 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 	fclose(fp_xml);
 }
 
+void process_result(	const Gridinfo*         mygrid,
+			const float*            cpu_floatgrids,
+			const Dockpars*         mypars,
+			const Liganddata*       myligand_init,
+			const Liganddata*       myxrayligand,
+			const int*              argc,
+			char**                  argv,
+			SimulationState&	sim_state)
+{
+	std::vector<Ligandresult> cpu_result_ligands(mypars->num_of_runs);
+
+	// Fill in cpu_result_ligands
+        for (unsigned long run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
+        {
+                arrange_result(sim_state.cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, sim_state.cpu_energies.data()+run_cnt*mypars->pop_size, mypars->pop_size);
+                make_resfiles(sim_state.cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM,
+                              sim_state.cpu_energies.data()+run_cnt*mypars->pop_size,
+                              &(sim_state.myligand_reference),
+                              myligand_init,
+                              myxrayligand,
+                              mypars,
+                              sim_state.cpu_evals_of_runs[run_cnt],
+                              sim_state.generation_cnt,
+                              mygrid,
+                              cpu_floatgrids,
+                              sim_state.cpu_ref_ori_angles.data()+3*run_cnt,
+                              argc,
+                              argv,
+                              /*1*/0,
+                              run_cnt,
+                              &(cpu_result_ligands [run_cnt]));
+        }
+
+	// Do clustering analysis and generate dlg file
+        clusanal_gendlg(cpu_result_ligands.data(), mypars->num_of_runs, myligand_init, mypars,
+                                         mygrid, argc, argv, sim_state.sec_per_run,
+                                         sim_state.generation_cnt,sim_state.total_evals/mypars->num_of_runs,
+					 sim_state.exec_time, sim_state.idle_time);
+}
