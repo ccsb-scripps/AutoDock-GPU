@@ -41,6 +41,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "setup.hpp"
 #include "profile.hpp"
 #include "simulation_state.hpp"
+#include "GpuData.h"
 
 #ifndef _WIN32
 // Time measurement
@@ -105,12 +106,14 @@ int main(int argc, char* argv[])
 	}
 
 	// Objects that are arguments of docking_with_gpu
-        Dockpars   mypars[nqueues];
-        Liganddata myligand_init[nqueues];
-        Gridinfo   mygrid[nqueues];
-        Liganddata myxrayligand[nqueues];
-        std::vector<float> floatgrids[nqueues];
+    Dockpars   mypars[nqueues];
+    Liganddata myligand_init[nqueues];
+    Gridinfo   mygrid[nqueues];
+    Liganddata myxrayligand[nqueues];
+    std::vector<float> floatgrids[nqueues];
 	SimulationState sim_state[nqueues];
+	GpuData cData;
+	GpuTempData tData;
 
 	// Set up run profiles for timing
 	bool get_profiles = false; // hard-coded switch to use ALS's job profiler
@@ -130,6 +133,7 @@ int main(int argc, char* argv[])
 	int n_finished_jobs=0;
 	int next_job_to_setup=0;
 	int err = 0;
+
 #ifdef USE_PIPELINE
 	#pragma omp parallel
 	{
@@ -138,6 +142,9 @@ int main(int argc, char* argv[])
 	{
 	int t_id = 0;
 #endif
+    if(t_id!=execution_thread || nthreads==1) { // This thread handles setup and processing
+	setup_gpu_for_docking(cData,tData);
+	}
 	while (!finished_all){
 		if(t_id!=execution_thread || nthreads==1) { // This thread handles setup and processing
 			if (stage[t_id]==Setup && next_job_to_setup<n_files){ // If setup needed
@@ -158,8 +165,8 @@ int main(int argc, char* argv[])
 						// If error encountered: Set error flag to 1; Add to count of finished jobs
 						// Keep in setup stage rather than moving to launch stage so a different job will be set up
 						printf("\n\nError in setup of Job #%d:", i_job);
-                		                printf("\n(   Field file: %s )",  filelist.fld_files[i_job].c_str());
-		                                printf("\n(   Ligand file: %s )", filelist.ligand_files[i_job].c_str()); fflush(stdout);
+                		printf("\n(   Field file: %s )",  filelist.fld_files[i_job].c_str());
+		                printf("\n(   Ligand file: %s )", filelist.ligand_files[i_job].c_str()); fflush(stdout);
 						err = 1;
 #ifdef USE_PIPELINE
 						#pragma omp atomic update
@@ -206,10 +213,10 @@ int main(int argc, char* argv[])
 				sim_state[i_queue].idle_time = seconds_since(idle_timer);
 				start_timer(exec_timer);
 				printf("\nRunning Job #%d: ", i_job);
-                                printf("\n   Fields from: %s",  filelist.fld_files[i_job].c_str());
-                                printf("\n   Ligands from: %s", filelist.ligand_files[i_job].c_str()); fflush(stdout);
+                printf("\n   Fields from: %s",  filelist.fld_files[i_job].c_str());
+                printf("\n   Ligands from: %s", filelist.ligand_files[i_job].c_str()); fflush(stdout);
 				// Starting Docking
-				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiles[(get_profiles ? i_job : 0)], &argc, argv, sim_state[i_queue] ) != 0){
+				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiles[(get_profiles ? i_job : 0)], &argc, argv, sim_state[i_queue], cData, tData ) != 0){
 					// If error encountered: Set error flag to 1; Add to count of finished jobs
 					// Set back to setup stage rather than moving to processing stage so a different job will be set up
 					printf("\n\nError in docking_with_gpu, stopped Job %d.",i_job);
@@ -239,6 +246,9 @@ int main(int argc, char* argv[])
 		}
 		if (n_finished_jobs==n_files) finished_all=true;
 	} // end of while loop
+    if(t_id!=execution_thread || nthreads==1) { // This thread handles setup and processing
+	finish_gpu_from_docking(cData,tData);
+	}
 	} // end of parallel section
 
 #ifndef _WIN32
