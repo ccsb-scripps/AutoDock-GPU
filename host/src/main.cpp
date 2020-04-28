@@ -158,8 +158,10 @@ int main(int argc, char* argv[])
 						// If error encountered: Set error flag to 1; Add to count of finished jobs
 						// Keep in setup stage rather than moving to launch stage so a different job will be set up
 						printf("\n\nError in setup of Job #%d:", i_job);
-                		                printf("\n(   Field file: %s )",  filelist.fld_files[i_job].c_str());
-		                                printf("\n(   Ligand file: %s )", filelist.ligand_files[i_job].c_str()); fflush(stdout);
+						if (filelist.used){
+                		                	printf("\n(   Field file: %s )",  filelist.fld_files[i_job].c_str());
+		                                	printf("\n(   Ligand file: %s )", filelist.ligand_files[i_job].c_str()); fflush(stdout);
+						}
 						err = 1;
 #ifdef USE_PIPELINE
 						#pragma omp atomic update
@@ -206,8 +208,10 @@ int main(int argc, char* argv[])
 				sim_state[i_queue].idle_time = seconds_since(idle_timer);
 				start_timer(exec_timer);
 				printf("\nRunning Job #%d: ", i_job);
-                                printf("\n   Fields from: %s",  filelist.fld_files[i_job].c_str());
-                                printf("\n   Ligands from: %s", filelist.ligand_files[i_job].c_str()); fflush(stdout);
+				if (filelist.used){
+                                	printf("\n   Fields from: %s",  filelist.fld_files[i_job].c_str());
+                                	printf("\n   Ligands from: %s", filelist.ligand_files[i_job].c_str()); fflush(stdout);
+				}
 				// Starting Docking
 				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiles[(get_profiles ? i_job : 0)], &argc, argv, sim_state[i_queue] ) != 0){
 					// If error encountered: Set error flag to 1; Add to count of finished jobs
@@ -225,7 +229,7 @@ int main(int argc, char* argv[])
 					total_exec_time+=sim_state[i_queue].exec_time;
 					printf("\nJob #%d took %.3f sec after waiting %.3f sec for setup", i_job, sim_state[i_queue].exec_time, sim_state[i_queue].idle_time);
 					start_timer(idle_timer);
-					if (get_profiles){
+					if (get_profiles && filelist.used){
 		                        	// Detailed timing information to .timing
 		                        	profiles[i_job].exec_time = sim_state[i_queue].exec_time;
 		                        	profiles[i_job].write_to_file(filelist.filename);
