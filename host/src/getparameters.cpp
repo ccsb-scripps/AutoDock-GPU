@@ -26,6 +26,29 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <cstdint>
 #include "getparameters.h"
 #include <fstream>
+#include <algorithm> 
+#include <cctype>
+#include <locale>
+
+// trim from start (in place)
+static inline void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
+        return !std::isspace(ch);
+    }));
+}
+
+// trim from end (in place)
+static inline void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+}
+
+// trim from both ends (in place)
+static inline void trim(std::string &s) {
+    ltrim(s);
+    rtrim(s);
+}
 
 int get_filelist(const int* argc,
                       char** argv,
@@ -45,9 +68,14 @@ int get_filelist(const int* argc,
 
 	if (filelist.used){
 		std::ifstream file(filelist.filename);
+		if(file.fail()){
+			printf("\nError: Could not open filelist %s. Check path and permissions.",filelist.filename);
+			return 1;
+		}
 		std::string line;
 		bool prev_line_was_fld=false;
 		while(std::getline(file, line)) {
+			trim(line); // Remove leading and trailing whitespace
 			int len = line.size();
 			if (len>=4 && line.compare(len-4,4,".fld") == 0){
 				if (prev_line_was_fld){ // Overwrite the previous fld file if two in a row
