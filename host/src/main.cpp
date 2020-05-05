@@ -116,10 +116,10 @@ int main(int argc, char* argv[])
 	GpuTempData tData;
 
 	// Set up run profiles for timing
-	bool get_profiles = false; // hard-coded switch to use ALS's job profiler
-	std::vector<Profile> profiles;
+	bool get_profiles = true; // hard-coded switch to use ALS's job profiler
+	Profiler profiler;
 	for (int i=0;i<n_files;i++){
-		profiles.push_back(Profile(i));
+		profiler.p.push_back(Profile(i));
 		if (!get_profiles) break; // still create 1 if off
 	}
 
@@ -221,6 +221,7 @@ int main(int argc, char* argv[])
 				}
 				// Starting Docking
 				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiles[(get_profiles ? i_job : 0)], &argc, argv, sim_state[i_queue], cData, tData ) != 0){
+
 					// If error encountered: Set error flag to 1; Add to count of finished jobs
 					// Set back to setup stage rather than moving to processing stage so a different job will be set up
 					printf("\n\nError in docking_with_gpu, stopped Job %d.",i_job);
@@ -238,8 +239,7 @@ int main(int argc, char* argv[])
 					start_timer(idle_timer);
 					if (get_profiles && filelist.used){
 		                        	// Detailed timing information to .timing
-		                        	profiles[i_job].exec_time = sim_state[i_queue].exec_time;
-		                        	profiles[i_job].write_to_file(filelist.filename);
+		                        	profiler.p[i_job].exec_time = sim_state[i_queue].exec_time;
 					}
 #endif
 					stage[i_queue]=Processing; // Indicate this queue is ready for a new setup
@@ -260,8 +260,13 @@ int main(int argc, char* argv[])
 	printf("\nRun time of entire job set (%d files): %.3f sec", n_files, seconds_since(time_start));
 	printf("\nSavings from pipelining: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
 	printf("\nIdle time of execution thread: %.3f sec",seconds_since(time_start) - total_exec_time);
+	if (get_profiles && filelist.used) profiler.write_profiles_to_file(filelist.filename);
 #endif
-	if (err==1) printf("\nWARNING: Not all jobs were successful. Search output for 'Error' for details.");
+	if (err==1){
+		printf("\nWARNING: Not all jobs were successful. Search output for 'Error' for details.");
+	} else {
+		printf("\nAll jobs ran without errors.");
+	}
 
 	return 0;
 }
