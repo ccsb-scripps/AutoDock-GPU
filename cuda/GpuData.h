@@ -95,6 +95,17 @@ struct GpuData {
     unsigned int                    warpmask;
     unsigned int                    warpbits;
 };
+
+struct GpuTempData {
+    float*      pMem_fgrids;
+    float*      pMem_conformations1;
+    float*      pMem_conformations2;
+    float*      pMem_energies1;
+    float*      pMem_energies2;
+    int*        pMem_evals_of_new_entities;
+    int*        pMem_gpu_evals_of_runs;
+    uint32_t*   pMem_prng_states;
+};
 #endif
 
 

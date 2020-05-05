@@ -144,35 +144,7 @@ inline float stddev(float* average_sd2_N)
 	return sqrt(sq)/average_sd2_N[2];
 }
 
-int docking_with_gpu(   const Gridinfo*  	mygrid,
-                        float*      		cpu_floatgrids,
-                        Dockpars*   		mypars,
-                        const Liganddata*   myligand_init,
-                        const Liganddata* 	myxrayligand,
-			Profile&                profile,
-                        const int*        	argc,
-                        char**      		argv,
-			SimulationState&	sim_state)
-/* The function performs the docking algorithm and generates the corresponding result files.
-parameter mygrid:
-		describes the grid
-		filled with get_gridinfo()
-parameter cpu_floatgrids:
-		points to the memory region containing the grids
-		filled with get_gridvalues_f()
-parameter mypars:
-		describes the docking parameters
-		filled with get_commandpars()
-parameter myligand_init:
-		describes the ligands
-		filled with get_liganddata()
-parameter myxrayligand:
-		describes the xray ligand
-		filled with get_xrayliganddata()
-parameters argc and argv:
-		are the corresponding command line arguments parameter clock_start_program:
-		contains the state of the clock tick counter at the beginning of the program
-filled with clock() */
+void setup_gpu_for_docking(GpuData& cData, GpuTempData& tData)
 {
     auto const t0 = std::chrono::steady_clock::now();
 
@@ -194,6 +166,166 @@ filled with clock() */
 
     auto const t1 = std::chrono::steady_clock::now();
     printf("\nCUDA Setup time %fs\n", elapsed_seconds(t0 ,t1));
+	size_t sz_interintra_const	= MAX_NUM_OF_ATOMS*sizeof(float) + 
+					  MAX_NUM_OF_ATOMS*sizeof(uint32_t);
+
+	size_t sz_intracontrib_const	= 3*MAX_INTRAE_CONTRIBUTORS*sizeof(uint32_t);
+
+	size_t sz_intra_const		= ATYPE_NUM*sizeof(float) + 
+					  ATYPE_NUM*sizeof(float) + 
+					  ATYPE_NUM*sizeof(unsigned int) + 
+					  ATYPE_NUM*sizeof(unsigned int) + 
+				          MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
+					  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
+					  MAX_NUM_OF_ATYPES*sizeof(float) + 
+					  MAX_NUM_OF_ATYPES*sizeof(float);
+
+	size_t sz_rotlist_const		= MAX_NUM_OF_ROTATIONS*sizeof(int);
+
+	size_t sz_conform_const		= 3*MAX_NUM_OF_ATOMS*sizeof(float) + 
+					  3*MAX_NUM_OF_ROTBONDS*sizeof(float) + 
+					  3*MAX_NUM_OF_ROTBONDS*sizeof(float) + 
+					  4*MAX_NUM_OF_RUNS*sizeof(float);
+    // Allocate kernel constant GPU memory
+    status = cudaMalloc((void**)&cData.pKerconst_interintra, sz_interintra_const);
+    RTERROR(status, "cData.pKerconst_interintra: failed to allocate GPU memory.\n");    
+    status = cudaMalloc((void**)&cData.pKerconst_intracontrib, sz_intracontrib_const);
+    RTERROR(status, "cData.pKerconst_intracontrib: failed to allocate GPU memory.\n");
+    status = cudaMalloc((void**)&cData.pKerconst_intra, sz_intra_const);
+    RTERROR(status, "cData.pKerconst_intra: failed to allocate GPU memory.\n");
+    status = cudaMalloc((void**)&cData.pKerconst_rotlist, sz_rotlist_const);
+    RTERROR(status, "cData.pKerconst_rotlist: failed to allocate GPU memory.\n");                      
+    status = cudaMalloc((void**)&cData.pKerconst_conform, sz_conform_const);
+    RTERROR(status, "cData.pKerconst_conform: failed to allocate GPU memory.\n");  
+
+
+    // Allocate mem data
+    status = cudaMalloc((void**)&cData.pMem_angle_const, 1000 * sizeof(float));
+    RTERROR(status, "cData.pMem_angle_const: failed to allocate GPU memory.\n");
+    status = cudaMalloc((void**)&cData.pMem_dependence_on_theta_const, 1000 * sizeof(float));
+    RTERROR(status, "cData.pMem_dependence_on_theta_const: failed to allocate GPU memory.\n");
+    status = cudaMalloc((void**)&cData.pMem_dependence_on_rotangle_const, 1000 * sizeof(float));
+    RTERROR(status, "cData.pMem_dependence_on_rotangle_const: failed to allocate GPU memory.\n");
+    status = cudaMalloc((void**)&cData.pMem_rotbonds_const, 2*MAX_NUM_OF_ROTBONDS*sizeof(int));
+    RTERROR(status, "cData.pMem_rotbonds_const: failed to allocate GPU memory.\n");
+    status = cudaMalloc((void**)&cData.pMem_rotbonds_atoms_const, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
+    RTERROR(status, "cData.pMem_rotbonds_atoms_const: failed to allocate GPU memory.\n");
+    status = cudaMalloc((void**)&cData.pMem_num_rotating_atoms_per_rotbond_const, MAX_NUM_OF_ROTBONDS*sizeof(int));
+    RTERROR(status, "cData.pMem_num_rotiating_atoms_per_rotbond_const: failed to allocate GPU memory.\n");
+
+    // Upload mem data
+    cudaMemcpy(cData.pMem_angle_const, angle, 1000 * sizeof(float), cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pMem_angle_const: failed to upload to GPU memory.\n");
+    cudaMemcpy(cData.pMem_dependence_on_theta_const, dependence_on_theta, 1000 * sizeof(float), cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pMem_dependence_on_theta_const: failed to upload to GPU memory.\n");
+    cudaMemcpy(cData.pMem_dependence_on_rotangle_const, dependence_on_rotangle, 1000 * sizeof(float), cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pMem_dependence_on_rotangle_const: failed to upload to GPU memory.\n");       
+
+	// Allocate temporary data - JL TODO - Are these sizes correct?
+	size_t size_floatgrids = 4 * (sizeof(float)) * (MAX_NUM_OF_ATYPES+2) * (MAX_NUM_GRIDPOINTS) * (MAX_NUM_GRIDPOINTS) * (MAX_NUM_GRIDPOINTS);    
+    status = cudaMalloc((void**)&(tData.pMem_fgrids), size_floatgrids);
+    RTERROR(status, "pMem_fgrids: failed to allocate GPU memory.\n");
+	size_t size_populations = MAX_NUM_OF_RUNS * MAX_POPSIZE * GENOTYPE_LENGTH_IN_GLOBMEM*sizeof(float);
+    status = cudaMalloc((void**)&(tData.pMem_conformations1), size_populations);
+    RTERROR(status, "pMem_conformations1: failed to allocate GPU memory.\n");   
+    status = cudaMalloc((void**)&(tData.pMem_conformations2), size_populations);
+    RTERROR(status, "pMem_conformations2: failed to allocate GPU memory.\n");     
+	size_t size_energies = MAX_POPSIZE * MAX_NUM_OF_RUNS * sizeof(float);
+    status = cudaMalloc((void**)&(tData.pMem_energies1), size_energies);
+    RTERROR(status, "pMem_energies1: failed to allocate GPU memory.\n");    
+    status = cudaMalloc((void**)&(tData.pMem_energies2), size_energies);
+    RTERROR(status, "pMem_energies2: failed to allocate GPU memory.\n");  
+    status = cudaMalloc((void**)&(tData.pMem_evals_of_new_entities), MAX_POPSIZE*MAX_NUM_OF_RUNS*sizeof(int));
+    RTERROR(status, "pMem_evals_of_new_Entities: failed to allocate GPU memory.\n");      
+	size_t size_evals_of_runs = MAX_NUM_OF_RUNS*sizeof(int);
+    status = cudaMallocManaged((void**)&(tData.pMem_gpu_evals_of_runs), size_evals_of_runs, cudaMemAttachGlobal);
+    RTERROR(status, "pMem_gpu_evals_of_runs: failed to allocate GPU memory.\n");   
+	size_t blocksPerGridForEachEntity = MAX_POPSIZE * MAX_NUM_OF_RUNS;
+	size_t size_prng_seeds = blocksPerGridForEachEntity * NUM_OF_THREADS_PER_BLOCK * sizeof(unsigned int);
+    status = cudaMalloc((void**)&(tData.pMem_prng_states), size_prng_seeds);
+    RTERROR(status, "pMem_prng_states: failed to allocate GPU memory.\n");    
+}
+void finish_gpu_from_docking(GpuData& cData, GpuTempData& tData)
+{
+    cudaError_t status;
+    // Release all CUDA objects
+	// Constant objects
+    status = cudaFree(cData.pKerconst_interintra);
+    RTERROR(status, "cudaFree: error freeing cData.pKerconst_interintra\n");    
+    status = cudaFree(cData.pKerconst_intracontrib);
+    RTERROR(status, "cudaFree: error freeing cData.pKerconst_intracontrib\n");
+    status = cudaFree(cData.pKerconst_intra);
+    RTERROR(status, "cudaFree: error freeing cData.pKerconst_intra\n");
+    status = cudaFree(cData.pKerconst_rotlist);
+    RTERROR(status, "cudaFree: error freeing cData.pKerconst_rotlist\n");                      
+    status = cudaFree(cData.pKerconst_conform);
+    RTERROR(status, "cudaFree: error freeing cData.pKerconst_conform\n");    
+    status = cudaFree(cData.pMem_rotbonds_const);
+    RTERROR(status, "cudaFree: error freeing cData.pMem_rotbonds_const");    
+    status = cudaFree(cData.pMem_rotbonds_atoms_const);
+    RTERROR(status, "cudaFree: error freeing cData.pMem_rotbonds_atoms_const");
+    status = cudaFree(cData.pMem_num_rotating_atoms_per_rotbond_const);
+    RTERROR(status, "cudaFree: error freeing cData.pMem_num_rotating_atoms_per_rotbond_const");          
+    status = cudaFree(cData.pMem_angle_const);
+    RTERROR(status, "cudaFree: error freeing cData.pMem_angle_const");     
+    status = cudaFree(cData.pMem_dependence_on_theta_const);
+    RTERROR(status, "cudaFree: error freeing cData.pMem_dependence_on_theta_const");     
+    status = cudaFree(cData.pMem_dependence_on_rotangle_const);
+    RTERROR(status, "cudaFree: error freeing cData.pMem_dependence_on_rotangle_const");  
+    
+    // Non-constant
+    status = cudaFree(tData.pMem_fgrids);
+    RTERROR(status, "cudaFree: error freeing pMem_fgrids");
+    status = cudaFree(tData.pMem_conformations1);
+    RTERROR(status, "cudaFree: error freeing pMem_conformations1");
+    status = cudaFree(tData.pMem_conformations2);
+    RTERROR(status, "cudaFree: error freeing pMem_conformations2");
+    status = cudaFree(tData.pMem_energies1);
+    RTERROR(status, "cudaFree: error freeing pMem_energies1");    
+    status = cudaFree(tData.pMem_energies2);
+    RTERROR(status, "cudaFree: error freeing pMem_energies2"); 
+    status = cudaFree(tData.pMem_evals_of_new_entities);
+    RTERROR(status, "cudaFree: error freeing pMem_evals_of_new_entities");
+    status = cudaFree(tData.pMem_gpu_evals_of_runs);
+    RTERROR(status, "cudaFree: error freeing pMem_gpu_evals_of_runs");
+    status = cudaFree(tData.pMem_prng_states);
+    RTERROR(status, "cudaFree: error freeing pMem_prng_states");
+}
+
+int docking_with_gpu(   const Gridinfo*  	mygrid,
+                        float*      		cpu_floatgrids,
+                        Dockpars*   		mypars,
+                        const Liganddata*   myligand_init,
+                        const Liganddata* 	myxrayligand,
+			            Profile&                profile,
+                        const int*        	argc,
+                        char**      		argv,
+			            SimulationState&	sim_state,
+                        GpuData& cData,
+						GpuTempData& tData)
+/* The function performs the docking algorithm and generates the corresponding result files.
+parameter mygrid:
+		describes the grid
+		filled with get_gridinfo()
+parameter cpu_floatgrids:
+		points to the memory region containing the grids
+		filled with get_gridvalues_f()
+parameter mypars:
+		describes the docking parameters
+		filled with get_commandpars()
+parameter myligand_init:
+		describes the ligands
+		filled with get_liganddata()
+parameter myxrayligand:
+		describes the xray ligand
+		filled with get_xrayliganddata()
+parameters argc and argv:
+		are the corresponding command line arguments parameter clock_start_program:
+		contains the state of the clock tick counter at the beginning of the program
+filled with clock() */
+{
+    auto const t1 = std::chrono::steady_clock::now();
+    cudaError_t status;
 
 
 	Liganddata myligand_reference;
@@ -282,7 +414,7 @@ filled with clock() */
 	if (prepare_const_fields_for_gpu(&myligand_reference, mypars, cpu_ref_ori_angles, &KerConst) == 1)
 		return 1;
 */
-    GpuData cData;
+    //GpuData cData; //JL Now pass this in
     kernelconstant_interintra 	    KerConst_interintra;
 	kernelconstant_intracontrib 	KerConst_intracontrib;
 	kernelconstant_intra 		    KerConst_intra;
@@ -302,18 +434,18 @@ filled with clock() */
 	}
 
 	size_t sz_interintra_const	= MAX_NUM_OF_ATOMS*sizeof(float) + 
-					  MAX_NUM_OF_ATOMS*sizeof(uint32_t);
+								  MAX_NUM_OF_ATOMS*sizeof(uint32_t);
 
 	size_t sz_intracontrib_const	= 3*MAX_INTRAE_CONTRIBUTORS*sizeof(uint32_t);
 
 	size_t sz_intra_const		= ATYPE_NUM*sizeof(float) + 
-					  ATYPE_NUM*sizeof(float) + 
-					  ATYPE_NUM*sizeof(unsigned int) + 
-					  ATYPE_NUM*sizeof(unsigned int) + 
-				          MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
-					  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
-					  MAX_NUM_OF_ATYPES*sizeof(float) + 
-					  MAX_NUM_OF_ATYPES*sizeof(float);
+					  			  ATYPE_NUM*sizeof(float) + 
+					  			  ATYPE_NUM*sizeof(unsigned int) + 
+					  			  ATYPE_NUM*sizeof(unsigned int) + 
+			    			      MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
+					  			  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
+					  			  MAX_NUM_OF_ATYPES*sizeof(float) + 
+					  			  MAX_NUM_OF_ATYPES*sizeof(float);
 
 	size_t sz_rotlist_const		= MAX_NUM_OF_ROTATIONS*sizeof(int);
 
@@ -322,19 +454,8 @@ filled with clock() */
 					  3*MAX_NUM_OF_ROTBONDS*sizeof(float) + 
 					  4*MAX_NUM_OF_RUNS*sizeof(float);
 
-    // Allocate kernel constant GPU memory
-    status = cudaMalloc((void**)&cData.pKerconst_interintra, sz_interintra_const);
-    RTERROR(status, "cData.pKerconst_interintra: failed to allocate GPU memory.\n");    
-    status = cudaMalloc((void**)&cData.pKerconst_intracontrib, sz_intracontrib_const);
-    RTERROR(status, "cData.pKerconst_intracontrib: failed to allocate GPU memory.\n");
-    status = cudaMalloc((void**)&cData.pKerconst_intra, sz_intra_const);
-    RTERROR(status, "cData.pKerconst_intra: failed to allocate GPU memory.\n");
-    status = cudaMalloc((void**)&cData.pKerconst_rotlist, sz_rotlist_const);
-    RTERROR(status, "cData.pKerconst_rotlist: failed to allocate GPU memory.\n");                      
-    status = cudaMalloc((void**)&cData.pKerconst_conform, sz_conform_const);
-    RTERROR(status, "cData.pKerconst_conform: failed to allocate GPU memory.\n");  
     
-    // Upload kernel constant data
+    // Upload kernel constant data - JL FIXME - Can these be moved once?
     status = cudaMemcpy(cData.pKerconst_interintra, &KerConst_interintra, sz_interintra_const, cudaMemcpyHostToDevice);
     RTERROR(status, "cData.pKerconst_interintra: failed to upload to GPU memory.\n");
     status = cudaMemcpy(cData.pKerconst_intracontrib, &KerConst_intracontrib, sz_intracontrib_const, cudaMemcpyHostToDevice);
@@ -345,35 +466,6 @@ filled with clock() */
     RTERROR(status, "cData.pKerconst_rotlist: failed to upload to GPU memory.\n");
     status = cudaMemcpy(cData.pKerconst_conform, &KerConst_conform, sz_conform_const, cudaMemcpyHostToDevice);
     RTERROR(status, "cData.pKerconst_conform: failed to upload to GPU memory.\n");
-
-    // Allocate mem data
-    status = cudaMalloc((void**)&cData.pMem_angle_const, 1000 * sizeof(float));
-    RTERROR(status, "cData.pMem_angle_const: failed to allocate GPU memory.\n");
-    status = cudaMalloc((void**)&cData.pMem_dependence_on_theta_const, 1000 * sizeof(float));
-    RTERROR(status, "cData.pMem_dependence_on_theta_const: failed to allocate GPU memory.\n");
-    status = cudaMalloc((void**)&cData.pMem_dependence_on_rotangle_const, 1000 * sizeof(float));
-    RTERROR(status, "cData.pMem_dependence_on_rotangle_const: failed to allocate GPU memory.\n");
-    status = cudaMalloc((void**)&cData.pMem_rotbonds_const, 2*MAX_NUM_OF_ROTBONDS*sizeof(int));
-    RTERROR(status, "cData.pMem_rotbonds_const: failed to allocate GPU memory.\n");
-    status = cudaMalloc((void**)&cData.pMem_rotbonds_atoms_const, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
-    RTERROR(status, "cData.pMem_rotbonds_atoms_const: failed to allocate GPU memory.\n");
-    status = cudaMalloc((void**)&cData.pMem_num_rotating_atoms_per_rotbond_const, MAX_NUM_OF_ROTBONDS*sizeof(int));
-    RTERROR(status, "cData.pMem_num_rotiating_atoms_per_rotbond_const: failed to allocate GPU memory.\n");
-
-    // Upload mem data
-    cudaMemcpy(cData.pMem_angle_const, angle, 1000 * sizeof(float), cudaMemcpyHostToDevice);
-    RTERROR(status, "cData.pMem_angle_const: failed to upload to GPU memory.\n");
-    cudaMemcpy(cData.pMem_dependence_on_theta_const, dependence_on_theta, 1000 * sizeof(float), cudaMemcpyHostToDevice);
-    RTERROR(status, "cData.pMem_dependence_on_theta_const: failed to upload to GPU memory.\n");
-    cudaMemcpy(cData.pMem_dependence_on_rotangle_const, dependence_on_rotangle, 1000 * sizeof(float), cudaMemcpyHostToDevice);
-    RTERROR(status, "cData.pMem_dependence_on_rotangle_const: failed to upload to GPU memory.\n");       
-    cudaMemcpy(cData.pMem_rotbonds_const, KerConst_grads.rotbonds, 2*MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
-    RTERROR(status, "cData.pMem_rotbonds_const: failed to upload to GPU memory.\n");
-    cudaMemcpy(cData.pMem_rotbonds_atoms_const, KerConst_grads.rotbonds_atoms, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
-    RTERROR(status, "cData.pMem_rotbonds_atoms_const: failed to upload to GPU memory.\n");
-    cudaMemcpy(cData.pMem_num_rotating_atoms_per_rotbond_const, KerConst_grads.num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
-    RTERROR(status, "cData.pMem_num_rotating_atoms_per_rotbond_const failed to upload to GPU memory.\n"); 
-    
 /*    
     memcpy(cData.mem_angle_const, angle, 1000 * sizeof(float));
     memcpy(cData.mem_dependence_on_theta_const, dependence_on_theta, 1000 * sizeof(float));
@@ -382,60 +474,42 @@ filled with clock() */
     memcpy(cData.mem_rotbonds_atoms_const, KerConst_grads.rotbonds_atoms, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
     memcpy(cData.mem_num_rotating_atoms_per_rotbond_const, KerConst_grads.num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int));
 */
+    //JL - FIXME - Can these be moved once?
+	cudaMemcpy(cData.pMem_rotbonds_const, KerConst_grads.rotbonds, 2*MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pMem_rotbonds_const: failed to upload to GPU memory.\n");
+    cudaMemcpy(cData.pMem_rotbonds_atoms_const, KerConst_grads.rotbonds_atoms, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pMem_rotbonds_atoms_const: failed to upload to GPU memory.\n");
+    cudaMemcpy(cData.pMem_num_rotating_atoms_per_rotbond_const, KerConst_grads.num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
+    RTERROR(status, "cData.pMem_num_rotating_atoms_per_rotbond_const failed to upload to GPU memory.\n"); 
+
  	//allocating GPU memory for populations, floatgirds,
 	//energies, evaluation counters and random number generator states
 	size_floatgrids = 4 * (sizeof(float)) * (mygrid->num_of_atypes+2) * (mygrid->size_xyz[0]) * (mygrid->size_xyz[1]) * (mygrid->size_xyz[2]);    
-    float*      pMem_fgrids;
-    float*      pMem_conformations1;
-    float*      pMem_conformations2;
-    float*      pMem_energies1;
-    float*      pMem_energies2;
-    int*        pMem_evals_of_new_entities;
-    int*        pMem_gpu_evals_of_runs;
-    uint32_t*   pMem_prng_states;
-    
-    // Allocate CUDA memory Buffers
-    status = cudaMalloc((void**)&pMem_fgrids, size_floatgrids);
-    RTERROR(status, "pMem_fgrids: failed to allocate GPU memory.\n");
-    status = cudaMalloc((void**)&pMem_conformations1, size_populations);
-    RTERROR(status, "pMem_conformations1: failed to allocate GPU memory.\n");   
-    status = cudaMalloc((void**)&pMem_conformations2, size_populations);
-    RTERROR(status, "pMem_conformations2: failed to allocate GPU memory.\n");     
-    status = cudaMalloc((void**)&pMem_energies1, size_energies);
-    RTERROR(status, "pMem_energies1: failed to allocate GPU memory.\n");    
-    status = cudaMalloc((void**)&pMem_energies2, size_energies);
-    RTERROR(status, "pMem_energies2: failed to allocate GPU memory.\n");  
-    status = cudaMalloc((void**)&pMem_evals_of_new_entities, mypars->pop_size*mypars->num_of_runs*sizeof(int));
-    RTERROR(status, "pMem_evals_of_new_Entities: failed to allocate GPU memory.\n");      
-    status = cudaMallocManaged((void**)&pMem_gpu_evals_of_runs, size_evals_of_runs, cudaMemAttachGlobal);
-    RTERROR(status, "pMem_gpu_evals_of_runs: failed to allocate GPU memory.\n");   
-    status = cudaMalloc((void**)&pMem_prng_states, size_prng_seeds);
-    RTERROR(status, "pMem_prng_states: failed to allocate GPU memory.\n");    
     
     // Flippable pointers
-    float* pMem_conformations_current = pMem_conformations1;
-    float* pMem_conformations_next = pMem_conformations2;
-    float* pMem_energies_current = pMem_energies1;
-    float* pMem_energies_next = pMem_energies2;
+    float* pMem_conformations_current = tData.pMem_conformations1;
+    float* pMem_conformations_next = tData.pMem_conformations2;
+    float* pMem_energies_current = tData.pMem_energies1;
+    float* pMem_energies_next = tData.pMem_energies2;
     
     // Set constant pointers
-    cData.pMem_fgrids = pMem_fgrids;
-    cData.pMem_evals_of_new_entities = pMem_evals_of_new_entities;
-    cData.pMem_gpu_evals_of_runs = pMem_gpu_evals_of_runs;
-    cData.pMem_prng_states = pMem_prng_states;
+    cData.pMem_fgrids = tData.pMem_fgrids;
+    cData.pMem_evals_of_new_entities = tData.pMem_evals_of_new_entities;
+    cData.pMem_gpu_evals_of_runs = tData.pMem_gpu_evals_of_runs;
+    cData.pMem_prng_states = tData.pMem_prng_states;
     
     // Set CUDA constants
     cData.warpmask = 31;
     cData.warpbits = 5;
 
     // Upload data
-    status = cudaMemcpy(pMem_fgrids, cpu_floatgrids, size_floatgrids, cudaMemcpyHostToDevice);
+    status = cudaMemcpy(tData.pMem_fgrids, cpu_floatgrids, size_floatgrids, cudaMemcpyHostToDevice);
     RTERROR(status, "pMem_fgrids: failed to upload to GPU memory.\n"); 
     status = cudaMemcpy(pMem_conformations_current, cpu_init_populations, size_populations, cudaMemcpyHostToDevice);
     RTERROR(status, "pMem_conformations_current: failed to upload to GPU memory.\n"); 
-    status = cudaMemcpy(pMem_gpu_evals_of_runs, sim_state.cpu_evals_of_runs.data(), size_evals_of_runs, cudaMemcpyHostToDevice);
+    status = cudaMemcpy(tData.pMem_gpu_evals_of_runs, sim_state.cpu_evals_of_runs.data(), size_evals_of_runs, cudaMemcpyHostToDevice);
     RTERROR(status, "pMem_gpu_evals_of_runs: failed to upload to GPU memory.\n"); 
-    status = cudaMemcpy(pMem_prng_states, cpu_prng_seeds, size_prng_seeds, cudaMemcpyHostToDevice);
+    status = cudaMemcpy(tData.pMem_prng_states, cpu_prng_seeds, size_prng_seeds, cudaMemcpyHostToDevice);
     RTERROR(status, "pMem_prng_states: failed to upload to GPU memory.\n");
 
 	//preparing parameter struct
@@ -705,12 +779,11 @@ filled with clock() */
 
 
 	// -------- Replacing with memory maps! ------------
-	while ((progress = check_progress(pMem_gpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
+	while ((progress = check_progress(tData.pMem_gpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
 	// -------- Replacing with memory maps! ------------
 	{
 		if (mypars->autostop) {
                         if (generation_cnt % 10 == 0) {
-                                cudaError_t status;
                 		status = cudaMemcpy(sim_state.cpu_energies.data(), pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
 		                RTERROR(status, "cudaMemcpy: couldn't downloaded pMem_energies_current");
                                 if (autostop.check_if_satisfactory(generation_cnt, sim_state.cpu_energies.data(), total_evals))
@@ -883,6 +956,8 @@ filled with clock() */
     status = cudaMemcpy(sim_state.cpu_energies.data(), pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
     RTERROR(status, "cudaMemcpy: couldn't copy pMem_energies_current to host.\n");
 
+    //JL TODO - Should the tData arrays be zeroed before the next run?
+
         // Final autostop statistics output
         if (mypars->autostop) autostop.output_final_stddev(generation_cnt, sim_state.cpu_energies.data(), total_evals);
 
@@ -899,47 +974,6 @@ filled with clock() */
 	sim_state.sec_per_run = ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs;
 	sim_state.total_evals = total_evals;
 
-    
-    // Release all CUDA objects
-    status = cudaFree(cData.pKerconst_interintra);
-    RTERROR(status, "cudaFree: error freeing cData.pKerconst_interintra\n");    
-    status = cudaFree(cData.pKerconst_intracontrib);
-    RTERROR(status, "cudaFree: error freeing cData.pKerconst_intracontrib\n");
-    status = cudaFree(cData.pKerconst_intra);
-    RTERROR(status, "cudaFree: error freeing cData.pKerconst_intra\n");
-    status = cudaFree(cData.pKerconst_rotlist);
-    RTERROR(status, "cudaFree: error freeing cData.pKerconst_rotlist\n");                      
-    status = cudaFree(cData.pKerconst_conform);
-    RTERROR(status, "cudaFree: error freeing cData.pKerconst_conform\n");    
-    status = cudaFree(pMem_fgrids);
-    RTERROR(status, "cudaFree: error freeing pMem_fgrids");
-    status = cudaFree(pMem_conformations1);
-    RTERROR(status, "cudaFree: error freeing pMem_conformations1");
-    status = cudaFree(pMem_conformations2);
-    RTERROR(status, "cudaFree: error freeing pMem_conformations2");
-    status = cudaFree(pMem_energies1);
-    RTERROR(status, "cudaFree: error freeing pMem_energies1");    
-    status = cudaFree(pMem_energies2);
-    RTERROR(status, "cudaFree: error freeing pMem_energies2"); 
-    status = cudaFree(pMem_evals_of_new_entities);
-    RTERROR(status, "cudaFree: error freeing pMem_evals_of_new_entities");
-    status = cudaFree(pMem_gpu_evals_of_runs);
-    RTERROR(status, "cudaFree: error freeing pMem_gpu_evals_of_runs");
-    status = cudaFree(pMem_prng_states);
-    RTERROR(status, "cudaFree: error freeing pMem_prng_states");
-    status = cudaFree(cData.pMem_rotbonds_const);
-    RTERROR(status, "cudaFree: error freeing cData.pMem_rotbonds_const");    
-    status = cudaFree(cData.pMem_rotbonds_atoms_const);
-    RTERROR(status, "cudaFree: error freeing cData.pMem_rotbonds_atoms_const");
-    status = cudaFree(cData.pMem_num_rotating_atoms_per_rotbond_const);
-    RTERROR(status, "cudaFree: error freeing cData.pMem_num_rotating_atoms_per_rotbond_const");          
-    status = cudaFree(cData.pMem_angle_const);
-    RTERROR(status, "cudaFree: error freeing cData.pMem_angle_const");     
-    status = cudaFree(cData.pMem_dependence_on_theta_const);
-    RTERROR(status, "cudaFree: error freeing cData.pMem_dependence_on_theta_const");     
-    status = cudaFree(cData.pMem_dependence_on_rotangle_const);
-    RTERROR(status, "cudaFree: error freeing cData.pMem_dependence_on_rotangle_const");  
-    cudaDeviceReset();
     
     
 	free(cpu_prng_seeds);

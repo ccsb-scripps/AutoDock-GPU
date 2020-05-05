@@ -66,6 +66,10 @@ typedef struct {
 } Gradientparameters;
 #endif
 
+void setup_gpu_for_docking(GpuData& cData, 
+                           GpuTempData& tData);
+void finish_gpu_from_docking(GpuData& cData, 
+                             GpuTempData& tData);
 int docking_with_gpu(const Gridinfo* 		mygrid,
          	     /*const*/ float* 		cpu_floatgrids,
 		           Dockpars*		mypars,
@@ -74,7 +78,9 @@ int docking_with_gpu(const Gridinfo* 		mygrid,
                         Profile&                profile,
 		     const int* 		argc,
 		     char**			argv,
-			SimulationState&	sim_state);
+			SimulationState&	sim_state,
+			GpuData& cData,
+			GpuTempData& tData);
 
 double check_progress(int* evals_of_runs,
 		      int generation_cnt,
