@@ -105,6 +105,9 @@ int main(int argc, char* argv[])
 		n_files = 1;
 	}
 
+	// Setup master map set (one for now, nthreads-1 for general case)
+	std::vector<Map> all_maps;
+
 	// Objects that are arguments of docking_with_gpu
     Dockpars   mypars[nqueues];
     Liganddata myligand_init[nqueues];
@@ -142,7 +145,7 @@ int main(int argc, char* argv[])
 	{
 	int t_id = 0;
 #endif
-    if(t_id!=execution_thread || nthreads==1) { // This thread handles setup and processing
+    if(t_id==execution_thread ) { // This thread handles setup and processing
 	setup_gpu_for_docking(cData,tData);
 	}
 	while (!finished_all){
@@ -161,7 +164,7 @@ int main(int argc, char* argv[])
 					job_in_queue[t_id]=i_job;
 					start_timer(setup_timer);
 					// Load files, read inputs, prepare arrays for docking stage
-					if (setup(mygrid[t_id], floatgrids[t_id], mypars[t_id], myligand_init[t_id], myxrayligand[t_id], filelist, i_job, argc, argv) != 0) {
+					if (setup(all_maps,mygrid[t_id], floatgrids[t_id], mypars[t_id], myligand_init[t_id], myxrayligand[t_id], filelist, i_job, argc, argv) != 0) {
 						// If error encountered: Set error flag to 1; Add to count of finished jobs
 						// Keep in setup stage rather than moving to launch stage so a different job will be set up
 						printf("\n\nError in setup of Job #%d:", i_job);
@@ -250,7 +253,7 @@ int main(int argc, char* argv[])
 		}
 		if (n_finished_jobs==n_files) finished_all=true;
 	} // end of while loop
-    if(t_id!=execution_thread || nthreads==1) { // This thread handles setup and processing
+    if(t_id==execution_thread ) { // This thread handles setup and processing
 	finish_gpu_from_docking(cData,tData);
 	}
 	} // end of parallel section
@@ -258,7 +261,8 @@ int main(int argc, char* argv[])
 #ifndef _WIN32
 	// Total time measurement
 	printf("\nRun time of entire job set (%d files): %.3f sec", n_files, seconds_since(time_start));
-	printf("\nSavings from pipelining: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
+	printf("\nSavings from multithreading: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
+	//if (filelist.used && filelist.only_one_protein) printf("\nSavings from receptor reuse: %.3f sec * avg_maps_used/n_maps",receptor_reuse_time*n_files);
 	printf("\nIdle time of execution thread: %.3f sec",seconds_since(time_start) - total_exec_time);
 	if (get_profiles && filelist.used) profiler.write_profiles_to_file(filelist.filename);
 #endif

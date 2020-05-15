@@ -85,6 +85,11 @@ int get_filelist(const int* argc,
 					// Add the .fld file
 					filelist.fld_files.push_back(line);
 					prev_line_was_fld=true;
+
+					// If more than one unique protein
+					if (filelist.fld_files.size()>1){
+						filelist.only_one_protein=false;
+					}
 				}
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
 				// Add the .pdbqt

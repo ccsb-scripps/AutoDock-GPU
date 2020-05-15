@@ -38,7 +38,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "getparameters.h"
 
 
-int setup(Gridinfo&		mygrid,
+int setup(std::vector<Map>&	all_maps,
+	  Gridinfo&		mygrid,
 	  std::vector<float>& floatgrids,
 	  Dockpars&		mypars,
 	  Liganddata&		myligand_init,
