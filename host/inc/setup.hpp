@@ -45,6 +45,7 @@ int setup(std::vector<Map>&	all_maps,
 	  Liganddata&		myligand_init,
 	  Liganddata&		myxrayligand,
 	  FileList&             filelist,
+	  float* fgrids_device,
 	  int 	                i_file,
 	  int			argc,
 	  char*			argv[]);

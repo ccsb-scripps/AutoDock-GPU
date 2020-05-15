@@ -378,6 +378,9 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 
 	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst_interintra->atom_charges_const[m] = atom_charges[m]; }
 	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst_interintra->atom_types_const[m]   = atom_types[m];   }
+	for (int i_map=0; i_map < MAX_NUM_OF_ATOMS; i_map++) {
+		KerConst_interintra->atom_types_map_const[i_map] = myligand_reference->atom_map_to_fgrids[i_map];
+	}
 
 	for (m=0;m<3*MAX_INTRAE_CONTRIBUTORS;m++){ KerConst_intracontrib->intraE_contributors_const[m] = intraE_contributors[m]; }
 

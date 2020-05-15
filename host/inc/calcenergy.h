@@ -65,6 +65,7 @@ typedef struct
 {
 	char  	 	num_of_atoms;
 	char   		num_of_atypes;
+	char		num_of_map_atypes;
 	int    		num_of_intraE_contributors;
 	char   		gridsize_x;
 	char   		gridsize_y;
@@ -147,6 +148,7 @@ typedef struct
 {
        float     atom_charges_const[MAX_NUM_OF_ATOMS];
        uint32_t  atom_types_const  [MAX_NUM_OF_ATOMS];
+       uint32_t  atom_types_map_const  [MAX_NUM_OF_ATOMS];
 } kernelconstant_interintra;
 
 typedef struct

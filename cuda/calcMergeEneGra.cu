@@ -203,7 +203,7 @@ __device__ void gpu_calc_energrad(
 		float y = calc_coords[atom_id].y;
 		float z = calc_coords[atom_id].z;
 		float q = cData.pKerconst_interintra->atom_charges_const[atom_id];
-		uint32_t atom_typeid = cData.pKerconst_interintra->atom_types_const[atom_id];
+		uint32_t atom_typeid = cData.pKerconst_interintra->atom_types_map_const[atom_id];
 
 		if ((x < 0) || (y < 0) || (z < 0) || (x >= cData.dockpars.gridsize_x-1)
 				                  || (y >= cData.dockpars.gridsize_y-1)
@@ -321,7 +321,7 @@ __device__ void gpu_calc_energrad(
 		// -------------------------------------------------------------------
 
 		// Capturing electrostatic values
-		atom_typeid = cData.dockpars.num_of_atypes;
+		atom_typeid = cData.dockpars.num_of_map_atypes;
 
 		mul_tmp = atom_typeid*g3<<2; // different atom type id to get charge IA
 		cube[0] = *(grid_value_000+mul_tmp+0);

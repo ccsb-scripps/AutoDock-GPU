@@ -25,7 +25,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-
+#include <cuda.h>
+#include <curand.h>
+#include <cuda_runtime_api.h>
+#include <cassert>
 
 #include "processgrid.h"
 
@@ -235,14 +238,13 @@ int fill_maplist(const char* fldfilename, std::vector<Map>& all_maps)
 
 				// Create a new map with the atom name
 				all_maps.push_back(Map(seglist[seglist.size()-2]));
-				printf("Added map: %s", all_maps[all_maps.size()-1].atype.c_str());
 			}
 		}
 	}
 	return 0;
 }
 
-int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<Map>& all_maps, bool cgmaps)
+int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<Map>& all_maps, bool cgmaps,float* fgrids_device)
 {
 	// First, parse .fld file to get map names
 	if(fill_maplist(fldfilename,all_maps)==1) return 1;
@@ -251,10 +253,11 @@ int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<
         int t, x, y, z;
         FILE* fp;
         char tempstr [128];
+	int size_of_one_map = 4*mygrid->size_xyz[0]*mygrid->size_xyz[1]*mygrid->size_xyz[2];
 
         for (t=0; t < all_maps.size(); t++)
         {
-		all_maps[t].grid.resize(4*mygrid->size_xyz[0]*mygrid->size_xyz[1]*mygrid->size_xyz[2]);
+		all_maps[t].grid.resize(size_of_one_map);
 		float* mypoi = all_maps[t].grid.data();
                 //opening corresponding .map file
                 //-------------------------------------
@@ -304,12 +307,18 @@ int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<
                                         if(y>0 && z>0) *(mypoi-4*(g2+g1)+3) = *mypoi;
                                         mypoi+=4;
                                 }
+
+if (false) { //keep on gpu
+		// Copy to GPU
+                cudaError_t status = cudaMemcpy(fgrids_device+t*size_of_one_map,all_maps[t].grid.data(),sizeof(float)*all_maps[t].grid.size(), cudaMemcpyHostToDevice);
+                //RTERROR(status, "pMem_fgrids: failed to upload to GPU memory.\n");
+}
         }
 
         return 0;
 }
 
-int copy_from_all_maps (const Gridinfo* mygrid, float* fgrids, std::vector<Map>& all_maps )
+int copy_from_all_maps (const Gridinfo* mygrid, float* fgrids, std::vector<Map>& all_maps)
 {
 	int size_of_one_map = 4*mygrid->size_xyz[0]*mygrid->size_xyz[1]*mygrid->size_xyz[2];
         for (int t=0; t < mygrid->num_of_atypes+2; t++) {

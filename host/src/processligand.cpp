@@ -101,6 +101,7 @@ int init_liganddata(const char* ligfilename,
 	//copying field to ligand and grid data
 	myligand->num_of_atypes = num_of_atypes;
 	mygrid->num_of_atypes   = num_of_atypes;
+	mygrid->num_of_map_atypes = num_of_atypes;
 #if defined(CG_G0_INFO)
 	if (cgmaps)
 	{
@@ -159,6 +160,7 @@ int set_liganddata_typeid(Liganddata* myligand,
 	if (type < myligand->num_of_atypes)
 	{
 		myligand->atom_idxyzq[atom_id][0] = type;
+		myligand->atom_map_to_fgrids[atom_id] = type;
 		return 0;
 	}
 	else		//if typeof_new_atom hasn't been found
@@ -2308,3 +2310,21 @@ float calc_intraE_f(const Liganddata* myligand,
 		return (vW + el);
 }
 
+int map_to_all_maps(Gridinfo* mygrid, Liganddata* myligand, std::vector<Map>& all_maps){
+	for (int i_atom = 0; i_atom<myligand->num_of_atoms;i_atom++){
+		int idx = myligand->atom_idxyzq[i_atom][0];
+		int map_idx = -1;
+		for (int i_map = 0; i_map<all_maps.size(); i_map++){
+			if (strcmp(all_maps[i_map].atype.c_str(),mygrid->grid_types[idx])==0){
+				map_idx = i_map;
+				break;
+			}
+		}
+		if (map_idx == -1) {printf("\nERROR: Did not map to all_maps correctly."); return 1;}
+
+		myligand->atom_map_to_fgrids[i_atom] = map_idx;
+		//printf("\nMapping atom %d (type %d) in the ligand to map #%d",i_atom,idx,map_idx);
+	}
+
+	return 0;
+}

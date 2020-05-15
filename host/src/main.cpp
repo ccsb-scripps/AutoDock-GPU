@@ -164,7 +164,7 @@ int main(int argc, char* argv[])
 					job_in_queue[t_id]=i_job;
 					start_timer(setup_timer);
 					// Load files, read inputs, prepare arrays for docking stage
-					if (setup(all_maps,mygrid[t_id], floatgrids[t_id], mypars[t_id], myligand_init[t_id], myxrayligand[t_id], filelist, i_job, argc, argv) != 0) {
+					if (setup(all_maps,mygrid[t_id], floatgrids[t_id], mypars[t_id], myligand_init[t_id], myxrayligand[t_id], filelist, tData.pMem_fgrids, i_job, argc, argv) != 0) {
 						// If error encountered: Set error flag to 1; Add to count of finished jobs
 						// Keep in setup stage rather than moving to launch stage so a different job will be set up
 						printf("\n\nError in setup of Job #%d:", i_job);
