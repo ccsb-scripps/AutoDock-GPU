@@ -107,6 +107,7 @@ int main(int argc, char* argv[])
 
 	// Setup master map set (one for now, nthreads-1 for general case)
 	std::vector<Map> all_maps;
+	bool floatgrids_preloaded = (filelist.used && filelist.only_one_protein);
 
 	// Objects that are arguments of docking_with_gpu
     Dockpars   mypars[nqueues];
@@ -222,7 +223,7 @@ int main(int argc, char* argv[])
                                 	printf("\n   Ligands from: %s", filelist.ligand_files[i_job].c_str()); fflush(stdout);
 				}
 				// Starting Docking
-				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiler.p[(get_profiles ? i_job : 0)], &argc, argv, sim_state[i_queue], cData, tData, filelist.only_one_protein ) != 0){
+				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiler.p[(get_profiles ? i_job : 0)], &argc, argv, sim_state[i_queue], cData, tData, floatgrids_preloaded ) != 0){
 
 					// If error encountered: Set error flag to 1; Add to count of finished jobs
 					// Set back to setup stage rather than moving to processing stage so a different job will be set up
