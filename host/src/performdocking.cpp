@@ -303,7 +303,8 @@ int docking_with_gpu(   const Gridinfo*  	mygrid,
                         char**      		argv,
 			            SimulationState&	sim_state,
                         GpuData& cData,
-						GpuTempData& tData)
+						GpuTempData& tData,
+			bool floatgrids_preloaded)
 /* The function performs the docking algorithm and generates the corresponding result files.
 parameter mygrid:
 		describes the grid
@@ -505,8 +506,10 @@ filled with clock() */
     cData.warpbits = 5;
 
     // Upload data
-    status = cudaMemcpy(tData.pMem_fgrids, cpu_floatgrids, size_floatgrids, cudaMemcpyHostToDevice);
-    RTERROR(status, "pMem_fgrids: failed to upload to GPU memory.\n");
+    if(!floatgrids_preloaded){
+    	status = cudaMemcpy(tData.pMem_fgrids, cpu_floatgrids, size_floatgrids, cudaMemcpyHostToDevice);
+    	RTERROR(status, "pMem_fgrids: failed to upload to GPU memory.\n");
+    }
     status = cudaMemcpy(pMem_conformations_current, cpu_init_populations, size_populations, cudaMemcpyHostToDevice);
     RTERROR(status, "pMem_conformations_current: failed to upload to GPU memory.\n"); 
     status = cudaMemcpy(tData.pMem_gpu_evals_of_runs, sim_state.cpu_evals_of_runs.data(), size_evals_of_runs, cudaMemcpyHostToDevice);

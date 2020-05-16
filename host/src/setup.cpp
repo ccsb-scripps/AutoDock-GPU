@@ -117,12 +117,11 @@ int setup(std::vector<Map>& all_maps,
 		if (copy_from_all_maps(&mygrid, floatgrids.data(), all_maps) != 0)
                         {printf("\n\nError in copy_from_all_maps, stopped job."); return 1;}
 
-if (false){ // keep on gpu
+		// Specify total number of maps that will be on GPU
 		mygrid.num_of_map_atypes = all_maps.size()-2; // For the two extra maps
 		// Map atom_types used for ligand processing to all_maps so all the maps can stay on GPU
 		if(map_to_all_maps(&mygrid, &myligand_init, all_maps) !=0)
 			{printf("\n\nError in map_to_all_maps, stopped job."); return 1;}
-}
 	} else {
 		//Reading the grid files and storing values in the memory region pointed by floatgrids
 		if (get_gridvalues_f(&mygrid, floatgrids.data(), mypars.cgmaps) != 0)
