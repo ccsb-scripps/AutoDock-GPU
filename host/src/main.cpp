@@ -107,7 +107,6 @@ int main(int argc, char* argv[])
 
 	// Setup master map set (one for now, nthreads-1 for general case)
 	std::vector<Map> all_maps;
-	bool floatgrids_preloaded = (filelist.used && filelist.only_one_protein);
 
 	// Objects that are arguments of docking_with_gpu
     Dockpars   mypars[nqueues];
@@ -223,7 +222,7 @@ int main(int argc, char* argv[])
                                 	printf("\n   Ligands from: %s", filelist.ligand_files[i_job].c_str()); fflush(stdout);
 				}
 				// Starting Docking
-				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiler.p[(get_profiles ? i_job : 0)], &argc, argv, sim_state[i_queue], cData, tData, floatgrids_preloaded ) != 0){
+				if (docking_with_gpu(&(mygrid[i_queue]), floatgrids[i_queue].data(), &(mypars[i_queue]), &(myligand_init[i_queue]), &(myxrayligand[i_queue]), profiler.p[(get_profiles ? i_job : 0)], &argc, argv, sim_state[i_queue], cData, tData, filelist.preload_maps) != 0){
 
 					// If error encountered: Set error flag to 1; Add to count of finished jobs
 					// Set back to setup stage rather than moving to processing stage so a different job will be set up
@@ -261,7 +260,7 @@ int main(int argc, char* argv[])
 	// Total time measurement
 	printf("\nRun time of entire job set (%d files): %.3f sec", n_files, seconds_since(time_start));
 	printf("\nSavings from multithreading: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
-	//if (filelist.used && filelist.only_one_protein) printf("\nSavings from receptor reuse: %.3f sec * avg_maps_used/n_maps",receptor_reuse_time*n_files);
+	//if (filelist.preload_maps) printf("\nSavings from receptor reuse: %.3f sec * avg_maps_used/n_maps",receptor_reuse_time*n_files);
 	printf("\nIdle time of execution thread: %.3f sec",seconds_since(time_start) - total_exec_time);
 	if (get_profiles && filelist.used) profiler.write_profiles_to_file(filelist.filename);
 #endif

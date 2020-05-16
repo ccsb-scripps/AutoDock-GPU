@@ -67,6 +67,7 @@ int get_filelist(const int* argc,
         }
 
 	if (filelist.used){
+		filelist.preload_maps = true; // By default, preload maps if filelist used
 		std::ifstream file(filelist.filename);
 		if(file.fail()){
 			printf("\nError: Could not open filelist %s. Check path and permissions.",filelist.filename);
@@ -86,9 +87,9 @@ int get_filelist(const int* argc,
 					filelist.fld_files.push_back(line);
 					prev_line_was_fld=true;
 
-					// If more than one unique protein
+					// If more than one unique protein, cant do map preloading yet
 					if (filelist.fld_files.size()>1){
-						filelist.only_one_protein=false;
+						filelist.preload_maps=false;
 					}
 				}
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){

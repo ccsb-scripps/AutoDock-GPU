@@ -97,7 +97,7 @@ int setup(std::vector<Map>& all_maps,
 	// Resize grid
 	floatgrids.resize(4*(mygrid.num_of_atypes+2)*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2]);
 
-	if (filelist.used && filelist.only_one_protein){
+	if (filelist.preload_maps){
 		if (!filelist.maps_are_loaded) { // maps not yet loaded
 			bool got_error = false;
 			#pragma omp critical
