@@ -142,8 +142,8 @@ int main(int argc, char* argv[])
 	{
 	int t_id = 0;
 #endif
-    if(t_id!=execution_thread || nthreads==1) { // This thread handles setup and processing
-	setup_gpu_for_docking(cData,tData);
+    if(t_id==execution_thread) { // This thread handles setup and processing
+	  setup_gpu_for_docking(cData,tData);
 	}
 	while (!finished_all){
 		if(t_id!=execution_thread || nthreads==1) { // This thread handles setup and processing
@@ -250,8 +250,8 @@ int main(int argc, char* argv[])
 		}
 		if (n_finished_jobs==n_files) finished_all=true;
 	} // end of while loop
-    if(t_id!=execution_thread || nthreads==1) { // This thread handles setup and processing
-	finish_gpu_from_docking(cData,tData);
+    if(t_id==execution_thread) { // This thread handles setup and processing
+	  finish_gpu_from_docking(cData,tData);
 	}
 	} // end of parallel section
 
