@@ -865,7 +865,7 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 	return 0;
 }
 
-void get_moving_and_unit_vectors(Liganddata* myligand)
+int get_moving_and_unit_vectors(Liganddata* myligand)
 //The function calculates and fills the
 //rotbonds_moving_vectors and rotbonds_unit_vectors fields of the myligand parameter.
 {
@@ -893,6 +893,12 @@ void get_moving_and_unit_vectors(Liganddata* myligand)
 
 		//normalize unitvector
 		dist = distance(pointA, pointB);
+
+		if (dist==0.0){
+			printf("Error: Two atoms have the same XYZ coordinates!\n");
+                	return 1;
+		}
+
 		for (i=0; i<3; i++) //capturing coordinates of the two atoms
 		{
 			unitvec [i] = unitvec [i]/dist;
@@ -912,7 +918,7 @@ void get_moving_and_unit_vectors(Liganddata* myligand)
 			myligand->rotbonds_unit_vectors [rotb_id][i] = unitvec [i];
 		}
 	}
-
+	return 0;
 }
 
 int get_liganddata(const char* ligfilename, Liganddata* myligand, const double AD4_coeff_vdW, const double AD4_coeff_hb)
@@ -1070,7 +1076,8 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 	if (get_VWpars(myligand, AD4_coeff_vdW, AD4_coeff_hb) == 1)
 		return 1;
 
-	get_moving_and_unit_vectors(myligand);
+	if (get_moving_and_unit_vectors(myligand) == 1)
+                return 1;
 
 	return 0;
 }

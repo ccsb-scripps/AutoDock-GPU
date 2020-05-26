@@ -137,7 +137,7 @@ int get_bonds(Liganddata*);
 
 int get_VWpars(Liganddata*, const double, const double);
 
-void get_moving_and_unit_vectors(Liganddata*);
+int get_moving_and_unit_vectors(Liganddata*);
 
 int get_liganddata(const char*, Liganddata*, const double, const double);
 
