@@ -89,6 +89,7 @@ int init_liganddata(const char* ligfilename,
 				if (num_of_atypes >= MAX_NUM_OF_ATYPES)
 				{
 					printf("Error: too many types of ligand atoms!\n");
+					fclose(fp);
 					return 1;
 				}
 
@@ -97,6 +98,8 @@ int init_liganddata(const char* ligfilename,
 			}
 		}
 	}
+
+	fclose(fp);
 
 	//copying field to ligand and grid data
 	myligand->num_of_atypes = num_of_atypes;
@@ -955,6 +958,7 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			{
 				printf("Error: ligand consists of too many atoms'\n");
 				printf("Maximal allowed number of atoms is %d!\n", MAX_NUM_OF_ATOMS);
+				fclose(fp);
 				return 1;
 			}
 			if ((strcmp(tempstr, "HETATM") == 0))	//seeking to the first coordinate value
@@ -968,8 +972,10 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			fscanf(fp, "%s", tempstr);
 			fscanf(fp, "%lf", &(myligand->atom_idxyzq [atom_counter][4]));	//reading charge
 			fscanf(fp, "%s", tempstr);	//reading atom type
-			if (set_liganddata_typeid(myligand, atom_counter, tempstr) != 0)	//the function sets the type index
+			if (set_liganddata_typeid(myligand, atom_counter, tempstr) != 0){	//the function sets the type index
+				fclose(fp);
 				return 1;
+			}
 			atom_counter++;
 		}
 	}
@@ -1052,6 +1058,8 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			current_rigid_struct_id--;	//probably unnecessary since there is a new branch after every endbranch...
 		}
 	}
+
+	fclose(fp);
 
 	myligand->num_of_rotbonds = branch_counter;
 
