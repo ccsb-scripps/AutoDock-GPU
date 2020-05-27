@@ -94,6 +94,7 @@ typedef struct
 	int 	num_of_rotbonds;
 	char 	atom_types [MAX_NUM_OF_ATYPES][4];
 	double 	atom_idxyzq [MAX_NUM_OF_ATOMS][5];
+	int	atom_map_to_fgrids[MAX_NUM_OF_ATOMS];
 	int 	rotbonds [MAX_NUM_OF_ROTBONDS][2];
 	char 	atom_rotbonds [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ROTBONDS];
 	int 	atom_rigid_structures [MAX_NUM_OF_ATOMS];
@@ -226,5 +227,7 @@ float calc_intraE_f(const Liganddata* 	myligand,
 		    const float 	AD4_coeff_desolv,
 		    const float 	qasp,
 		    int 		debug);
+
+int map_to_all_maps(Gridinfo* mygrid, Liganddata* myligand, std::vector<Map>& all_maps);
 
 #endif /* PROCESSLIGAND_H_ */

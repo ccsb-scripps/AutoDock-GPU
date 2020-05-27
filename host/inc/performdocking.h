@@ -80,7 +80,8 @@ int docking_with_gpu(const Gridinfo* 		mygrid,
 		     char**			argv,
 			SimulationState&	sim_state,
 			GpuData& cData,
-			GpuTempData& tData);
+			GpuTempData& tData,
+			bool floatgrids_preloaded);
 
 double check_progress(int* evals_of_runs,
 		      int generation_cnt,
