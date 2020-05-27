@@ -1,5 +1,8 @@
 #ifndef GPUDATADOTH
 #define GPUDATADOTH
+#include <float.h>
+
+static const float MAXENERGY = FLT_MAX / 100.0; // Used to cap absurd energies so placeholder energy is always skipped in sorts
 
 #define RTERROR(status, s) \
     if (status != cudaSuccess) { \

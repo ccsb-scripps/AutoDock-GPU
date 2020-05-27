@@ -68,7 +68,7 @@ gpu_gen_and_eval_newpops_kernel(
         else
         {
             bestID = -1;
-            energy = 1000000000000.0f;
+            energy = FLT_MAX;
         }
         
         // Scan through population (we already picked up a blockDim's worth above so skip)
@@ -89,7 +89,7 @@ gpu_gen_and_eval_newpops_kernel(
         if (tgx == 0)
         {
             sBestID[warpID] = bestID;
-            sBestEnergy[warpID] = energy;
+            sBestEnergy[warpID] = fminf(MAXENERGY, energy);
         }
         __threadfence();
         __syncthreads();
@@ -106,7 +106,7 @@ gpu_gen_and_eval_newpops_kernel(
             else
             {
                 bestID = -1;
-                energy = 1000000000.0f;
+                energy = FLT_MAX;
             }
             WARPMINIMUM2(tgx, energy, bestID);     
             
