@@ -237,7 +237,7 @@ __device__ void gpu_calc_energy(
 	          atom_id < cData.dockpars.num_of_atoms;
 	          atom_id+= blockDim.x)
 	{
-		uint atom_typeid = cData.pKerconst_interintra->atom_types_const[atom_id];
+		uint atom_typeid = cData.pKerconst_interintra->atom_types_map_const[atom_id];
 		float x = calc_coords[atom_id].x;
 		float y = calc_coords[atom_id].y;
 		float z = calc_coords[atom_id].z;
@@ -282,7 +282,7 @@ __device__ void gpu_calc_energy(
 		#endif
 
 		// Capturing electrostatic values
-		atom_typeid = cData.dockpars.num_of_atypes;
+		atom_typeid = cData.dockpars.num_of_map_atypes;
 
 		mul_tmp = atom_typeid*g3<<2;
 		// Calculating electrostatic energy
@@ -293,7 +293,7 @@ __device__ void gpu_calc_energy(
 		#endif
 
 		// Capturing desolvation values
-		atom_typeid = cData.dockpars.num_of_atypes+1;
+		atom_typeid = cData.dockpars.num_of_map_atypes+1;
 
 		mul_tmp = atom_typeid*g3<<2;
 		// Calculating desolvation energy

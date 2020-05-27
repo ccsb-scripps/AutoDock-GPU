@@ -34,12 +34,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "getparameters.h"
 #include "setup.hpp"
 
-int setup(Gridinfo&            mygrid,
+int setup(std::vector<Map>& all_maps,
+	  Gridinfo&            mygrid,
 	  std::vector<float>& floatgrids,
 	  Dockpars&            mypars,
 	  Liganddata&          myligand_init,
 	  Liganddata&          myxrayligand,
 	  FileList&            filelist,
+	  float* fgrids_device,
 	  int i_file,
 	  int argc, char* argv[])
 {
@@ -95,9 +97,36 @@ int setup(Gridinfo&            mygrid,
 	// Resize grid
 	floatgrids.resize(4*(mygrid.num_of_atypes+2)*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2]);
 
-	//Reading the grid files and storing values in the memory region pointed by floatgrids
-	if (get_gridvalues_f(&mygrid, floatgrids.data(), mypars.cgmaps) != 0)
-		{printf("\n\nError in get_gridvalues_f, stopped job."); return 1;}
+	if (filelist.preload_maps){
+		if (!filelist.maps_are_loaded) { // maps not yet loaded
+			bool got_error = false;
+			#pragma omp critical
+			{
+				if (!filelist.maps_are_loaded) { // maps not yet loaded (but in critical, so only one thread will ever enter this)
+					// Load maps to all_maps
+					if (load_all_maps(mypars.fldfile, &mygrid, all_maps, mypars.cgmaps,fgrids_device) != 0)
+                        			{got_error = true;}
+					filelist.maps_are_loaded = true;
+				}
+			}
+			// Return must be outside pragma
+			if (got_error) {printf("\n\nError in load_all_maps, stopped job."); return 1;}
+		}
+
+		// Copy maps from all_maps
+		if (copy_from_all_maps(&mygrid, floatgrids.data(), all_maps) != 0)
+                        {printf("\n\nError in copy_from_all_maps, stopped job."); return 1;}
+
+		// Specify total number of maps that will be on GPU
+		mygrid.num_of_map_atypes = all_maps.size()-2; // For the two extra maps
+		// Map atom_types used for ligand processing to all_maps so all the maps can stay on GPU
+		if(map_to_all_maps(&mygrid, &myligand_init, all_maps) !=0)
+			{printf("\n\nError in map_to_all_maps, stopped job."); return 1;}
+	} else {
+		//Reading the grid files and storing values in the memory region pointed by floatgrids
+		if (get_gridvalues_f(&mygrid, floatgrids.data(), mypars.cgmaps) != 0)
+			{printf("\n\nError in get_gridvalues_f, stopped job."); return 1;}
+	}
 
 	//------------------------------------------------------------
 	// Capturing algorithm parameters (command line args)

@@ -39,6 +39,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <vector>
+
+#include <fstream>
+#include <sstream>
 
 #ifndef _WIN32
 
@@ -75,13 +79,25 @@ typedef struct
 	double size_xyz_angstr [3];
 	char   grid_types [MAX_NUM_OF_ATYPES+2][4]; // The additional two are the electrostatic and the desolvation types
 	int    num_of_atypes;
+	int    num_of_map_atypes;
 	double origo_real_xyz [3];
 } Gridinfo;
+
+struct Map
+{
+	std::string atype;
+	std::vector<float> grid;
+
+	Map(std::string atype) : atype(atype){}
+};
 
 int get_gridinfo(const char*, Gridinfo*);
 
 int get_gridvalues_f(const Gridinfo* mygrid,
 		     float* fgrids,
 		     bool cgmaps);
+
+int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<Map>& all_maps, bool cgmaps,float* fgrids_device);
+int copy_from_all_maps (const Gridinfo* mygrid, float* fgrids, std::vector<Map>& all_maps );
 
 #endif /* PROCESSGRID_H_ */

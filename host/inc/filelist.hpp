@@ -11,6 +11,8 @@ class FileList{
 	public:
 
 	bool used;
+	bool preload_maps;
+	bool maps_are_loaded;
 	char filename [128];
 	int nfiles;
 	std::vector<std::string> resnames;
@@ -18,7 +20,7 @@ class FileList{
 	std::vector<std::string> ligand_files;
 
 	// Default to unused, with 1 file
-	FileList() : used( false ), nfiles( 1 ){}
+	FileList() : used( false ), nfiles( 1 ), preload_maps( false ), maps_are_loaded( false ) {}
 };
 
 #endif
