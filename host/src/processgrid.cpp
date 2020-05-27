@@ -308,6 +308,8 @@ int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<
                                         mypoi+=4;
                                 }
 
+		fclose(fp);
+
 		// Copy to GPU
 		cudaError_t status = cudaMemcpy(fgrids_device+t*size_of_one_map,all_maps[t].grid.data(),sizeof(float)*size_of_one_map, cudaMemcpyHostToDevice);
     		if (status != cudaSuccess) { 
