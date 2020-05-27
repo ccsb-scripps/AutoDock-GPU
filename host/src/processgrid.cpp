@@ -81,6 +81,7 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 			if (mygrid->spacing > 1)
 			{
 				printf("Error: grid spacing is too big!\n");
+				fclose(fp);
 				return 1;
 			}
 		}
@@ -98,6 +99,7 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 			if ((mygrid->size_xyz [0] > MAX_NUM_GRIDPOINTS) || (mygrid->size_xyz [1] > MAX_NUM_GRIDPOINTS) || (mygrid->size_xyz [2] > MAX_NUM_GRIDPOINTS))
 			{
 				printf("Error: each dimension of the grid must be below %i.\n", MAX_NUM_GRIDPOINTS);
+				fclose(fp);
 				return 1;
 			}
 		}
@@ -203,6 +205,7 @@ int get_gridvalues_f(const Gridinfo* mygrid, float* fgrids, bool cgmaps)
 					if(y>0 && z>0) *(mypoi-4*(g2+g1)+3) = *mypoi;
 					mypoi+=4;
 				}
+		fclose(fp);
 	}
 
 	return 0;
