@@ -108,13 +108,13 @@ int stricmp(const char*, const char*);
 int strincmp(const char*, const char*, int);
 #endif
 
-class ThreadSafeRNG
+class LocalRNG
 {
         unsigned int state;
 
         public:
 
-        ThreadSafeRNG(){
+        LocalRNG(){
 #if defined (REPRO)
 		state = 1u;
 #else
