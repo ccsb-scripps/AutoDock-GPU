@@ -100,7 +100,9 @@ int setup(std::vector<Map>& all_maps,
 	if (filelist.preload_maps){
 		if (!filelist.maps_are_loaded) { // maps not yet loaded
 			bool got_error = false;
+#ifdef USE_PIPELINE
 			#pragma omp critical
+#endif
 			{
 				if (!filelist.maps_are_loaded) { // maps not yet loaded (but in critical, so only one thread will ever enter this)
 					// Load maps to all_maps
