@@ -865,22 +865,21 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 	else
 		gen_pop = 1;
 
+	// Local random numbers for thread safety/reproducibility
+	ThreadSafeRNG r;
+
 	//Generating initial population
 	if (gen_pop == 1)
 	{
 		for (entity_id=0; entity_id<pop_size*mypars->num_of_runs; entity_id++) {
 			for (gene_id=0; gene_id<3; gene_id++) {
-#if defined (REPRO)
-				init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 30.1186;
-#else
-				init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = (float) myrand()*(mygrid->size_xyz_angstr[gene_id]);
-#endif			
+				init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = r.random_float()*(mygrid->size_xyz_angstr[gene_id]);
             }
 
             // generate random quaternion
-            u1 = (float) myrand();
-            u2 = (float) myrand();
-            u3 = (float) myrand();
+            u1 = r.random_float();
+            u2 = r.random_float();
+            u3 = r.random_float();
             qw = sqrt(1.0 - u1) * sin(PI_TIMES_2 * u2);
             qx = sqrt(1.0 - u1) * cos(PI_TIMES_2 * u2);
             qy = sqrt(      u1) * sin(PI_TIMES_2 * u3);
@@ -909,37 +908,27 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 			//printf("angles = %8.2f, %8.2f, %8.2f\n", phi / DEG_TO_RAD, theta / DEG_TO_RAD, rotangle/DEG_TO_RAD);
             
             /*
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = (float) myrand() * 360.0;
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = (float) myrand() * 360.0;
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = (float) myrand() * 360.0;
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = (float) myrand() * 360;
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = (float) myrand() * 180;
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = (float) myrand() * 360;
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = (float) r.random_float() * 360.0;
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = (float) r.random_float() * 360.0;
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = (float) r.random_float() * 360.0;
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = (float) r.random_float() * 360;
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = (float) r.random_float() * 180;
+            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = (float) r.random_float() * 360;
             */
 
 			for (gene_id=6; gene_id<MAX_NUM_OF_ROTBONDS+6; gene_id++) {
-#if defined (REPRO)
-					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 22.0452;
-#else
-					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = myrand()*360;
-#endif
-            }
+					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = r.random_float()*360;
+			}
         }
 
 		//generating reference orientation angles
-#if defined (REPRO)
-		mypars->ref_ori_angles[0] = 190.279;
-		mypars->ref_ori_angles[1] = 190.279;
-		mypars->ref_ori_angles[2] = 190.279;
-#else
-		// mypars->ref_ori_angles[0] = (float) floor(myrand()*360*100)/100.0;
-		// mypars->ref_ori_angles[1] = (float) floor(myrand()*/*360*/180*100)/100.0;
-		// mypars->ref_ori_angles[2] = (float) floor(myrand()*360*100)/100.0;
+		// mypars->ref_ori_angles[0] = (float) floor(r.random_float()*360*100)/100.0;
+		// mypars->ref_ori_angles[1] = (float) floor(r.random_float()*/*360*/180*100)/100.0;
+		// mypars->ref_ori_angles[2] = (float) floor(r.random_float()*360*100)/100.0;
 
 		// mypars->ref_ori_angles[0] = 0.0;
 		// mypars->ref_ori_angles[1] = 0.0;
 		// mypars->ref_ori_angles[2] = 0.0;
-#endif
 
 		//Writing first initial population to initpop.txt
 		fp = fopen("initpop.txt", "w");
@@ -988,11 +977,6 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 
 	for (uint32_t i=0; i<mypars->num_of_runs; i++)
 	{
-#if defined (REPRO)
-		ref_ori_angles[3*i]   = 190.279;
-		ref_ori_angles[3*i+1] =  90.279;
-		ref_ori_angles[3*i+2] = 190.279;
-#else
 		// Enable only for debugging.
 		// These specific values of rotational genes (in axis-angle space)
 		// correspond to a quaternion for NO rotation.
@@ -1002,15 +986,15 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		// ref_ori_angles[3*i+2] = 0.0f;
 
 		// Enable for release.
-		// ref_ori_angles[3*i]   = (float) (myrand()*360.0); 	//phi
-		// ref_ori_angles[3*i+1] = (float) (myrand()*180.0);	//theta
-		// ref_ori_angles[3*i+2] = (float) (myrand()*360.0);	//angle
+		// ref_ori_angles[3*i]   = (float) (r.random_float()*360.0); 	//phi
+		// ref_ori_angles[3*i+1] = (float) (r.random_float()*180.0);	//theta
+		// ref_ori_angles[3*i+2] = (float) (r.random_float()*360.0);	//angle
 
         // uniform distr.
         // generate random quaternion
-        u1 = (float) myrand();
-        u2 = (float) myrand();
-        u3 = (float) myrand();
+        u1 = r.random_float();
+        u2 = r.random_float();
+        u3 = r.random_float();
         qw = sqrt(1.0 - u1) * sin(PI_TIMES_2 * u2);
         qx = sqrt(1.0 - u1) * cos(PI_TIMES_2 * u2);
         qy = sqrt(      u1) * sin(PI_TIMES_2 * u3);
@@ -1036,7 +1020,6 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		ref_ori_angles[3*i+1] = theta / DEG_TO_RAD;
 		ref_ori_angles[3*i+2] = rotangle / DEG_TO_RAD;
         
-#endif
 	}
 
 
