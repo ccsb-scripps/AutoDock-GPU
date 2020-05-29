@@ -288,6 +288,7 @@ void make_resfiles(float* final_population,
 	strcpy(temp_filename, mypars->ligandfile);
 	name_ext_start = temp_filename + strlen(mypars->ligandfile) - 6;	//without .pdbqt
 
+	IntraTables tables(ligand_ref, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp);
 	for (i=0; i<pop_size; i++)
 	{
 		temp_docked = *ligand_ref;
@@ -312,7 +313,7 @@ void make_resfiles(float* final_population,
 			#if 0
 			accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, 0, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp, debug);
 			#endif
-			accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp, debug);
+			accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, tables, debug);
 
 		move_ligand(&temp_docked, mygrid->origo_real_xyz);				//moving it according to grid location
 		if (mypars->given_xrayligandfile == true) {
