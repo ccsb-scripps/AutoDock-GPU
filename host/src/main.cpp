@@ -74,9 +74,12 @@ int main(int argc, char* argv[])
 {
 	// Timer initializations
 #ifndef _WIN32
-	timeval time_start, idle_timer, setup_timer, exec_timer, processing_timer;
+	timeval time_start, idle_timer, exec_timer;
 	start_timer(time_start);
 	start_timer(idle_timer);
+#else
+	// Dummy variables if timers off
+	double time_start, idle_timer, exec_timer;
 #endif
 	double total_setup_time=0;
 	double total_processing_time=0;
@@ -133,7 +136,11 @@ int main(int argc, char* argv[])
 		Liganddata myxrayligand;
 		std::vector<float> floatgrids;
 	        SimulationState sim_state;
-
+#ifndef _WIN32
+	        timeval setup_timer, processing_timer;
+#else
+		double setup_timer, processing_timer;
+#endif
 #ifdef USE_PIPELINE
 		#pragma omp for schedule(dynamic,1)
 #endif
@@ -159,8 +166,6 @@ int main(int argc, char* argv[])
 				total_setup_time+=seconds_since(setup_timer);
 			}
 
-			sim_state.idle_time = seconds_since(idle_timer);
-			start_timer(exec_timer);
 			printf("\nRunning Job #%d: ", i_job);
 			if (filelist.used){
 	                     	printf("\n   Fields from: %s",  filelist.fld_files[i_job].c_str());
@@ -174,7 +179,14 @@ int main(int argc, char* argv[])
 			#pragma omp critical
 #endif
 			{
+				// End idling timer, start exec timer
+				sim_state.idle_time = seconds_since(idle_timer);
+	                        start_timer(exec_timer);
+				// Dock
 				error_in_docking = docking_with_gpu(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), profiler.p[(get_profiles ? i_job : 0)], &argc, argv, sim_state, cData, tData, filelist.preload_maps);
+				// End exec timer, start idling timer
+				sim_state.exec_time = seconds_since(exec_timer);
+				start_timer(idle_timer);
 			}
 
 			if (error_in_docking!=0){
@@ -185,13 +197,11 @@ int main(int argc, char* argv[])
 				continue;
 			} else { // Successful run
 #ifndef _WIN32
-				sim_state.exec_time = seconds_since(exec_timer);
 #ifdef USE_PIPELINE
                                 #pragma omp atomic update
 #endif
 				total_exec_time+=sim_state.exec_time;
 				printf("\nJob #%d took %.3f sec after waiting %.3f sec for setup", i_job, sim_state.exec_time, sim_state.idle_time);
-				start_timer(idle_timer);
 				if (get_profiles && filelist.used){
 	                        	// Detailed timing information to .timing
 	                        	profiler.p[i_job].exec_time = sim_state.exec_time;
