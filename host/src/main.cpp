@@ -72,13 +72,6 @@ inline void start_timer(T& time_start)
 
 int main(int argc, char* argv[])
 {
-	// CPU thread setup
-	int nthreads=1;
-#ifdef USE_PIPELINE
-	#pragma omp parallel
-	{nthreads = omp_get_num_threads();}
-#endif
-
 	// Timer initializations
 #ifndef _WIN32
 	timeval time_start, idle_timer, setup_timer, exec_timer, processing_timer;
@@ -98,7 +91,6 @@ int main(int argc, char* argv[])
 	if (filelist.used){
 		n_files = filelist.nfiles;
 		printf("\nRunning %d jobs in pipeline mode ", n_files);
-		printf("\nUsing %d threads", nthreads);
 	} else {
 		n_files = 1;
 	}
@@ -129,6 +121,8 @@ int main(int argc, char* argv[])
 	#pragma omp parallel
 	{
 		int t_id = omp_get_thread_num();
+		#pragma omp master
+		{printf("\nUsing %d OpenMP threads", omp_get_num_threads());}
 #else
 	{
 		int t_id = 0;
@@ -192,6 +186,9 @@ int main(int argc, char* argv[])
 			} else { // Successful run
 #ifndef _WIN32
 				sim_state.exec_time = seconds_since(exec_timer);
+#ifdef USE_PIPELINE
+                                #pragma omp atomic update
+#endif
 				total_exec_time+=sim_state.exec_time;
 				printf("\nJob #%d took %.3f sec after waiting %.3f sec for setup", i_job, sim_state.exec_time, sim_state.idle_time);
 				start_timer(idle_timer);
