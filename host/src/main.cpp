@@ -74,12 +74,12 @@ int main(int argc, char* argv[])
 {
 	// Timer initializations
 #ifndef _WIN32
-	timeval time_start, idle_timer, exec_timer;
+	timeval time_start, idle_timer;
 	start_timer(time_start);
 	start_timer(idle_timer);
 #else
 	// Dummy variables if timers off
-	double time_start, idle_timer, exec_timer;
+	double time_start, idle_timer;
 #endif
 	double total_setup_time=0;
 	double total_processing_time=0;
@@ -113,10 +113,11 @@ int main(int argc, char* argv[])
 		if (!get_profiles) break; // still create 1 if off
 	}
 
+	// Error flag for each ligand
+	std::vector<int> err(n_files,0);
+
 	// Print version info
 	printf("\nAutoDock-GPU version: %s\n", VERSION);
-
-	int err = 0;
 
 	setup_gpu_for_docking(cData,tData);
 
@@ -126,6 +127,7 @@ int main(int argc, char* argv[])
 		int t_id = omp_get_thread_num();
 		#pragma omp master
 		{printf("\nUsing %d OpenMP threads", omp_get_num_threads());}
+		#pragma omp barrier
 #else
 	{
 		int t_id = 0;
@@ -137,9 +139,9 @@ int main(int argc, char* argv[])
 		std::vector<float> floatgrids;
 	        SimulationState sim_state;
 #ifndef _WIN32
-	        timeval setup_timer, processing_timer;
+	        timeval setup_timer, exec_timer, processing_timer;
 #else
-		double setup_timer, processing_timer;
+		double setup_timer, exec_timer, processing_timer;
 #endif
 #ifdef USE_PIPELINE
 		#pragma omp for schedule(dynamic,1)
@@ -157,7 +159,7 @@ int main(int argc, char* argv[])
 					printf("\n(   Field file: %s )",  filelist.fld_files[i_job].c_str());
 					printf("\n(   Ligand file: %s )", filelist.ligand_files[i_job].c_str()); fflush(stdout);
 				}
-				err = 1;
+				err[i_job] = 1;
 				continue;
 			} else { // Successful setup
 #ifdef USE_PIPELINE
@@ -193,7 +195,7 @@ int main(int argc, char* argv[])
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
 				// Set back to setup stage rather than moving to processing stage so a different job will be set up
 				printf("\n\nError in docking_with_gpu, stopped Job %d.",i_job);
-				err = 1;
+				err[i_job] = 1;
 				continue;
 			} else { // Successful run
 #ifndef _WIN32
@@ -230,11 +232,21 @@ int main(int argc, char* argv[])
 	printf("\nIdle time of execution thread: %.3f sec",seconds_since(time_start) - total_exec_time);
 	if (get_profiles && filelist.used) profiler.write_profiles_to_file(filelist.filename);
 #endif
-	if (err==1){
-		printf("\nWARNING: Not all jobs were successful. Search output for 'Error' for details.");
-	} else {
-		printf("\nAll jobs ran without errors.");
+
+	// Alert user to ligands that failed to complete
+	int n_errors=0;
+	for (int i=0; i<n_files; i++){
+		if (err[i]==1){
+			if (filelist.used){
+				if (n_errors==0) printf("\nWARNING: The following jobs were not successful:");
+				printf("\nJob %d: %s", i, filelist.ligand_files[i].c_str());
+			} else {
+				printf("\nThe job was not successful.");
+			}
+			n_errors+=1;
+		}
 	}
+	if (n_errors==0) printf("\nAll jobs ran without errors.");
 
 	return 0;
 }
