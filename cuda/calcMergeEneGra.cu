@@ -399,10 +399,14 @@ __device__ void gpu_calc_energrad(
 	// ================================================
 	// CALCULATING INTRAMOLECULAR GRADIENTS
 	// ================================================
+#ifdef REPRO
+        // Simplest way to ensure random order of atomic addition doesn't make answers irreproducible: use only 1 thread
+        if (threadIdx.x==0) for (uint32_t contributor_counter = 0; contributor_counter < cData.dockpars.num_of_intraE_contributors; contributor_counter+= 1) {
+#else 
 	for (uint32_t contributor_counter = threadIdx.x;
 	              contributor_counter < cData.dockpars.num_of_intraE_contributors;
-	              contributor_counter+= blockDim.x)
-	{
+	              contributor_counter+= blockDim.x) {
+#endif
 		// Storing in a private variable 
 		// the gradient contribution of each contributing atomic pair
 		float priv_gradient_per_intracontributor= 0.0f;
@@ -832,10 +836,12 @@ __device__ void gpu_calc_energrad(
 	// Obtaining torsion-related gradients
 	// ------------------------------------------
 	uint32_t num_torsion_genes = cData.dockpars.num_of_genes-6;
-	for (uint32_t idx = threadIdx.x;
-		  idx < num_torsion_genes * cData.dockpars.num_of_atoms;
-		  idx += blockDim.x) {
-
+#ifdef REPRO
+	// Simplest way to ensure random order of atomic addition doesn't make answers irreproducible: use only 1 thread
+	if (threadIdx.x==0) for (uint32_t idx = 0; idx < num_torsion_genes * cData.dockpars.num_of_atoms; idx += 1) {
+#else
+	for (uint32_t idx = threadIdx.x; idx < num_torsion_genes * cData.dockpars.num_of_atoms; idx += blockDim.x) {
+#endif
 		uint32_t rotable_atom_cnt = idx / num_torsion_genes;
 		uint32_t rotbond_id = idx - rotable_atom_cnt * num_torsion_genes; // this is a bit cheaper than % (modulo)
 
