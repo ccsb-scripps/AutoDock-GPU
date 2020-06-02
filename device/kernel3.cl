@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 // if defined, new (experimental) SW genotype moves that are dependent
 // on nr of atoms and nr of torsions of ligand are used
-// #define SW_MOVE_TEST
+#define SWAT3 // Third set of Solis-Wets hyperparameters by Andreas Tillack
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 perform_LS(		
@@ -147,7 +147,7 @@ perform_LS(
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-#ifdef SW_MOVE_TEST
+#ifdef SWAT3
 	float lig_scale = 1.0f/sqrt((float)dockpars_num_of_atoms);
 	float gene_scale = 1.0f/sqrt((float)dockpars_num_of_genes);
 #endif
@@ -158,7 +158,7 @@ perform_LS(
 		     gene_counter < dockpars_num_of_genes;
 		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
-#ifdef SW_MOVE_TEST
+#ifdef SWAT3
 			genotype_deviate[gene_counter] = rho * (2*gpu_randf(dockpars_prng_states)-1) * (gpu_randf(dockpars_prng_states) < gene_scale);
 
 			// Translation genes
