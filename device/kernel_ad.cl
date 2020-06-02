@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
-// #define AD_RHO_CRITERION
+#define ADADELTA_AUTOSTOP // Stopping criterion from Solis-Wets
 
 // Gradient-based adadelta minimizer
 // https://arxiv.org/pdf/1212.5701.pdf
@@ -306,7 +306,7 @@ gradient_minAD(
 		best_energy = INFINITY;
 	}
 
-#ifdef AD_RHO_CRITERION
+#ifdef ADADELTA_AUTOSTOP
 	__local float rho;
 	__local int   cons_succ;
 	__local int   cons_fail;
@@ -476,12 +476,12 @@ gradient_minAD(
 			if (energy < best_energy)
 			{
 				best_energy = energy;
-#ifdef AD_RHO_CRITERION
+#ifdef ADADELTA_AUTOSTOP
 				cons_succ++;
 				cons_fail = 0;
 #endif
 			}
-#ifdef AD_RHO_CRITERION
+#ifdef ADADELTA_AUTOSTOP
 			else
 			{
 				cons_succ = 0;
@@ -498,7 +498,7 @@ gradient_minAD(
 			#if defined (DEBUG_ENERGY_ADADELTA)
 			printf("%-18s [%-5s]---{%-5s}   [%-10.7f]---{%-10.7f}\n", "-ENERGY-KERNEL7-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
 			#endif
-#ifdef AD_RHO_CRITERION
+#ifdef ADADELTA_AUTOSTOP
 			if (cons_succ >= 4)
 			{
 				rho *= LS_EXP_FACTOR;
@@ -513,7 +513,7 @@ gradient_minAD(
 #endif
 		}
 		barrier(CLK_LOCAL_MEM_FENCE); // making sure that iteration_cnt is up-to-date
-#ifdef AD_RHO_CRITERION
+#ifdef ADADELTA_AUTOSTOP
 	} while ((iteration_cnt < dockpars_max_num_of_iters)  && (rho > 0.01));
 #else
 	} while (iteration_cnt < dockpars_max_num_of_iters);
