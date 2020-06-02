@@ -125,8 +125,6 @@ gpu_gradient_minAD_kernel(
 				entity_id = cData.dockpars.num_of_lsentities; // AT - Should this be (uint)(dockpars_pop_size * gpu_randf(dockpars_prng_states))?
 			}
 		}
-		
-		energy = pMem_energies_next[run_id * cData.dockpars.pop_size + entity_id];
 
 		#if defined (DEBUG_ADADELTA_MINIMIZER) || defined (PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION)
 		printf("\n");
@@ -139,9 +137,9 @@ gpu_gradient_minAD_kernel(
 		#endif
 	}
     __threadfence();
-    __syncthreads();    
+    __syncthreads();
+    energy = pMem_energies_next[run_id * cData.dockpars.pop_size + entity_id];
     
-
     int offset = (run_id * cData.dockpars.pop_size + entity_id) * GENOTYPE_LENGTH_IN_GLOBMEM;
     for (int i = threadIdx.x ; i < cData.dockpars.num_of_genes; i += blockDim.x)
     {

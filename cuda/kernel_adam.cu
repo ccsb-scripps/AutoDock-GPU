@@ -69,11 +69,11 @@ gpu_gradient_minAdam_kernel(
 
 	// Determining entity, and its run, energy, and genotype
 	int   run_id = blockIdx.x / cData.dockpars.num_of_lsentities;
-	int   entity_id = blockIdx.x - run_id * cData.dockpars.num_of_lsentities;
 	float energy;  
 	// Energy may go up, so we keep track of the best energy ever calculated.
 	// Then, we return the genotype corresponding 
 	// to the best observed energy, i.e. "best_genotype"
+    __shared__ int entity_id;
 	__shared__ float best_energy;
     __shared__ float sFloatAccumulator;
     extern __shared__ float sFloatBuff[];
@@ -110,6 +110,7 @@ gpu_gradient_minAdam_kernel(
 	{
 		// Since entity 0 is the best one due to elitism,
 		// it should be subjected to random selection
+        entity_id = blockIdx.x % cData.dockpars.num_of_lsentities;        
 		if (entity_id == 0) {
 			// If entity 0 is not selected according to LS-rate,
 			// choosing another entity
@@ -118,8 +119,6 @@ gpu_gradient_minAdam_kernel(
 			}
 		}
 		
-		energy = pMem_energies_next[run_id * cData.dockpars.pop_size + entity_id];
-
 		#if defined (DEBUG_ADADELTA_MINIMIZER) || defined (PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION)
 		printf("\n");
 		printf("-------> Start of ADADELTA minimization cycle\n");
@@ -130,6 +129,9 @@ gpu_gradient_minAdam_kernel(
 		printf("%20s %.6f\n", "initial energy: ", energy);
 		#endif
 	}
+    __syncthreads();
+    __threadfence();
+    energy = pMem_energies_next[run_id * cData.dockpars.pop_size + entity_id];    
     
 
     int offset = (run_id * cData.dockpars.pop_size + entity_id) * GENOTYPE_LENGTH_IN_GLOBMEM;
