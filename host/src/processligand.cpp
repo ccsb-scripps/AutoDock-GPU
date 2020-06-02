@@ -1339,8 +1339,9 @@ void print_ref_lig_energies_f(Liganddata   myligand,
 	double temp_vec [3];
 	int i;
 
+	IntraTables tables(&myligand, scaled_AD4_coeff_elec, AD4_coeff_desolv, qasp);
 	printf("Intramolecular energy of reference ligand: %lf\n",
-		calc_intraE_f(&myligand, 8, smooth, 0, scaled_AD4_coeff_elec, AD4_coeff_desolv, qasp, 0));
+		calc_intraE_f(&myligand, 8, smooth, 0, tables, 0));
 
 	for (i=0; i<3; i++)
 		temp_vec [i] = -1*mygrid.origo_real_xyz [i];
@@ -2149,9 +2150,7 @@ float calc_intraE_f(const Liganddata* myligand,
 		          float       dcutoff,
 		          float       smooth,
 		          char        ignore_desolv,
-		    const float       scaled_AD4_coeff_elec,
-		    const float       AD4_coeff_desolv,
-		    const float       qasp, 
+			  IntraTables& tables,
 		          int         debug)
 //The function calculates the intramolecular energy of the ligand given by the first parameter,
 //and returns it as a double. The second parameter is the distance cutoff, if the third isn't 0,
@@ -2168,29 +2167,6 @@ float calc_intraE_f(const Liganddata* myligand,
 	float s1, s2, v1, v2;
 
 	float vW, el, desolv;
-
-	//The following tables will contain the 1/r^6, 1/r^10, 1/r^12, W_el/(r*eps(r)) and W_des*exp(-r^2/(2sigma^2)) functions for
-	//distances 0.01:0.01:20.48 A
-	static char first_call = 1;
-	static float r_6_table [2048];
-	static float r_10_table [2048];
-	static float r_12_table [2048];
-	static float r_epsr_table [2048];
-	static float desolv_table [2048];
-
-	//The following arrays will contain the q1*q2 and qasp*abs(q) values for the ligand which is the input parameter when this
-	//function is called first time (it is supposed that the energy must always be calculated for this ligand only, that is, there
-	//is only one ligand during the run of the program...)
-	static float q1q2 [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
-	static float qasp_mul_absq [MAX_NUM_OF_ATOMS];
-
-	//when first call, calculating tables
-	if (first_call == 1)
-	{
-		calc_distdep_tables_f(r_6_table, r_10_table, r_12_table, r_epsr_table, desolv_table, scaled_AD4_coeff_elec, AD4_coeff_desolv);
-		calc_q_tables_f(myligand, qasp, q1q2, qasp_mul_absq);
-		first_call = 0;
-	}
 
 	vW = 0;
 	el = 0;
@@ -2267,15 +2243,15 @@ float calc_intraE_f(const Liganddata* myligand,
 				{
 					if (is_H_bond(myligand->atom_types [type_id1], myligand->atom_types [type_id2]) != 0)	//H-bond
 					{
-						vdW1 = myligand->VWpars_C [type_id1][type_id2]*r_12_table [smoothed_distance_id];
-						vdW2 = myligand->VWpars_D [type_id1][type_id2]*r_10_table [smoothed_distance_id];
+						vdW1 = myligand->VWpars_C [type_id1][type_id2]*tables.r_12_table [smoothed_distance_id];
+						vdW2 = myligand->VWpars_D [type_id1][type_id2]*tables.r_10_table [smoothed_distance_id];
 						if (debug == 1)
 							printf("H-bond interaction = ");
 					}
 					else	//normal van der Waals
 					{
-						vdW1 = myligand->VWpars_A [type_id1][type_id2]*r_12_table [smoothed_distance_id];
-						vdW2 = myligand->VWpars_B [type_id1][type_id2]*r_6_table  [smoothed_distance_id];
+						vdW1 = myligand->VWpars_A [type_id1][type_id2]*tables.r_12_table [smoothed_distance_id];
+						vdW2 = myligand->VWpars_B [type_id1][type_id2]*tables.r_6_table  [smoothed_distance_id];
 						if (debug == 1)
 							printf("van der Waals interaction = ");
 					}
@@ -2285,18 +2261,18 @@ float calc_intraE_f(const Liganddata* myligand,
 
 				if (dist < 20.48)
 				{
-					s1 = (myligand->solpar [type_id1] + qasp_mul_absq [atom_id1]);
-					s2 = (myligand->solpar [type_id2] + qasp_mul_absq [atom_id2]);
+					s1 = (myligand->solpar [type_id1] + tables.qasp_mul_absq [atom_id1]);
+					s2 = (myligand->solpar [type_id2] + tables.qasp_mul_absq [atom_id2]);
 					v1 = myligand->volume [type_id1];
 					v2 = myligand->volume [type_id2];
 
 					if (debug == 1)
-						printf(" %lf, electrostatic = %lf, desolv = %lf\n", (vdW1 - vdW2), q1q2[atom_id1][atom_id2] * r_epsr_table [distance_id],
-							   (s1*v2 + s2*v1) * desolv_table [distance_id]);
+						printf(" %lf, electrostatic = %lf, desolv = %lf\n", (vdW1 - vdW2), tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id],
+							   (s1*v2 + s2*v1) * tables.desolv_table [distance_id]);
 
 
-					el += q1q2[atom_id1][atom_id2] * r_epsr_table [distance_id];
-					desolv += (s1*v2 + s2*v1) * desolv_table [distance_id];
+					el += tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id];
+					desolv += (s1*v2 + s2*v1) * tables.desolv_table [distance_id];
 				}
 				// ------------------------------------------------
 				// Required only for flexrings

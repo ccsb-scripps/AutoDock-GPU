@@ -94,6 +94,7 @@ void make_resfiles(	      float* final_population,
 		   	      char** argv,
 		   		int  debug,
 		   		int  run_cnt,
+				float& best_energy_of_all,
 		   Ligandresult* best_result);
 
 void cluster_analysis(     Ligandresult myresults [],

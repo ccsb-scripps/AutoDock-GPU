@@ -387,14 +387,10 @@ filled with clock() */
 	size_prng_seeds = blocksPerGridForEachEntity * threadsPerBlock * sizeof(unsigned int);
 	cpu_prng_seeds = (unsigned int*) malloc(size_prng_seeds);
 
-	genseed(time(NULL));	//initializing seed generator
+	LocalRNG r;
 
 	for (i=0; i<blocksPerGridForEachEntity*threadsPerBlock; i++)
-#if defined (REPRO)
-		cpu_prng_seeds[i] = 1u;
-#else
-		cpu_prng_seeds[i] = genseed(0u);
-#endif
+		cpu_prng_seeds[i] = r.random_uint();
 
 	//allocating memory in CPU for evaluation counters
 	size_evals_of_runs = mypars->num_of_runs*sizeof(int);

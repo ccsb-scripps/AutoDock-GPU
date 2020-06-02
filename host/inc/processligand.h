@@ -219,13 +219,36 @@ float calc_intraE_f(const Liganddata* 	myligand,
 		    int 		debug);
 #endif
 
+struct IntraTables{
+        //The following tables will contain the 1/r^6, 1/r^10, 1/r^12, W_el/(r*eps(r)) and W_des*exp(-r^2/(2sigma^2)) functions for
+        //distances 0.01:0.01:20.48 A
+        float r_6_table [2048];
+        float r_10_table [2048];
+        float r_12_table [2048];
+        float r_epsr_table [2048];
+        float desolv_table [2048];
+
+        //The following arrays will contain the q1*q2 and qasp*abs(q) values for the ligand which is the input parameter when this
+        //function is called first time (it is supposed that the energy must always be calculated for this ligand only, that is, there
+        //is only one ligand during the run of the program...)
+        float q1q2 [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
+        float qasp_mul_absq [MAX_NUM_OF_ATOMS];
+
+        // Fill intraE tables
+        IntraTables(const Liganddata* myligand,
+                    const float scaled_AD4_coeff_elec,
+                    const float AD4_coeff_desolv,
+                    const float qasp){
+                calc_distdep_tables_f(r_6_table, r_10_table, r_12_table, r_epsr_table, desolv_table, scaled_AD4_coeff_elec, AD4_coeff_desolv);
+                calc_q_tables_f(myligand, qasp, q1q2, qasp_mul_absq);
+        }
+};
+
 float calc_intraE_f(const Liganddata* 	myligand,
 		    float 		dcutoff,
 		    float 		smooth,
 		    char 		ignore_desolv,
-		    const float 	scaled_AD4_coeff_elec,
-		    const float 	AD4_coeff_desolv,
-		    const float 	qasp,
+		    IntraTables&	tables,
 		    int 		debug);
 
 int map_to_all_maps(Gridinfo* mygrid, Liganddata* myligand, std::vector<Map>& all_maps);

@@ -39,6 +39,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <math.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <limits>
 
 #define PI 3.14159265359
 
@@ -67,9 +68,6 @@ long long float2fraclint(double, int);
 
 //double timer_gets(void);
 
-double myrand(void);
-
-unsigned int myrand_int(unsigned int);
 
 double distance(const double [], const double []);
 
@@ -110,6 +108,35 @@ int stricmp(const char*, const char*);
 int strincmp(const char*, const char*, int);
 #endif
 
-unsigned int genseed(unsigned int init);
+class LocalRNG
+{
+        unsigned int state;
+
+        public:
+
+        LocalRNG(){
+#if defined (REPRO)
+		state = 1u;
+#else
+		state = time(NULL);
+#endif
+        }
+
+        //The function generates random numbers with a linear congruential generator, using Visual C++ generator constants.
+        unsigned int random_uint(){
+                state = (RAND_A_GS*state+RAND_C_GS);
+                return state;
+        }
+
+        float random_float(){
+		float max_uint = (float) std::numeric_limits<unsigned int>::max();
+		float output = 0.0f;
+
+		// Ensure random number is between 0 and 1
+		while (output<=0.0f || output>=1.0f)
+			output = (float)random_uint() / max_uint;
+                return output;
+        }
+};
 
 #endif /* MISCELLANEOUS_H_ */

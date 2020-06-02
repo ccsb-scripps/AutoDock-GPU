@@ -66,6 +66,24 @@ __device__ inline int64_t ullitolli(uint64_t u)
 
 #define ATOMICADDF32(pAccumulator, value) atomicAdd(pAccumulator, (value))
 #define ATOMICSUBF32(pAccumulator, value) atomicAdd(pAccumulator, -(value))
+#ifdef REPRO
+// This reduction implementation is slower, but ensures the sum is in a specific order to maintain bitwise reproducibility
+#define REDUCEFLOATSUM(value, pAccumulator) \
+    if (threadIdx.x == 0) \
+    { \
+        *pAccumulator = 0; \
+    } \
+    for (int i_red=0; i_red<blockDim.x; i_red++){ \
+        __threadfence(); \
+        __syncthreads(); \
+        if (i_red == threadIdx.x) *pAccumulator += value; \
+    } \
+    __threadfence(); \
+    __syncthreads(); \
+    value = (float)(*pAccumulator); \
+    __syncthreads();
+#else
+// This reduction implementation is faster
 #define REDUCEFLOATSUM(value, pAccumulator) \
     if (threadIdx.x == 0) \
     { \
@@ -91,7 +109,7 @@ __device__ inline int64_t ullitolli(uint64_t u)
     value = (float)(*pAccumulator); \
     __syncthreads();
 
-
+#endif
 
 
 static __constant__ GpuData cData;
