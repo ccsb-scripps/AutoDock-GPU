@@ -237,21 +237,21 @@ stringify:
 	./stringify_ocl_krnls.sh
 
 link:
-	ln -sf calcenergy.OpenCL.h host/inc/calcenergy.h
-	ln -sf getparameters.OpenCL.h host/inc/getparameters.h
-	ln -sf performdocking.OpenCL.h host/inc/performdocking.h
-	ln -sf processligand.OpenCL.h host/inc/processligand.h
-	ln -sf miscellaneous.OpenCL.h host/inc/miscellaneous.h
-	ln -sf processgrid.OpenCL.h host/inc/processgrid.h
-	ln -sf processresult.OpenCL.h host/inc/processresult.h
-	ln -sf calcenergy.OpenCL.cpp host/src/calcenergy.cpp
-	ln -sf main.OpenCL.cpp host/src/main.cpp
-	ln -sf performdocking.OpenCL.cpp host/src/performdocking.cpp
-	ln -sf processligand.OpenCL.cpp host/src/processligand.cpp
-	ln -sf getparameters.OpenCL.cpp host/src/getparameters.cpp
-	ln -sf miscellaneous.OpenCL.cpp host/src/miscellaneous.cpp
-	ln -sf processgrid.OpenCL.cpp host/src/processgrid.cpp
-	ln -sf processresult.OpenCL.cpp host/src/processresult.cpp
+	ln -sf calcenergy.h.OpenCL host/inc/calcenergy.h
+	ln -sf getparameters.h.OpenCL host/inc/getparameters.h
+	ln -sf performdocking.h.OpenCL host/inc/performdocking.h
+	ln -sf processligand.h.OpenCL host/inc/processligand.h
+	ln -sf miscellaneous.h.OpenCL host/inc/miscellaneous.h
+	ln -sf processgrid.h.OpenCL host/inc/processgrid.h
+	ln -sf processresult.h.OpenCL host/inc/processresult.h
+	ln -sf calcenergy.cpp.OpenCL host/src/calcenergy.cpp
+	ln -sf main.cpp.OpenCL host/src/main.cpp
+	ln -sf performdocking.cpp.OpenCL host/src/performdocking.cpp
+	ln -sf processligand.cpp.OpenCL host/src/processligand.cpp
+	ln -sf getparameters.cpp.OpenCL host/src/getparameters.cpp
+	ln -sf miscellaneous.cpp.OpenCL host/src/miscellaneous.cpp
+	ln -sf processgrid.cpp.OpenCL host/src/processgrid.cpp
+	ln -sf processresult.cpp.OpenCL host/src/processresult.cpp
 
 odock: check-env-all link stringify $(SRC)
 	$(CPP) \
