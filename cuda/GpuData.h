@@ -2,7 +2,14 @@
 #define GPUDATADOTH
 #include <float.h>
 
+
+static const int   TERMBITS = 10;
+static const float MAXTERM = (float)(1 << (31 - TERMBITS - 10));
+static const float TERMSCALE = (float)(1 << TERMBITS);
+static const float ONEOVERTERMSCALE = 1.0f / TERMSCALE;
+
 static const float MAXENERGY = FLT_MAX / 100.0; // Used to cap absurd energies so placeholder energy is always skipped in sorts
+static const float MAXFORCE = FLT_MAX / 100.0; // Used to cap absurd energies so placeholder energy is always skipped in sorts
 
 #define RTERROR(status, s) \
     if (status != cudaSuccess) { \
@@ -42,7 +49,7 @@ typedef struct
 {
         int             num_of_atoms;
         int             num_of_atypes;
-	int		num_of_map_atypes;
+        int		        num_of_map_atypes;
         int             num_of_intraE_contributors;
         int             gridsize_x;
         int             gridsize_y;

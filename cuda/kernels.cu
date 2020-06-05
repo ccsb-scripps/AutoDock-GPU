@@ -62,8 +62,9 @@ __device__ inline int64_t ullitolli(uint64_t u)
     __syncthreads(); \
     value = *pAccumulator; \
     __syncthreads();
-
-
+    
+#define ATOMICADDI32(pAccumulator, value) atomicAdd(pAccumulator, (value))
+#define ATOMICSUBI32(pAccumulator, value) atomicAdd(pAccumulator, -(value))
 #define ATOMICADDF32(pAccumulator, value) atomicAdd(pAccumulator, (value))
 #define ATOMICSUBF32(pAccumulator, value) atomicAdd(pAccumulator, -(value))
 #ifdef REPRO
