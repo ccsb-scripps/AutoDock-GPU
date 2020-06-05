@@ -252,6 +252,7 @@ link:
 	ln -sf miscellaneous.cpp.OpenCL host/src/miscellaneous.cpp
 	ln -sf processgrid.cpp.OpenCL host/src/processgrid.cpp
 	ln -sf processresult.cpp.OpenCL host/src/processresult.cpp
+	rm -f host/src/setup.cpp
 
 odock: check-env-all link stringify $(SRC)
 	$(CPP) \
