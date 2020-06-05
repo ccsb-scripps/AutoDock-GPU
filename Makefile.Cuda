@@ -212,6 +212,7 @@ link:
 	ln -sf miscellaneous.cpp.Cuda host/src/miscellaneous.cpp
 	ln -sf processgrid.cpp.Cuda host/src/processgrid.cpp
 	ln -sf processresult.cpp.Cuda host/src/processresult.cpp
+	ln -sf setup.cpp.Cuda host/src/setup.cpp
 
 odock: check-env-all link kernels $(SRC)
 	$(CPP) \
