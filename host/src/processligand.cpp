@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
+
+
 // Output showing the CG-G0 virtual bonds and pairs
 // #define CG_G0_INFO
 
@@ -63,13 +65,14 @@ int init_liganddata(const char* ligfilename,
 				fseek(fp, 25, SEEK_CUR);
 			else
 				fseek(fp, 27, SEEK_CUR);
-			fscanf(fp, "%*f");		//skipping fields
-			fscanf(fp, "%*f");
-			fscanf(fp, "%*f");
-			fscanf(fp, "%*s");
-			fscanf(fp, "%*s");
-			fscanf(fp, "%*f");
-			fscanf(fp, "%s", tempstr);	//reading atom type
+                        int result;
+			result = fscanf(fp, "%*f");		//skipping fields
+			result = fscanf(fp, "%*f");
+			result = fscanf(fp, "%*f");
+			result = fscanf(fp, "%*s");
+			result = fscanf(fp, "%*s");
+			result = fscanf(fp, "%*f");
+			result = fscanf(fp, "%s", tempstr);	//reading atom type
 
 			tempstr[3] = '\0';	//just to be sure strcpy wont fail even if something is wrong with position
 
@@ -86,6 +89,7 @@ int init_liganddata(const char* ligfilename,
 				if (num_of_atypes >= MAX_NUM_OF_ATYPES)
 				{
 					printf("Error: too many types of ligand atoms!\n");
+					fclose(fp);
 					return 1;
 				}
 
@@ -95,9 +99,12 @@ int init_liganddata(const char* ligfilename,
 		}
 	}
 
+	fclose(fp);
+
 	//copying field to ligand and grid data
 	myligand->num_of_atypes = num_of_atypes;
 	mygrid->num_of_atypes   = num_of_atypes;
+	mygrid->num_of_map_atypes = num_of_atypes;
 #if defined(CG_G0_INFO)
 	if (cgmaps)
 	{
@@ -156,6 +163,7 @@ int set_liganddata_typeid(Liganddata* myligand,
 	if (type < myligand->num_of_atypes)
 	{
 		myligand->atom_idxyzq[atom_id][0] = type;
+		myligand->atom_map_to_fgrids[atom_id] = type;
 		return 0;
 	}
 	else		//if typeof_new_atom hasn't been found
@@ -860,7 +868,7 @@ int get_VWpars(Liganddata* myligand, const double AD4_coeff_vdW, const double AD
 	return 0;
 }
 
-void get_moving_and_unit_vectors(Liganddata* myligand)
+int get_moving_and_unit_vectors(Liganddata* myligand)
 //The function calculates and fills the
 //rotbonds_moving_vectors and rotbonds_unit_vectors fields of the myligand parameter.
 {
@@ -888,6 +896,12 @@ void get_moving_and_unit_vectors(Liganddata* myligand)
 
 		//normalize unitvector
 		dist = distance(pointA, pointB);
+
+		if (dist==0.0){
+			printf("Error: Two atoms have the same XYZ coordinates!\n");
+                	return 1;
+		}
+
 		for (i=0; i<3; i++) //capturing coordinates of the two atoms
 		{
 			unitvec [i] = unitvec [i]/dist;
@@ -907,7 +921,7 @@ void get_moving_and_unit_vectors(Liganddata* myligand)
 			myligand->rotbonds_unit_vectors [rotb_id][i] = unitvec [i];
 		}
 	}
-
+	return 0;
 }
 
 int get_liganddata(const char* ligfilename, Liganddata* myligand, const double AD4_coeff_vdW, const double AD4_coeff_hb)
@@ -946,6 +960,7 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			{
 				printf("Error: ligand consists of too many atoms'\n");
 				printf("Maximal allowed number of atoms is %d!\n", MAX_NUM_OF_ATOMS);
+				fclose(fp);
 				return 1;
 			}
 			if ((strcmp(tempstr, "HETATM") == 0))	//seeking to the first coordinate value
@@ -959,8 +974,10 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			fscanf(fp, "%s", tempstr);
 			fscanf(fp, "%lf", &(myligand->atom_idxyzq [atom_counter][4]));	//reading charge
 			fscanf(fp, "%s", tempstr);	//reading atom type
-			if (set_liganddata_typeid(myligand, atom_counter, tempstr) != 0)	//the function sets the type index
+			if (set_liganddata_typeid(myligand, atom_counter, tempstr) != 0){	//the function sets the type index
+				fclose(fp);
 				return 1;
+			}
 			atom_counter++;
 		}
 	}
@@ -1044,6 +1061,8 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 		}
 	}
 
+	fclose(fp);
+
 	myligand->num_of_rotbonds = branch_counter;
 
 	//Now the rotbonds field contains the rotatable bonds (that is, the corresponding two atom's indexes) in the proper order
@@ -1065,7 +1084,8 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 	if (get_VWpars(myligand, AD4_coeff_vdW, AD4_coeff_hb) == 1)
 		return 1;
 
-	get_moving_and_unit_vectors(myligand);
+	if (get_moving_and_unit_vectors(myligand) == 1)
+                return 1;
 
 	return 0;
 }
@@ -1319,8 +1339,9 @@ void print_ref_lig_energies_f(Liganddata   myligand,
 	double temp_vec [3];
 	int i;
 
+	IntraTables tables(&myligand, scaled_AD4_coeff_elec, AD4_coeff_desolv, qasp);
 	printf("Intramolecular energy of reference ligand: %lf\n",
-		calc_intraE_f(&myligand, 8, smooth, 0, scaled_AD4_coeff_elec, AD4_coeff_desolv, qasp, 0));
+		calc_intraE_f(&myligand, 8, smooth, 0, tables, 0));
 
 	for (i=0; i<3; i++)
 		temp_vec [i] = -1*mygrid.origo_real_xyz [i];
@@ -2129,9 +2150,7 @@ float calc_intraE_f(const Liganddata* myligand,
 		          float       dcutoff,
 		          float       smooth,
 		          bool        ignore_desolv,
-		    const float       scaled_AD4_coeff_elec,
-		    const float       AD4_coeff_desolv,
-		    const float       qasp, 
+			  IntraTables& tables,
 		          int         debug)
 //The function calculates the intramolecular energy of the ligand given by the first parameter,
 //and returns it as a double. The second parameter is the distance cutoff, if the third isn't 0,
@@ -2148,29 +2167,6 @@ float calc_intraE_f(const Liganddata* myligand,
 	float s1, s2, v1, v2;
 
 	float vW, el, desolv;
-
-	//The following tables will contain the 1/r^6, 1/r^10, 1/r^12, W_el/(r*eps(r)) and W_des*exp(-r^2/(2sigma^2)) functions for
-	//distances 0.01:0.01:20.48 A
-	static bool first_call = true;
-	static float r_6_table [2048];
-	static float r_10_table [2048];
-	static float r_12_table [2048];
-	static float r_epsr_table [2048];
-	static float desolv_table [2048];
-
-	//The following arrays will contain the q1*q2 and qasp*abs(q) values for the ligand which is the input parameter when this
-	//function is called first time (it is supposed that the energy must always be calculated for this ligand only, that is, there
-	//is only one ligand during the run of the program...)
-	static float q1q2 [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
-	static float qasp_mul_absq [MAX_NUM_OF_ATOMS];
-
-	//when first call, calculating tables
-	if (first_call)
-	{
-		calc_distdep_tables_f(r_6_table, r_10_table, r_12_table, r_epsr_table, desolv_table, scaled_AD4_coeff_elec, AD4_coeff_desolv);
-		calc_q_tables_f(myligand, qasp, q1q2, qasp_mul_absq);
-		first_call = false;
-	}
 
 	vW = 0;
 	el = 0;
@@ -2247,15 +2243,15 @@ float calc_intraE_f(const Liganddata* myligand,
 				{
 					if (is_H_bond(myligand->atom_types [type_id1], myligand->atom_types [type_id2]) != 0)	//H-bond
 					{
-						vdW1 = myligand->VWpars_C [type_id1][type_id2]*r_12_table [smoothed_distance_id];
-						vdW2 = myligand->VWpars_D [type_id1][type_id2]*r_10_table [smoothed_distance_id];
+						vdW1 = myligand->VWpars_C [type_id1][type_id2]*tables.r_12_table [smoothed_distance_id];
+						vdW2 = myligand->VWpars_D [type_id1][type_id2]*tables.r_10_table [smoothed_distance_id];
 						if (debug == 1)
 							printf("H-bond interaction = ");
 					}
 					else	//normal van der Waals
 					{
-						vdW1 = myligand->VWpars_A [type_id1][type_id2]*r_12_table [smoothed_distance_id];
-						vdW2 = myligand->VWpars_B [type_id1][type_id2]*r_6_table  [smoothed_distance_id];
+						vdW1 = myligand->VWpars_A [type_id1][type_id2]*tables.r_12_table [smoothed_distance_id];
+						vdW2 = myligand->VWpars_B [type_id1][type_id2]*tables.r_6_table  [smoothed_distance_id];
 						if (debug == 1)
 							printf("van der Waals interaction = ");
 					}
@@ -2265,18 +2261,18 @@ float calc_intraE_f(const Liganddata* myligand,
 
 				if (dist < 20.48)
 				{
-					s1 = (myligand->solpar [type_id1] + qasp_mul_absq [atom_id1]);
-					s2 = (myligand->solpar [type_id2] + qasp_mul_absq [atom_id2]);
+					s1 = (myligand->solpar [type_id1] + tables.qasp_mul_absq [atom_id1]);
+					s2 = (myligand->solpar [type_id2] + tables.qasp_mul_absq [atom_id2]);
 					v1 = myligand->volume [type_id1];
 					v2 = myligand->volume [type_id2];
 
 					if (debug == 1)
-						printf(" %lf, electrostatic = %lf, desolv = %lf\n", (vdW1 - vdW2), q1q2[atom_id1][atom_id2] * r_epsr_table [distance_id],
-							   (s1*v2 + s2*v1) * desolv_table [distance_id]);
+						printf(" %lf, electrostatic = %lf, desolv = %lf\n", (vdW1 - vdW2), tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id],
+							   (s1*v2 + s2*v1) * tables.desolv_table [distance_id]);
 
 
-					el += q1q2[atom_id1][atom_id2] * r_epsr_table [distance_id];
-					desolv += (s1*v2 + s2*v1) * desolv_table [distance_id];
+					el += tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id];
+					desolv += (s1*v2 + s2*v1) * tables.desolv_table [distance_id];
 				}
 				// ------------------------------------------------
 				// Required only for flexrings
@@ -2305,3 +2301,21 @@ float calc_intraE_f(const Liganddata* myligand,
 		return (vW + el);
 }
 
+int map_to_all_maps(Gridinfo* mygrid, Liganddata* myligand, std::vector<Map>& all_maps){
+	for (int i_atom = 0; i_atom<myligand->num_of_atoms;i_atom++){
+		int idx = myligand->atom_idxyzq[i_atom][0];
+		int map_idx = -1;
+		for (int i_map = 0; i_map<all_maps.size(); i_map++){
+			if (strcmp(all_maps[i_map].atype.c_str(),mygrid->grid_types[idx])==0){
+				map_idx = i_map;
+				break;
+			}
+		}
+		if (map_idx == -1) {printf("\nERROR: Did not map to all_maps correctly."); return 1;}
+
+		myligand->atom_map_to_fgrids[i_atom] = map_idx;
+		//printf("\nMapping atom %d (type %d) in the ligand to map #%d",i_atom,idx,map_idx);
+	}
+
+	return 0;
+}

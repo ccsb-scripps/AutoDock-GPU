@@ -25,12 +25,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-
-
-
-
-
-
 #ifndef PROCESSGRID_H_
 #define PROCESSGRID_H_
 
@@ -94,10 +88,11 @@ struct Map
 int get_gridinfo(const char*, Gridinfo*);
 
 int get_gridvalues_f(const Gridinfo* mygrid,
-		     float* fgrids,
+		     float** fgrids,
 		     bool cgmaps);
 
-int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<Map>& all_maps, bool cgmaps,float* fgrids_device);
-int copy_from_all_maps (const Gridinfo* mygrid, float* fgrids, std::vector<Map>& all_maps );
+int get_gridvalues_f(const Gridinfo* mygrid,
+		     float* fgrids,
+		     bool cgmaps);
 
 #endif /* PROCESSGRID_H_ */

@@ -37,6 +37,7 @@ typedef struct
 {
        float atom_charges_const[MAX_NUM_OF_ATOMS];
        int  atom_types_const  [MAX_NUM_OF_ATOMS];
+       int  atom_types_map_const  [MAX_NUM_OF_ATOMS];
 } kernelconstant_interintra;
 
 typedef struct

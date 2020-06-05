@@ -366,9 +366,10 @@ filled with clock() */
 	cl_mem mem_conform_const;
 
 	size_t sz_interintra_const	= MAX_NUM_OF_ATOMS*sizeof(float) + 
-					  MAX_NUM_OF_ATOMS*sizeof(int);
+					  MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
+					  MAX_NUM_OF_ATOMS*sizeof(uint32_t);
 
-	size_t sz_intracontrib_const	= 3*MAX_INTRAE_CONTRIBUTORS*sizeof(int);
+	size_t sz_intracontrib_const	= 3*MAX_INTRAE_CONTRIBUTORS*sizeof(uint32_t);
 
 	size_t sz_intra_const		= ATYPE_NUM*sizeof(float) + 
 					  ATYPE_NUM*sizeof(float) + 

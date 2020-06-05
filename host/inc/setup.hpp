@@ -37,6 +37,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "processligand.h"
 #include "getparameters.h"
 
+int load_all_maps (const char* fldfilename,
+		   const Gridinfo* mygrid,
+		   std::vector<Map>& all_maps,
+		   bool cgmaps,
+		   float* fgrids_device);
+
+int copy_from_all_maps (const Gridinfo* mygrid,
+		        float* fgrids,
+		        std::vector<Map>& all_maps);
 
 int setup(std::vector<Map>&	all_maps,
 	  Gridinfo&		mygrid,
