@@ -25,6 +25,30 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "Platforms.h"
 
 int getPlatforms(cl_platform_id** platform_id, cl_uint* platformCount){

@@ -25,6 +25,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
+
+
+
+
+
+
 #ifndef PROCESSRESULT_H_
 #define PROCESSRESULT_H_
 
@@ -35,6 +41,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "defines.h"
 #include "processligand.h"
 #include "getparameters.h"
+#include "simulation_state.hpp"
 
 #define PRINT1000(file, x) fprintf(file,  ((fabs((x)) >= 0.0) && ((fabs(x)) <= 1000.)) ? "%+7.2f" : "%+11.2e" , (x));
 
@@ -87,6 +94,7 @@ void make_resfiles(	      float* final_population,
 		   	      char** argv,
 		   		int  debug,
 		   		int  run_cnt,
+				float& best_energy_of_all,
 		   Ligandresult* best_result);
 
 void cluster_analysis(     Ligandresult myresults [],
@@ -108,8 +116,18 @@ void clusanal_gendlg(Ligandresult myresults [],
 		     const int*        argc,
                                char**  argv,
                      const double docking_avg_runtime,
-		     const double program_runtime,
 		     unsigned long generations_used,
-		     unsigned long evals_performed);
+		     unsigned long evals_performed,
+		     double exec_time,
+		     double idle_time);
+
+void process_result(    const Gridinfo*         mygrid, 
+                        const float*            cpu_floatgrids,
+                        const Dockpars*         mypars,
+                        const Liganddata*       myligand_init,
+                        const Liganddata*       myxrayligand,
+                        const int*              argc,
+                        char**                  argv,
+			SimulationState&        sim_state);
 
 #endif /* PROCESSRESULT_H_ */

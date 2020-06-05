@@ -25,6 +25,30 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "Devices.h"
 
 int getDevices(cl_platform_id   platform_id, cl_uint  platformCount,
@@ -59,7 +83,7 @@ int getDevices(cl_platform_id   platform_id, cl_uint  platformCount,
 	fflush(stdout);
 #endif
 	if (err != CL_SUCCESS){
-		printf("Error: clGetDevices(): %d\n", err);
+		printf("Error: clGetDeviceIDs(): %d\n", err);
 		fflush(stdout);
 		return EXIT_FAILURE;
   }

@@ -6,19 +6,19 @@ For some of the code, Copyright (C) 2019 Computational Structural Biology Center
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful,
+This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
 
@@ -31,31 +31,23 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-//#include <math.h>
+#include <cuda.h>
+#include <curand.h>
+#include <cuda_runtime_api.h>
+#include <cassert>
 
+#include "profile.hpp"
+
+//#include <math.h>
 #include "processgrid.h"
 #include "miscellaneous.h"
 #include "processligand.h"
 #include "getparameters.h"
 #include "calcenergy.h"
 #include "processresult.h"
+#include "simulation_state.hpp"
+#include "GpuData.h"
 
-#ifdef __APPLE__
-	#include "OpenCL/opencl.h"
-#else
-	#include "CL/opencl.h"
-#endif
-#include "commonMacros.h"
-#include "listAttributes.h"
-#include "Platforms.h"
-#include "Devices.h"
-#include "Contexts.h"
-#include "CommandQueues.h"
-#include "Programs.h"
-#include "Kernels.h"
-#include "ImportBinary.h"
-#include "ImportSource.h"
-#include "BufferObjects.h"
 
 #define ELAPSEDSECS(stop,start) ((float) stop-start)/((float) CLOCKS_PER_SEC)
 
@@ -74,14 +66,22 @@ typedef struct {
 } Gradientparameters;
 #endif
 
+void setup_gpu_for_docking(GpuData& cData, 
+                           GpuTempData& tData);
+void finish_gpu_from_docking(GpuData& cData, 
+                             GpuTempData& tData);
 int docking_with_gpu(const Gridinfo* 		mygrid,
          	     /*const*/ float* 		cpu_floatgrids,
 		           Dockpars*		mypars,
 		     const Liganddata* 	 	myligand_init,
 		     const Liganddata* 		myxrayligand,
+                        Profile&                profile,
 		     const int* 		argc,
 		     char**			argv,
-		           clock_t 		clock_start_program);
+			SimulationState&	sim_state,
+			GpuData& cData,
+			GpuTempData& tData,
+			bool floatgrids_preloaded);
 
 double check_progress(int* evals_of_runs,
 		      int generation_cnt,
