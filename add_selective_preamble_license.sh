@@ -21,13 +21,14 @@ CUDA_HEADERS="$CUDA_SOURCE_DIR/*.h"
 
 # host-header files
 HOST_HEADER_DIR="./host/inc"
-HOST_HEADERS="$HOST_HEADER_DIR/calcenergy.h $HOST_HEADER_DIR/correct_grad_axisangle.h $HOST_HEADER_DIR/getparameters.h $HOST_HEADER_DIR/miscellaneous.h $HOST_HEADER_DIR/processgrid.h $HOST_HEADER_DIR/processligand.h $HOST_HEADER_DIR/processresult.h"
-HOST_HEADERS_LGPL="$HOST_HEADER_DIR/performdocking.h" 
+HOST_HEADERS="$HOST_HEADER_DIR/calcenergy.h $HOST_HEADER_DIR/correct_grad_axisangle.h $HOST_HEADER_DIR/getparameters.h $HOST_HEADER_DIR/miscellaneous.h $HOST_HEADER_DIR/processgrid.h
+$HOST_HEADER_DIR/processligand.h $HOST_HEADER_DIR/processresult.h"
+HOST_HEADERS_LGPL="$HOST_HEADER_DIR/performdocking.h $HOST_HEADER_DIR/*.hpp" 
 
 # host-source files
 HOST_SOURCE_DIR="./host/src"
-HOST_SOURCES="$HOST_SOURCE_DIR/calcenergy.cpp $HOST_SOURCE_DIR/getparameters.cpp $HOST_SOURCE_DIR/main.cpp $HOST_SOURCE_DIR/miscellaneous.cpp 		$HOST_SOURCE_DIR/processgrid.cpp $HOST_SOURCE_DIR/processligand.cpp $HOST_SOURCE_DIR/processresult.cpp"
-HOST_SOURCES_LGPL="$HOST_SOURCE_DIR/performdocking.cpp"
+HOST_SOURCES="$HOST_SOURCE_DIR/calcenergy.cpp $HOST_SOURCE_DIR/getparameters.cpp $HOST_SOURCE_DIR/miscellaneous.cpp $HOST_SOURCE_DIR/processgrid.cpp $HOST_SOURCE_DIR/processligand.cpp $HOST_SOURCE_DIR/processresult.cpp"
+HOST_SOURCES_LGPL="$HOST_SOURCE_DIR/performdocking.cpp $HOST_SOURCE_DIR/main.cpp"
 
 # wrapcl-header files
 WRAPCL_HEADER_DIR="./wrapcl/inc"
@@ -50,6 +51,9 @@ for f in $AUTODOCKGPU_SOURCE; do
 		if (grep -q "Copyright (C)" $f); then
 			echo "License-preamble was found in $f"
 			echo "No license-preamble is added."
+                        if (grep -q "GNU Lesser" $f); then
+                          echo "Wrong license found in $f"
+                        fi
 		else
 			echo "Adding license-preamble to $f ..."
 			cat $LICENSE_PREAMBLE "$f" > "$f.new"
@@ -66,6 +70,9 @@ for f in $AUTODOCKGPU_SOURCE_LGPL; do
 		if (grep -q "Copyright (C)" $f); then
 			echo "License-preamble was found in $f"
 			echo "No license-preamble is added."
+                        if (grep -q "GNU General Public License" $f); then
+                          echo "Wrong license found in $f"
+                        fi
 		else
 			echo "Adding LGPL license-preamble to $f ..."
 			cat $LICENSE_PREAMBLE_LGPL "$f" > "$f.new"
