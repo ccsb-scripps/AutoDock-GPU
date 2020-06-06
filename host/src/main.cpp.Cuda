@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
 	{
 		int t_id = omp_get_thread_num();
 		#pragma omp master
-		{printf("\nUsing %d OpenMP threads", omp_get_num_threads());}
+		{printf("\nUsing %d OpenMP threads\n", omp_get_num_threads());}
 		#pragma omp barrier
 #else
 	{
@@ -148,16 +148,16 @@ int main(int argc, char* argv[])
 #endif
 		for(int i_job=0; i_job<n_files; i_job++){
 			// Setup the next file in the queue
-			printf ("\n(Thread %d is setting up Job %d)",t_id,i_job); fflush(stdout);
+			printf ("(Thread %d is setting up Job %d)\n",t_id,i_job); fflush(stdout);
 			start_timer(setup_timer);
 			// Load files, read inputs, prepare arrays for docking stage
 			if (setup(all_maps,mygrid, floatgrids, mypars, myligand_init, myxrayligand, filelist, tData.pMem_fgrids, i_job, argc, argv) != 0) {
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
 				// Keep in setup stage rather than moving to launch stage so a different job will be set up
-				printf("\n\nError in setup of Job #%d:", i_job);
+				printf("\n\nError in setup of Job #%d:\n", i_job);
 				if (filelist.used){
-					printf("\n(   Field file: %s )",  filelist.fld_files[i_job].c_str());
-					printf("\n(   Ligand file: %s )", filelist.ligand_files[i_job].c_str()); fflush(stdout);
+					printf("(   Field file: %s )\n",  filelist.fld_files[i_job].c_str());
+					printf("(   Ligand file: %s )\n", filelist.ligand_files[i_job].c_str()); fflush(stdout);
 				}
 				err[i_job] = 1;
 				continue;
@@ -168,10 +168,10 @@ int main(int argc, char* argv[])
 				total_setup_time+=seconds_since(setup_timer);
 			}
 
-			printf("\nRunning Job #%d: ", i_job);
+			printf("\nRunning Job #%d:\n", i_job);
 			if (filelist.used){
-	                     	printf("\n   Fields from: %s",  filelist.fld_files[i_job].c_str());
-	                      	printf("\n   Ligands from: %s", filelist.ligand_files[i_job].c_str()); fflush(stdout);
+	                     	printf("   Fields from: %s\n",  filelist.fld_files[i_job].c_str());
+	                      	printf("   Ligands from: %s\n", filelist.ligand_files[i_job].c_str()); fflush(stdout);
 			}
 
 			// Starting Docking
@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
 			if (error_in_docking!=0){
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
 				// Set back to setup stage rather than moving to processing stage so a different job will be set up
-				printf("\n\nError in docking_with_gpu, stopped Job %d.",i_job);
+				printf("\n\nError in docking_with_gpu, stopped Job %d.\n",i_job);
 				err[i_job] = 1;
 				continue;
 			} else { // Successful run
@@ -203,7 +203,7 @@ int main(int argc, char* argv[])
                                 #pragma omp atomic update
 #endif
 				total_exec_time+=sim_state.exec_time;
-				printf("\nJob #%d took %.3f sec after waiting %.3f sec for setup", i_job, sim_state.exec_time, sim_state.idle_time);
+				printf("\nJob #%d took %.3f sec after waiting %.3f sec for setup\n", i_job, sim_state.exec_time, sim_state.idle_time);
 				if (get_profiles && filelist.used){
 	                        	// Detailed timing information to .timing
 	                        	profiler.p[i_job].exec_time = sim_state.exec_time;
@@ -212,7 +212,7 @@ int main(int argc, char* argv[])
 			}
 
 			// Post-processing
-	                printf ("\n(Thread %d is processing Job %d)",t_id,i_job); fflush(stdout);
+	                printf ("\n(Thread %d is processing Job %d)\n",t_id,i_job); fflush(stdout);
 	                start_timer(processing_timer);
 	                process_result(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), &argc,argv, sim_state);
 #ifdef USE_PIPELINE
