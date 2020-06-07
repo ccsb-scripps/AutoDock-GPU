@@ -28,6 +28,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <cuda.h>
+#include <cuda_runtime_api.h>
+#include <cassert>
+
 #ifdef USE_PIPELINE
 #include <omp.h>
 #endif
@@ -105,6 +109,21 @@ int main(int argc, char* argv[])
 	GpuData cData;
 	GpuTempData tData;
 
+	cData.devnum=-1;
+	// Get device number to run on
+	for (unsigned int i=1; i<argc-1; i+=2)
+	{
+		if (strcmp("-devnum", argv [i]) == 0)
+		{
+			int tempint;
+			sscanf(argv [i+1], "%lu", &tempint);
+			if ((tempint >= 1) && (tempint <= 256))
+				cData.devnum = (unsigned long) tempint-1;
+			else
+				printf("Warning: value of -devnum argument ignored. Value must be an integer between 1 and 256.\n");
+			break;
+		}
+	}
 	// Set up run profiles for timing
 	bool get_profiles = true; // hard-coded switch to use ALS's job profiler
 	Profiler profiler;
@@ -151,7 +170,7 @@ int main(int argc, char* argv[])
 			printf ("(Thread %d is setting up Job %d)\n",t_id,i_job); fflush(stdout);
 			start_timer(setup_timer);
 			// Load files, read inputs, prepare arrays for docking stage
-			if (setup(all_maps,mygrid, floatgrids, mypars, myligand_init, myxrayligand, filelist, tData.pMem_fgrids, i_job, argc, argv) != 0) {
+			if (setup(all_maps, mygrid, floatgrids, mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv) != 0) {
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
 				// Keep in setup stage rather than moving to launch stage so a different job will be set up
 				printf("\n\nError in setup of Job #%d:\n", i_job);
@@ -162,6 +181,18 @@ int main(int argc, char* argv[])
 				err[i_job] = 1;
 				continue;
 			} else { // Successful setup
+				// Copy to GPU
+				int size_of_one_map = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
+			        for (int t=0; t < all_maps.size(); t++)
+				{
+					cudaError_t status = cudaMemcpy(tData.pMem_fgrids+t*size_of_one_map,all_maps[t].grid.data(),sizeof(float)*size_of_one_map, cudaMemcpyHostToDevice);
+					if (status != cudaSuccess) { 
+						printf("%s %s\n", "pMem_fgrids: failed to upload maps to GPU memory.\n", cudaGetErrorString(status)); 
+						assert(0); 
+						cudaDeviceReset(); 
+						exit(-1); 
+					}
+				}
 #ifdef USE_PIPELINE
 				#pragma omp atomic update
 #endif

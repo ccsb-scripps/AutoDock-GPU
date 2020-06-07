@@ -22,13 +22,103 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */
 
-
+#include <cstdint>
+#include <fstream>
+#include <algorithm> 
+#include <cctype>
+#include <locale>
 
 #include "getparameters.h"
 
+// trim from start (in place)
+static inline void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
+        return !std::isspace(ch);
+    }));
+}
+
+// trim from end (in place)
+static inline void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+}
+
+// trim from both ends (in place)
+static inline void trim(std::string &s) {
+    ltrim(s);
+    rtrim(s);
+}
+
+int get_filelist(const int* argc,
+                      char** argv,
+		   FileList& filelist)
+//The function checks if a filelist has been provided according to the proper command line arguments.
+//If it is, it loads the .fld, .pdbqt, and resname files into vectors
+{
+	for (int i=1; i<(*argc)-1; i++)
+	{
+		// Argument: file name that contains list of files.
+		if (strcmp("-filelist", argv[i]) == 0)
+		{
+			filelist.used = true;
+			strcpy(filelist.filename, argv[i+1]);
+		}
+	}
+
+	if (filelist.used){
+		filelist.preload_maps = true; // By default, preload maps if filelist used
+		std::ifstream file(filelist.filename);
+		if(file.fail()){
+			printf("\nError: Could not open filelist %s. Check path and permissions.",filelist.filename);
+			return 1;
+		}
+		std::string line;
+		bool prev_line_was_fld=false;
+		while(std::getline(file, line)) {
+			trim(line); // Remove leading and trailing whitespace
+			int len = line.size();
+			if (len>=4 && line.compare(len-4,4,".fld") == 0){
+				if (prev_line_was_fld){ // Overwrite the previous fld file if two in a row
+					filelist.fld_files[filelist.fld_files.size()] = line;
+					printf("\n\nWarning: a listed .fld file was not used!");
+				} else {
+					// Add the .fld file
+					filelist.fld_files.push_back(line);
+					prev_line_was_fld=true;
+
+					// If more than one unique protein, cant do map preloading yet
+					if (filelist.fld_files.size()>1){
+						filelist.preload_maps=false;
+					}
+				}
+			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
+				// Add the .pdbqt
+				filelist.ligand_files.push_back(line);
+				if (filelist.ligand_files.size()>filelist.fld_files.size()){
+					// If this ligand doesnt have a protein preceding it, use the previous protein
+					filelist.fld_files.push_back(filelist.fld_files[filelist.fld_files.size()-1]);
+				}
+				prev_line_was_fld=false;
+			} else if (len>0) {
+				// Anything else in the file is assumed to be the resname
+				filelist.resnames.push_back(line);
+			}
+		}
+
+		filelist.nfiles = filelist.ligand_files.size();
+
+		if (filelist.ligand_files.size() != filelist.resnames.size() && filelist.resnames.size()>0)
+			{printf("\n\nError: Inconsistent number of resnames!"); return 1;}
+	}
+
+	return 0;
+}
+
 int get_filenames_and_ADcoeffs(const int* argc,
 			       char** argv,
-			       Dockpars* mypars)
+			       Dockpars* mypars,
+			       const bool multiple_files)
 //The function fills the file name and coeffs fields of mypars parameter
 //according to the proper command line arguments.
 {
@@ -68,18 +158,20 @@ int get_filenames_and_ADcoeffs(const int* argc,
 
 	for (i=1; i<(*argc)-1; i++)
 	{
-		//Argument: grid parameter file name.
-		if (strcmp("-ffile", argv[i]) == 0)
-		{
-			ffile_given = 1;
-			strcpy(mypars->fldfile, argv[i+1]);
-		}
+		if (!multiple_files){
+			//Argument: grid parameter file name.
+			if (strcmp("-ffile", argv[i]) == 0)
+			{
+				ffile_given = 1;
+				strcpy(mypars->fldfile, argv[i+1]);
+			}
 
-		//Argument: ligand pdbqt file name
-		if (strcmp("-lfile", argv[i]) == 0)
-		{
-			lfile_given = 1;
-			strcpy(mypars->ligandfile, argv[i+1]);
+			//Argument: ligand pdbqt file name
+			if (strcmp("-lfile", argv[i]) == 0)
+			{
+				lfile_given = 1;
+				strcpy(mypars->ligandfile, argv[i+1]);
+			}
 		}
 
 		//Argument: unbound model to be used.
@@ -108,13 +200,13 @@ int get_filenames_and_ADcoeffs(const int* argc,
 		}
 	}
 
-	if (ffile_given == 0)
+	if (ffile_given == 0 && !multiple_files)
 	{
 		printf("Error: grid fld file was not defined. Use -ffile argument!\n");
 		return 1;
 	}
 
-	if (lfile_given == 0)
+	if (lfile_given == 0 && !multiple_files)
 	{
 		printf("Error: ligand pdbqt file was not defined. Use -lfile argument!\n");
 		return 1;
@@ -149,11 +241,15 @@ void get_commandpars(const int* argc,
 	mypars->mutation_rate		= 2; 		// 2%
 	mypars->crossover_rate		= 80;		// 80%
 	mypars->lsearch_rate		= 80;		// 80%
+	mypars->adam_beta1		= 0.9f;
+	mypars->adam_beta2		= 0.999f;
+	mypars->adam_epsilon		= 1.0e-8f;
 
 	strcpy(mypars->ls_method, "sw");		// "sw": Solis-Wets, 
 							// "sd": Steepest-Descent
 							// "fire": FIRE, https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
 							// "ad": ADADELTA, https://arxiv.org/abs/1212.5701
+							// "adam": ADAM (currently only on Cuda)
 	mypars->initial_sw_generations  = 0;
 	mypars->smooth			= 0.5f;
 	mypars->tournament_rate		= 60;		// 60%
@@ -166,7 +262,6 @@ void get_commandpars(const int* argc,
 	mypars->initpop_gen_or_loadfile	= false;
 	mypars->gen_pdbs		= 0;
 
-	mypars->devnum			= 0;
 	mypars->autostop		= 0;
 	mypars->as_frequency		= 5;
 	mypars->stopstd			= 0.15;
@@ -341,6 +436,7 @@ void get_commandpars(const int* argc,
 		// "sd": Steepest-Descent
 		// "fire": FIRE
 		// "ad": ADADELTA
+		// "adam": ADAM
 		if (strcmp("-lsmet", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -362,6 +458,10 @@ void get_commandpars(const int* argc,
 				//mypars->max_num_of_iters = 30;
 			}
 			else if (strcmp(temp, "ad") == 0) {
+				strcpy(mypars->ls_method, temp);
+				//mypars->max_num_of_iters = 30;
+			}
+			else if (strcmp(temp, "adam") == 0) {
 				strcpy(mypars->ls_method, temp);
 				//mypars->max_num_of_iters = 30;
 			}
@@ -489,6 +589,13 @@ void get_commandpars(const int* argc,
 		}
 
 		// ---------------------------------
+		// UPDATED in : get_filelist()
+		// ---------------------------------
+		// Argument: name of file containing file list
+		if (strcmp("-filelist", argv [i]) == 0)
+			arg_recognized = 1;
+
+		// ---------------------------------
 		// MISSING: char fldfile [128]
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
@@ -509,16 +616,14 @@ void get_commandpars(const int* argc,
 		// UPDATED in : gen_initpop_and_reflig()
 		// ---------------------------------
 
+		// ---------------------------------
+		// MISSING: devnum
+		// UPDATED in : main
 		// ----------------------------------
 		//Argument: OpenCL device number to use
 		if (strcmp("-devnum", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%lu", &tempint);
-			if ((tempint >= 1) && (tempint <= 256))
-				mypars->devnum = (unsigned long) tempint-1;
-			else
-				printf("Warning: value of -devnum argument ignored. Value must be an integer between 1 and 256.\n");
 		}
 		// ----------------------------------
 
@@ -693,7 +798,7 @@ void get_commandpars(const int* argc,
 			arg_recognized = 1;
 			strcpy(mypars->xrayligandfile, argv[i+1]);
 			mypars->given_xrayligandfile = true;
-			printf("Info: using -xraylfile value as X-ray ligand.");
+			printf("Info: using -xraylfile value as X-ray ligand.\n");
 		}
 		// ----------------------------------
 
@@ -780,81 +885,62 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 	else
 		gen_pop = 1;
 
+	// Local random numbers for thread safety/reproducibility
+	LocalRNG r;
+
 	//Generating initial population
 	if (gen_pop == 1)
 	{
-		for (entity_id=0; entity_id<pop_size*mypars->num_of_runs; entity_id++) {
-			for (gene_id=0; gene_id<3; gene_id++) {
-#if defined (REPRO)
-				init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 30.1186;
-#else
-				init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = (float) myrand()*(mygrid->size_xyz_angstr[gene_id]);
-#endif			
-            }
+		for (entity_id=0; entity_id<pop_size*mypars->num_of_runs; entity_id++)
+		{
+			for (gene_id=0; gene_id<3; gene_id++)
+			{
+				init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = r.random_float()*(mygrid->size_xyz_angstr[gene_id]);
+			}
+			// generate random quaternion
+			u1 = r.random_float();
+			u2 = r.random_float();
+			u3 = r.random_float();
+			qw = sqrt(1.0 - u1) * sin(PI_TIMES_2 * u2);
+			qx = sqrt(1.0 - u1) * cos(PI_TIMES_2 * u2);
+			qy = sqrt(      u1) * sin(PI_TIMES_2 * u3);
+			qz = sqrt(      u1) * cos(PI_TIMES_2 * u3);
 
-            // generate random quaternion
-            u1 = (float) myrand();
-            u2 = (float) myrand();
-            u3 = (float) myrand();
-            qw = sqrt(1.0 - u1) * sin(PI_TIMES_2 * u2);
-            qx = sqrt(1.0 - u1) * cos(PI_TIMES_2 * u2);
-            qy = sqrt(      u1) * sin(PI_TIMES_2 * u3);
-            qz = sqrt(      u1) * cos(PI_TIMES_2 * u3);
+			// convert to angle representation
+			rotangle = 2.0 * acos(qw);
+			s = sqrt(1.0 - (qw * qw));
+			if (s < 0.001){ // rotangle too small
+				x = qx;
+				y = qy;
+				z = qz;
+			} else {
+				x = qx / s;
+				y = qy / s;
+				z = qz / s;
+			}
 
-            // convert to angle representation
-            rotangle = 2.0 * acos(qw);
-            s = sqrt(1.0 - (qw * qw));
-            if (s < 0.001){ // rotangle too small
-                x = qx;
-                y = qy;
-                z = qz;
-            } else {
-                x = qx / s;
-                y = qy / s;
-                z = qz / s;
-            }
-            
-            theta = acos(z);
-            phi = atan2(y, x);
+			theta = acos(z);
+			phi = atan2(y, x);
 
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = phi / DEG_TO_RAD;
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = theta / DEG_TO_RAD;
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = rotangle / DEG_TO_RAD;
+			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = phi / DEG_TO_RAD;
+			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = theta / DEG_TO_RAD;
+			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = rotangle / DEG_TO_RAD;
 
 			//printf("angles = %8.2f, %8.2f, %8.2f\n", phi / DEG_TO_RAD, theta / DEG_TO_RAD, rotangle/DEG_TO_RAD);
-            
-            /*
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = (float) myrand() * 360.0;
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = (float) myrand() * 360.0;
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = (float) myrand() * 360.0;
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = (float) myrand() * 360;
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = (float) myrand() * 180;
-            init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = (float) myrand() * 360;
-            */
+
+			/*
+			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = (float) myrand() * 360.0;
+			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = (float) myrand() * 360.0;
+			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = (float) myrand() * 360.0;
+			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = (float) myrand() * 360;
+			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = (float) myrand() * 180;
+			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = (float) myrand() * 360;
+			*/
 
 			for (gene_id=6; gene_id<MAX_NUM_OF_ROTBONDS+6; gene_id++) {
-#if defined (REPRO)
-					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = 22.0452;
-#else
-					init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = myrand()*360;
-#endif
-            }
-        }
-
-		//generating reference orientation angles
-#if defined (REPRO)
-		mypars->ref_ori_angles[0] = 190.279;
-		mypars->ref_ori_angles[1] = 190.279;
-		mypars->ref_ori_angles[2] = 190.279;
-#else
-		// mypars->ref_ori_angles[0] = (float) floor(myrand()*360*100)/100.0;
-		// mypars->ref_ori_angles[1] = (float) floor(myrand()*/*360*/180*100)/100.0;
-		// mypars->ref_ori_angles[2] = (float) floor(myrand()*360*100)/100.0;
-
-		// mypars->ref_ori_angles[0] = 0.0;
-		// mypars->ref_ori_angles[1] = 0.0;
-		// mypars->ref_ori_angles[2] = 0.0;
-#endif
+				init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = r.random_float()*360;
+			}
+		}
 
 		//Writing first initial population to initpop.txt
 		fp = fopen("initpop.txt", "w");
@@ -903,76 +989,36 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 
 	for (i=0; i<mypars->num_of_runs; i++)
 	{
-#if defined (REPRO)
-		ref_ori_angles[3*i]   = 190.279;
-		ref_ori_angles[3*i+1] =  90.279;
-		ref_ori_angles[3*i+2] = 190.279;
-#else
-		// Enable only for debugging.
-		// These specific values of rotational genes (in axis-angle space)
-		// correspond to a quaternion for NO rotation.
+		// uniform distr.
+		// generate random quaternion
+		u1 = r.random_float();
+		u2 = r.random_float();
+		u3 = r.random_float();
+		qw = sqrt(1.0 - u1) * sin(PI_TIMES_2 * u2);
+		qx = sqrt(1.0 - u1) * cos(PI_TIMES_2 * u2);
+		qy = sqrt(      u1) * sin(PI_TIMES_2 * u3);
+		qz = sqrt(      u1) * cos(PI_TIMES_2 * u3);
 
-		// ref_ori_angles[3*i]   = 0.0f;
-		// ref_ori_angles[3*i+1] = 0.0f;
-		// ref_ori_angles[3*i+2] = 0.0f;
+		// convert to angle representation
+		rotangle = 2.0 * acos(qw);
+		s = sqrt(1.0 - (qw * qw));
+		if (s < 0.001){ // rotangle too small
+			x = qx;
+			y = qy;
+			z = qz;
+		} else {
+			x = qx / s;
+			y = qy / s;
+			z = qz / s;
+		}
 
-		// Enable for release.
-		// ref_ori_angles[3*i]   = (float) (myrand()*360.0); 	//phi
-		// ref_ori_angles[3*i+1] = (float) (myrand()*180.0);	//theta
-		// ref_ori_angles[3*i+2] = (float) (myrand()*360.0);	//angle
-
-        // uniform distr.
-        // generate random quaternion
-        u1 = (float) myrand();
-        u2 = (float) myrand();
-        u3 = (float) myrand();
-        qw = sqrt(1.0 - u1) * sin(PI_TIMES_2 * u2);
-        qx = sqrt(1.0 - u1) * cos(PI_TIMES_2 * u2);
-        qy = sqrt(      u1) * sin(PI_TIMES_2 * u3);
-        qz = sqrt(      u1) * cos(PI_TIMES_2 * u3);
-
-        // convert to angle representation
-        rotangle = 2.0 * acos(qw);
-        s = sqrt(1.0 - (qw * qw));
-        if (s < 0.001){ // rotangle too small
-            x = qx;
-            y = qy;
-            z = qz;
-        } else {
-            x = qx / s;
-            y = qy / s;
-            z = qz / s;
-        }
-        
-        theta = acos(z);
-        phi = atan2(y, x);
+		theta = acos(z);
+		phi = atan2(y, x);
 
 		ref_ori_angles[3*i]   = phi / DEG_TO_RAD;
 		ref_ori_angles[3*i+1] = theta / DEG_TO_RAD;
 		ref_ori_angles[3*i+2] = rotangle / DEG_TO_RAD;
-        
-#endif
 	}
-
-
-#if 0
-	for (i=0; i<mypars->num_of_runs; i++)
-	{
-//#if defined (REPRO)
-
-		// These specific values for the rotation genes (in Shoemake space)
-		// correspond to a quaternion for NO rotation.
-		//ref_ori_angles[3*i]   = 0.0f;
-		//ref_ori_angles[3*i+1] = 0.25f;
-		//ref_ori_angles[3*i+2] = 0.0f;
-//#else
-		ref_ori_angles[3*i]   = ((float) rand()/ (float) RAND_MAX); 	// u1
-		ref_ori_angles[3*i+1] = ((float) rand()/ (float) RAND_MAX);	// u2
-		ref_ori_angles[3*i+2] = ((float) rand()/ (float) RAND_MAX);	// u3
-		//printf("u1, u2, u3: %10f %10f %10f \n", ref_ori_angles[3*i], ref_ori_angles[3*i+1], ref_ori_angles[3*i+2]);
-//#endif
-	}
-#endif
 
 	get_movvec_to_origo(myligand, movvec_to_origo);
 	move_ligand(myligand, movvec_to_origo);

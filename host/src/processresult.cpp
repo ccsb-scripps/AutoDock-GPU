@@ -23,10 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 
-
-
-
-
 #include "processresult.h"
 
 
@@ -103,7 +99,7 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 	fprintf(fp, "Number of pdb files to be generated:       %d\n", mypars->gen_pdbs);
 
 	fprintf(fp, "Initial population:                        ");
-	if (mypars->initpop_gen_or_loadfile == 0)
+	if (!mypars->initpop_gen_or_loadfile)
 		fprintf(fp, "GENERATE\n");
 	else
 		fprintf(fp, "LOAD FROM FILE (initpop.txt)\n");
@@ -150,7 +146,7 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	char temp_filename [128];
 	int i;
 
-	fprintf(fp, "AutoDock-GPU version: %s\n\n", "sd-tsri-195-g25d913d6d79b52a64961714de0f358e0ecc7d4a4");
+	fprintf(fp, "AutoDock-GPU version: %s\n\n", VERSION);
 
 	fprintf(fp, "**********************************************************\n");
 	fprintf(fp, "**    AutoDock-GPU AUTODOCKTOOLS-COMPATIBLE DLG FILE    **\n");
@@ -183,7 +179,7 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	fprintf(fp, "Limit of consecutive successes/failures:   %ld\n\n", mypars->cons_limit);
 
 		fprintf(fp, "Handle symmetry during clustering:         ");
-	if (mypars->handle_symmetry != 0)
+	if (mypars->handle_symmetry)
 		fprintf(fp, "YES\n");
 	else
 		fprintf(fp, "NO\n");
@@ -270,7 +266,7 @@ void make_resfiles(float* final_population,
 
 	sprintf(temp_filename, "final_population_run%d.txt", run_cnt+1);
 
-	if (mypars->gen_finalpop != 0)	//if final population files are not required, no file will be opened.
+	if (mypars->gen_finalpop)	//if final population files are not required, no file will be opened.
 	{
 		fp = fopen(temp_filename, "w");
 
@@ -311,7 +307,7 @@ void make_resfiles(float* final_population,
 		//	accurate_intraE [i] = calc_intraE(&temp_docked, 8, 0, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, 1);				//calculating the intramolecular energy
 		//else
 			#if 0
-			accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, 0, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp, debug);
+			accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, 0, tables, debug);
 			#endif
 			accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, tables, debug);
 
@@ -339,7 +335,7 @@ void make_resfiles(float* final_population,
 			{
 				best_energy_of_all = accurate_interE [i] + accurate_intraE [i];
 
-				if (mypars->gen_best != 0)
+				if (mypars->gen_best)
 					gen_new_pdbfile(mypars->ligandfile, "best.pdbqt", &temp_docked);
 			}
 
@@ -350,7 +346,7 @@ void make_resfiles(float* final_population,
 		}
 	}
 
-	if (mypars->gen_finalpop != 0)
+	if (mypars->gen_finalpop)
 	{
 
 		fprintf(fp, "     STATE OF FINAL POPULATION     \n");

@@ -25,12 +25,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-
-
-
-
-
-
 #ifndef MISCELLANEOUS_H_
 #define MISCELLANEOUS_H_
 
@@ -67,7 +61,6 @@ int float2fracint(double, int);
 long long float2fraclint(double, int);
 
 //double timer_gets(void);
-
 
 double distance(const double [], const double []);
 
@@ -124,7 +117,7 @@ class LocalRNG
 
         //The function generates random numbers with a linear congruential generator, using Visual C++ generator constants.
         unsigned int random_uint(){
-                state = (RAND_A_GS*state+RAND_C_GS);
+                state = (RAND_A_GS*state+RAND_C_GS); // AT - this is a rather weak random number generator and I will replace it later
                 return state;
         }
 

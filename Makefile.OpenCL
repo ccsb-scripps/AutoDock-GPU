@@ -62,7 +62,7 @@ OCL_SRC=$(wildcard $(OCL_SRC_DIR)/*.cpp)
 HOST_SRC=$(wildcard $(HOST_SRC_DIR)/*.cpp)
 SRC=$(OCL_SRC) $(HOST_SRC)
 
-IFLAGS=-I$(COMMON_DIR) -I$(OCL_INC_DIR) -I$(HOST_INC_DIR) -I$(OCLA_INC_PATH)
+IFLAGS=-I$(COMMON_DIR) -I$(OCL_INC_DIR) -I$(HOST_INC_DIR) -I$(OCLA_INC_PATH) -I$(KRNL_DIR)
 LFLAGS=-L$(OCLA_LIB_PATH)
 CFLAGS=$(IFLAGS) $(LFLAGS)
 
@@ -87,6 +87,10 @@ ifeq ($(DEVICE), CPU)
 else ifeq ($(DEVICE), GPU)
 	NWI=-DN64WI
 	TARGET:=$(TARGET)_gpu
+endif
+
+ifeq ($(OVERLAP), ON)
+	PIPELINE=-DUSE_PIPELINE -fopenmp
 endif
 
 BIN := $(wildcard $(TARGET)*)
@@ -244,7 +248,7 @@ odock: check-env-all stringify $(SRC)
 	$(CFLAGS) \
 	$(LIB_OPENCL) \
 	-o$(BIN_DIR)/$(TARGET) \
-	$(DEV) $(NWI) $(OPT) $(DD) $(REP) $(KFLAGS)
+	$(DEV) $(NWI) $(PIPELINE) $(OPT) $(DD) $(REP) $(KFLAGS)
 
 # Example
 # 1ac8: for testing gradients of translation and rotation genes

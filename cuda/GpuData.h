@@ -98,6 +98,7 @@ typedef struct
 } GpuDockparameters;
 
 struct GpuData {
+        int             devnum;
     GpuDockparameters               dockpars;
     
     // Consolidated constants and memory pointers to reduce kernel launch overhead

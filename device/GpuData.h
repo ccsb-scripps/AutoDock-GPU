@@ -21,38 +21,40 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
+#ifndef GPUDATADOTH
+#define GPUDATADOTH
 
-
-
-
-#ifndef SIMULATION_STATE_HPP
-#define SIMULATION_STATE_HPP
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-
-#include "profile.hpp"
-
-//#include <math.h>
-#include "processgrid.h"
-#include "miscellaneous.h"
-#include "processligand.h"
-#include "getparameters.h"
-#include "calcenergy.h"
-#include "processresult.h"
-
-struct SimulationState{
-	std::vector<float>	cpu_populations;
-	std::vector<float>	cpu_energies;
-	Liganddata       	myligand_reference;
-	std::vector<int>	cpu_evals_of_runs;
-	int                     generation_cnt;
-	std::vector<float>	cpu_ref_ori_angles;
-	float                   sec_per_run;
-	unsigned long           total_evals;
-	double			exec_time;
-	double			idle_time;
+struct GpuData {
+	int devnum;
+	// Consolidated constants and memory pointers to reduce kernel launch overhead
+	// dynamic
+	cl_mem mem_interintra_const;
+	cl_mem mem_intracontrib_const;
+	cl_mem mem_intra_const;
+	cl_mem mem_rotlist_const;
+	cl_mem mem_conform_const;
+  	cl_mem mem_rotbonds_const;
+  	cl_mem mem_rotbonds_atoms_const;
+  	cl_mem mem_num_rotating_atoms_per_rotbond_const;
+	// Constant data for correcting axisangle gradients
+	cl_mem mem_angle_const;
+	cl_mem mem_dependence_on_theta_const;
+	cl_mem mem_dependence_on_rotangle_const;
 };
 
+struct GpuTempData {
+	cl_context       context;
+	cl_command_queue command_queue;
+	cl_program       program;
+	cl_kernel        kernel1;
+	cl_kernel        kernel2;
+	cl_kernel        kernel3;
+	cl_kernel        kernel4;
+	cl_kernel        kernel5;
+	cl_kernel        kernel6;
+	cl_kernel        kernel7;
+	cl_mem           pMem_fgrids;
+};
 #endif
+
+

@@ -40,8 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 int load_all_maps (const char* fldfilename,
 		   const Gridinfo* mygrid,
 		   std::vector<Map>& all_maps,
-		   bool cgmaps,
-		   float* fgrids_device);
+		   bool cgmaps);
 
 int copy_from_all_maps (const Gridinfo* mygrid,
 		        float* fgrids,
@@ -54,7 +53,6 @@ int setup(std::vector<Map>&	all_maps,
 	  Liganddata&		myligand_init,
 	  Liganddata&		myxrayligand,
 	  FileList&             filelist,
-	  float* fgrids_device,
 	  int 	                i_file,
 	  int			argc,
 	  char*			argv[]);

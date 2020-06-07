@@ -27,9 +27,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
-#include <cuda.h>
-#include <cuda_runtime_api.h>
-#include <cassert>
 
 #include "filelist.hpp"
 #include "processgrid.h"
@@ -44,7 +41,6 @@ int setup(std::vector<Map>& all_maps,
 	  Liganddata&          myligand_init,
 	  Liganddata&          myxrayligand,
 	  FileList&            filelist,
-	  float* fgrids_device,
 	  int i_file,
 	  int argc, char* argv[])
 {
@@ -109,7 +105,7 @@ int setup(std::vector<Map>& all_maps,
 			{
 				if (!filelist.maps_are_loaded) { // maps not yet loaded (but in critical, so only one thread will ever enter this)
 					// Load maps to all_maps
-					if (load_all_maps(mypars.fldfile, &mygrid, all_maps, mypars.cgmaps,fgrids_device) != 0)
+					if (load_all_maps(mypars.fldfile, &mygrid, all_maps, mypars.cgmaps) != 0)
                         			{got_error = true;}
 					filelist.maps_are_loaded = true;
 				}
@@ -158,7 +154,7 @@ int setup(std::vector<Map>& all_maps,
 	//------------------------------------------------------------
 	// Calculating energies of reference ligand if required
 	//------------------------------------------------------------
-	if (mypars.reflig_en_reqired == 1) {
+	if (mypars.reflig_en_required) {
 		print_ref_lig_energies_f(myligand_init,
 					 mypars.smooth,
 					 mygrid,
@@ -204,7 +200,7 @@ int fill_maplist(const char* fldfilename, std::vector<Map>& all_maps)
 	return 0;
 }
 
-int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<Map>& all_maps, bool cgmaps,float* fgrids_device)
+int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<Map>& all_maps, bool cgmaps)
 {
 	// First, parse .fld file to get map names
 	if(fill_maplist(fldfilename,all_maps)==1) return 1;
@@ -269,17 +265,7 @@ int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<
                                 }
 
 		fclose(fp);
-
-		// Copy to GPU
-		cudaError_t status = cudaMemcpy(fgrids_device+t*size_of_one_map,all_maps[t].grid.data(),sizeof(float)*size_of_one_map, cudaMemcpyHostToDevice);
-    		if (status != cudaSuccess) { 
-        		printf("%s %s\n", "pMem_fgrids: failed to upload maps to GPU memory.\n", cudaGetErrorString(status)); 
-        		assert(0); 
-        		cudaDeviceReset(); 
-        		exit(-1); 
-    		}
-        }
-
+	}
         return 0;
 }
 

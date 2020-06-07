@@ -160,7 +160,14 @@ void setup_gpu_for_docking(GpuData& cData, GpuTempData& tData)
         cudaDeviceReset();
         exit(-1);
     }
-    status = cudaFree(NULL);   // Trick driver into creating context on current device
+    if (cData.devnum>=gpuCount){
+		printf("Error: Requested device %i does not exist (only %i devices available).\n",cData.devnum+1,gpuCount);
+		exit(-1);
+    }
+    if (cData.devnum<0)
+	    status = cudaFree(NULL);   // Trick driver into creating context on current device
+    else
+	    status = cudaSetDevice(cData.devnum);
     status = cudaDeviceSetLimit(cudaLimitPrintfFifoSize, 200000000ull);
     RTERROR(status, "cudaDeviceSetLimit failed");      
 
@@ -565,26 +572,33 @@ filled with clock() */
 	}
 
         // Adjust ls_method and num_of_energy_evals based on heuristics
-        if(mypars->use_heuristics && !mypars->nev_provided){
-                printf("\nUsing heuristics: ");
-                char newmethod[128];
-                if(myligand_init->num_of_rotbonds<8){ // use Solis-Wets
-                        strcpy(newmethod,"sw");
-                        mypars->num_of_energy_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 4.0));
-                        printf("-lsmet sw -nev %u\n",mypars->num_of_energy_evals);
-                } else{ // use ADAdelta
-                        strcpy(newmethod,"ad");
-                        mypars->num_of_energy_evals = (unsigned long)ceil(1000 * pow(2.0,0.4 * myligand_init->num_of_rotbonds + 7.0));
-                        printf("-lsmet ad -nev %u\n",mypars->num_of_energy_evals);
-                }
-                strcpy(mypars->ls_method,newmethod);
-
-                if (mypars->num_of_energy_evals>mypars->max_num_of_energy_evals){
-                        printf("Overriding heuristics, setting -nev to -maxnev ( = %u) instead.\n",mypars->max_num_of_energy_evals);
-                        mypars->num_of_energy_evals = mypars->max_num_of_energy_evals;
-                        profile.capped = true;
-                }
-        }
+	if(mypars->use_heuristics){
+		printf("Using heuristics: ");
+		char newmethod[128];
+		unsigned long heur_evals;
+		unsigned long nev=mypars->num_of_energy_evals;
+		if(myligand_init->num_of_rotbonds<8){ // use Solis-Wets
+			strcpy(newmethod,"sw");
+//			heur_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 3.5));
+			heur_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 4.0));
+			printf("-lsmet sw -nev %u\n",mypars->num_of_energy_evals);
+		} else{ // use ADAdelta
+			strcpy(newmethod,"ad");
+			heur_evals = (unsigned long)ceil(1000 * pow(2.0,0.4 * myligand_init->num_of_rotbonds + 7.0));
+			printf("-lsmet ad -nev %u\n",mypars->num_of_energy_evals);
+		}
+		strcpy(mypars->ls_method,newmethod);
+		// e*hm/(hm+e) = 0.95*e => hm/(hm+e) = 0.95
+		// => 0.95*hm + 0.95*e = hm => 0.95*e = 0.05 * hm
+		// => e = 1/19*hm
+		// at hm = 50 M => e0 = 2.63 M where e becomes less than 95% (about 11 torsions)
+		mypars->num_of_energy_evals = (unsigned long)ceil(2*mypars->heur_evals*(float)mypars->heuristics_max/(mypars->heuristics_max+mypars->heur_evals));
+		if (mypars->nev_provided && (mypars->num_of_energy_evals>nev)){
+			printf("Overriding heuristics, setting number of evaluations to -nev = %u instead.\n",nev);
+			mypars->num_of_energy_evals = nev;
+			profile.capped = true;
+		}
+	}
 	
 	printf("Local-search chosen method is: %s\n", (cData.dockpars.lsearch_rate == 0.0f)? "GA" :
 						      (

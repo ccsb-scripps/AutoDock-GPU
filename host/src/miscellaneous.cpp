@@ -25,8 +25,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-
-
 #include "miscellaneous.h"
 
 int float2fracint(double toconv, int frac)
@@ -521,3 +519,4 @@ int strincmp(const char* str1, const char* str2, int num)
 	return 0;
 }
 #endif
+

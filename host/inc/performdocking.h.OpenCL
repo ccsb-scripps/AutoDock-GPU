@@ -31,20 +31,23 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-//#include <math.h>
 
+#include "profile.hpp"
 #include "processgrid.h"
 #include "miscellaneous.h"
 #include "processligand.h"
 #include "getparameters.h"
 #include "calcenergy.h"
 #include "processresult.h"
+#include "simulation_state.hpp"
 
 #ifdef __APPLE__
 	#include "OpenCL/opencl.h"
 #else
 	#include "CL/opencl.h"
 #endif
+
+#include "../../device/GpuData.h"
 #include "commonMacros.h"
 #include "listAttributes.h"
 #include "Platforms.h"
@@ -74,14 +77,23 @@ typedef struct {
 } Gradientparameters;
 #endif
 
+void setup_gpu_for_docking(	GpuData& cData, 
+				GpuTempData& tData);
+void finish_gpu_from_docking(	GpuData& cData, 
+				GpuTempData& tData);
+
 int docking_with_gpu(const Gridinfo* 		mygrid,
          	     /*const*/ float* 		cpu_floatgrids,
 		           Dockpars*		mypars,
 		     const Liganddata* 	 	myligand_init,
 		     const Liganddata* 		myxrayligand,
+		           Profile&		profile,
 		     const int* 		argc,
 		     char**			argv,
-		           clock_t 		clock_start_program);
+		           SimulationState&	sim_state,
+		           GpuData&		cData,
+		           GpuTempData&		tData,
+		           bool			floatgrids_preloaded);
 
 double check_progress(int* evals_of_runs,
 		      int generation_cnt,

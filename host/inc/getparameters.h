@@ -31,12 +31,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+#include <vector>
 
 #include "defines.h"
 #include "processligand.h"
 #include "processgrid.h"
 #include "miscellaneous.h"
 #include "calcenergy_basic.h"
+#include "filelist.hpp"
 
 typedef struct
 {
@@ -78,7 +80,6 @@ typedef struct
 		char  xrayligandfile [128];
 		bool  given_xrayligandfile;
 		float ref_ori_angles [3];
-	unsigned long devnum;
 		bool  autostop;
 	unsigned int  as_frequency;
 		float stopstd;
@@ -93,22 +94,30 @@ typedef struct
 		char  resname [128];
 		float qasp;
 		float rmsd_tolerance;
+		float adam_beta1;
+		float adam_beta2;
+		float adam_epsilon;
 } Dockpars;
 
-int get_filenames_and_ADcoeffs(const int*,
-			           char**,
-				Dockpars*);
+int get_filelist(	const int* argc,
+			char**     argv,
+			FileList&  filelist);
 
-void get_commandpars(const int*,
-		         char**,
+int get_filenames_and_ADcoeffs(	const int*,
+				char**,
+				Dockpars*,
+				const bool);
+
+void get_commandpars(	const int*,
+			char**,
 			double*,
-		      Dockpars*);
+			Dockpars*);
 
-void gen_initpop_and_reflig(Dockpars*       mypars,
-			    float*          init_populations,
-			    float*          ref_ori_angles,
-			    Liganddata*     myligand,
-			    const Gridinfo* mygrid);
+void gen_initpop_and_reflig(	Dockpars*       mypars,
+				float*          init_populations,
+				float*          ref_ori_angles,
+				Liganddata*     myligand,
+				const Gridinfo* mygrid);
 
 #endif /* GETPARAMETERS_H_ */
 
