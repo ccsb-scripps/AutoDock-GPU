@@ -37,6 +37,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "processligand.h"
 #include "getparameters.h"
 
+int preload_gridsize(FileList& filelist);
+
 int load_all_maps (const char* fldfilename,
 		   const Gridinfo* mygrid,
 		   std::vector<Map>& all_maps,

@@ -47,6 +47,7 @@ typedef struct
 {
 	int  	 	num_of_atoms;
 	int   		num_of_atypes;
+	int   		num_of_map_atypes;
 	int    		num_of_intraE_contributors;
 	int   		gridsize_x;
 	int   		gridsize_y;

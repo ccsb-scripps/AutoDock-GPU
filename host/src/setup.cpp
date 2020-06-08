@@ -34,6 +34,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "getparameters.h"
 #include "setup.hpp"
 
+int preload_gridsize(FileList& filelist)
+{
+	if(!filelist.used) return 0;
+	Gridinfo mygrid;
+	int gridsize=0;
+	for(unsigned int i_file=0; i_file<filelist.fld_files.size(); i_file++){
+		// Filling mygrid according to the gpf file
+		if (get_gridinfo(filelist.fld_files[i_file].c_str(), &mygrid) != 0)
+			{printf("\n\nError in get_gridinfo, stopped job."); return 1;}
+		int curr_size = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
+		if(curr_size>gridsize)
+			gridsize=curr_size;
+	}
+	return gridsize;
+}
+
 int setup(std::vector<Map>& all_maps,
 	  Gridinfo&            mygrid,
 	  std::vector<float>& floatgrids,
@@ -108,6 +124,7 @@ int setup(std::vector<Map>& all_maps,
 					if (load_all_maps(mypars.fldfile, &mygrid, all_maps, mypars.cgmaps) != 0)
                         			{got_error = true;}
 					filelist.maps_are_loaded = true;
+					filelist.load_maps_gpu = true; // first thread seeing this will copy to GPU
 				}
 			}
 			// Return must be outside pragma

@@ -230,10 +230,11 @@ void setup_gpu_for_docking(GpuData& cData, GpuTempData& tData)
     RTERROR(status, "cData.pMem_dependence_on_rotangle_const: failed to upload to GPU memory.\n");       
 
 	// Allocate temporary data - JL TODO - Are these sizes correct?
-	size_t size_floatgrids = 4 * (sizeof(float)) * (MAX_NUM_OF_ATYPES+2) * (MAX_NUM_GRIDPOINTS) * (MAX_NUM_GRIDPOINTS) * (MAX_NUM_GRIDPOINTS);    
-    status = cudaMalloc((void**)&(tData.pMem_fgrids), size_floatgrids);
-    RTERROR(status, "pMem_fgrids: failed to allocate GPU memory.\n");
-	size_t size_populations = MAX_NUM_OF_RUNS * MAX_POPSIZE * GENOTYPE_LENGTH_IN_GLOBMEM*sizeof(float);
+    if(cData.preload_gridsize>0){
+        status = cudaMalloc((void**)&(tData.pMem_fgrids), cData.preload_gridsize * (sizeof(float)) * (ATYPE_NUM+2));
+	RTERROR(status, "pMem_fgrids: failed to allocate GPU memory.\n");
+    }
+    size_t size_populations = MAX_NUM_OF_RUNS * MAX_POPSIZE * GENOTYPE_LENGTH_IN_GLOBMEM*sizeof(float);
     status = cudaMalloc((void**)&(tData.pMem_conformations1), size_populations);
     RTERROR(status, "pMem_conformations1: failed to allocate GPU memory.\n");   
     status = cudaMalloc((void**)&(tData.pMem_conformations2), size_populations);
@@ -488,10 +489,14 @@ filled with clock() */
     cudaMemcpy(cData.pMem_num_rotating_atoms_per_rotbond_const, KerConst_grads.num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
     RTERROR(status, "cData.pMem_num_rotating_atoms_per_rotbond_const failed to upload to GPU memory.\n"); 
 
- 	//allocating GPU memory for populations, floatgirds,
-	//energies, evaluation counters and random number generator states
-	size_floatgrids = 4 * (sizeof(float)) * (mygrid->num_of_atypes+2) * (mygrid->size_xyz[0]) * (mygrid->size_xyz[1]) * (mygrid->size_xyz[2]);    
-    
+    //allocating GPU memory for populations, floatgirds,
+    //energies, evaluation counters and random number generator states
+    size_floatgrids = 4 * (sizeof(float)) * (mygrid->num_of_atypes+2) * (mygrid->size_xyz[0]) * (mygrid->size_xyz[1]) * (mygrid->size_xyz[2]);    
+    if(cData.preload_gridsize==0){
+        status = cudaMalloc((void**)&(tData.pMem_fgrids), size_floatgrids);
+        RTERROR(status, "pMem_fgrids: failed to allocate GPU memory.\n");
+    }
+
     // Flippable pointers
     float* pMem_conformations_current = tData.pMem_conformations1;
     float* pMem_conformations_next = tData.pMem_conformations2;
@@ -592,7 +597,7 @@ filled with clock() */
 		// => 0.95*hm + 0.95*e = hm => 0.95*e = 0.05 * hm
 		// => e = 1/19*hm
 		// at hm = 50 M => e0 = 2.63 M where e becomes less than 95% (about 11 torsions)
-		mypars->num_of_energy_evals = (unsigned long)ceil(2*mypars->heur_evals*(float)mypars->heuristics_max/(mypars->heuristics_max+mypars->heur_evals));
+		mypars->num_of_energy_evals = (unsigned long)ceil(heur_evals*(float)mypars->heuristics_max/(mypars->heuristics_max+heur_evals));
 		if (mypars->nev_provided && (mypars->num_of_energy_evals>nev)){
 			printf("Overriding heuristics, setting number of evaluations to -nev = %u instead.\n",nev);
 			mypars->num_of_energy_evals = nev;

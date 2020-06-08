@@ -125,6 +125,7 @@ void gpu_calc_energy(
 				uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 		 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
 		            	int    dockpars_num_of_atypes,
+		            	int    dockpars_num_of_map_atypes,
 		            	int    dockpars_num_of_intraE_contributors,
 			    	float  dockpars_grid_spacing,
 			    	float  dockpars_coeff_elec,
@@ -276,7 +277,7 @@ void gpu_calc_energy(
 	          atom_id < dockpars_num_of_atoms;
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
-		uint atom_typeid = kerconst_interintra->atom_types_const[atom_id];
+		uint atom_typeid = kerconst_interintra->atom_types_map_const[atom_id];
 		float x = calc_coords[atom_id].x;
 		float y = calc_coords[atom_id].y;
 		float z = calc_coords[atom_id].z;
@@ -324,7 +325,7 @@ void gpu_calc_energy(
 		#endif
 
 		// Capturing electrostatic values
-		atom_typeid = dockpars_num_of_atypes;
+		atom_typeid = dockpars_num_of_map_atypes;
 
 		mul_tmp = atom_typeid*g3<<2;
 		// Calculating electrostatic energy
@@ -335,7 +336,7 @@ void gpu_calc_energy(
 		#endif
 
 		// Capturing desolvation values
-		atom_typeid = dockpars_num_of_atypes+1;
+		atom_typeid = dockpars_num_of_map_atypes+1;
 
 		mul_tmp = atom_typeid*g3<<2;
 		// Calculating desolvation energy

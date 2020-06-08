@@ -173,6 +173,7 @@ void gpu_calc_energrad(
 				uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 		 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
 				int    dockpars_num_of_atypes,
+				int    dockpars_num_of_map_atypes,
 				int    dockpars_num_of_intraE_contributors,
 				float  dockpars_grid_spacing,
 				float  dockpars_coeff_elec,
@@ -360,7 +361,7 @@ void gpu_calc_energrad(
 		float y = calc_coords[atom_id].y;
 		float z = calc_coords[atom_id].z;
 		float q = kerconst_interintra->atom_charges_const[atom_id];
-		uint atom_typeid = kerconst_interintra->atom_types_const[atom_id];
+		uint atom_typeid = kerconst_interintra->atom_types_map_const[atom_id];
 
 		if ((x < 0) || (y < 0) || (z < 0) || (x >= dockpars_gridsize_x-1)
 				                  || (y >= dockpars_gridsize_y-1)
@@ -488,7 +489,7 @@ void gpu_calc_energrad(
 		// -------------------------------------------------------------------
 
 		// Capturing electrostatic values
-		atom_typeid = dockpars_num_of_atypes;
+		atom_typeid = dockpars_num_of_map_atypes;
 
 		mul_tmp = atom_typeid*g3<<2; // different atom type id to get charge IA
 		cube[0] = *(grid_value_000+mul_tmp+0);

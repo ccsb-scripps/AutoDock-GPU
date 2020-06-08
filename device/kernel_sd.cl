@@ -44,6 +44,7 @@ __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)
 gradient_minSD(	
 			    int    dockpars_num_of_atoms,
 			    int    dockpars_num_of_atypes,
+			    int    dockpars_num_of_map_atypes,
 			    int    dockpars_num_of_intraE_contributors,
 			    int    dockpars_gridsize_x,
 			    int    dockpars_gridsize_y,
@@ -229,6 +230,7 @@ gradient_minSD(
 			dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 			dockpars_fgrids,
 			dockpars_num_of_atypes,
+			dockpars_num_of_map_atypes,
 			dockpars_num_of_intraE_contributors,
 			dockpars_grid_spacing,
 			dockpars_coeff_elec,
@@ -431,6 +433,7 @@ gradient_minSD(
 				dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 				dockpars_fgrids,
 				dockpars_num_of_atypes,
+				dockpars_num_of_map_atypes,
 				dockpars_num_of_intraE_contributors,
 				dockpars_grid_spacing,
 				dockpars_coeff_elec,
@@ -619,6 +622,7 @@ gradient_minSD(
 				dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 				dockpars_fgrids,
 				dockpars_num_of_atypes,
+				dockpars_num_of_map_atypes,
 				dockpars_num_of_intraE_contributors,
 				dockpars_grid_spacing,
 				dockpars_coeff_elec,

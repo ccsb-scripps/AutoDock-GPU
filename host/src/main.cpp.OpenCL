@@ -117,6 +117,7 @@ int main(int argc, char* argv[])
 			break;
 		}
 	}
+	cData.preload_gridsize = preload_gridsize(filelist);
 	// Set up run profiles for timing
 	bool get_profiles = true; // hard-coded switch to use ALS's job profiler
 	Profiler profiler;
@@ -174,15 +175,23 @@ int main(int argc, char* argv[])
 				err[i_job] = 1;
 				continue;
 			} else { // Successful setup
-				// Copy to GPU
-				int size_of_one_map = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
-			        for (int t=0; t < all_maps.size(); t++){
-					cl_int err;
-					err = clEnqueueWriteBuffer(tData.command_queue,tData.pMem_fgrids,false,t*size_of_one_map,sizeof(float)*size_of_one_map,all_maps[t].grid.data(),0,NULL,NULL);
-					if (err != CL_SUCCESS){
-						printf("pMem_fgrids: failed to upload maps to GPU memory. %d\n", err);
-						fflush(stdout);
-						return EXIT_FAILURE;
+				// Copy preloaded maps to GPU
+#ifdef USE_PIPELINE
+				#pragma omp critical
+#endif
+				{
+					if(filelist.preload_maps && filelist.load_maps_gpu){
+						int size_of_one_map = 4*(sizeof(float))*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
+					        for (int t=0; t < all_maps.size(); t++){
+							cl_int err;
+							err = clEnqueueWriteBuffer(tData.command_queue,tData.pMem_fgrids,true,t*size_of_one_map,size_of_one_map,all_maps[t].grid.data(),0,NULL,NULL);
+							if (err != CL_SUCCESS){
+								printf("pMem_fgrids: failed to upload maps to GPU memory. %d\n", err);
+								fflush(stdout);
+								return EXIT_FAILURE;
+							}
+						}
+						filelist.load_maps_gpu=false;
 					}
 				}
 #ifdef USE_PIPELINE
