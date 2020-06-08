@@ -144,6 +144,20 @@ inline float stddev(float* average_sd2_N)
 	return sqrt(sq)/average_sd2_N[2];
 }
 
+void copy_map_to_gpu(	GpuTempData& tData,
+			std::vector<Map>& all_maps,
+			int t,
+			int size_of_one_map)
+{
+	cudaError_t status = cudaMemcpy(tData.pMem_fgrids+t*size_of_one_map,all_maps[t].grid.data(),sizeof(float)*size_of_one_map, cudaMemcpyHostToDevice);
+	if (status != cudaSuccess) { 
+		printf("%s %s\n", "pMem_fgrids: failed to upload maps to GPU memory.\n", cudaGetErrorString(status)); 
+		assert(0); 
+		cudaDeviceReset(); 
+		exit(-1); 
+	}
+}
+
 void setup_gpu_for_docking(GpuData& cData, GpuTempData& tData)
 {
     auto const t0 = std::chrono::steady_clock::now();

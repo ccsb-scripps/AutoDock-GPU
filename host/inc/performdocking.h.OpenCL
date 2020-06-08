@@ -47,7 +47,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	#include "CL/opencl.h"
 #endif
 
-#include "../../device/GpuData.h"
+#include "GpuData.h"
 #include "commonMacros.h"
 #include "listAttributes.h"
 #include "Platforms.h"
@@ -76,6 +76,11 @@ typedef struct {
 	*/
 } Gradientparameters;
 #endif
+
+void copy_map_to_gpu(	GpuTempData& tData,
+			std::vector<Map>& all_maps,
+			int t,
+			int size_of_one_map);
 
 void setup_gpu_for_docking(	GpuData& cData, 
 				GpuTempData& tData);

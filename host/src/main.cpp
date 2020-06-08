@@ -38,7 +38,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "setup.hpp"
 #include "profile.hpp"
 #include "simulation_state.hpp"
-#include "../../device/GpuData.h"
+#include "GpuData.h"
 
 #ifndef _WIN32
 // Time measurement
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 	GpuData cData;
 	GpuTempData tData;
 
-	cData.devnum=0;
+	cData.devnum=-1;
 	// Get device number to run on
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
@@ -181,16 +181,9 @@ int main(int argc, char* argv[])
 #endif
 				{
 					if(filelist.preload_maps && filelist.load_maps_gpu){
-						int size_of_one_map = 4*(sizeof(float))*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
-					        for (int t=0; t < all_maps.size(); t++){
-							cl_int err;
-							err = clEnqueueWriteBuffer(tData.command_queue,tData.pMem_fgrids,true,t*size_of_one_map,size_of_one_map,all_maps[t].grid.data(),0,NULL,NULL);
-							if (err != CL_SUCCESS){
-								printf("pMem_fgrids: failed to upload maps to GPU memory. %d\n", err);
-								fflush(stdout);
-								return EXIT_FAILURE;
-							}
-						}
+						int size_of_one_map = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
+						for (int t=0; t < all_maps.size(); t++)
+							copy_map_to_gpu(tData,all_maps,t,size_of_one_map);
 						filelist.load_maps_gpu=false;
 					}
 				}

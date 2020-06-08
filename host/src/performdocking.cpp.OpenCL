@@ -124,6 +124,20 @@ inline float stddev(float* average_sd2_N)
 	return sqrt(sq)/average_sd2_N[2];
 }
 
+void copy_map_to_gpu(	GpuTempData& tData,
+			std::vector<Map>& all_maps,
+			int t,
+			int size_of_one_map)
+{
+	cl_int err;
+	err = clEnqueueWriteBuffer(tData.command_queue,tData.pMem_fgrids,true,t*size_of_one_map*sizeof(float),size_of_one_map*sizeof(float),all_maps[t].grid.data(),0,NULL,NULL);
+	if (err != CL_SUCCESS){
+		printf("pMem_fgrids: failed to upload maps to GPU memory. %d\n", err);
+		fflush(stdout);
+		exit(-1);
+	}
+}
+
 void setup_gpu_for_docking(GpuData& cData, GpuTempData& tData)
 {
 // =======================================================================
@@ -160,6 +174,8 @@ void setup_gpu_for_docking(GpuData& cData, GpuTempData& tData)
 
 	// Get all devices of first platform
 	if (getDevices(platform_id[0],platformCount,&device_ids,&deviceCount) != 0) exit(-1);
+	if (cData.devnum<0) // this is for Cuda to not set the device (in here for compatibility)
+		cData.devnum=0;
 	if (cData.devnum>=deviceCount)
 	{
 		printf("Warning: user specified OpenCL device number does not exist, using first device.\n");
