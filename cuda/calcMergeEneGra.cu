@@ -566,6 +566,9 @@ __device__ void gpu_calc_energrad(
     torque_rot.x = 0.0f;
     torque_rot.y = 0.0f;
     torque_rot.z = 0.0f;
+    float gx = 0.0f;
+    float gy = 0.0f;
+    float gz = 0.0f;    
 	for (uint32_t atom_cnt = threadIdx.x;
 		  atom_cnt < cData.dockpars.num_of_atoms;
 		  atom_cnt+= blockDim.x) {
@@ -574,11 +577,14 @@ __device__ void gpu_calc_energrad(
         r.y = (calc_coords[atom_cnt].y - genrot_movingvec.y) * cData.dockpars.grid_spacing;
         r.z = (calc_coords[atom_cnt].z - genrot_movingvec.z) * cData.dockpars.grid_spacing;
 
-		// Re-using "gradient_inter_*" for total gradient (inter+intra)
+		// Re-using "gradient_inter_*" for total gradient (inter+intra) 
 		float3 force;
 		force.x = gradient[atom_cnt].x;
 		force.y = gradient[atom_cnt].y; 
 		force.z = gradient[atom_cnt].z;
+        gx += force.x;
+        gy += force.y;
+        gz += force.z;
 		float4 tr = cross(r, force);
 		torque_rot.x += tr.x;
         torque_rot.y += tr.y;
@@ -601,15 +607,6 @@ __device__ void gpu_calc_energrad(
 #if defined (DEBUG_ENERGY_KERNEL)
     REDUCEFLOATSUM(intraE, pFloatAccumulator);
 #endif 
-    float gx = 0.0f;
-    float gy = 0.0f;
-    float gz = 0.0f;
-    for (uint32_t idx = threadIdx.x; idx < cData.dockpars.num_of_atoms; idx += blockDim.x)
-    {
-        gx += gradient[idx].x;
-        gy += gradient[idx].y;
-        gz += gradient[idx].z;
-    }
     REDUCEFLOATSUM(gx, pFloatAccumulator);
     REDUCEFLOATSUM(gy, pFloatAccumulator);
     REDUCEFLOATSUM(gz, pFloatAccumulator);
