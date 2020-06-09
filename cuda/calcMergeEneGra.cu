@@ -32,9 +32,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // Then, statements corresponding to enery calculations were added gradually.
 // The latter can be distinguised this way: they are place within lines without indentation.
 
-
 #define CONVERT_INTO_ANGSTROM_RADIAN
 #define SCFACTOR_ANGSTROM_RADIAN ((0.375 * 0.375)/(DEG_TO_RAD * DEG_TO_RAD))
+
+// Enable restoring map gradient
+// Currently, this is not a good idea
+// #define RESTORING_MAP_GRADIENT
 
 __device__ void gpu_calc_energrad(
 			float* genotype,
@@ -130,11 +133,11 @@ __device__ void gpu_calc_energrad(
 
 			// Capturing atom coordinates
 			float4 atom_to_rotate;
-            atom_to_rotate.x = calc_coords[atom_id].x;
-            atom_to_rotate.y = calc_coords[atom_id].y;
-            atom_to_rotate.z = calc_coords[atom_id].z;
-            atom_to_rotate.w = 0.0f;
-            
+			atom_to_rotate.x = calc_coords[atom_id].x;
+			atom_to_rotate.y = calc_coords[atom_id].y;
+			atom_to_rotate.z = calc_coords[atom_id].z;
+			atom_to_rotate.w = 0.0f;
+
 			// initialize with general rotation values
 			float4 rotation_unitvec = genrot_unitvec;
 			float4 rotation_movingvec = genrot_movingvec;
@@ -145,14 +148,14 @@ __device__ void gpu_calc_energrad(
 
 				float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
 				float s = sin(rotation_angle);
-                rotation_unitvec.x = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id];
-                rotation_unitvec.y = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1];
-                rotation_unitvec.z = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2];
-                rotation_unitvec.w = cos(rotation_angle);
-                rotation_movingvec.x = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id];
-                rotation_movingvec.y = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1];
-                rotation_movingvec.z = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2];
-                
+				rotation_unitvec.x = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id];
+				rotation_unitvec.y = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1];
+				rotation_unitvec.z = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2];
+				rotation_unitvec.w = cos(rotation_angle);
+				rotation_movingvec.x = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id];
+				rotation_movingvec.y = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1];
+				rotation_movingvec.z = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2];
+
 				// Performing additionally the first movement which
 				// is needed only if rotating around rotatable bond
 				atom_to_rotate.x -= rotation_movingvec.x;
@@ -170,15 +173,15 @@ __device__ void gpu_calc_energrad(
 				// which means that reference orientation rotation is the first
 				uint32_t rid4 = 4 * run_id;
 				float4 qt;
-                qt.x = cData.pKerconst_conform->ref_orientation_quats_const[rid4+0];
-                qt.y = cData.pKerconst_conform->ref_orientation_quats_const[rid4+1];
-                qt.z = cData.pKerconst_conform->ref_orientation_quats_const[rid4+2];
-                qt.w = cData.pKerconst_conform->ref_orientation_quats_const[rid4+3];
+				qt.x = cData.pKerconst_conform->ref_orientation_quats_const[rid4+0];
+				qt.y = cData.pKerconst_conform->ref_orientation_quats_const[rid4+1];
+				qt.z = cData.pKerconst_conform->ref_orientation_quats_const[rid4+2];
+				qt.w = cData.pKerconst_conform->ref_orientation_quats_const[rid4+3];
 				quatrot_left = quaternion_multiply(quatrot_left, qt);
 			}
 
 			// Performing final movement and storing values
-            float4 qt = quaternion_rotate(atom_to_rotate,quatrot_left);
+			float4 qt = quaternion_rotate(atom_to_rotate,quatrot_left);
 			calc_coords[atom_id].x = qt.x + rotation_movingvec.x;
 			calc_coords[atom_id].y = qt.y + rotation_movingvec.y;
 			calc_coords[atom_id].z = qt.z + rotation_movingvec.z;            
@@ -208,6 +211,7 @@ __device__ void gpu_calc_energrad(
 		if ((x < 0) || (y < 0) || (z < 0) || (x >= cData.dockpars.gridsize_x-1)
 				                  || (y >= cData.dockpars.gridsize_y-1)
 						  || (z >= cData.dockpars.gridsize_z-1)){
+#ifdef RESTORING_MAP_GRADIENT
 			x -= 0.5f * cData.dockpars.gridsize_x;
 			y -= 0.5f * cData.dockpars.gridsize_y;
 			z -= 0.5f * cData.dockpars.gridsize_z;
@@ -221,6 +225,15 @@ __device__ void gpu_calc_energrad(
 			gradient[atom_id].x += (42.0f * x) / cData.dockpars.grid_spacing;
 			gradient[atom_id].y += (42.0f * y) / cData.dockpars.grid_spacing;
 			gradient[atom_id].z += (42.0f * z) / cData.dockpars.grid_spacing;
+#else
+			energy += 16777216.0f; //100000.0f;
+			#if defined (DEBUG_ENERGY_KERNEL)
+			interE += 16777216.0f; //100000.0f;
+			#endif
+			gradient[atom_id].x += 16777216.0f;
+			gradient[atom_id].y += 16777216.0f;
+			gradient[atom_id].z += 16777216.0f;
+#endif
 			continue;
 		}
 		// Getting coordinates
