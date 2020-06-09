@@ -704,7 +704,8 @@ filled with clock() */
 	  		printf("%-25s %10s %8u %10s %4u\n", "K_LS_SOLISWETS", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
   			#endif
 			// End of Kernel3
-		} else if (strcmp(mypars->ls_method, "sd") == 0) {
+		}
+		if (strcmp(mypars->ls_method, "sd") == 0) {
 			// Kernel5
   			kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity;
   			kernel5_lxsize = threadsPerBlock;
@@ -712,7 +713,8 @@ filled with clock() */
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_SDESCENT", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel5
-		} else if (strcmp(mypars->ls_method, "fire") == 0) {
+		}
+		if (strcmp(mypars->ls_method, "fire") == 0) {
 			// Kernel6
   			kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity;
   			kernel6_lxsize = threadsPerBlock;
@@ -720,7 +722,8 @@ filled with clock() */
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_FIRE", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel6
-		} else if (strcmp(mypars->ls_method, "ad") == 0) {
+		}
+		if (strcmp(mypars->ls_method, "ad") == 0) {
 			// Kernel7
 			kernel7_gxsize = blocksPerGridForEachGradMinimizerEntity;
 			kernel7_lxsize = threadsPerBlock;
@@ -729,7 +732,7 @@ filled with clock() */
 			#endif
 			// End of Kernel7
 		}
-        else if (strcmp(mypars->ls_method, "adam") == 0) {
+		if (strcmp(mypars->ls_method, "adam") == 0) {
 			// Kernel8
 			kernel8_gxsize = blocksPerGridForEachGradMinimizerEntity;
 			kernel8_lxsize = threadsPerBlock;
