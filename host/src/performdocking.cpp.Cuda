@@ -623,9 +623,11 @@ filled with clock() */
 						      (strcmp(mypars->ls_method, "sw")   == 0)?"Solis-Wets (sw)":
 						      (strcmp(mypars->ls_method, "sd")   == 0)?"Steepest-Descent (sd)": 
 						      (strcmp(mypars->ls_method, "fire") == 0)?"FIRE (fire)":
-                              (strcmp(mypars->ls_method, "adam") == 0)?"ADAM (adam)":
+						      (strcmp(mypars->ls_method, "adam") == 0)?"ADAM (adam)":
 						      (strcmp(mypars->ls_method, "ad") == 0)?"ADADELTA (ad)": "Unknown")
 						      );
+	if((mypars->initial_sw_generations>0) && (strcmp(mypars->ls_method, "sw") != 0))
+		printf("Using Solis-Wets (sw) for the first %d generations.\n",mypars->initial_sw_generations);
 
         // Get profile for timing
 	profile.adadelta=(strcmp(mypars->ls_method, "ad")==0);
@@ -694,7 +696,7 @@ filled with clock() */
     uint32_t kernel8_gxsize, kernel8_lxsize; 
 	if (cData.dockpars.lsearch_rate != 0.0f) {
 
-		if (strcmp(mypars->ls_method, "sw") == 0) {
+		if ((strcmp(mypars->ls_method, "sw") == 0) || (mypars->initial_sw_generations>0)) {
 			// Kernel3
 			kernel3_gxsize = blocksPerGridForEachLSEntity;
 			kernel3_lxsize = threadsPerBlock;
@@ -854,7 +856,7 @@ filled with clock() */
 		#endif
 		// End of Kernel4
 		if (cData.dockpars.lsearch_rate != 0.0f) {
-			if (strcmp(mypars->ls_method, "sw") == 0) {
+			if ((strcmp(mypars->ls_method, "sw") == 0) || ((strcmp(mypars->ls_method, "ad") == 0) && (generation_cnt<mypars->initial_sw_generations))) {
 				// Kernel3
 				#ifdef DOCK_DEBUG
 					printf("%-25s", "\tK_LS_SOLISWETS");fflush(stdout);

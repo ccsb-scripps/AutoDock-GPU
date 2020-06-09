@@ -118,7 +118,7 @@ public:
 		Q[0]=x;
 		Q[1]=Q[0]+PHI;
 		Q[2]=Q[1]+PHI;
-		for(unsigned int i=3; i<4096; i++) Q[i]=Q[i-3] ^ Q[i-2] ^ PHI ^ i;
+		for(unsigned int j=3; j<4096; j++) Q[j]=Q[j-3] ^ Q[j-2] ^ PHI ^ j;
 		i=4095;
 		c=362436;
 		do
