@@ -314,7 +314,7 @@ void get_commandpars(const int* argc,
 			arg_recognized = 1;
 			sscanf(argv[i+1], "%ld", &tempint);
 
-			if ((tempint > 0) && (tempint < 16250000))
+			if ((tempint >= 0) && (tempint <= 16250000))
 				mypars->initial_sw_generations = (unsigned long) tempint;
 			else
 				printf("Warning: value of -initswgens argument ignored. Value must be between 0 and 16250000.\n");
@@ -620,7 +620,7 @@ void get_commandpars(const int* argc,
 		// MISSING: devnum
 		// UPDATED in : main
 		// ----------------------------------
-		//Argument: OpenCL device number to use
+		//Argument: OpenCL/Cuda device number to use
 		if (strcmp("-devnum", argv [i]) == 0)
 		{
 			arg_recognized = 1;

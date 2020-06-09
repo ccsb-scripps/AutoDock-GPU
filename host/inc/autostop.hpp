@@ -44,6 +44,7 @@ class AutoStop{
 	const unsigned int pop_size;
 	const int num_of_runs;
 	const float stopstd;
+	const unsigned int as_frequency;
         const unsigned int Ncream;
         float delta_energy;
         float overall_best_energy;
@@ -117,14 +118,15 @@ class AutoStop{
 
 	public:
 
-	AutoStop(int pop_size_in, int num_of_runs_in, float stopstd_in)
+	AutoStop(int pop_size_in, int num_of_runs_in, float stopstd_in, int as_frequency_in)
 		: rolling(4*3, 0), // Initialize to zero
 		  average_sd2_N((pop_size_in+1)*3),
 		  num_of_runs(num_of_runs_in),
 		  pop_size(pop_size_in),
 		  Ntop(pop_size_in),
 		  Ncream(pop_size_in / 10),
-		  stopstd(stopstd_in)
+		  stopstd(stopstd_in),
+		  as_frequency(as_frequency_in)
 	{
 		first_time = true;
 		autostopped = false;
@@ -139,9 +141,9 @@ class AutoStop{
 
 	inline void print_intro(unsigned long num_of_generations, unsigned long num_of_energy_evals)
 	{
-		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation\nof the best molecules, %lu generations, or %lu evaluations, whichever comes first:\n\n",stopstd,num_of_generations,num_of_energy_evals);
-                printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
-                printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
+		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation of\nthe best molecules of the last 4 * %u generations, %u generations, or %u evaluations:\n\n",stopstd,as_frequency,num_of_generations,num_of_energy_evals);
+		printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
+		printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
 	}
 
 	inline bool check_if_satisfactory(int generation_cnt, const float* energies, unsigned long total_evals)
@@ -184,7 +186,7 @@ class AutoStop{
 		average_sd2_N[2] = rolling[2] + rolling[5] + rolling[8] + rolling[11];
 
 		// Finish when the std.dev. of the last 4 rounds is below 0.1 kcal/mol
-		if((stddev(&average_sd2_N[0])<stopstd) && (generation_cnt>30))
+		if((stddev(&average_sd2_N[0])<stopstd) && (generation_cnt>=4*as_frequency))
 			autostopped = true;
 
 		return autostopped;

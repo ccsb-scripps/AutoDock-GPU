@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
 		      return 1;
 	if (filelist.used){
 		n_files = filelist.nfiles;
-		printf("\nRunning %d jobs in pipeline mode ", n_files);
+		printf("Running %d jobs in pipeline mode\n", n_files);
 	} else {
 		n_files = 1;
 	}
@@ -110,10 +110,10 @@ int main(int argc, char* argv[])
 		{
 			int tempint;
 			sscanf(argv [i+1], "%lu", &tempint);
-			if ((tempint >= 1) && (tempint <= 256))
+			if ((tempint >= 1) && (tempint <= 65536))
 				cData.devnum = (unsigned long) tempint-1;
 			else
-				printf("Warning: value of -devnum argument ignored. Value must be an integer between 1 and 256.\n");
+				printf("Warning: value of -devnum argument ignored. Value must be an integer between 1 and 65536.\n");
 			break;
 		}
 	}
@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
 	std::vector<int> err(n_files,0);
 
 	// Print version info
-	printf("\nAutoDock-GPU version: %s\n", VERSION);
+	printf("AutoDock-GPU version: %s\n", VERSION);
 
 	setup_gpu_for_docking(cData,tData);
 
@@ -193,12 +193,6 @@ int main(int argc, char* argv[])
 				total_setup_time+=seconds_since(setup_timer);
 			}
 
-			printf("\nRunning Job #%d:\n", i_job);
-			if (filelist.used){
-	                     	printf("   Fields from: %s\n",  filelist.fld_files[i_job].c_str());
-	                      	printf("   Ligands from: %s\n", filelist.ligand_files[i_job].c_str()); fflush(stdout);
-			}
-
 			// Starting Docking
 			int error_in_docking;
 			// Critical section to only let one thread access GPU at a time
@@ -206,6 +200,11 @@ int main(int argc, char* argv[])
 			#pragma omp critical
 #endif
 			{
+				printf("\nRunning Job #%d:\n", i_job);
+				if (filelist.used){
+					printf("   Fields from: %s\n",  filelist.fld_files[i_job].c_str());
+				 	printf("   Ligands from: %s\n", filelist.ligand_files[i_job].c_str()); fflush(stdout);
+				}
 				// End idling timer, start exec timer
 				sim_state.idle_time = seconds_since(idle_timer);
 	                        start_timer(exec_timer);
@@ -271,7 +270,7 @@ int main(int argc, char* argv[])
 			n_errors+=1;
 		}
 	}
-	if (n_errors==0) printf("\nAll jobs ran without errors.");
+	if (n_errors==0) printf("\nAll jobs ran without errors.\n");
 
 	return 0;
 }

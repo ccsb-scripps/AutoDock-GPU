@@ -104,6 +104,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define OPT_PROG INC KNWI REP KGDB
 
+#include "autostop.hpp"
 #include "performdocking.h"
 #include "stringify.h"
 #include "correct_grad_axisangle.h"
@@ -171,20 +172,82 @@ void setup_gpu_for_docking(GpuData& cData, GpuTempData& tData)
 
 	// Get all available platforms
 	if (getPlatforms(&platform_id,&platformCount) != 0) exit(-1);
-
-	// Get all devices of first platform
-	if (getDevices(platform_id[0],platformCount,&device_ids,&deviceCount) != 0) exit(-1);
 	if (cData.devnum<0) // this is for Cuda to not set the device (in here for compatibility)
 		cData.devnum=0;
+	unsigned int platform_nr=cData.devnum>>8;
+	cData.devnum&=0xFF;
+	if(platform_nr>=platformCount){
+		platform_nr=0;
+		size_t name_size;
+		clGetPlatformInfo(platform_id[platform_nr], CL_PLATFORM_NAME, 0, NULL, &name_size);
+		char* platform_name = (char*) malloc(name_size);
+		clGetPlatformInfo(platform_id[platform_nr], CL_PLATFORM_NAME, name_size, platform_name, NULL);
+		printf("Info: User specified OpenCL platform number does not exist, using first platform (\"%s\").\n",platform_name);
+		free(platform_name);
+	}
+
+	// Get all devices of first platform
+	if (getDevices(platform_id[platform_nr],platformCount,&device_ids,&deviceCount) != 0){
+		printf("Info: Specified OpenCL platform %i does not have a suitable device",platform_nr);
+		platform_nr=0;
+		cl_int err = 1;
+		while((err != CL_SUCCESS) && (platform_nr<platformCount)){
+#if defined ALL_DEVICE
+			err = clGetDeviceIDs(platform_id[platform_nr], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceCount);
+#elif defined GPU_DEVICE
+			err = clGetDeviceIDs(platform_id[platform_nr], CL_DEVICE_TYPE_GPU, 0, NULL, &deviceCount);
+#elif defined FPGA_DEVICE
+			err = clGetDeviceIDs(platform_id[platform_nr], CL_DEVICE_TYPE_ACCELERATOR, 0, NULL, &deviceCount);
+#elif defined CPU_DEVICE
+			err = clGetDeviceIDs(platform_id[platform_nr], CL_DEVICE_TYPE_CPU, 0, NULL, &deviceCount);
+#else
+			exit(-1);
+#endif
+			if(err != CL_SUCCESS)
+				platform_nr++;
+		}
+		if(platform_nr>=platformCount){
+			printf(".\nError: No suitable OpenCL platform found.\n");
+			exit(-1);
+		} else{
+			size_t name_size;
+			clGetPlatformInfo(platform_id[platform_nr], CL_PLATFORM_NAME, 0, NULL, &name_size);
+			char* platform_name = (char*) malloc(name_size);
+			clGetPlatformInfo(platform_id[platform_nr], CL_PLATFORM_NAME, name_size, platform_name, NULL);
+			printf(", using OpenCL platform %i (\"%s\") instead.\n",platform_nr,platform_name);
+			free(platform_name);
+		}
+		device_ids = (cl_device_id*)malloc(sizeof(cl_device_id)*deviceCount);
+#if defined ALL_DEVICE
+		err = clGetDeviceIDs(platform_id[platform_nr], CL_DEVICE_TYPE_ALL, deviceCount, device_ids, NULL);
+#elif defined GPU_DEVICE
+		err = clGetDeviceIDs(platform_id[platform_nr], CL_DEVICE_TYPE_GPU, deviceCount, device_ids, NULL);
+#elif defined FPGA_DEVICE
+		err = clGetDeviceIDs(platform_id[platform_nr], CL_DEVICE_TYPE_ACCELERATOR, deviceCount, device_ids, NULL);
+#elif defined CPU_DEVICE
+		err = clGetDeviceIDs(platform_id[platform_nr], CL_DEVICE_TYPE_CPU, deviceCount, device_ids, NULL);
+#endif
+		if(err != CL_SUCCESS){
+			printf("Error: clGetDeviceIDs() %i\n",err);
+			exit(-1);
+		}
+	}
+	
 	if (cData.devnum>=deviceCount)
 	{
-		printf("Warning: user specified OpenCL device number does not exist, using first device.\n");
+		printf("Info: User specified OpenCL device number does not exist, using first device.\n");
 		cData.devnum=0;
 	}
 	device_id=device_ids[cData.devnum];
+	size_t dev_name_size;
+	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, 0, NULL, &dev_name_size);
+	char* device_name = (char*) malloc(dev_name_size);
+	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, dev_name_size, device_name, NULL);
+	printf("OpenCL device:                           %s\n",device_name);
+	free(device_name);
 
 	// Create context from first platform
-	if (createContext(platform_id[0],1,&device_id,&tData.context) != 0) exit(-1);
+	if (createContext(platform_id[platform_nr],1,&device_id,&tData.context) != 0) exit(-1);
 
 	// Create command queue for first device
 	if (createCommandQueue(tData.context,device_id,&tData.command_queue) != 0) exit(-1);
@@ -575,11 +638,9 @@ filled with clock() */
 			strcpy(newmethod,"sw");
 //			heur_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 3.5));
 			heur_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 4.0));
-			printf("-lsmet sw -nev %u\n",mypars->num_of_energy_evals);
 		} else{ // use ADAdelta
 			strcpy(newmethod,"ad");
 			heur_evals = (unsigned long)ceil(1000 * pow(2.0,0.4 * myligand_init->num_of_rotbonds + 7.0));
-			printf("-lsmet ad -nev %u\n",mypars->num_of_energy_evals);
 		}
 		strcpy(mypars->ls_method,newmethod);
 		// e*hm/(hm+e) = 0.95*e => hm/(hm+e) = 0.95
@@ -587,6 +648,7 @@ filled with clock() */
 		// => e = 1/19*hm
 		// at hm = 50 M => e0 = 2.63 M where e becomes less than 95% (about 11 torsions)
 		mypars->num_of_energy_evals = (unsigned long)ceil(heur_evals*(float)mypars->heuristics_max/(mypars->heuristics_max+heur_evals));
+		printf("-lsmet %s -nev %u\n",newmethod,mypars->num_of_energy_evals);
 		if (mypars->nev_provided && (mypars->num_of_energy_evals>nev)){
 			printf("Overriding heuristics, setting number of evaluations to -nev = %u instead.\n",nev);
 			mypars->num_of_energy_evals = nev;
@@ -617,26 +679,8 @@ filled with clock() */
 
 	clock_start_docking = clock();
 
-	//print progress bar
-#ifndef DOCK_DEBUG
-	if (mypars->autostop)
-	{
-		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation of\nthe best molecules of the last 4 * %u generations, %u generations, or %u evaluations:\n\n",mypars->stopstd,mypars->as_frequency,mypars->num_of_generations,mypars->num_of_energy_evals);
-		printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
-		printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
-	}
-	else
-	{
-		printf("\nExecuting docking runs:\n");
-		printf("        20%%        40%%       60%%       80%%       100%%\n");
-		printf("---------+---------+---------+---------+---------+\n");
-	}
-#else
-	printf("\n");
-#endif
-	curr_progress_cnt = 0;
-
 #ifdef DOCK_DEBUG
+	printf("\n");
 	// Main while-loop iterarion counter
 	unsigned int ite_cnt = 0;
 #endif
@@ -957,7 +1001,6 @@ filled with clock() */
 	// End of Kernel2
 	// ===============================================================================
 
-
 	// -------- Replacing with memory maps! ------------
 #if defined (MAPPED_COPY)
 	int* map_cpu_evals_of_runs;
@@ -991,6 +1034,23 @@ filled with clock() */
 	float average_sd2_N[avg_arr_size];
 	unsigned long total_evals;
 	bool autostopped = false;
+
+	//print progress bar
+	AutoStop autostop(mypars->pop_size, mypars->num_of_runs, mypars->stopstd, mypars->as_frequency);
+#ifndef DOCK_DEBUG
+	if (mypars->autostop)
+	{
+		autostop.print_intro(mypars->num_of_generations, mypars->num_of_energy_evals);
+	}
+	else
+	{
+		printf("\nExecuting docking runs:\n");
+		printf("        20%%        40%%       60%%       80%%       100%%\n");
+		printf("---------+---------+---------+---------+---------+\n");
+	}
+#endif
+	curr_progress_cnt = 0;
+
 	// -------- Replacing with memory maps! ------------
 #if defined (MAPPED_COPY)
 	while ((progress = check_progress(map_cpu_evals_of_runs, generation_cnt, mypars->num_of_energy_evals, mypars->num_of_generations, mypars->num_of_runs, total_evals)) < 100.0)
@@ -1006,101 +1066,8 @@ filled with clock() */
 					memcopyBufferObjectFromDevice(tData.command_queue,sim_state.cpu_energies.data(),mem_dockpars_energies_current,size_energies);
 				else
 					memcopyBufferObjectFromDevice(tData.command_queue,sim_state.cpu_energies.data(),mem_dockpars_energies_next,size_energies);
-				for(unsigned int count=0; (count<1+8*(generation_cnt==0)) && (fabs(curr_avg-prev_avg)>0.00001); count++)
-				{
-					threshold_used = threshold;
-					overall_best_energy = 1<<24;
-					memset(&average_sd2_N[0],0,avg_arr_size*sizeof(float));
-					for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
-					{
-						energies = sim_state.cpu_energies.data()+run_cnt*mypars->pop_size;
-						for (unsigned int i=0; i<mypars->pop_size; i++)
-						{
-							float energy = energies[i];
-							if(energy < overall_best_energy)
-								overall_best_energy = energy;
-							if(energy < threshold)
-							{
-								average_sd2_N[0] += energy;
-								average_sd2_N[1] += energy * energy;
-								average_sd2_N[2] += 1.0;
-								for(unsigned int m=0; m<Ntop; m++)
-									if(energy < (threshold-2.0*thres_stddev)+m*delta_energy)
-									{
-										average_sd2_N[3*(m+1)] += energy;
-										average_sd2_N[3*(m+1)+1] += energy*energy;
-										average_sd2_N[3*(m+1)+2] += 1.0;
-										break; // only one entry per bin
-									}
-							}
-						}
-					}
-					if(first_time)
-					{
-						curr_avg = average(&average_sd2_N[0]);
-						curr_std = stddev(&average_sd2_N[0]);
-						bestN = average_sd2_N[2];
-						thres_stddev = curr_std;
-						threshold = curr_avg + thres_stddev;
-						delta_energy = 2.0 * thres_stddev / (Ntop-1);
-						first_time = false;
-					}
-					else
-					{
-						curr_avg = average(&average_sd2_N[0]);
-						curr_std = stddev(&average_sd2_N[0]);
-						bestN = average_sd2_N[2];
-						average_sd2_N[0] = 0.0;
-						average_sd2_N[1] = 0.0;
-						average_sd2_N[2] = 0.0;
-						unsigned int lowest_energy = 0;
-						for(unsigned int m=0; m<Ntop; m++)
-						{
-							if((average_sd2_N[3*(m+1)+2]>=1.0) && (lowest_energy<Ncream))
-							{
-								if((average_sd2_N[2]<4.0) || fabs(average(&average_sd2_N[0])-average(&average_sd2_N[3*(m+1)]))<2.0*mypars->stopstd)
-								{
-//									printf("Adding %f +/- %f (%i)\n",average(&average_sd2_N[3*(m+1)]),stddev(&average_sd2_N[3*(m+1)]),(unsigned int)average_sd2_N[3*(m+1)+2]);
-									average_sd2_N[0] += average_sd2_N[3*(m+1)];
-									average_sd2_N[1] += average_sd2_N[3*(m+1)+1];
-									average_sd2_N[2] += average_sd2_N[3*(m+1)+2];
-									lowest_energy++;
-								}
-							}
-						}
-//						printf("---\n");
-						if(lowest_energy>0)
-						{
-							curr_avg = average(&average_sd2_N[0]);
-							curr_std = stddev(&average_sd2_N[0]);
-							bestN = average_sd2_N[2];
-						}
-						if(curr_std<0.5f*mypars->stopstd)
-							thres_stddev = mypars->stopstd;
-						else
-							thres_stddev = curr_std;
-						threshold = curr_avg + Ncream * thres_stddev / bestN;
-						delta_energy = 2.0 * thres_stddev / (Ntop-1);
-					}
-				}
-				printf("%11u | %12u |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/mypars->num_of_runs,threshold_used,curr_avg,curr_std,bestN,overall_best_energy);
-				fflush(stdout);
-				rolling[3*roll_count] = curr_avg * bestN;
-				rolling[3*roll_count+1] = (curr_std*curr_std + curr_avg*curr_avg)*bestN;
-				rolling[3*roll_count+2] = bestN;
-				roll_count = (roll_count + 1) % 4;
-				average_sd2_N[0] = rolling[0] + rolling[3] + rolling[6] + rolling[9];
-				average_sd2_N[1] = rolling[1] + rolling[4] + rolling[7] + rolling[10];
-				average_sd2_N[2] = rolling[2] + rolling[5] + rolling[8] + rolling[11];
-				// Finish when the std.dev. of the last 4 rounds is below 0.1 kcal/mol
-				if((stddev(&average_sd2_N[0])<mypars->stopstd) && (generation_cnt>=4*mypars->as_frequency))
-				{
-					printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
-					printf("\n%43s evaluation after reaching\n%40.2f +/-%8.2f kcal/mol combined.\n%34i samples, best energy %8.2f kcal/mol.\n","Finished",average(&average_sd2_N[0]),stddev(&average_sd2_N[0]),(unsigned int)average_sd2_N[2],overall_best_energy);
-					fflush(stdout);
-					autostopped = true;
-					break;
-				}
+				if (autostop.check_if_satisfactory(generation_cnt, sim_state.cpu_energies.data(), total_evals))
+					break; // Exit loop
 			}
 		}
 		else
@@ -1269,9 +1236,9 @@ filled with clock() */
 		#endif
 	} // End of while-loop
 
-        // Profiler
-        profile.nev_at_stop = total_evals/mypars->num_of_runs;
-        profile.autostopped = autostopped;
+	// Profiler
+	profile.nev_at_stop = total_evals/mypars->num_of_runs;
+	profile.autostopped = autostop.did_stop();
 
 	clock_stop_docking = clock();
 	if (mypars->autostop==0)
@@ -1296,63 +1263,11 @@ filled with clock() */
 		memcopyBufferObjectFromDevice(tData.command_queue,cpu_final_populations,mem_dockpars_conformations_next,size_populations);
 		memcopyBufferObjectFromDevice(tData.command_queue,sim_state.cpu_energies.data(),mem_dockpars_energies_next,size_energies);
 	}
-	if(mypars->autostop && !autostopped){ // at this point we still need to output the best energy for consistency ;-)
-		overall_best_energy = 1<<24;
-		for (run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
-		{
-			energies = sim_state.cpu_energies.data()+run_cnt*mypars->pop_size;
-			for (unsigned int i=0; i<mypars->pop_size; i++)
-			{
-				float energy = energies[i];
-				if(energy < overall_best_energy)
-					overall_best_energy = energy;
-				if(energy < threshold)
-				{
-					average_sd2_N[0] += energy;
-					average_sd2_N[1] += energy * energy;
-					average_sd2_N[2] += 1.0;
-					for(unsigned int m=0; m<Ntop; m++)
-						if(energy < (threshold-2.0*thres_stddev)+m*delta_energy)
-						{
-							average_sd2_N[3*(m+1)] += energy;
-							average_sd2_N[3*(m+1)+1] += energy*energy;
-							average_sd2_N[3*(m+1)+2] += 1.0;
-							break; // only one entry per bin
-						}
-				}
-			}
-		}
-		curr_avg = average(&average_sd2_N[0]);
-		curr_std = stddev(&average_sd2_N[0]);
-		bestN = average_sd2_N[2];
-		average_sd2_N[0] = 0.0;
-		average_sd2_N[1] = 0.0;
-		average_sd2_N[2] = 0.0;
-		unsigned int lowest_energy = 0;
-		for(unsigned int m=0; m<Ntop; m++)
-		{
-			if((average_sd2_N[3*(m+1)+2]>=1.0) && (lowest_energy<Ncream))
-			{
-				if((average_sd2_N[2]<4.0) || fabs(average(&average_sd2_N[0])-average(&average_sd2_N[3*(m+1)]))<2.0*mypars->stopstd)
-				{
-					average_sd2_N[0] += average_sd2_N[3*(m+1)];
-					average_sd2_N[1] += average_sd2_N[3*(m+1)+1];
-					average_sd2_N[2] += average_sd2_N[3*(m+1)+2];
-					lowest_energy++;
-				}
-			}
-		}
-		if(lowest_energy>0)
-		{
-			curr_avg = average(&average_sd2_N[0]);
-			curr_std = stddev(&average_sd2_N[0]);
-			bestN = average_sd2_N[2];
-		}
-		printf("%11u | %12u |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/mypars->num_of_runs,threshold,curr_avg,curr_std,bestN,overall_best_energy);
-		printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
-		printf("\n%43s evaluation after reaching\n%33u evaluations. Best energy %8.2f kcal/mol.\n","Finished",total_evals/mypars->num_of_runs,overall_best_energy);
-	}
-	printf("\n\n");
+
+	// Final autostop statistics output
+	if (mypars->autostop) autostop.output_final_stddev(generation_cnt, sim_state.cpu_energies.data(), total_evals);
+
+	printf("\n");
 #if defined (DOCK_DEBUG)
 	for (int cnt_pop=0;cnt_pop<size_populations/sizeof(float);cnt_pop++)
 		printf("total_num_pop: %u, cpu_final_populations[%u]: %f\n",(unsigned int)(size_populations/sizeof(float)),cnt_pop,cpu_final_populations[cnt_pop]);

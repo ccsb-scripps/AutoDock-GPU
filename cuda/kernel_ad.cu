@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
 
-// #define AD_RHO_CRITERION
+#define ADADELTA_AUTOSTOP
 
 // Gradient-based adadelta minimizer
 // https://arxiv.org/pdf/1212.5701.pdf
@@ -194,7 +194,7 @@ gpu_gradient_minAD_kernel(
 		best_energy = INFINITY;
 	}
 
-#ifdef AD_RHO_CRITERION
+#ifdef ADADELTA_AUTOSTOP
 	__shared__ float rho;
 	__shared__ int cons_succ;
 	__shared__ int cons_fail;
@@ -347,12 +347,12 @@ gpu_gradient_minAD_kernel(
 			if (energy < best_energy)
 			{
 				best_energy = energy;
-#ifdef AD_RHO_CRITERION
+#ifdef ADADELTA_AUTOSTOP
 				cons_succ++;
 				cons_fail = 0;
 #endif
 			}
-#ifdef AD_RHO_CRITERION
+#ifdef ADADELTA_AUTOSTOP
 			else
 			{
 				cons_succ = 0;
@@ -369,7 +369,7 @@ gpu_gradient_minAD_kernel(
 			#if defined (DEBUG_ENERGY_ADADELTA)
 			printf("%-18s [%-5s]---{%-5s}   [%-10.7f]---{%-10.7f}\n", "-ENERGY-KERNEL7-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
 			#endif
-#ifdef AD_RHO_CRITERION
+#ifdef ADADELTA_AUTOSTOP
 			if (cons_succ >= 4)
 			{
 				rho *= LS_EXP_FACTOR;
@@ -387,7 +387,7 @@ gpu_gradient_minAD_kernel(
 		}
 		__threadfence();
         __syncthreads(); // making sure that iteration_cnt is up-to-date
-#ifdef AD_RHO_CRITERION
+#ifdef ADADELTA_AUTOSTOP
 	} while ((iteration_cnt < cData.dockpars.max_num_of_iters)  && (rho > 0.01f));
 #else
 	} while (iteration_cnt < cData.dockpars.max_num_of_iters);
