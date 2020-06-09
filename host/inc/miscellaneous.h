@@ -37,9 +37,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define PI 3.14159265359
 
-//Visual C++ linear congruential generator constants
-#define RAND_A_GS 214013u
-#define RAND_C_GS 2531011u
+#define PHI 0x9e3779b9
 
 typedef struct
 //Struct which describes a quaternion.
@@ -103,33 +101,57 @@ int strincmp(const char*, const char*, int);
 
 class LocalRNG
 {
-        unsigned int state;
+	uint32_t Q[4096], i, c; // CMWC4096 variables
 
-        public:
-
-        LocalRNG(){
+public:
+	LocalRNG(){
 #if defined (REPRO)
-		state = 1u;
+		init(8);
 #else
-		state = time(NULL);
+		init(time(NULL));
 #endif
-        }
+	}
 
-        //The function generates random numbers with a linear congruential generator, using Visual C++ generator constants.
-        unsigned int random_uint(){
-                state = (RAND_A_GS*state+RAND_C_GS); // AT - this is a rather weak random number generator and I will replace it later
-                return state;
-        }
+	void init(uint32_t x)
+	{
+		Q[0]=x;
+		Q[1]=Q[0]+PHI;
+		Q[2]=Q[1]+PHI;
+		for(unsigned int i=3; i<4096; i++) Q[i]=Q[i-3] ^ Q[i-2] ^ PHI ^ i;
+		i=4095;
+		c=362436;
+		do
+			c=random_uint();
+		while(c >= 809430660);
+		i=4095;
+	}
 
-        float random_float(){
-		float max_uint = (float) std::numeric_limits<unsigned int>::max();
-		float output = 0.0f;
+	// This function generates random numbers with CMWC4096 between 0..2^32-1
+	// G. Marsaglia, JMASM May 2003, Vol 2, No 1, 2-13
+	uint32_t random_uint()
+	{
+		uint64_t const a = 18782LL;
+		uint32_t const m = 0xfffffffe;
+		uint32_t x;
+		uint64_t t;
+		i = (i+1)&4095;
+		t = a*Q[i]+c;
+		c = (t>>32);
+		x = t+c;
+		if(x<c){
+			x++;
+			c++;
+		}
+		return(Q[i] = m-x);
+	}
 
+	float random_float(){
+		float result = 0.0f;
 		// Ensure random number is between 0 and 1
-		while (output<=0.0f || output>=1.0f)
-			output = (float)random_uint() / max_uint;
-                return output;
-        }
+		while (result<=0.0f || result>=1.0f)
+			result = (float)random_uint()/4294967295.0f;
+		return result;
+	}
 };
 
 #endif /* MISCELLANEOUS_H_ */
