@@ -23,7 +23,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
-
+// if defined, new (experimental) SW genotype moves that are dependent
+// on nr of atoms and nr of torsions of ligand are used
+#define SWAT3 // Third set of Solis-Wets hyperparameters by Andreas Tillack
 
 __global__ void
 __launch_bounds__(NUM_OF_THREADS_PER_BLOCK, 1024 / NUM_OF_THREADS_PER_BLOCK)
@@ -98,6 +100,10 @@ gpu_perform_LS_kernel(
 	__syncthreads();
     
 
+#ifdef SWAT3
+	float lig_scale = 1.0f/sqrt((float)cData.dockpars.num_of_atoms);
+	float gene_scale = 1.0f/sqrt((float)cData.dockpars.num_of_genes);
+#endif
 	while ((iteration_cnt < cData.dockpars.max_num_of_iters) && (rho > cData.dockpars.rho_lower_bound))
 	{
 		// New random deviate
@@ -105,7 +111,23 @@ gpu_perform_LS_kernel(
 		     gene_counter < cData.dockpars.num_of_genes;
 		     gene_counter+= blockDim.x)
 		{
-			genotype_deviate[gene_counter] = rho*(2*gpu_randf(cData.pMem_prng_states)-1);
+#ifdef SWAT3
+			genotype_deviate[gene_counter] = rho*(2*gpu_randf(cData.pMem_prng_states)-1)*(gpu_randf(cData.pMem_prng_states) < gene_scale);
+
+			// Translation genes
+			if (gene_counter < 3) {
+				genotype_deviate[gene_counter] *= cData.dockpars.base_dmov_mul_sqrt3;
+			}
+			// Orientation and torsion genes
+			else {
+				if (gene_counter < 6) {
+					genotype_deviate[gene_counter] *= cData.dockpars.base_dang_mul_sqrt3 * lig_scale;
+				} else {
+					genotype_deviate[gene_counter] *= cData.dockpars.base_dang_mul_sqrt3 * gene_scale;
+				}
+			}
+#else
+			genotype_deviate[gene_counter] = rho*(2*gpu_randf(cData.pMem_prng_states)-1)*(gpu_randf(cData.pMem_prng_states)<0.3f);
 
 			// Translation genes
 			if (gene_counter < 3) {
@@ -115,6 +137,7 @@ gpu_perform_LS_kernel(
 			else {
 				genotype_deviate[gene_counter] *= cData.dockpars.base_dang_mul_sqrt3;
 			}
+#endif
 		}
 
 		// Generating new genotype candidate
