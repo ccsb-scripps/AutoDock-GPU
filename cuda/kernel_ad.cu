@@ -99,7 +99,7 @@ gpu_gradient_minAD_kernel(
 
 
 	// Partial results of the gradient step
-	float3* gradient = best_genotype + cData.dockpars.num_of_genes;
+	float* gradient = best_genotype + cData.dockpars.num_of_genes;
 
 	// Squared updates E[dx^2]
 	float* square_delta = (float*)(gradient + cData.dockpars.num_of_genes);
