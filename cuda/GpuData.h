@@ -4,9 +4,10 @@
 
 
 static const int   TERMBITS = 10;
-static const float MAXTERM = (float)(1 << (31 - TERMBITS - 10));
+static const float MAXTERM = (float)(1 << (31 - TERMBITS - 8));
 static const float TERMSCALE = (float)(1 << TERMBITS);
 static const float ONEOVERTERMSCALE = 1.0f / TERMSCALE;
+static const float MAXREDUCE = (float)(1 << (31 - TERMBITS - 4));
 
 static const float MAXENERGY = FLT_MAX / 100.0; // Used to cap absurd energies so placeholder energy is always skipped in sorts
 static const float MAXFORCE = FLT_MAX / 100.0; // Used to cap absurd energies so placeholder energy is always skipped in sorts
