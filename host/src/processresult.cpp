@@ -164,7 +164,8 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	fprintf(fp, "Ligand file:                               %s\n", mypars->ligandfile);
 	fprintf(fp, "Grid fld file:                             %s\n\n", mypars->fldfile);
 
-	fprintf(fp, "Number of runs:                            %lu\n", mypars->num_of_runs),
+	fprintf(fp, "Random seed:                               %u\n", mypars->seed);
+	fprintf(fp, "Number of runs:                            %lu\n", mypars->num_of_runs);
 	fprintf(fp, "Number of energy evaluations:              %ld\n", mypars->num_of_energy_evals);
 	fprintf(fp, "Number of generations:                     %ld\n", mypars->num_of_generations);
 	fprintf(fp, "Size of population:                        %ld\n", mypars->pop_size);

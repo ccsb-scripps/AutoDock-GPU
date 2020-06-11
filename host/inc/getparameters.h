@@ -58,6 +58,7 @@ typedef struct
 typedef struct
 //Struct which contains the docking parameters (partly parameters for fpga)
 {
+    unsigned int seed;
 	unsigned long num_of_energy_evals;
 	unsigned long num_of_generations;
 		bool nev_provided;

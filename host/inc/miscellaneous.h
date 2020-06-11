@@ -111,14 +111,24 @@ int strincmp(const char*, const char*, int);
 class LocalRNG
 {
         unsigned int state;
+        
+        void Init(unsigned int seed)
+        {
+            state = seed;
+        }
+        
 
         public:
+        LocalRNG(unsigned int seed)
+        {
+            Init(seed);
+        }
 
         LocalRNG(){
 #if defined (REPRO)
-		state = 1u;
+		Init(1u);
 #else
-		state = time(NULL);
+		Init(time(NULL));
 #endif
         }
 
