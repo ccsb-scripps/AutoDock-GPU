@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
 
+
 // if defined, new (experimental) GA genotype mutation, similar to experimental SW move,
 // dependent on nr of atoms on torsions of ligand is used, not ready yet ...
 // #define GA_MUTATION_TEST

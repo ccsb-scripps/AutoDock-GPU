@@ -1,4 +1,4 @@
-# OCLADock Makefile
+# AutoDock-GPU OpenCL Makefile
 
 # ------------------------------------------------------
 # Note that environment variables must be defined

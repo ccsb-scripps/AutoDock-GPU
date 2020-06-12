@@ -1,4 +1,4 @@
-# AD-GPU Makefile
+# AutoDock-GPU Makefile
 
 # ------------------------------------------------------
 # Note that environment variables must be defined
@@ -22,7 +22,7 @@
 # DEVICE=OCLGPU
 # ------------------------------------------------------
 # Choose OpenCL device
-# Valid values: CPU, GPU, CUDA, OPENCLGPU
+# Valid values: CPU, GPU, CUDA, OCLGPU
 
 ifeq ($(DEVICE), $(filter $(DEVICE),GPU CUDA))
 TEST_CUDA := $(shell ./test_cuda.sh nvcc "$(GPU_INCLUDE_PATH)" "$(GPU_LIBRARY_PATH)")

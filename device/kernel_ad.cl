@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
 
+
 #define ADADELTA_AUTOSTOP // Stopping criterion from Solis-Wets
 
 // Gradient-based adadelta minimizer

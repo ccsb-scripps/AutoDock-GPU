@@ -74,23 +74,42 @@ By default the output log file is written in the current working folder. Example
 
 ## Supported arguments
 
-| Argument  | Description                                           | Default value    |
-|:----------|:------------------------------------------------------|-----------------:|
-| -nrun     | # LGA runs                                            | 1                |
-| -nev      | # Score evaluations (max.) per LGA run                | 2500000          |
-| -ngen     | # Generations (max.) per LGA run                      | 27000            |
-| -lsmet    | Local-search method                                   | sw (Solis-Wets)  |
-| -lsit     | # Local-search iterations (max.)                      | 300              |
-| -psize    | Population size                                       | 150              |
-| -mrat     | Mutation rate                                         | 2 (%)            |
-| -crat     | Crossover rate                                        | 80 (%)           |
-| -lsrat    | Local-search rate                                     | 80 (%)           |
-| -trat     | Tournament (selection) rate                           | 60 (%)           |
-| -resnam   | Name for docking output log                           | _"docking"_      |
-| -hsym     | Handle symmetry in RMSD calc.                         | 1                |
-| -devnum   | OpenCL/Cuda device number (counting starts at 1)      | 1                |
-| -cgmaps   | Use individual maps for CG-G0 instead of the same one | 0 (use same map) |
-| -filelist | Batch file                                            | no default       |
+| Argument    | Description                                           | Default value    |
+|:------------|:------------------------------------------------------|-----------------:|
+| -nrun       | # LGA runs                                            | 1                |
+| -nev        | # Score evaluations (max.) per LGA run                | 2500000          |
+| -ngen       | # Generations (max.) per LGA run                      | 27000            |
+| -lsmet      | Local-search method                                   | sw (Solis-Wets)  |
+| -lsit       | # Local-search iterations (max.)                      | 300              |
+| -psize      | Population size                                       | 150              |
+| -mrat       | Mutation rate                                         | 2 (%)            |
+| -crat       | Crossover rate                                        | 80 (%)           |
+| -lsrat      | Local-search rate                                     | 80 (%)           |
+| -trat       | Tournament (selection) rate                           | 60 (%)           |
+| -resnam     | Name for docking output log                           | _"docking"_      |
+| -hsym       | Handle symmetry in RMSD calc.                         | 1                |
+| -devnum     | OpenCL/Cuda device number (counting starts at 1)      | 1                |
+| -cgmaps     | Use individual maps for CG-G0 instead of the same one | 0 (use same map) |
+| -heuristics | Ligand-based automatic search method and # evals      | 0                |
+| -heurmax    | Asymptotic heuristics # evals limit (smooth limit)    | 50000000         |
+| -autostop   | Automatic stopping criterion based on convergence     | 0                |
+| -asfreq     | Autostop testing frequency (in # of generations)      | 5                |
+| -initswgens | Initial # generations of Solis-Wets instead of -lsmet | 0                |
+| -filelist   | Batch file                                            | no default       |
+
+When the heuristics is used and `-nev <max evals>` is provided as a command line argument it provides the (hard) upper # of evals limit to the value the heuristics suggests. Conversely, `-heurmax` is the rolling-off type asymptotic limit to the heuristic's # of evals formula and should only be changed with caution.
+The batch file is a text file containing the parameters to -ffile, -lfile, and -resnam each on an individual line. It is possible to only use one line to specify the Protein grid map file which means it will be used for all ligands. Here is an example:
+```
+./receptor1.maps.fld
+./ligand1.pdbqt
+Ligand 1
+./receptor2.maps.fld
+./ligand2.pdbqt
+Ligand 2
+./receptor3.maps.fld
+./ligand3.pdbqt
+Ligand 3
+```
 
 For a complete list of available arguments and their default values, check [getparameters.cpp](host/src/getparameters.cpp).
 

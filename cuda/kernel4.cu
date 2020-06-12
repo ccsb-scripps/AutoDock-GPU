@@ -23,9 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
-
-
-
 //#define DEBUG_ENERGY_KERNEL4
 
 __global__ void
