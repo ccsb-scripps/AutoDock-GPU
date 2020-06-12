@@ -44,21 +44,33 @@ gpu_perform_LS_kernel(
 	// local variables within non-kernel functions.
 	// These local variables must be declared in a kernel, 
 	// and then passed to non-kernel functions.
-	__shared__ float genotype_candidate[ACTUAL_GENOTYPE_LENGTH];
-	__shared__ float genotype_deviate  [ACTUAL_GENOTYPE_LENGTH];
-	__shared__ float genotype_bias     [ACTUAL_GENOTYPE_LENGTH];
+	//__shared__ float3 calc_coords[MAX_NUM_OF_ATOMS];
+	//__shared__ float* genotype_candidate[ACTUAL_GENOTYPE_LENGTH];
+	//__shared__ float* genotype_deviate  [ACTUAL_GENOTYPE_LENGTH];
+	//__shared__ float* genotype_bias     [ACTUAL_GENOTYPE_LENGTH];
+	//__shared__ float* offspring_genotype[ACTUAL_GENOTYPE_LENGTH];
     __shared__ float rho;
 	__shared__ int   cons_succ;
 	__shared__ int   cons_fail;
 	__shared__ int   iteration_cnt;
 	__shared__ int   evaluation_cnt;
-	__shared__ float3 calc_coords[MAX_NUM_OF_ATOMS];
-	__shared__ float offspring_genotype[ACTUAL_GENOTYPE_LENGTH];
+
+
 	__shared__ float offspring_energy;
     __shared__ float sFloatAccumulator;
 	__shared__ int entity_id;
+    extern __shared__ float sFloatBuff[];    
 	float candidate_energy;
     int run_id;
+    
+	// Ligand-atom position and partial energies
+	float3* calc_coords = (float3*)sFloatBuff; 
+
+    // Genotype pointers
+	float* genotype_candidate = (float*)(calc_coords + cData.dockpars.num_of_atoms);
+    float* genotype_deviate = (float*)(genotype_candidate + cData.dockpars.num_of_genes);
+    float* genotype_bias = (float*)(genotype_deviate + cData.dockpars.num_of_genes);    
+    float* offspring_genotype = (float*)(genotype_bias + cData.dockpars.num_of_genes); 
 
 	// Determining run ID and entity ID
 	// Initializing offspring genotype
@@ -295,7 +307,10 @@ void gpu_perform_LS(
 )
 {
     //size_t sz_shared = (9 * cpuData.dockpars.num_of_atoms + 5 * cpuData.dockpars.num_of_genes) * sizeof(float);
-    gpu_perform_LS_kernel<<<blocks, threads>>>(pMem_conformations_next, pMem_energies_next);
+    size_t sz_shared = (3 * cpuData.dockpars.num_of_atoms + 4 * cpuData.dockpars.num_of_genes) * sizeof(float);    
+    
+    
+    gpu_perform_LS_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
     LAUNCHERROR("gpu_perform_LS_kernel");     
 #if 0
     cudaError_t status;
