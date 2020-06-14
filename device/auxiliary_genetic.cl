@@ -38,18 +38,15 @@ uint gpu_rand(
 {
 	uint state;
 
-#if defined (REPRO)
-	state = 1;
-#else
-  	// Current state of the threads own PRNG
-  	// state = prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)];
+	// Current state of the threads own PRNG
+	// state = prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)];
 	state = prng_states[get_global_id(0)];
 
 	// Calculating next state
-  	state = (RAND_A*state+RAND_C);
-#endif
-  	// Saving next state to memory
-  	// prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)] = state;
+	state = (RAND_A*state+RAND_C);
+
+	// Saving next state to memory
+	// prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)] = state;
 	prng_states[get_global_id(0)] = state;
 
   return state;
@@ -65,16 +62,12 @@ float gpu_randf(
 //random float greater than (or equal to) 0 and less than 1.
 //It uses gpu_rand() function.
 {
-  	float state;
+	float state;
 
 	// State will be between 0 and 1
-#if defined (REPRO)
-	state = 0.55f; //0.55f;
-#else
 	state =  native_divide(gpu_rand(prng_states),MAX_UINT)*0.999999f;
-#endif
 
-  return state;
+	return state;
 }
 
 // -------------------------------------------------------

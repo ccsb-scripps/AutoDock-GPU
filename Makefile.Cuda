@@ -63,28 +63,10 @@ BIN := $(wildcard $(TARGET)*)
 
 # ------------------------------------------------------
 # Number of work-items (wi)
-# Valid values: 16, 32, 64, 128
+# Valid values: 32, 64, 128, 256
 NUMWI=
 
-ifeq ($(NUMWI), 1)
-	NWI=-DN1WI
-	TARGET:=$(TARGET)_1wi
-else ifeq ($(NUMWI), 2)
-	NWI=-DN2WI
-	TARGET:=$(TARGET)_2wi
-else ifeq ($(NUMWI), 4)
-	NWI=-DN4WI
-	TARGET:=$(TARGET)_4wi
-else ifeq ($(NUMWI), 8)
-	NWI=-DN8WI
-	TARGET:=$(TARGET)_8wi
-else ifeq ($(NUMWI), 12)
-        NWI=-DN12WI
-        TARGET:=$(TARGET)_12wi
-else ifeq ($(NUMWI), 16)
-	NWI=-DN16WI
-	TARGET:=$(TARGET)_16wi
-else ifeq ($(NUMWI), 32)
+ifeq ($(NUMWI), 32)
 	NWI=-DN32WI
 	TARGET:=$(TARGET)_32wi
 else ifeq ($(NUMWI), 64)
