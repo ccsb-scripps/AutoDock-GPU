@@ -467,7 +467,7 @@ void get_commandpars(const int* argc,
 				//mypars->max_num_of_iters = 30;
 			}
 			else {
-				printf("Warning: value of -lsmet argument ignored. Value must be a valid string: \"sw\", \"sd\", \"fire\", \"ad\".\n");
+				printf("Warning: value of -lsmet argument ignored. Value must be a valid string: \"sw\", \"sd\", \"fire\", \"ad\", or \"adam\".\n");
 			}
 		}
 

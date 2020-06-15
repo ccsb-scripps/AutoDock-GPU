@@ -617,14 +617,23 @@ filled with clock() */
 		}
 	}
 	
-	printf("Local-search chosen method is: %s\n", (cData.dockpars.lsearch_rate == 0.0f)? "GA" :
-						      (
-						      (strcmp(mypars->ls_method, "sw")   == 0)?"Solis-Wets (sw)":
-						      (strcmp(mypars->ls_method, "sd")   == 0)?"Steepest-Descent (sd)": 
-						      (strcmp(mypars->ls_method, "fire") == 0)?"FIRE (fire)":
-						      (strcmp(mypars->ls_method, "adam") == 0)?"ADAM (adam)":
-						      (strcmp(mypars->ls_method, "ad") == 0)?"ADADELTA (ad)": "Unknown")
-						      );
+	char method_chosen[64]; // 64 chars will be enough for this message as mypars->ls_method is 4 chars at the longest
+	if(strcmp(mypars->ls_method, "sw") == 0){
+		strcat(method_chosen,"Solis-Wets (sw)");
+	}
+	else if(strcmp(mypars->ls_method, "ad") == 0){
+		strcat(method_chosen,"ADADELTA (ad)");
+	}
+	else if(strcmp(mypars->ls_method, "adam") == 0){
+		strcat(method_chosen,"ADAM (adam)");
+	}
+	else{
+		strcat(method_chosen,mypars->ls_method);
+		strcat(method_chosen," is not supported on this platform, using Solis-Wets (sw)");
+		strcpy(mypars->ls_method,"sw");
+	}
+	printf("Local-search chosen method is: %s\n", (cData.dockpars.lsearch_rate == 0.0f)? "GA" : method_chosen);
+
 	if((mypars->initial_sw_generations>0) && (strcmp(mypars->ls_method, "sw") != 0))
 		printf("Using Solis-Wets (sw) for the first %d generations.\n",mypars->initial_sw_generations);
 

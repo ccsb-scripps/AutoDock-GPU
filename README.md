@@ -32,20 +32,20 @@ Other environments or configurations likely work as well, but are untested.
 make DEVICE=<TYPE> NUMWI=<NWI>
 ```
 
-| Parameters | Description            | Values                                             |
-|:----------:|:----------------------:|:--------------------------------------------------:|
-| `<TYPE>`   | Accelerator chosen     | `CPU`, `GPU`, `CUDA`, `OCLGPU`                     |
-| `<NWI>`    | OpenCL work-group size | `1`, `2`, `4`, `8`, `16`, `32`, `64`, `128`, `256` |
+| Parameters | Description                  | Values                                             |
+|:----------:|:----------------------------:|:--------------------------------------------------:|
+| `<TYPE>`   | Accelerator chosen           | `CPU`, `GPU`, `CUDA`, `OCLGPU`                     |
+| `<NWI>`    | work-group/thread block size | `1`, `2`, `4`, `8`, `16`, `32`, `64`, `128`, `256` |
 
 When `DEVICE=GPU` is chosen, the Makefile will automatically tests if it can compile Cuda succesfully. To override, use `DEVICE=CUDA` or `DEVICE=OCLGPU`. The cpu target is only supported using OpenCL.
 Hints: The best work-group size depends on the GPU and workload. Try `NUMWI=128` or `NUMWI=64` for modern cards with the example workloads. On macOS, use `NUMWI=1` for CPUs.
 
 After successful compilation, the host binary **autodock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
 
-| Binary-name portion | Description            | Values                                            |
-|:-------------------:|:----------------------:|:-------------------------------------------------:|
-| **&lt;type&gt;**    | Accelerator chosen     | `cpu`, `gpu`                                      |
-| **&lt;N&gt;**       | work-group/warp size   | `1`, `2`, `4`, `8`,`16`, `32`, `64`, `128`, `256` |
+| Binary-name portion | Description                  | Values                                            |
+|:-------------------:|:----------------------------:|:-------------------------------------------------:|
+| **&lt;type&gt;**    | Accelerator chosen           | `cpu`, `gpu`                                      |
+| **&lt;N&gt;**       | work-group/thread block size | `1`, `2`, `4`, `8`,`16`, `32`, `64`, `128`, `256` |
 
 
 # Usage
