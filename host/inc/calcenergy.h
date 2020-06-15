@@ -6,23 +6,21 @@ For some of the code, Copyright (C) 2019 Computational Structural Biology Center
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful,
+This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
-
-
 
 
 #ifndef CALCENERGY_H_
@@ -30,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <math.h>
 #include <stdio.h>
+#include <cstdint>
 
 #include "calcenergy_basic.h"
 #include "miscellaneous.h"
@@ -46,6 +45,7 @@ typedef struct
 {
 	int  	 	num_of_atoms;
 	int   		num_of_atypes;
+	int   		num_of_map_atypes;
 	int    		num_of_intraE_contributors;
 	int   		gridsize_x;
 	int   		gridsize_y;
@@ -77,6 +77,9 @@ typedef struct
 	unsigned int 	cons_limit;
 	unsigned int 	max_num_of_iters;
 	float  		qasp;
+	float adam_beta1;
+	float adam_beta2;
+	float adam_epsilon;
 } Dockparameters;
 
 // ----------------------------------------------------------------------
@@ -127,12 +130,13 @@ typedef struct
 typedef struct
 {
        float atom_charges_const[MAX_NUM_OF_ATOMS];
-       int atom_types_const  [MAX_NUM_OF_ATOMS];
+       uint32_t  atom_types_const  [MAX_NUM_OF_ATOMS];
+       uint32_t  atom_types_map_const  [MAX_NUM_OF_ATOMS];
 } kernelconstant_interintra;
 
 typedef struct
 {
-       int  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
+       uint32_t  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
 } kernelconstant_intracontrib;
 
 typedef struct

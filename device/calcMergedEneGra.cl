@@ -6,22 +6,21 @@ For some of the code, Copyright (C) 2019 Computational Structural Biology Center
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful,
+This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
-
 
 
 // IMPORTANT: The following block contains definitions
@@ -37,6 +36,7 @@ typedef struct
 {
        float atom_charges_const[MAX_NUM_OF_ATOMS];
        int  atom_types_const  [MAX_NUM_OF_ATOMS];
+       int  atom_types_map_const  [MAX_NUM_OF_ATOMS];
 } kernelconstant_interintra;
 
 typedef struct
@@ -172,6 +172,7 @@ void gpu_calc_energrad(
 				uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 		 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
 				int    dockpars_num_of_atypes,
+				int    dockpars_num_of_map_atypes,
 				int    dockpars_num_of_intraE_contributors,
 				float  dockpars_grid_spacing,
 				float  dockpars_coeff_elec,
@@ -359,7 +360,7 @@ void gpu_calc_energrad(
 		float y = calc_coords[atom_id].y;
 		float z = calc_coords[atom_id].z;
 		float q = kerconst_interintra->atom_charges_const[atom_id];
-		uint atom_typeid = kerconst_interintra->atom_types_const[atom_id];
+		uint atom_typeid = kerconst_interintra->atom_types_map_const[atom_id];
 
 		if ((x < 0) || (y < 0) || (z < 0) || (x >= dockpars_gridsize_x-1)
 				                  || (y >= dockpars_gridsize_y-1)
@@ -487,7 +488,7 @@ void gpu_calc_energrad(
 		// -------------------------------------------------------------------
 
 		// Capturing electrostatic values
-		atom_typeid = dockpars_num_of_atypes;
+		atom_typeid = dockpars_num_of_map_atypes;
 
 		mul_tmp = atom_typeid*g3<<2; // different atom type id to get charge IA
 		cube[0] = *(grid_value_000+mul_tmp+0);

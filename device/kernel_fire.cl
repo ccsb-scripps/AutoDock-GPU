@@ -6,19 +6,19 @@ For some of the code, Copyright (C) 2019 Computational Structural Biology Center
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful,
+This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
 
@@ -76,6 +76,7 @@ __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)
 gradient_minFire(	
 			    int    dockpars_num_of_atoms,
 			    int    dockpars_num_of_atypes,
+			    int    dockpars_num_of_map_atypes,
 			    int    dockpars_num_of_intraE_contributors,
 			    int    dockpars_gridsize_x,
 			    int    dockpars_gridsize_y,
@@ -265,6 +266,7 @@ gradient_minFire(
 			dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 			dockpars_fgrids,
 			dockpars_num_of_atypes,
+			dockpars_num_of_map_atypes,
 			dockpars_num_of_intraE_contributors,
 			dockpars_grid_spacing,
 			dockpars_coeff_elec,
@@ -323,6 +325,7 @@ gradient_minFire(
 			dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 			dockpars_fgrids,
 			dockpars_num_of_atypes,
+			dockpars_num_of_map_atypes,
 			dockpars_num_of_intraE_contributors,
 			dockpars_grid_spacing,
 			dockpars_coeff_elec,
@@ -482,6 +485,7 @@ gradient_minFire(
 				dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 				dockpars_fgrids,
 				dockpars_num_of_atypes,
+				dockpars_num_of_map_atypes,
 				dockpars_num_of_intraE_contributors,
 				dockpars_grid_spacing,
 				dockpars_coeff_elec,
@@ -542,6 +546,7 @@ gradient_minFire(
 				dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 				dockpars_fgrids,
 				dockpars_num_of_atypes,
+				dockpars_num_of_map_atypes,
 				dockpars_num_of_intraE_contributors,
 				dockpars_grid_spacing,
 				dockpars_coeff_elec,
@@ -591,6 +596,7 @@ gradient_minFire(
 				dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 				dockpars_fgrids,
 				dockpars_num_of_atypes,
+				dockpars_num_of_map_atypes,
 				dockpars_num_of_intraE_contributors,
 				dockpars_grid_spacing,
 				dockpars_coeff_elec,

@@ -6,23 +6,21 @@ For some of the code, Copyright (C) 2019 Computational Structural Biology Center
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful,
+This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
-
-
 
 
 #ifndef GETPARAMETERS_H_
@@ -31,12 +29,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+#include <vector>
 
 #include "defines.h"
 #include "processligand.h"
 #include "processgrid.h"
 #include "miscellaneous.h"
 #include "calcenergy_basic.h"
+#include "filelist.hpp"
 
 typedef struct
 {
@@ -78,7 +78,6 @@ typedef struct
 		char  xrayligandfile [128];
 		bool  given_xrayligandfile;
 		float ref_ori_angles [3];
-	unsigned long devnum;
 		bool  autostop;
 	unsigned int  as_frequency;
 		float stopstd;
@@ -93,22 +92,30 @@ typedef struct
 		char  resname [128];
 		float qasp;
 		float rmsd_tolerance;
+		float adam_beta1;
+		float adam_beta2;
+		float adam_epsilon;
 } Dockpars;
 
-int get_filenames_and_ADcoeffs(const int*,
-			           char**,
-				Dockpars*);
+int get_filelist(	const int* argc,
+			char**     argv,
+			FileList&  filelist);
 
-void get_commandpars(const int*,
-		         char**,
+int get_filenames_and_ADcoeffs(	const int*,
+				char**,
+				Dockpars*,
+				const bool);
+
+void get_commandpars(	const int*,
+			char**,
 			double*,
-		      Dockpars*);
+			Dockpars*);
 
-void gen_initpop_and_reflig(Dockpars*       mypars,
-			    float*          init_populations,
-			    float*          ref_ori_angles,
-			    Liganddata*     myligand,
-			    const Gridinfo* mygrid);
+void gen_initpop_and_reflig(	Dockpars*       mypars,
+				float*          init_populations,
+				float*          ref_ori_angles,
+				Liganddata*     myligand,
+				const Gridinfo* mygrid);
 
 #endif /* GETPARAMETERS_H_ */
 

@@ -6,23 +6,21 @@ For some of the code, Copyright (C) 2019 Computational Structural Biology Center
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful,
+This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
-
-
 
 
 #ifndef MISCELLANEOUS_H_
@@ -33,12 +31,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <math.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <limits>
+#include <cstdint>
 
 #define PI 3.14159265359
 
-//Visual C++ linear congruential generator constants
-#define RAND_A_GS 214013u
-#define RAND_C_GS 2531011u
+#define PHI 0x9e3779b9
 
 typedef struct
 //Struct which describes a quaternion.
@@ -60,10 +58,6 @@ int float2fracint(double, int);
 long long float2fraclint(double, int);
 
 //double timer_gets(void);
-
-double myrand(void);
-
-unsigned int myrand_int(unsigned int);
 
 double distance(const double [], const double []);
 
@@ -104,6 +98,59 @@ int stricmp(const char*, const char*);
 int strincmp(const char*, const char*, int);
 #endif
 
-unsigned int genseed(unsigned int init);
+class LocalRNG
+{
+	uint32_t Q[4096], i, c; // CMWC4096 variables
+
+public:
+	LocalRNG(){
+#if defined (REPRO)
+		init(8);
+#else
+		init(time(NULL));
+#endif
+	}
+
+	void init(uint32_t x)
+	{
+		Q[0]=x;
+		Q[1]=Q[0]+PHI;
+		Q[2]=Q[1]+PHI;
+		for(unsigned int j=3; j<4096; j++) Q[j]=Q[j-3] ^ Q[j-2] ^ PHI ^ j;
+		i=4095;
+		c=362436;
+		do
+			c=random_uint();
+		while(c >= 809430660);
+		i=4095;
+	}
+
+	// This function generates random numbers with CMWC4096 between 0..2^32-1
+	// G. Marsaglia, JMASM May 2003, Vol 2, No 1, 2-13
+	uint32_t random_uint()
+	{
+		uint64_t const a = 18782LL;
+		uint32_t const m = 0xfffffffe;
+		uint32_t x;
+		uint64_t t;
+		i = (i+1)&4095;
+		t = a*Q[i]+c;
+		c = (t>>32);
+		x = t+c;
+		if(x<c){
+			x++;
+			c++;
+		}
+		return(Q[i] = m-x);
+	}
+
+	float random_float(){
+		float result = 0.0f;
+		// Ensure random number is between 0 and 1
+		while (result<=0.0f || result>=1.0f)
+			result = (float)random_uint()/4294967295.0f;
+		return result;
+	}
+};
 
 #endif /* MISCELLANEOUS_H_ */

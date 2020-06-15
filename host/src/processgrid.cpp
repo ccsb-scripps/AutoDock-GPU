@@ -6,23 +6,21 @@ For some of the code, Copyright (C) 2019 Computational Structural Biology Center
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful,
+This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
-
-
 
 
 #include "processgrid.h"
@@ -137,6 +135,21 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 }
 
 int get_gridvalues_f(const Gridinfo* mygrid, float** fgrids, bool cgmaps)
+{
+	*fgrids = (float*) malloc(4*(sizeof(float))*(mygrid->num_of_atypes+2)*
+						    (mygrid->size_xyz[0])*
+						    (mygrid->size_xyz[1])*
+						    (mygrid->size_xyz[2]));
+	if (*fgrids == NULL)
+	{
+		printf("Error: not enough memory!\n");
+		return 1;
+	}
+
+	return get_gridvalues_f(mygrid, *fgrids, cgmaps);
+}
+
+int get_gridvalues_f(const Gridinfo* mygrid, float* fgrids, bool cgmaps)
 //The function reads the grid point values from the .map files
 //that correspond to the receptor given by the first parameter.
 //It allocates the proper amount of memory and stores the data there,
@@ -149,17 +162,7 @@ int get_gridvalues_f(const Gridinfo* mygrid, float** fgrids, bool cgmaps)
 	char tempstr [128];
 	float* mypoi;
 
-	*fgrids = (float*) malloc(4*(sizeof(float))*(mygrid->num_of_atypes+2)*
-						    (mygrid->size_xyz[0])*
-						    (mygrid->size_xyz[1])*
-						    (mygrid->size_xyz[2]));
-	if (*fgrids == NULL)
-	{
-		printf("Error: not enough memory!\n");
-		return 1;
-	}
-
-	mypoi = *fgrids;
+	mypoi = fgrids;
 
 	for (t=0; t < mygrid->num_of_atypes+2; t++)
 	{

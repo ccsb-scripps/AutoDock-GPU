@@ -6,23 +6,21 @@ For some of the code, Copyright (C) 2019 Computational Structural Biology Center
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful,
+This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
-
-
 
 
 // -------------------------------------------------------
@@ -40,18 +38,15 @@ uint gpu_rand(
 {
 	uint state;
 
-#if defined (REPRO)
-	state = 1;
-#else
-  	// Current state of the threads own PRNG
-  	// state = prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)];
+	// Current state of the threads own PRNG
+	// state = prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)];
 	state = prng_states[get_global_id(0)];
 
 	// Calculating next state
-  	state = (RAND_A*state+RAND_C);
-#endif
-  	// Saving next state to memory
-  	// prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)] = state;
+	state = (RAND_A*state+RAND_C);
+
+	// Saving next state to memory
+	// prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)] = state;
 	prng_states[get_global_id(0)] = state;
 
   return state;
@@ -67,16 +62,12 @@ float gpu_randf(
 //random float greater than (or equal to) 0 and less than 1.
 //It uses gpu_rand() function.
 {
-  	float state;
+	float state;
 
 	// State will be between 0 and 1
-#if defined (REPRO)
-	state = 0.55f; //0.55f;
-#else
 	state =  native_divide(gpu_rand(prng_states),MAX_UINT)*0.999999f;
-#endif
 
-  return state;
+	return state;
 }
 
 // -------------------------------------------------------
