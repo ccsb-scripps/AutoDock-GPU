@@ -668,9 +668,8 @@ filled with clock() */
 		strcpy(method_chosen,"ADADELTA (ad)");
 	}
 	else{
-		strcpy(method_chosen,mypars->ls_method);
-		strcat(method_chosen," is not supported on this platform, using Solis-Wets (sw)");
-		strcpy(mypars->ls_method,"sw");
+		printf("Error: LS method %s is not (yet) supported in the OpenCL version.\n",mypars->ls_method);
+		exit(-1);
 	}
 	printf("Local-search chosen method is: %s\n", (dockpars.lsearch_rate == 0.0f)? "GA" : method_chosen);
 
