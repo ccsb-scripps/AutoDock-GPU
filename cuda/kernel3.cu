@@ -29,7 +29,7 @@ __global__ void
 #if (__CUDA_ARCH__ == 750)
 __launch_bounds__(NUM_OF_THREADS_PER_BLOCK, 1024 / NUM_OF_THREADS_PER_BLOCK)
 #else
-__launch_bounds__(NUM_OF_THREADS_PER_BLOCK, 1280 / NUM_OF_THREADS_PER_BLOCK)
+__launch_bounds__(NUM_OF_THREADS_PER_BLOCK, 1408 / NUM_OF_THREADS_PER_BLOCK)
 #endif
 gpu_perform_LS_kernel(		
             float* pMem_conformations_next,
