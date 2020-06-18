@@ -26,7 +26,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 
 __global__ void
+#if (__CUDA_ARCH__ == 750)
 __launch_bounds__(NUM_OF_THREADS_PER_BLOCK, 1024 / NUM_OF_THREADS_PER_BLOCK)
+#else
+__launch_bounds__(NUM_OF_THREADS_PER_BLOCK, 1280 / NUM_OF_THREADS_PER_BLOCK)
+#endif
 gpu_perform_LS_kernel(		
             float* pMem_conformations_next,
             float* pMem_energies_next
