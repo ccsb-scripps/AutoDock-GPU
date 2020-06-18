@@ -23,7 +23,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
-// Use AD4 minimum and maximum bond distances instead of the Frankenstein we had in AD-GPU
+// Use AD4 minimum and maximum bond distances (from AD4.2.6) as the ones
+// in AD-GPU (when this is commented out) currently are not complete
 #define AD4_BOND_DISTS
 
 // Output showing the CG-G0 virtual bonds and pairs
