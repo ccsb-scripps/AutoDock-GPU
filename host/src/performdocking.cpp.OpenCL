@@ -656,19 +656,19 @@ filled with clock() */
 	
 	char method_chosen[64]; // 64 chars will be enough for this message as mypars->ls_method is 4 chars at the longest
 	if(strcmp(mypars->ls_method, "sw") == 0){
-		strcat(method_chosen,"Solis-Wets (sw)");
+		strcpy(method_chosen,"Solis-Wets (sw)");
 	}
 	else if(strcmp(mypars->ls_method, "sd")  == 0){
-		strcat(method_chosen,"Steepest-Descent (sd)");
+		strcpy(method_chosen,"Steepest-Descent (sd)");
 	}
 	else if(strcmp(mypars->ls_method, "fire") == 0){
-		strcat(method_chosen,"FIRE (fire)");
+		strcpy(method_chosen,"FIRE (fire)");
 	}
 	else if(strcmp(mypars->ls_method, "ad") == 0){
-		strcat(method_chosen,"ADADELTA (ad)");
+		strcpy(method_chosen,"ADADELTA (ad)");
 	}
 	else{
-		strcat(method_chosen,mypars->ls_method);
+		strcpy(method_chosen,mypars->ls_method);
 		strcat(method_chosen," is not supported on this platform, using Solis-Wets (sw)");
 		strcpy(mypars->ls_method,"sw");
 	}
