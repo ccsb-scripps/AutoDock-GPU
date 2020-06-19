@@ -30,6 +30,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "processgrid.h"
 #include "miscellaneous.h"
 
+// expand the allowed bond length ranges by the BOND_LENGTH_TOLERANCE
+#define BOND_LENGTH_TOLERANCE 0.1
+#define set_minmax( a1, a2, min, max)  \
+    mindist[(a1)][(a2)] = (mindist[(a2)][(a1)] = (min)-BOND_LENGTH_TOLERANCE);\
+    maxdist[(a1)][(a2)] = (maxdist[(a2)][(a1)] = (max)+BOND_LENGTH_TOLERANCE)
+
 typedef struct
 //Struct which contains ligand information. The fields contain the following information:
 //num_of_atoms: 	Number of ligand atoms.

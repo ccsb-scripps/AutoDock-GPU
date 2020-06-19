@@ -48,6 +48,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 	#define NUM_OF_THREADS_PER_BLOCK 16
 #endif
 
+enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.dat" or "AD4_parameters.dat" file.
+#define NUM_ENUM_ATOMTYPES 7 // this should be the length of the enumerated atom types above
+
 // Indexes of atomic types used in
 // host/src/processligand.cpp/get_VWpars(),
 // and kernel energy & gradient calculation.
