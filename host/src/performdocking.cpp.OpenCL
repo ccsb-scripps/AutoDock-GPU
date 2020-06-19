@@ -656,21 +656,20 @@ filled with clock() */
 	
 	char method_chosen[64]; // 64 chars will be enough for this message as mypars->ls_method is 4 chars at the longest
 	if(strcmp(mypars->ls_method, "sw") == 0){
-		strcat(method_chosen,"Solis-Wets (sw)");
+		strcpy(method_chosen,"Solis-Wets (sw)");
 	}
 	else if(strcmp(mypars->ls_method, "sd")  == 0){
-		strcat(method_chosen,"Steepest-Descent (sd)");
+		strcpy(method_chosen,"Steepest-Descent (sd)");
 	}
 	else if(strcmp(mypars->ls_method, "fire") == 0){
-		strcat(method_chosen,"FIRE (fire)");
+		strcpy(method_chosen,"FIRE (fire)");
 	}
 	else if(strcmp(mypars->ls_method, "ad") == 0){
-		strcat(method_chosen,"ADADELTA (ad)");
+		strcpy(method_chosen,"ADADELTA (ad)");
 	}
 	else{
-		strcat(method_chosen,mypars->ls_method);
-		strcat(method_chosen," is not supported on this platform, using Solis-Wets (sw)");
-		strcpy(mypars->ls_method,"sw");
+		printf("Error: LS method %s is not (yet) supported in the OpenCL version.\n",mypars->ls_method);
+		exit(-1);
 	}
 	printf("Local-search chosen method is: %s\n", (dockpars.lsearch_rate == 0.0f)? "GA" : method_chosen);
 
