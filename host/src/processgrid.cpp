@@ -65,6 +65,16 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 		return 1;
 	}
 
+	const char* ext = strstr(fldfilename,".maps");
+	if(ext){
+		char tmp[64];
+		int len=ext-fldfilename;
+		strncpy(tmp,fldfilename,len);
+		tmp[len]='\0';
+		strcpy(mygrid->map_base_name,tmp);
+	} else
+		strcpy(mygrid->map_base_name,fldfilename);
+
 	while (fscanf(fp, "%s", tempstr) != EOF)
 	{
 		// -----------------------------------
@@ -167,18 +177,20 @@ int get_gridvalues_f(const Gridinfo* mygrid, float* fgrids, bool cgmaps)
 	for (t=0; t < mygrid->num_of_atypes+2; t++)
 	{
 		//opening corresponding .map file
-		//-------------------------------------
-		// Added the complete path of associated grid files.
-		strcpy(tempstr,mygrid->grid_file_path);
-		strcat(tempstr, "/");
-		strcat(tempstr, mygrid->receptor_name);
-		
-		//strcpy(tempstr, mygrid->receptor_name);
-		//-------------------------------------
+		strcpy(tempstr,mygrid->map_base_name);
 		strcat(tempstr, ".");
 		strcat(tempstr, mygrid->grid_types[t]);
 		strcat(tempstr, ".map");
 		fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
+		if (fp == NULL){ // try again with the receptor name in the .maps.fld file
+			strcpy(tempstr,mygrid->grid_file_path);
+			strcat(tempstr, "/");
+			strcat(tempstr, mygrid->receptor_name);
+			strcat(tempstr, ".");
+			strcat(tempstr, mygrid->grid_types[t]);
+			strcat(tempstr, ".map");
+			fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
+		}
 		if (fp == NULL)
 		{
 			printf("Error: can't open %s!\n", tempstr);
@@ -214,8 +226,8 @@ int get_gridvalues_f(const Gridinfo* mygrid, float* fgrids, bool cgmaps)
 					if(y>0 && z>0) *(mypoi-4*(g2+g1)+3) = *mypoi;
 					mypoi+=4;
 				}
+		fclose(fp);
 	}
-
 	return 0;
 }
 
