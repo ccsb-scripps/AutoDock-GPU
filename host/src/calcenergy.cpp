@@ -93,24 +93,25 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 	float* floatpoi;
 	int* intpoi;
 	float phi, theta, genrotangle;
-	float atom_charges[MAX_NUM_OF_ATOMS];
-	int  atom_types[MAX_NUM_OF_ATOMS];
-	int  intraE_contributors[3*MAX_INTRAE_CONTRIBUTORS];
-	float reqm [ATYPE_NUM];
-        float reqm_hbond [ATYPE_NUM];
-	unsigned int atom1_types_reqm [ATYPE_NUM];
-        unsigned int atom2_types_reqm [ATYPE_NUM];
-	float VWpars_AC[MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
-	float VWpars_BD[MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
-	float dspars_S[MAX_NUM_OF_ATYPES];
-	float dspars_V[MAX_NUM_OF_ATYPES];
-	int   rotlist[MAX_NUM_OF_ROTATIONS];
-	float ref_coords_x[MAX_NUM_OF_ATOMS];
-	float ref_coords_y[MAX_NUM_OF_ATOMS];
-	float ref_coords_z[MAX_NUM_OF_ATOMS];
-	float rotbonds_moving_vectors[3*MAX_NUM_OF_ROTBONDS];
-	float rotbonds_unit_vectors[3*MAX_NUM_OF_ROTBONDS];
-	float ref_orientation_quats[4*MAX_NUM_OF_RUNS];
+	// Allocating memory on the heap (not stack) with new
+	float* atom_charges            = new float[MAX_NUM_OF_ATOMS];
+	int*   atom_types              = new int[MAX_NUM_OF_ATOMS];
+	int*   intraE_contributors     = new int[3*MAX_INTRAE_CONTRIBUTORS];
+	float* reqm                    = new float[ATYPE_NUM];
+        float* reqm_hbond              = new float[ATYPE_NUM];
+	unsigned int* atom1_types_reqm = new unsigned int[ATYPE_NUM];
+        unsigned int* atom2_types_reqm = new unsigned int[ATYPE_NUM];
+	float* VWpars_AC               = new float[MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
+	float* VWpars_BD               = new float[MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
+	float* dspars_S                = new float[MAX_NUM_OF_ATYPES];
+	float* dspars_V                = new float[MAX_NUM_OF_ATYPES];
+	int*   rotlist                 = new int[MAX_NUM_OF_ROTATIONS];
+	float* ref_coords_x            = new float[MAX_NUM_OF_ATOMS];
+	float* ref_coords_y            = new float[MAX_NUM_OF_ATOMS];
+	float* ref_coords_z            = new float[MAX_NUM_OF_ATOMS];
+	float* rotbonds_moving_vectors = new float[3*MAX_NUM_OF_ROTBONDS];
+	float* rotbonds_unit_vectors   = new float[3*MAX_NUM_OF_ROTBONDS];
+	float* ref_orientation_quats   = new float[4*MAX_NUM_OF_RUNS];
 
 	// Added for calculating torsion-related gradients.
 	// Passing list of rotbond-atoms ids to the GPU.
@@ -120,7 +121,7 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 	// The rotatable bond is described with the indexes of the
 	// two atoms which are connected to each other by the bond.
 	// The row index is equal to the index of the rotatable bond.
-	int   rotbonds [2*MAX_NUM_OF_ROTBONDS];
+	int*   rotbonds                = new int[2*MAX_NUM_OF_ROTBONDS];
 
 	// Contains the same information as processligand.h/Liganddata->atom_rotbonds
 	// "atom_rotbonds": array that contains the rotatable bonds - atoms assignment.
@@ -128,12 +129,12 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 	// it means,that the atom must be rotated if the bond rotates. A 0 means the opposite.
 
 	// "rotbonds_atoms"
-	int  rotbonds_atoms [MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS];
+	int*   rotbonds_atoms          = new int[MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS];
 
 	// Each entry corresponds to a rotbond_id
 	// The value of an entry indicates the number of atoms that rotate 
 	// along with that rotbond_id
-	int  num_rotating_atoms_per_rotbond [MAX_NUM_OF_ROTBONDS];
+	int*   num_rotating_atoms_per_rotbond = new int[MAX_NUM_OF_ROTBONDS];
 	// ------------------------------
 
 	//charges and type id-s
@@ -391,6 +392,29 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 	for (m=0;m<2*MAX_NUM_OF_ROTBONDS;m++) 			{ KerConst_grads->rotbonds[m] 			    = rotbonds[m]; }
 	for (m=0;m<MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS;m++) 	{ KerConst_grads->rotbonds_atoms[m]                 = rotbonds_atoms[m]; }
 	for (m=0;m<MAX_NUM_OF_ROTBONDS;m++) 			{ KerConst_grads->num_rotating_atoms_per_rotbond[m] = num_rotating_atoms_per_rotbond[m]; }
+
+	delete[] atom_charges;
+	delete[] atom_types;
+	delete[] intraE_contributors;
+	delete[] reqm;
+        delete[] reqm_hbond;
+	delete[] atom1_types_reqm;
+        delete[] atom2_types_reqm;
+	delete[] VWpars_AC;
+	delete[] VWpars_BD;
+	delete[] dspars_S;
+	delete[] dspars_V;
+	delete[] rotlist;
+	delete[] ref_coords_x;
+	delete[] ref_coords_y;
+	delete[] ref_coords_z;
+	delete[] rotbonds_moving_vectors;
+	delete[] rotbonds_unit_vectors;
+	delete[] ref_orientation_quats;
+	delete[] rotbonds;
+	delete[] rotbonds_atoms;
+	delete[] num_rotating_atoms_per_rotbond;
+
 	return 0;
 }
 
