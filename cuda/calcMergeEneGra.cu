@@ -31,8 +31,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // Then, statements corresponding to enery calculations were added gradually.
 // The latter can be distinguised this way: they are place within lines without indentation.
 
-#define CONVERT_INTO_ANGSTROM_RADIAN
+#define CONVERT_INTO_ANGSTROM_RADIAN  // DO NOT UNDEFINE, NO REALLY! DO!!! NOT!!! UNDEFINE!!! SML 200608 
 #define SCFACTOR_ANGSTROM_RADIAN ((0.375 * 0.375)/(DEG_TO_RAD * DEG_TO_RAD))
+#define SCFACTOR_RADIAN_ANGSTROM (1.0 / ((0.375 * 0.375)/(DEG_TO_RAD * DEG_TO_RAD)))
 
 // Enable restoring map gradient
 // Currently, this is not a good idea
@@ -55,8 +56,8 @@ __device__ void gpu_calc_energrad(
 		    // "is_enabled_gradient_calc": enables gradient calculation.
 		    // In Genetic-Generation: no need for gradients
 		    // In Gradient-Minimizer: must calculate gradients
-			float3* gradient,
-			float* gradient_genotype,
+			int3* gradient,
+			float* fgradient_genotype,
             float* pFloatAccumulator
 )
 {
@@ -77,16 +78,16 @@ __device__ void gpu_calc_energrad(
         calc_coords[atom_id].z = cData.pKerconst_conform->ref_coords_const[3*atom_id+2];
 
 		// Intermolecular gradients
-		gradient[atom_id].x = (float)0;
-		gradient[atom_id].y = (float)0;
-		gradient[atom_id].z = (float)0;
+		gradient[atom_id].x = 0;
+		gradient[atom_id].y = 0;
+		gradient[atom_id].z = 0;
 	}
 
 	// Initializing gradient genotypes
 	for (int gene_cnt = threadIdx.x;
 		  gene_cnt < cData.dockpars.num_of_genes;
 		  gene_cnt+= blockDim.x) {
-		gradient_genotype[gene_cnt] = 0.0f;
+		fgradient_genotype[gene_cnt] = 0;
 	}
 
 	// General rotation moving vector
@@ -221,9 +222,9 @@ __device__ void gpu_calc_energrad(
 			// Setting gradients (forces) penalties.
 			// The idea here is to push the offending
 			// molecule towards the center rather
-			gradient[atom_id].x += (42.0f * x) / cData.dockpars.grid_spacing;
-			gradient[atom_id].y += (42.0f * y) / cData.dockpars.grid_spacing;
-			gradient[atom_id].z += (42.0f * z) / cData.dockpars.grid_spacing;
+			gradient[atom_id].x += lrintf((TERMSCALE * 42.0f * x) / cData.dockpars.grid_spacing);
+			gradient[atom_id].y += lrintf((TERMSCALE * 42.0f * y) / cData.dockpars.grid_spacing);
+			gradient[atom_id].z += lrintf((TERMSCALE * 42.0f * z) / cData.dockpars.grid_spacing);
 #else
 			energy += 16777216.0f; //100000.0f;
 			#if defined (DEBUG_ENERGY_KERNEL)
@@ -318,14 +319,14 @@ __device__ void gpu_calc_energrad(
 
 		// AT - all in one go with no intermediate variables (following calcs are similar)
 		// Vector in x-direction
-		gradient[atom_id].x += (omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
-		                               dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011]))) / cData.dockpars.grid_spacing;
+		float gx = (omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
+		              dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011]))) / cData.dockpars.grid_spacing;
 		// Vector in y-direction
-		gradient[atom_id].y += (omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
-		                               dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101]))) / cData.dockpars.grid_spacing;
+		float gy = (omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
+		              dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101]))) / cData.dockpars.grid_spacing;
 		// Vectors in z-direction
-		gradient[atom_id].z += (omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
-		                               dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110]))) / cData.dockpars.grid_spacing;
+		float gz = (omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
+		              dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110]))) / cData.dockpars.grid_spacing;
 		// -------------------------------------------------------------------
 		// Calculating gradients (forces) corresponding to 
 		// "elec" intermolecular energy
@@ -354,14 +355,14 @@ __device__ void gpu_calc_energrad(
         float q1 = q / cData.dockpars.grid_spacing;
 
 		// Vector in x-direction
-		gradient[atom_id].x += q1 * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
-		                                     dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011])));
+		gx += q1 * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
+		               dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011])));
 		// Vector in y-direction
-		gradient[atom_id].y += q1 * ( omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
-		                                     dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101])));
+		gy += q1 * ( omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
+		               dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101])));
 		// Vectors in z-direction
-		gradient[atom_id].z += q1 * ( omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
-		                                     dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110])));
+		gz += q1 * ( omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
+		               dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110])));
 		// -------------------------------------------------------------------
 		// Calculating gradients (forces) corresponding to 
 		// "dsol" intermolecular energy
@@ -388,15 +389,19 @@ __device__ void gpu_calc_energrad(
         
         q1 = fabs(q1);
 		// Vector in x-direction
-		gradient[atom_id].x += q1 * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
-		                                     dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011])));
+		gx += q1 * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
+		               dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011])));
 		// Vector in y-direction
-		gradient[atom_id].y += q1 * ( omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
-		                                     dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101])));
+		gy += q1 * ( omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
+		               dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101])));
 		// Vectors in z-direction
-		gradient[atom_id].z += q1 * ( omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
-		                                     dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110])));
+		gz += q1 * ( omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
+		               dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110])));
 		// -------------------------------------------------------------------
+                
+        gradient[atom_id].x += lrintf(TERMSCALE * fminf(MAXTERM, fmaxf(-MAXTERM, gx)));
+        gradient[atom_id].y += lrintf(TERMSCALE * fminf(MAXTERM, fmaxf(-MAXTERM, gy)));
+        gradient[atom_id].z += lrintf(TERMSCALE * fminf(MAXTERM, fmaxf(-MAXTERM, gz)));                
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
     __threadfence();
     __syncthreads();
@@ -545,20 +550,20 @@ __device__ void gpu_calc_energrad(
 		// Distances in Angstroms of vector that goes from
 		// "atom1_id"-to-"atom2_id", therefore - subx, - suby, and - subz are used
 		float grad_div_dist = -priv_gradient_per_intracontributor / dist;
-		float priv_intra_gradient_x = subx * grad_div_dist;
-		float priv_intra_gradient_y = suby * grad_div_dist;
-		float priv_intra_gradient_z = subz * grad_div_dist;
+		int priv_intra_gradient_x = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * subx * grad_div_dist)));
+		int priv_intra_gradient_y = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * suby * grad_div_dist)));
+		int priv_intra_gradient_z = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * subz * grad_div_dist)));
 		
 		// Calculating gradients in xyz components.
 		// Gradients for both atoms in a single contributor pair
 		// have the same magnitude, but opposite directions
-		ATOMICSUBF32(&gradient[atom1_id].x, priv_intra_gradient_x);
-		ATOMICSUBF32(&gradient[atom1_id].y, priv_intra_gradient_y);
-		ATOMICSUBF32(&gradient[atom1_id].z, priv_intra_gradient_z);
+		ATOMICSUBI32(&gradient[atom1_id].x, priv_intra_gradient_x);
+		ATOMICSUBI32(&gradient[atom1_id].y, priv_intra_gradient_y);
+		ATOMICSUBI32(&gradient[atom1_id].z, priv_intra_gradient_z);
 
-		ATOMICADDF32(&gradient[atom2_id].x, priv_intra_gradient_x);
-		ATOMICADDF32(&gradient[atom2_id].y, priv_intra_gradient_y);
-		ATOMICADDF32(&gradient[atom2_id].z, priv_intra_gradient_z);
+		ATOMICADDI32(&gradient[atom2_id].x, priv_intra_gradient_x);
+		ATOMICADDI32(&gradient[atom2_id].y, priv_intra_gradient_y);
+		ATOMICADDI32(&gradient[atom2_id].z, priv_intra_gradient_z);
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
     __threadfence();
     __syncthreads();
@@ -589,11 +594,11 @@ __device__ void gpu_calc_energrad(
         r.y = (calc_coords[atom_cnt].y - genrot_movingvec.y) * cData.dockpars.grid_spacing;
         r.z = (calc_coords[atom_cnt].z - genrot_movingvec.z) * cData.dockpars.grid_spacing;
 
-		// Re-using "gradient_inter_*" for total gradient (inter+intra) 
-		float3 force;
-		force.x = gradient[atom_cnt].x;
-		force.y = gradient[atom_cnt].y; 
-		force.z = gradient[atom_cnt].z;
+	// Re-using "gradient_inter_*" for total gradient (inter+intra) 
+	float3 force;
+	force.x = ONEOVERTERMSCALE * (float)gradient[atom_cnt].x;
+	force.y = ONEOVERTERMSCALE * (float)gradient[atom_cnt].y; 
+	force.z = ONEOVERTERMSCALE * (float)gradient[atom_cnt].z;
         gx += force.x;
         gy += force.y;
         gz += force.z;
@@ -601,9 +606,13 @@ __device__ void gpu_calc_energrad(
 		torque_rot.x += tr.x;
         torque_rot.y += tr.y;
         torque_rot.z += tr.z;
+    
 	}
 
-	// Do a reduction over the total gradient containing prepared "gradient_intra_*" values    
+	// Do a reduction over the total gradient containing prepared "gradient_intra_*" values
+    torque_rot.x *= ONEOVERTERMSCALE;
+    torque_rot.y *= ONEOVERTERMSCALE;
+    torque_rot.z *= ONEOVERTERMSCALE;    
     REDUCEFLOATSUM(torque_rot.x, pFloatAccumulator);
     REDUCEFLOATSUM(torque_rot.y, pFloatAccumulator);
     REDUCEFLOATSUM(torque_rot.z, pFloatAccumulator);    
@@ -624,15 +633,16 @@ __device__ void gpu_calc_energrad(
     REDUCEFLOATSUM(gz, pFloatAccumulator);
     
     global_energy = energy;
+    int* gradient_genotype = (int*)fgradient_genotype;
 	if (threadIdx.x == 0) {
 
 		// Scaling gradient for translational genes as
 		// their corresponding gradients were calculated in the space
 		// where these genes are in Angstrom,
 		// but AutoDock-GPU translational genes are within in grids
-		gradient_genotype[0] = gx * cData.dockpars.grid_spacing;
-		gradient_genotype[1] = gy * cData.dockpars.grid_spacing;
-		gradient_genotype[2] = gz * cData.dockpars.grid_spacing;
+		gradient_genotype[0] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, SCFACTOR_ANGSTROM_RADIAN * TERMSCALE * gx * cData.dockpars.grid_spacing)));
+		gradient_genotype[1] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, SCFACTOR_ANGSTROM_RADIAN * TERMSCALE * gy * cData.dockpars.grid_spacing)));
+		gradient_genotype[2] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, SCFACTOR_ANGSTROM_RADIAN * TERMSCALE * gz * cData.dockpars.grid_spacing)));
 
 		#if defined (PRINT_GRAD_TRANSLATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -646,9 +656,7 @@ __device__ void gpu_calc_energrad(
 
 	// ------------------------------------------
 	// Obtaining rotation-related gradients
-	// ------------------------------------------ 
-				
-
+	// ------------------------------------------ 				
 	if (threadIdx.x == 0) {
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -827,10 +835,10 @@ __device__ void gpu_calc_energrad(
 		#endif
 
 		// Setting gradient rotation-related genotypes in cube
-		// Multiplicating by DEG_TO_RAD is to make it uniform to DEG (see torsion gradients)
-		gradient_genotype[3] = (grad_phi / (dependence_on_theta * dependence_on_rotangle))  * DEG_TO_RAD;
-		gradient_genotype[4] = (grad_theta / dependence_on_rotangle)			* DEG_TO_RAD; 
-		gradient_genotype[5] = grad_rotangle                                                            * DEG_TO_RAD;
+		// Multiplicating by DEG_TO_RAD is to make it uniform to DEG (see torsion gradients)        
+		gradient_genotype[3] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * (grad_phi / (dependence_on_theta * dependence_on_rotangle)) * DEG_TO_RAD)));
+		gradient_genotype[4] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * (grad_theta / dependence_on_rotangle) * DEG_TO_RAD))); 
+		gradient_genotype[5] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * grad_rotangle * DEG_TO_RAD)));
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-30s \n", "grad_axisangle (1,2,3) - after empirical scaling: ");
@@ -845,12 +853,7 @@ __device__ void gpu_calc_energrad(
 	// Obtaining torsion-related gradients
 	// ------------------------------------------
 	uint32_t num_torsion_genes = cData.dockpars.num_of_genes-6;
-#ifdef REPRO
-	// Simplest way to ensure random order of atomic addition doesn't make answers irreproducible: use only 1 thread
-	if (threadIdx.x==0) for (uint32_t idx = 0; idx < num_torsion_genes * cData.dockpars.num_of_atoms; idx += 1) {
-#else
 	for (uint32_t idx = threadIdx.x; idx < num_torsion_genes * cData.dockpars.num_of_atoms; idx += blockDim.x) {
-#endif
 		uint32_t rotable_atom_cnt = idx / num_torsion_genes;
 		uint32_t rotbond_id = idx - rotable_atom_cnt * num_torsion_genes; // this is a bit cheaper than % (modulo)
 
@@ -888,9 +891,9 @@ __device__ void gpu_calc_energrad(
 
 
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)
-		atom_force.x = gradient[lig_atom_id].x; 
-		atom_force.y = gradient[lig_atom_id].y;
-		atom_force.z = gradient[lig_atom_id].z;
+		atom_force.x = ONEOVERTERMSCALE * gradient[lig_atom_id].x; 
+		atom_force.y = ONEOVERTERMSCALE * gradient[lig_atom_id].y;
+		atom_force.z = ONEOVERTERMSCALE * gradient[lig_atom_id].z;
 
 		torque_tor = cross(r, atom_force);
         float torque_on_axis = (rotation_unitvec.x * torque_tor.x  +
@@ -899,16 +902,16 @@ __device__ void gpu_calc_energrad(
 
 		// Assignment of gene-based gradient
 		// - this works because a * (a_1 + a_2 + ... + a_n) = a*a_1 + a*a_2 + ... + a*a_n
-		ATOMICADDF32(&gradient_genotype[rotbond_id+6], torque_on_axis * DEG_TO_RAD); /*(M_PI / 180.0f)*/;
+		ATOMICADDI32(&gradient_genotype[rotbond_id+6], lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * torque_on_axis * DEG_TO_RAD)))); /*(M_PI / 180.0f)*/;
 	}
     __threadfence();
 	__syncthreads();
 
 	#if defined (CONVERT_INTO_ANGSTROM_RADIAN)
-	for (uint32_t gene_cnt = threadIdx.x+3; // Only for gene_cnt > 2 means start gene_cnt at 3
+	for (uint32_t gene_cnt = threadIdx.x; // Only for gene_cnt > 2 means start gene_cnt at 3
 		  gene_cnt < cData.dockpars.num_of_genes;
 		  gene_cnt+= blockDim.x) {
-		gradient_genotype[gene_cnt] *= SCFACTOR_ANGSTROM_RADIAN;
+		fgradient_genotype[gene_cnt] = ONEOVERTERMSCALE * (float)gradient_genotype[gene_cnt] * SCFACTOR_ANGSTROM_RADIAN;
 	}
 	__threadfence();
     __syncthreads();

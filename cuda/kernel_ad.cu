@@ -91,7 +91,7 @@ gpu_gradient_minAD_kernel(
     
 	// Gradient of the intermolecular energy per each ligand atom
 	// Also used to store the accummulated gradient per each ligand atom
-	float3* cartesian_gradient = calc_coords + cData.dockpars.num_of_atoms;
+	int3* cartesian_gradient = (int3*)(calc_coords + cData.dockpars.num_of_atoms);
 
 
     // Genotype pointers
@@ -103,7 +103,7 @@ gpu_gradient_minAD_kernel(
 	float* gradient = best_genotype + cData.dockpars.num_of_genes;
 
 	// Squared updates E[dx^2]
-	float* square_delta = gradient + cData.dockpars.num_of_genes;
+	float* square_delta = (float*)(gradient + cData.dockpars.num_of_genes);
 
 	// Vector for storing squared gradients E[g^2]
 	float* square_gradient = square_delta + cData.dockpars.num_of_genes;    

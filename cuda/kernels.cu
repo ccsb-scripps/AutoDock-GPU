@@ -87,28 +87,12 @@ __device__ inline int64_t ullitolli(uint64_t u)
     __syncthreads(); \
     value = *pAccumulator; \
     __syncthreads();
-
-
+    
+#define ATOMICADDI32(pAccumulator, value) atomicAdd(pAccumulator, (value))
+#define ATOMICSUBI32(pAccumulator, value) atomicAdd(pAccumulator, -(value))
 #define ATOMICADDF32(pAccumulator, value) atomicAdd(pAccumulator, (value))
 #define ATOMICSUBF32(pAccumulator, value) atomicAdd(pAccumulator, -(value))
-#ifdef REPRO
-// This reduction implementation is slower, but ensures the sum is in a specific order to maintain bitwise reproducibility
-#define REDUCEFLOATSUM(value, pAccumulator) \
-    if (threadIdx.x == 0) \
-    { \
-        *pAccumulator = 0; \
-    } \
-    for (int i_red=0; i_red<blockDim.x; i_red++){ \
-        __threadfence(); \
-        __syncthreads(); \
-        if (i_red == threadIdx.x) *pAccumulator += value; \
-    } \
-    __threadfence(); \
-    __syncthreads(); \
-    value = (float)(*pAccumulator); \
-    __syncthreads();
-#else
-// This reduction implementation is faster
+
 #define REDUCEFLOATSUM(value, pAccumulator) \
     if (threadIdx.x == 0) \
     { \
@@ -126,15 +110,15 @@ __device__ inline int64_t ullitolli(uint64_t u)
         value                  += __shfl_sync(0xffffffff, value, tgx ^ 16); \
         if (tgx == 0) \
         { \
+            int ivalue = lrintf(TERMSCALE * fminf(MAXREDUCE, fmaxf(-MAXREDUCE, value))); \
             atomicAdd(pAccumulator, value); \
         } \
     } \
     __threadfence(); \
     __syncthreads(); \
-    value = (float)(*pAccumulator); \
+    value = (float)(*pAccumulator) * ONEOVERTERMSCALE; \
     __syncthreads();
 
-#endif
 
 
 static __constant__ GpuData cData;
