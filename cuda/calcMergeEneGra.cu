@@ -32,7 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // The latter can be distinguised this way: they are place within lines without indentation.
 
 #define CONVERT_INTO_ANGSTROM_RADIAN  // DO NOT UNDEFINE, NO REALLY! DO!!! NOT!!! UNDEFINE!!! SML 200608 
-#define SCFACTOR_ANGSTROM_RADIAN ((0.375 * 0.375)/(DEG_TO_RAD * DEG_TO_RAD))
+#define SCFACTOR_ANGSTROM_RADIAN (1.0f/(DEG_TO_RAD * DEG_TO_RAD))
 
 // Enable restoring map gradient
 // Currently, this is not a good idea
@@ -83,9 +83,9 @@ __device__ void gpu_calc_energrad(
 	}
 
 	// Initializing gradient genotypes
-	for (int gene_cnt = threadIdx.x;
-		 gene_cnt < cData.dockpars.num_of_genes;
-		 gene_cnt+= blockDim.x) {
+	for (uint32_t gene_cnt = threadIdx.x;
+		      gene_cnt < cData.dockpars.num_of_genes;
+		      gene_cnt+= blockDim.x) {
 		fgradient_genotype[gene_cnt] = 0;
 	}
 
@@ -183,7 +183,7 @@ __device__ void gpu_calc_energrad(
 			float4 qt = quaternion_rotate(atom_to_rotate,quatrot_left);
 			calc_coords[atom_id].x = qt.x + rotation_movingvec.x;
 			calc_coords[atom_id].y = qt.y + rotation_movingvec.y;
-			calc_coords[atom_id].z = qt.z + rotation_movingvec.z;            
+			calc_coords[atom_id].z = qt.z + rotation_movingvec.z;
 
 		} // End if-statement not dummy rotation
         __threadfence();
@@ -397,9 +397,9 @@ __device__ void gpu_calc_energrad(
 		               dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110])));
 		// -------------------------------------------------------------------
 
-		gradient[atom_id].x += lrintf(TERMSCALE * fminf(MAXTERM, fmaxf(-MAXTERM, gx)));
-		gradient[atom_id].y += lrintf(TERMSCALE * fminf(MAXTERM, fmaxf(-MAXTERM, gy)));
-		gradient[atom_id].z += lrintf(TERMSCALE * fminf(MAXTERM, fmaxf(-MAXTERM, gz)));
+		gradient[atom_id].x += lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * gx)));
+		gradient[atom_id].y += lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * gy)));
+		gradient[atom_id].z += lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * gz)));
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
     __threadfence();
     __syncthreads();
@@ -576,25 +576,25 @@ __device__ void gpu_calc_energrad(
 	// ------------------------------------------
 
 	// start by populating "gradient_intra_*" with torque values
-    float4 torque_rot;
-    torque_rot.x = 0.0f;
-    torque_rot.y = 0.0f;
-    torque_rot.z = 0.0f;
-    float gx = 0.0f;
-    float gy = 0.0f;
-    float gz = 0.0f;    
+	float4 torque_rot;
+	torque_rot.x = 0.0f;
+	torque_rot.y = 0.0f;
+	torque_rot.z = 0.0f;
+	float gx = 0.0f;
+	float gy = 0.0f;
+	float gz = 0.0f;
 	for (uint32_t atom_cnt = threadIdx.x;
-		  atom_cnt < cData.dockpars.num_of_atoms;
-		  atom_cnt+= blockDim.x) {
+		      atom_cnt < cData.dockpars.num_of_atoms;
+		      atom_cnt+= blockDim.x) {
 		float3 r;
 		r.x = (calc_coords[atom_cnt].x - genrot_movingvec.x) * cData.dockpars.grid_spacing;
 		r.y = (calc_coords[atom_cnt].y - genrot_movingvec.y) * cData.dockpars.grid_spacing;
 		r.z = (calc_coords[atom_cnt].z - genrot_movingvec.z) * cData.dockpars.grid_spacing;
 
-		// Re-using "gradient_inter_*" for total gradient (inter+intra) 
+		// Re-using "gradient_inter_*" for total gradient (inter+intra)
 		float3 force;
 		force.x = ONEOVERTERMSCALE * (float)gradient[atom_cnt].x;
-		force.y = ONEOVERTERMSCALE * (float)gradient[atom_cnt].y; 
+		force.y = ONEOVERTERMSCALE * (float)gradient[atom_cnt].y;
 		force.z = ONEOVERTERMSCALE * (float)gradient[atom_cnt].z;
 		gx += force.x;
 		gy += force.y;
@@ -864,7 +864,7 @@ __device__ void gpu_calc_energrad(
 		float3 atomRef_coords;
 		atomRef_coords.x = calc_coords[atom1_id].x;
 		atomRef_coords.y = calc_coords[atom1_id].y;
-		atomRef_coords.z = calc_coords[atom1_id].z;        
+		atomRef_coords.z = calc_coords[atom1_id].z;
 		float3 rotation_unitvec;
 
 		rotation_unitvec.x = calc_coords[atom2_id].x - atomRef_coords.x;
@@ -912,7 +912,7 @@ __device__ void gpu_calc_energrad(
 	for (uint32_t gene_cnt = threadIdx.x+3; // Only for gene_cnt > 2 means start gene_cnt at 3
 		      gene_cnt < cData.dockpars.num_of_genes;
 		      gene_cnt+= blockDim.x) {
-		fgradient_genotype[gene_cnt] *= SCFACTOR_ANGSTROM_RADIAN;
+		fgradient_genotype[gene_cnt] *= cData.dockpars.grid_spacing * cData.dockpars.grid_spacing * SCFACTOR_ANGSTROM_RADIAN;
 	}
 	__threadfence();
 	__syncthreads();
