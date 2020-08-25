@@ -71,7 +71,7 @@ int get_filelist(const int* argc,
 		filelist.preload_maps = true; // By default, preload maps if filelist used
 		std::ifstream file(filelist.filename);
 		if(file.fail()){
-			printf("\nError: Could not open filelist %s. Check path and permissions.",filelist.filename);
+			printf("\nError: Could not open filelist %s. Check path and permissions.\n",filelist.filename);
 			return 1;
 		}
 		std::string line;
@@ -81,8 +81,8 @@ int get_filelist(const int* argc,
 			int len = line.size();
 			if (len>=4 && line.compare(len-4,4,".fld") == 0){
 				if (prev_line_was_fld){ // Overwrite the previous fld file if two in a row
-					filelist.fld_files[filelist.fld_files.size()] = line;
-					printf("\n\nWarning: a listed .fld file was not used!");
+					filelist.fld_files[filelist.fld_files.size()-1] = line;
+					printf("\nWarning: a listed .fld file was not used!\n");
 				} else {
 					// Add the .fld file
 					filelist.fld_files.push_back(line);
@@ -96,6 +96,10 @@ int get_filelist(const int* argc,
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
 				// Add the .pdbqt
 				filelist.ligand_files.push_back(line);
+				if (filelist.fld_files.size()==0){
+					printf("\nError: No map file on record yet. Please specify a .fld file before the first ligand (%s).\n",line.c_str());
+					return 1;
+				}
 				if (filelist.ligand_files.size()>filelist.fld_files.size()){
 					// If this ligand doesnt have a protein preceding it, use the previous protein
 					filelist.fld_files.push_back(filelist.fld_files[filelist.fld_files.size()-1]);
@@ -109,8 +113,14 @@ int get_filelist(const int* argc,
 
 		filelist.nfiles = filelist.ligand_files.size();
 
-		if (filelist.ligand_files.size() != filelist.resnames.size() && filelist.resnames.size()>0)
-			{printf("\n\nError: Inconsistent number of resnames!"); return 1;}
+		if (filelist.ligand_files.size()==0){
+			printf("\nError: No ligands, through lines ending with the .pdbqt suffix, have been specified.\n");
+			return 1;
+		}
+		if (filelist.ligand_files.size() != filelist.resnames.size()){
+			printf("\nError: Inconsistent number of resnames (%lu) compared to ligands (%lu)!\n",filelist.resnames.size(),filelist.ligand_files.size());
+			return 1;
+		}
 	}
 
 	return 0;
