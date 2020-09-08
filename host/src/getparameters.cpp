@@ -117,7 +117,7 @@ int get_filelist(const int* argc,
 			printf("\nError: No ligands, through lines ending with the .pdbqt suffix, have been specified.\n");
 			return 1;
 		}
-		if (filelist.ligand_files.size() != filelist.resnames.size()){
+		if ((filelist.ligand_files.size() != filelist.resnames.size()) && (filelist.resnames.size()>0)){
 			printf("\nError: Inconsistent number of resnames (%lu) compared to ligands (%lu)!\n",filelist.resnames.size(),filelist.ligand_files.size());
 			return 1;
 		}
