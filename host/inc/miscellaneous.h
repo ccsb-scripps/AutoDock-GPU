@@ -104,12 +104,12 @@ class LocalRNG
 
 public:
 	LocalRNG(uint32_t seed){
-          init(seed);
-        }
+		init(seed);
+	}
 
 	LocalRNG(){
 #if defined (REPRO)
-		init(1u);
+		init(8);
 #else
 		init(time(NULL));
 #endif

@@ -95,7 +95,7 @@ gpu_gradient_minAD_kernel(
 
 
     // Genotype pointers
-	float* genotype = (float*)(cartesian_gradient + cData.dockpars.num_of_atoms);
+	float* genotype = (float*)(cartesian_gradient + 2*cData.dockpars.num_of_atoms);
 	float* best_genotype = genotype + cData.dockpars.num_of_genes;  
 
 
@@ -103,7 +103,7 @@ gpu_gradient_minAD_kernel(
 	float* gradient = best_genotype + cData.dockpars.num_of_genes;
 
 	// Squared updates E[dx^2]
-	float* square_delta = (float*)(gradient + cData.dockpars.num_of_genes);
+	float* square_delta = gradient + cData.dockpars.num_of_genes;
 
 	// Vector for storing squared gradients E[g^2]
 	float* square_gradient = square_delta + cData.dockpars.num_of_genes;    
@@ -249,7 +249,7 @@ gpu_gradient_minAD_kernel(
 				// Derived from autodockdev/maps.py
 				cartesian_gradient,
 				gradient,
-                &sFloatAccumulator
+				&sFloatAccumulator
 				);
 
 		// =============================================================
@@ -440,7 +440,7 @@ void gpu_gradient_minAD(
 	float* pMem_energies_next
 )
 {
-    size_t sz_shared = (6 * cpuData.dockpars.num_of_atoms + 5 * cpuData.dockpars.num_of_genes) * sizeof(float);
+    size_t sz_shared = (9 * cpuData.dockpars.num_of_atoms + 5 * cpuData.dockpars.num_of_genes) * sizeof(float);
     gpu_gradient_minAD_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
     LAUNCHERROR("gpu_gradient_minAD_kernel");     
 #if 0

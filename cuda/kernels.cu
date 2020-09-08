@@ -110,13 +110,12 @@ __device__ inline int64_t ullitolli(uint64_t u)
         value                  += __shfl_sync(0xffffffff, value, tgx ^ 16); \
         if (tgx == 0) \
         { \
-            int ivalue = lrintf(TERMSCALE * fminf(MAXREDUCE, fmaxf(-MAXREDUCE, value))); \
             atomicAdd(pAccumulator, value); \
         } \
     } \
     __threadfence(); \
     __syncthreads(); \
-    value = (float)(*pAccumulator) * ONEOVERTERMSCALE; \
+    value = (float)(*pAccumulator); \
     __syncthreads();
 
 
