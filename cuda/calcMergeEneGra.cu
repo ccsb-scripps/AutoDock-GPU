@@ -114,8 +114,8 @@ __device__ void gpu_calc_energrad(
 	uint32_t  g2 = cData.dockpars.gridsize_x_times_y;
 	uint32_t  g3 = cData.dockpars.gridsize_x_times_y_times_z;
 
-    __threadfence();
-    __syncthreads();
+	__threadfence();
+	__syncthreads();
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -186,10 +186,8 @@ __device__ void gpu_calc_energrad(
 			calc_coords[atom_id].z = qt.z + rotation_movingvec.z;
 
 		} // End if-statement not dummy rotation
-        __threadfence();
-        __syncthreads();
-
-
+		__threadfence();
+		__syncthreads();
 	} // End rotation_counter for-loop
 
 	// ================================================
@@ -401,8 +399,8 @@ __device__ void gpu_calc_energrad(
 		gradient[atom_id].y += lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * gy)));
 		gradient[atom_id].z += lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * gz)));
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
-    __threadfence();
-    __syncthreads();
+	__threadfence();
+	__syncthreads();
 
 	// Inter- and intra-molecular energy calculation
 	// are independent from each other, so NO barrier is needed here.
@@ -510,12 +508,12 @@ __device__ void gpu_calc_energrad(
 						 cData.dockpars.qasp*fabs(q1)) * cData.pKerconst_intra->dspars_V_const[atom2_typeid] +
 						(cData.pKerconst_intra->dspars_S_const[atom2_typeid] +
 						 cData.dockpars.qasp*fabs(q2)) * cData.pKerconst_intra->dspars_V_const[atom1_typeid]) *
-                               (
-								cData.dockpars.coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)) /
-								(12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2)))
-							      );
+						(
+							cData.dockpars.coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)) /
+							(12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2)))
+						);
 
-            // Calculating electrostatic term
+			// Calculating electrostatic term
 			float dist_shift=atomic_distance+1.588f;
 			dist2=dist_shift*dist_shift;
 			float disth_shift=atomic_distance+0.794f;
@@ -542,7 +540,6 @@ __device__ void gpu_calc_energrad(
 								0.0771605f * atomic_distance * desolv_energy; // 1/3.6^2 = 1/12.96 = 0.0771605
 		} // if cuttoff2 - internuclear-distance at 20.48A
 
-
 		// Decomposing "priv_gradient_per_intracontributor"
 		// into the contribution of each atom of the pair.
 		// Distances in Angstroms of vector that goes from
@@ -563,8 +560,8 @@ __device__ void gpu_calc_energrad(
 		ATOMICADDI32(&gradient[atom2_id].y, priv_intra_gradient_y);
 		ATOMICADDI32(&gradient[atom2_id].z, priv_intra_gradient_z);
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
-    __threadfence();
-    __syncthreads();
+	__threadfence();
+	__syncthreads();
 
 	// Transform gradients_inter_{x|y|z} 
 	// into local_gradients[i] (with four quaternion genes)
@@ -606,9 +603,6 @@ __device__ void gpu_calc_energrad(
 	}
 
 	// Do a reduction over the total gradient containing prepared "gradient_intra_*" values
-//	torque_rot.x *= ONEOVERTERMSCALE;
-//	torque_rot.y *= ONEOVERTERMSCALE;
-//	torque_rot.z *= ONEOVERTERMSCALE;
 	REDUCEFLOATSUM(torque_rot.x, pFloatAccumulator);
 	REDUCEFLOATSUM(torque_rot.y, pFloatAccumulator);
 	REDUCEFLOATSUM(torque_rot.z, pFloatAccumulator);
@@ -628,15 +622,12 @@ __device__ void gpu_calc_energrad(
 
 	global_energy = energy;
 	int* gradient_genotype = (int*)fgradient_genotype;
-	if (threadIdx.x == 0) {
 
+	if (threadIdx.x == 0) {
 		// Scaling gradient for translational genes as
 		// their corresponding gradients were calculated in the space
 		// where these genes are in Angstrom,
 		// but AutoDock-GPU translational genes are within in grids
-//		gradient_genotype[0] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, SCFACTOR_ANGSTROM_RADIAN * TERMSCALE * gx * cData.dockpars.grid_spacing)));
-//		gradient_genotype[1] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, SCFACTOR_ANGSTROM_RADIAN * TERMSCALE * gy * cData.dockpars.grid_spacing)));
-//		gradient_genotype[2] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, SCFACTOR_ANGSTROM_RADIAN * TERMSCALE * gz * cData.dockpars.grid_spacing)));
 		gradient_genotype[0] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * gx * cData.dockpars.grid_spacing)));
 		gradient_genotype[1] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * gy * cData.dockpars.grid_spacing)));
 		gradient_genotype[2] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * gz * cData.dockpars.grid_spacing)));
@@ -648,12 +639,12 @@ __device__ void gpu_calc_energrad(
 		printf("gradient_z:%f\n", gradient_genotype [2]);
 		#endif
 	}
-    __threadfence();
-    __syncthreads();
+	__threadfence();
+	__syncthreads();
 
 	// ------------------------------------------
 	// Obtaining rotation-related gradients
-	// ------------------------------------------ 				
+	// ------------------------------------------
 	if (threadIdx.x == 0) {
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -843,8 +834,8 @@ __device__ void gpu_calc_energrad(
 		printf("%-13.6f %-13.6f %-13.6f\n", gradient_genotype[3], gradient_genotype[4], gradient_genotype[5]);
 		#endif
 	}
-    __threadfence();
-    __syncthreads();
+	__threadfence();
+	__syncthreads();
 
 	// ------------------------------------------
 	// Obtaining torsion-related gradients
@@ -908,6 +899,9 @@ __device__ void gpu_calc_energrad(
 		      gene_cnt+= blockDim.x) {
 		fgradient_genotype[gene_cnt] = ONEOVERTERMSCALE * (float)gradient_genotype[gene_cnt];
 	}
+	__threadfence();
+	__syncthreads();
+
 	#if defined (CONVERT_INTO_ANGSTROM_RADIAN)
 	for (uint32_t gene_cnt = threadIdx.x+3; // Only for gene_cnt > 2 means start gene_cnt at 3
 		      gene_cnt < cData.dockpars.num_of_genes;
