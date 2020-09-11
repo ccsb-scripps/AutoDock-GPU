@@ -177,14 +177,13 @@ gradient_minAD(
 	// -------------------------------------------------------------------
 	// Gradient of the intermolecular energy per each ligand atom
 	// Also used to store the accummulated gradient per each ligand atom
-	__local float gradient_inter_x[MAX_NUM_OF_ATOMS];
-	__local float gradient_inter_y[MAX_NUM_OF_ATOMS];
-	__local float gradient_inter_z[MAX_NUM_OF_ATOMS];
+	__local int   i_gradient_x[MAX_NUM_OF_ATOMS];
+	__local int   i_gradient_y[MAX_NUM_OF_ATOMS];
+	__local int   i_gradient_z[MAX_NUM_OF_ATOMS];
 
-	// Gradient of the intramolecular energy per each ligand atom
-	__local float gradient_intra_x[MAX_NUM_OF_ATOMS];
-	__local float gradient_intra_y[MAX_NUM_OF_ATOMS];
-	__local float gradient_intra_z[MAX_NUM_OF_ATOMS];
+	__local float f_gradient_x[MAX_NUM_OF_ATOMS];
+	__local float f_gradient_y[MAX_NUM_OF_ATOMS];
+	__local float f_gradient_z[MAX_NUM_OF_ATOMS];
 
 	// Ligand-atom position and partial energies
 	__local float4 calc_coords[MAX_NUM_OF_ATOMS];
@@ -394,12 +393,8 @@ gradient_minAD(
 				// Derived from autodockdev/maps.py
 				,
 				dockpars_num_of_genes,
-				gradient_inter_x,
-				gradient_inter_y,
-				gradient_inter_z,
-				gradient_intra_x,
-				gradient_intra_y,
-				gradient_intra_z,
+				i_gradient_x, i_gradient_y, i_gradient_z,
+				f_gradient_x, f_gradient_y, f_gradient_z,
 				gradient
 				);
 		// =============================================================

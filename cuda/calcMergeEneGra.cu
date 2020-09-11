@@ -894,7 +894,7 @@ __device__ void gpu_calc_energrad(
 	__threadfence();
 	__syncthreads();
 
-	for (uint32_t gene_cnt = threadIdx.x; // Only for gene_cnt > 2 means start gene_cnt at 3
+	for (uint32_t gene_cnt = threadIdx.x;
 		      gene_cnt < cData.dockpars.num_of_genes;
 		      gene_cnt+= blockDim.x) {
 		fgradient_genotype[gene_cnt] = ONEOVERTERMSCALE * (float)gradient_genotype[gene_cnt];
