@@ -22,10 +22,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
 
+
 #define TERMBITS 10
 #define MAXTERM ((float)(1 << (31 - TERMBITS - 8))) // 2^(31 - 10 - 8) = 2^13 = 8192
 #define TERMSCALE ((float)(1 << TERMBITS)) // 2^10 = 1024
 #define ONEOVERTERMSCALE (1.0f / TERMSCALE) // 1 / 1024 = 0.000977
+
+// Enables full floating point gradient calculation.
+// Use is not advised as:
+// - the determinism gradients (aka integer gradients) are much faster *and*
+// - speed up the local search convergence
+// Please only use for debugging
+// #define FLOAT_GRADIENTS
 
 // Enable restoring map gradient
 // Currently, this is not a good idea
@@ -89,12 +97,18 @@ void gpu_calc_energrad(
 		    // In Gradient-Minimizer: must calculate gradients
 			,
 				int    dockpars_num_of_genes,
-			__local int*   i_gradient_x,
-			__local int*   i_gradient_y,
-			__local int*   i_gradient_z,
-			__local float* f_gradient_x,
-			__local float* f_gradient_y,
-			__local float* f_gradient_z,
+#ifdef FLOAT_GRADIENTS
+			__local float*   gradient_x,
+			__local float*   gradient_y,
+			__local float*   gradient_z,
+#else
+			__local int*   gradient_x,
+			__local int*   gradient_y,
+			__local int*   gradient_z,
+#endif
+			__local float* accumulator_x,
+			__local float* accumulator_y,
+			__local float* accumulator_z,
 			__local float* gradient_genotype
 )
 {
@@ -115,13 +129,9 @@ void gpu_calc_energrad(
 						kerconst_conform->ref_coords_const[3*atom_id+1],
 						kerconst_conform->ref_coords_const[3*atom_id+2],0);
 		// Integer gradients
-		i_gradient_x[atom_id] = 0;
-		i_gradient_y[atom_id] = 0;
-		i_gradient_z[atom_id] = 0;
-		// Float gradients
-		f_gradient_x[atom_id] = 0.0f;
-		f_gradient_y[atom_id] = 0.0f;
-		f_gradient_z[atom_id] = 0.0f;
+		gradient_x[atom_id] = 0;
+		gradient_y[atom_id] = 0;
+		gradient_z[atom_id] = 0;
 	}
 
 	// Initializing gradient genotypes
@@ -254,13 +264,19 @@ void gpu_calc_energrad(
 			// Setting gradients (forces) penalties.
 			// The idea here is to push the offending
 			// molecule towards the center
-			i_gradient_x[atom_id] += convert_int_rte( native_divide ( TERMSCALE * 42.0f * x , dockpars_grid_spacing ) );
-			i_gradient_y[atom_id] += convert_int_rte( native_divide ( TERMSCALE * 42.0f * y , dockpars_grid_spacing ) );
-			i_gradient_z[atom_id] += convert_int_rte( native_divide ( TERMSCALE * 42.0f * z , dockpars_grid_spacing ) );
+#ifdef FLOAT_GRADIENTS
+			gradient_x[atom_id] += native_divide ( TERMSCALE * 42.0f * x , dockpars_grid_spacing );
+			gradient_y[atom_id] += native_divide ( TERMSCALE * 42.0f * y , dockpars_grid_spacing );
+			gradient_z[atom_id] += native_divide ( TERMSCALE * 42.0f * z , dockpars_grid_spacing );
 #else
-			i_gradient_x[atom_id] += 16777216.0f;
-			i_gradient_y[atom_id] += 16777216.0f;
-			i_gradient_z[atom_id] += 16777216.0f;
+			gradient_x[atom_id] += convert_int_rte( native_divide ( TERMSCALE * 42.0f * x , dockpars_grid_spacing ) );
+			gradient_y[atom_id] += convert_int_rte( native_divide ( TERMSCALE * 42.0f * y , dockpars_grid_spacing ) );
+			gradient_z[atom_id] += convert_int_rte( native_divide ( TERMSCALE * 42.0f * z , dockpars_grid_spacing ) );
+#endif // FLOAT_GRADIENTS
+#else
+			gradient_x[atom_id] += 16777216.0f;
+			gradient_y[atom_id] += 16777216.0f;
+			gradient_z[atom_id] += 16777216.0f;
 #endif
 			continue;
 		}
@@ -434,9 +450,15 @@ void gpu_calc_energrad(
 		gz += qg * ( omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
 		               dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110])));
 		// -------------------------------------------------------------------
-		i_gradient_x[atom_id] += convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * gx)));
-		i_gradient_y[atom_id] += convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * gy)));
-		i_gradient_z[atom_id] += convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * gz)));
+#ifdef FLOAT_GRADIENTS
+		gradient_x[atom_id] += gx;
+		gradient_y[atom_id] += gy;
+		gradient_z[atom_id] += gz;
+#else
+		gradient_x[atom_id] += convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * gx)));
+		gradient_y[atom_id] += convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * gy)));
+		gradient_z[atom_id] += convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * gz)));
+#endif
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
 
 	// Inter- and intra-molecular energy calculation
@@ -587,35 +609,56 @@ void gpu_calc_energrad(
 		// Distances in Angstroms of vector that goes from
 		// "atom1_id"-to-"atom2_id", therefore - subx, - suby, and - subz are used
 		float grad_div_dist = native_divide(-priv_gradient_per_intracontributor,dist);
+#ifdef FLOAT_GRADIENTS
+		float priv_intra_gradient_x = subx * grad_div_dist;
+		float priv_intra_gradient_y = suby * grad_div_dist;
+		float priv_intra_gradient_z = subz * grad_div_dist;
+#else
 		int priv_intra_gradient_x = convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * subx * grad_div_dist)));
 		int priv_intra_gradient_y = convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * suby * grad_div_dist)));
 		int priv_intra_gradient_z = convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * subz * grad_div_dist)));
-		
+#endif
 		// Calculating gradients in xyz components.
 		// Gradients for both atoms in a single contributor pair
 		// have the same magnitude, but opposite directions
-		atomic_sub(&i_gradient_x[atom1_id], priv_intra_gradient_x);
-		atomic_sub(&i_gradient_y[atom1_id], priv_intra_gradient_y);
-		atomic_sub(&i_gradient_z[atom1_id], priv_intra_gradient_z);
+#ifdef FLOAT_GRADIENTS // the floating point atomic adds are time consuming
+		atomicSub_g_f(&gradient_x[atom1_id], priv_intra_gradient_x);
+		atomicSub_g_f(&gradient_y[atom1_id], priv_intra_gradient_y);
+		atomicSub_g_f(&gradient_z[atom1_id], priv_intra_gradient_z);
 
-		atomic_add(&i_gradient_x[atom2_id], priv_intra_gradient_x);
-		atomic_add(&i_gradient_y[atom2_id], priv_intra_gradient_y);
-		atomic_add(&i_gradient_z[atom2_id], priv_intra_gradient_z);
+		atomicAdd_g_f(&gradient_x[atom2_id], priv_intra_gradient_x);
+		atomicAdd_g_f(&gradient_y[atom2_id], priv_intra_gradient_y);
+		atomicAdd_g_f(&gradient_z[atom2_id], priv_intra_gradient_z);
+#else
+		atomic_sub(&gradient_x[atom1_id], priv_intra_gradient_x);
+		atomic_sub(&gradient_y[atom1_id], priv_intra_gradient_y);
+		atomic_sub(&gradient_z[atom1_id], priv_intra_gradient_z);
+
+		atomic_add(&gradient_x[atom2_id], priv_intra_gradient_x);
+		atomic_add(&gradient_y[atom2_id], priv_intra_gradient_y);
+		atomic_add(&gradient_z[atom2_id], priv_intra_gradient_z);
+#endif
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// -------------------------------------------------------
 	// Obtaining energy and translation-related gradients
 	// -------------------------------------------------------
-	f_gradient_x[tidx] = 0.0f;
-	f_gradient_y[tidx] = 0.0f;
-	f_gradient_z[tidx] = 0.0f;
+	accumulator_x[tidx] = 0.0f;
+	accumulator_y[tidx] = 0.0f;
+	accumulator_z[tidx] = 0.0f;
 	for (uint atom_cnt = tidx;
 		  atom_cnt < dockpars_num_of_atoms;
 		  atom_cnt+= NUM_OF_THREADS_PER_BLOCK) {
-		f_gradient_x[tidx] += ONEOVERTERMSCALE * i_gradient_x[atom_cnt];
-		f_gradient_y[tidx] += ONEOVERTERMSCALE * i_gradient_y[atom_cnt];
-		f_gradient_z[tidx] += ONEOVERTERMSCALE * i_gradient_z[atom_cnt];
+#ifdef FLOAT_GRADIENTS
+		accumulator_x[tidx] += gradient_x[atom_cnt];
+		accumulator_y[tidx] += gradient_y[atom_cnt];
+		accumulator_z[tidx] += gradient_z[atom_cnt];
+#else
+		accumulator_x[tidx] += ONEOVERTERMSCALE * gradient_x[atom_cnt];
+		accumulator_y[tidx] += ONEOVERTERMSCALE * gradient_y[atom_cnt];
+		accumulator_z[tidx] += ONEOVERTERMSCALE * gradient_z[atom_cnt];
+#endif
 	}
 	// reduction over partial energies and prepared "gradient_intra_*" values
 	for (uint off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
@@ -627,9 +670,9 @@ void gpu_calc_energrad(
 #if defined (DEBUG_ENERGY_KERNEL)
 			partial_intraE[tidx] += partial_intraE[tidx+off];
 #endif
-			f_gradient_x[tidx] += f_gradient_x[tidx+off];
-			f_gradient_y[tidx] += f_gradient_y[tidx+off];
-			f_gradient_z[tidx] += f_gradient_z[tidx+off];
+			accumulator_x[tidx] += accumulator_x[tidx+off];
+			accumulator_y[tidx] += accumulator_y[tidx+off];
+			accumulator_z[tidx] += accumulator_z[tidx+off];
 		}
 	}
 	__local int* i_gradient_genotype = (__local int*)gradient_genotype;
@@ -639,10 +682,9 @@ void gpu_calc_energrad(
 		// their corresponding gradients were calculated in the space
 		// where these genes are in Angstrom,
 		// but AutoDock-GPU translational genes are within in grids
-		i_gradient_genotype[0] = convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * f_gradient_x[0] * dockpars_grid_spacing)));
-		i_gradient_genotype[1] = convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * f_gradient_y[0] * dockpars_grid_spacing)));
-		i_gradient_genotype[2] = convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * f_gradient_z[0] * dockpars_grid_spacing)));
-
+		i_gradient_genotype[0] = convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * accumulator_x[0] * dockpars_grid_spacing)));
+		i_gradient_genotype[1] = convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * accumulator_y[0] * dockpars_grid_spacing)));
+		i_gradient_genotype[2] = convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * accumulator_z[0] * dockpars_grid_spacing)));
 		#if defined (PRINT_GRAD_TRANSLATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("gradient_x:%f\n", i_gradient_genotype [0]);
@@ -665,23 +707,29 @@ void gpu_calc_energrad(
 	// Derived from autodockdev/motions.py/_get_cube3_gradient()
 	// ------------------------------------------
 
-	f_gradient_x[tidx] = 0.0f;
-	f_gradient_y[tidx] = 0.0f;
-	f_gradient_z[tidx] = 0.0f;
+	accumulator_x[tidx] = 0.0f;
+	accumulator_y[tidx] = 0.0f;
+	accumulator_z[tidx] = 0.0f;
 	for (uint atom_cnt = tidx;
 		  atom_cnt < dockpars_num_of_atoms;
 		  atom_cnt+= NUM_OF_THREADS_PER_BLOCK) {
 		float4 r = (calc_coords[atom_cnt] - genrot_movingvec) * dockpars_grid_spacing;
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)
 		float4 force;
-		force.x = ONEOVERTERMSCALE * i_gradient_x[atom_cnt];
-		force.y = ONEOVERTERMSCALE * i_gradient_y[atom_cnt];
-		force.z = ONEOVERTERMSCALE * i_gradient_z[atom_cnt];
+#ifdef FLOAT_GRADIENTS
+		force.x = gradient_x[atom_cnt];
+		force.y = gradient_y[atom_cnt];
+		force.z = gradient_z[atom_cnt];
+#else
+		force.x = ONEOVERTERMSCALE * gradient_x[atom_cnt];
+		force.y = ONEOVERTERMSCALE * gradient_y[atom_cnt];
+		force.z = ONEOVERTERMSCALE * gradient_z[atom_cnt];
+#endif
 		force.w = 0.0;
 		float4 torque_rot = cross(r, force);
-		f_gradient_x[tidx] += torque_rot.x;
-		f_gradient_y[tidx] += torque_rot.y;
-		f_gradient_z[tidx] += torque_rot.z;
+		accumulator_x[tidx] += torque_rot.x;
+		accumulator_y[tidx] += torque_rot.y;
+		accumulator_z[tidx] += torque_rot.z;
 	}
 	// do a reduction over the total gradient containing prepared "gradient_intra_*" values
 	for (uint off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
@@ -689,16 +737,16 @@ void gpu_calc_energrad(
 		barrier(CLK_LOCAL_MEM_FENCE);
 		if (tidx < off)
 		{
-			f_gradient_x[tidx] += f_gradient_x[tidx+off];
-			f_gradient_y[tidx] += f_gradient_y[tidx+off];
-			f_gradient_z[tidx] += f_gradient_z[tidx+off];
+			accumulator_x[tidx] += accumulator_x[tidx+off];
+			accumulator_y[tidx] += accumulator_y[tidx+off];
+			accumulator_z[tidx] += accumulator_z[tidx+off];
 		}
 	}
 	if (tidx == 0) {
 		float4 torque_rot;
-		torque_rot.x = f_gradient_x[0];
-		torque_rot.y = f_gradient_y[0];
-		torque_rot.z = f_gradient_z[0];
+		torque_rot.x = accumulator_x[0];
+		torque_rot.y = accumulator_y[0];
+		torque_rot.z = accumulator_z[0];
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -917,9 +965,15 @@ void gpu_calc_energrad(
 		r = (calc_coords[lig_atom_id] - atomRef_coords);
 
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)
-		atom_force.x = ONEOVERTERMSCALE * i_gradient_x[lig_atom_id];
-		atom_force.y = ONEOVERTERMSCALE * i_gradient_y[lig_atom_id];
-		atom_force.z = ONEOVERTERMSCALE * i_gradient_z[lig_atom_id];
+#ifdef FLOAT_GRADIENTS
+		atom_force.x = gradient_x[lig_atom_id];
+		atom_force.y = gradient_y[lig_atom_id];
+		atom_force.z = gradient_z[lig_atom_id];
+#else
+		atom_force.x = ONEOVERTERMSCALE * gradient_x[lig_atom_id];
+		atom_force.y = ONEOVERTERMSCALE * gradient_y[lig_atom_id];
+		atom_force.z = ONEOVERTERMSCALE * gradient_z[lig_atom_id];
+#endif
 		atom_force.w = 0.0f;
 
 		torque_tor = cross(r, atom_force);
