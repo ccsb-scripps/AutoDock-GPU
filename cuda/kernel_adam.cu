@@ -52,9 +52,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 __global__ void
 __launch_bounds__(NUM_OF_THREADS_PER_BLOCK, 1024 / NUM_OF_THREADS_PER_BLOCK)
-gpu_gradient_minAdam_kernel(	
-    float* pMem_conformations_next,
-	float* pMem_energies_next
+gpu_gradient_minAdam_kernel(
+			    float* pMem_conformations_next,
+			    float* pMem_energies_next
 )
 //The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
 //The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
@@ -74,23 +74,25 @@ gpu_gradient_minAdam_kernel(
 	// Energy may go up, so we keep track of the best energy ever calculated.
 	// Then, we return the genotype corresponding 
 	// to the best observed energy, i.e. "best_genotype"
-    __shared__ int entity_id;
+	__shared__ int entity_id;
 	__shared__ float best_energy;
-    __shared__ float sFloatAccumulator;
-    extern __shared__ float sFloatBuff[];
+	__shared__ float sFloatAccumulator;
+	extern __shared__ float sFloatBuff[];
 
 	// Ligand-atom position and partial energies
 	float3* calc_coords = (float3*)sFloatBuff;  
-    
+
 	// Gradient of the intermolecular energy per each ligand atom
 	// Also used to store the accummulated gradient per each ligand atom
+#ifdef FLOAT_GRADIENTS
+	float3* cartesian_gradient = (float3*)(calc_coords + cData.dockpars.num_of_atoms);
+#else
 	int3* cartesian_gradient = (int3*)(calc_coords + cData.dockpars.num_of_atoms);
+#endif
 
-
-    // Genotype pointers
+	// Genotype pointers
 	float* genotype = (float*)(cartesian_gradient + cData.dockpars.num_of_atoms);
 	float* best_genotype = genotype + cData.dockpars.num_of_genes;  
-
 
 	// Partial results of the gradient step
 	float* gradient = best_genotype + cData.dockpars.num_of_genes;
@@ -101,9 +103,6 @@ gpu_gradient_minAdam_kernel(
 	// Adam vt parameter
 	float* vt = mt + cData.dockpars.num_of_genes;    
 
-
-    
-
 	// Iteration counter for the minimizer
 	uint32_t iteration_cnt = 0; 
 
@@ -111,7 +110,7 @@ gpu_gradient_minAdam_kernel(
 	{
 		// Since entity 0 is the best one due to elitism,
 		// it should be subjected to random selection
-        entity_id = blockIdx.x % cData.dockpars.num_of_lsentities;        
+		entity_id = blockIdx.x % cData.dockpars.num_of_lsentities;        
 		if (entity_id == 0) {
 			// If entity 0 is not selected according to LS-rate,
 			// choosing another entity
@@ -130,38 +129,29 @@ gpu_gradient_minAdam_kernel(
 		printf("%20s %.6f\n", "initial energy: ", energy);
 		#endif
 	}
-    __syncthreads();
-    __threadfence();
-    energy = pMem_energies_next[run_id * cData.dockpars.pop_size + entity_id];    
-    
+	__syncthreads();
+	__threadfence();
+	energy = pMem_energies_next[run_id * cData.dockpars.pop_size + entity_id];    
 
-    int offset = (run_id * cData.dockpars.pop_size + entity_id) * GENOTYPE_LENGTH_IN_GLOBMEM;
-    for (int i = threadIdx.x ; i < cData.dockpars.num_of_genes; i += blockDim.x)
-    {
-        genotype[i] = pMem_conformations_next[offset + i];
-    }
+	int offset = (run_id * cData.dockpars.pop_size + entity_id) * GENOTYPE_LENGTH_IN_GLOBMEM;
+	for (int i = threadIdx.x ; i < cData.dockpars.num_of_genes; i += blockDim.x)
+	{
+		genotype[i] = pMem_conformations_next[offset + i];
+	}
 
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
-         
-
-
-
-
 
 	// -------------------------------------------------------------------
 	// Calculate gradients (forces) for intermolecular energy
 	// Derived from autodockdev/maps.py
 	// -------------------------------------------------------------------
 
-
 	#if defined (DEBUG_ENERGY_KERNEL)
 	float interE;
 	float intraE;
 	#endif
-
-
 
 	// Update vector, i.e., "delta".
 	// It is added to the genotype to create the next genotype.
@@ -170,7 +160,7 @@ gpu_gradient_minAdam_kernel(
 
 	// Asynchronous copy should be finished by here
 	__threadfence();
-    __syncthreads();
+	__syncthreads();
 
 	// Enable this for debugging ADADELTA from a defined initial genotype
 
@@ -221,7 +211,7 @@ gpu_gradient_minAdam_kernel(
 		// =============================================================
 		// =============================================================
 		// Calculating energy & gradient
-        __threadfence();
+		__threadfence();
 		__syncthreads();
 
 		gpu_calc_energrad(
@@ -243,7 +233,7 @@ gpu_gradient_minAdam_kernel(
 				// Derived from autodockdev/maps.py
 				cartesian_gradient,
 				gradient,
-                &sFloatAccumulator
+				&sFloatAccumulator
 				);
 
 		// =============================================================
@@ -281,24 +271,24 @@ gpu_gradient_minAdam_kernel(
 			#endif
 		}
 		__threadfence();
-        __syncthreads();
+		__syncthreads();
 		#endif // DEBUG_ENERGY_ADADELTA
 
 #if 0
-        if ((blockIdx.x == 0) && (threadIdx.x == 0))
-        {
-            printf("\n%d %16.8f\n", blockIdx.x);
-            float sum = 0.0;
-            for (uint32_t i = 0;
-            i < cData.dockpars.num_of_genes;
-            i++) {
-                //printf("%06d | %12.6f\n", i, gradient[i]);
-                //printf("%06d | %12.6f %12.6f %12.6f | %12.6f %12.6f %12.6f\n", i, gradient_inter_x[i], gradient_inter_y[i], gradient_inter_z[i], gradient_intra_x[i], gradient_intra_y[i], gradient_intra_z[i]);
-            }
-        }
+		if ((blockIdx.x == 0) && (threadIdx.x == 0))
+		{
+			printf("\n%d %16.8f\n", blockIdx.x);
+			float sum = 0.0;
+			for (uint32_t i = 0;
+			     i < cData.dockpars.num_of_genes;
+			     i++) {
+				//printf("%06d | %12.6f\n", i, gradient[i]);
+				//printf("%06d | %12.6f %12.6f %12.6f | %12.6f %12.6f %12.6f\n", i, gradient_inter_x[i], gradient_inter_y[i], gradient_inter_z[i], gradient_intra_x[i], gradient_intra_y[i], gradient_intra_z[i]);
+			}
+		}
 #endif
-        float beta1p = 1.0f - pow(cData.dockpars.adam_beta1, 1.0f + iteration_cnt);
-        float beta2p = 1.0f - pow(cData.dockpars.adam_beta2, 1.0f + iteration_cnt);
+		float beta1p = 1.0f - pow(cData.dockpars.adam_beta1, 1.0f + iteration_cnt);
+		float beta2p = 1.0f - pow(cData.dockpars.adam_beta2, 1.0f + iteration_cnt);
 
 		for(int i = threadIdx.x;
 			 i < cData.dockpars.num_of_genes;
@@ -306,18 +296,18 @@ gpu_gradient_minAdam_kernel(
 
 			if (energy < best_energy) // we need to be careful not to change best_energy until we had a chance to update the whole array
 				best_genotype[i] = genotype[i];
-                
-            // Update Adam parameters
-            mt[i] = cData.dockpars.adam_beta1 * mt[i] + (1.0f - cData.dockpars.adam_beta1) * gradient[i];
-            vt[i] = cData.dockpars.adam_beta2 * vt[i] + (1.0f - cData.dockpars.adam_beta2) * gradient[i] * gradient[i];
-            float mp = mt[i] / beta1p;
-            float vp = vt[i] / beta2p;
+
+			// Update Adam parameters
+			mt[i] = cData.dockpars.adam_beta1 * mt[i] + (1.0f - cData.dockpars.adam_beta1) * gradient[i];
+			vt[i] = cData.dockpars.adam_beta2 * vt[i] + (1.0f - cData.dockpars.adam_beta2) * gradient[i] * gradient[i];
+			float mp = mt[i] / beta1p;
+			float vp = vt[i] / beta2p;
 
 			// Applying update
 			genotype[i] -= mp / (sqrt(vp) + cData.dockpars.adam_epsilon);
 		}
 		__threadfence();
-        __syncthreads();
+		__syncthreads();
 
 		#if defined (DEBUG_SQDELTA_ADADELTA)
 		if (/*(get_group_id(0) == 0) &&*/ (threadIdx.x == 0)) {
@@ -330,11 +320,11 @@ gpu_gradient_minAdam_kernel(
 			}
 		}
 		__threadfence();
-        __syncthreads();
+		__syncthreads();
 		#endif
 
 		// Updating number of ADADELTA iterations (energy evaluations)
-        iteration_cnt = iteration_cnt + 1;
+		iteration_cnt = iteration_cnt + 1;
 		if (threadIdx.x == 0) {
 			if (energy < best_energy)
 			{
@@ -352,8 +342,6 @@ gpu_gradient_minAdam_kernel(
 			}
 #endif
 
-
-
 			#if defined (DEBUG_ADADELTA_MINIMIZER) || defined (PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION)
 			printf("%20s %10.6f\n", "new.energy: ", energy);
 			#endif
@@ -368,17 +356,17 @@ gpu_gradient_minAdam_kernel(
 				cons_succ = 0;
 			}
 			else
-            {
+			{
 				if (cons_fail >= 4)
 				{
 					rho *= LS_CONT_FACTOR;
 					cons_fail = 0;
 				}
-            }
+			}
 #endif
 		}
 		__threadfence();
-        __syncthreads(); // making sure that iteration_cnt is up-to-date
+		__syncthreads(); // making sure that iteration_cnt is up-to-date
 #ifdef AD_RHO_CRITERION
 	} while ((iteration_cnt < cData.dockpars.max_num_of_iters)  && (rho > 0.01f));
 #else
@@ -394,21 +382,18 @@ gpu_gradient_minAdam_kernel(
 	          gene_counter += blockDim.x) {
 		map_angle(best_genotype[gene_counter]);
 	}
-    
-    
 
 	// Updating old offspring in population
 	__threadfence();
-    __syncthreads();
-    
-    offset = (run_id * cData.dockpars.pop_size + entity_id) * GENOTYPE_LENGTH_IN_GLOBMEM;
+	__syncthreads();
+
+	offset = (run_id * cData.dockpars.pop_size + entity_id) * GENOTYPE_LENGTH_IN_GLOBMEM;
 	for (uint gene_counter = threadIdx.x;
 	          gene_counter < cData.dockpars.num_of_genes;
 	          gene_counter+= blockDim.x)
-    {
-        pMem_conformations_next[gene_counter + offset] = best_genotype[gene_counter];
-    }
-
+	{
+		pMem_conformations_next[gene_counter + offset] = best_genotype[gene_counter];
+	}
 
 	// Updating eval counter and energy
 	if (threadIdx.x == 0) {
@@ -425,21 +410,21 @@ gpu_gradient_minAdam_kernel(
 
 
 void gpu_gradient_minAdam(
-    uint32_t blocks,
-    uint32_t threads,
-    float* pMem_conformations_next,
-	float* pMem_energies_next
+			    uint32_t blocks,
+			    uint32_t threads,
+			    float* pMem_conformations_next,
+			    float* pMem_energies_next
 )
 {
-    size_t sz_shared = (6 * cpuData.dockpars.num_of_atoms + 5 * cpuData.dockpars.num_of_genes) * sizeof(float);
-    gpu_gradient_minAdam_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
-    LAUNCHERROR("gpu_gradient_minAdam_kernel");     
+	size_t sz_shared = (6 * cpuData.dockpars.num_of_atoms + 5 * cpuData.dockpars.num_of_genes) * sizeof(float);
+	gpu_gradient_minAdam_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
+	LAUNCHERROR("gpu_gradient_minAdam_kernel");     
 #if 0
-    cudaError_t status;
-    status = cudaDeviceSynchronize();
-    RTERROR(status, "gpu_gradient_minAdam_kernel");
-    status = cudaDeviceReset();
-    RTERROR(status, "failed to shut down");
-    exit(0);
+	cudaError_t status;
+	status = cudaDeviceSynchronize();
+	RTERROR(status, "gpu_gradient_minAdam_kernel");
+	status = cudaDeviceReset();
+	RTERROR(status, "failed to shut down");
+	exit(0);
 #endif
 }
