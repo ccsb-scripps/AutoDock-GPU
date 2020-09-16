@@ -462,7 +462,7 @@ filled with clock() */
 	size_prng_seeds = blocksPerGridForEachEntity * threadsPerBlock * sizeof(unsigned int);
 	cpu_prng_seeds = (unsigned int*) malloc(size_prng_seeds);
 
-	LocalRNG r;
+	LocalRNG r(mypars->seed);
 
 	for (i=0; i<blocksPerGridForEachEntity*threadsPerBlock; i++)
 		cpu_prng_seeds[i] = r.random_uint();
