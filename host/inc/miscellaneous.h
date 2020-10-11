@@ -103,6 +103,10 @@ class LocalRNG
 	uint32_t Q[4096], i, c; // CMWC4096 variables
 
 public:
+	LocalRNG(uint32_t seed){
+		init(seed);
+	}
+
 	LocalRNG(){
 #if defined (REPRO)
 		init(8);

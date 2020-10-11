@@ -15,7 +15,7 @@ NVCC = nvcc
 CPP = g++
 UNAME := $(shell uname)
 
-TARGETS = 52 61 70
+TARGETS = 52 60 61 70
 CUDA_TARGETS=$(foreach target,$(TARGETS),-gencode arch=compute_$(target),code=sm_$(target))
 
 $(shell ./link_cuda.sh)

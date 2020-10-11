@@ -98,7 +98,7 @@ void gpu_perform_elitist_selection(
 				    __global int*   restrict dockpars_evals_of_new_entities,
 					     int    dockpars_num_of_genes,
 				    __global float* restrict dockpars_conformations_next,
-		       		    __global const float* restrict dockpars_conformations_current,
+				    __global const float* restrict dockpars_conformations_current,
 				    __local  float* best_energies,
 				    __local  int*   best_IDs,
 				    __local  int*   best_ID

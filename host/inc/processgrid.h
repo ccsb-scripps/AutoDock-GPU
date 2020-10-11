@@ -66,6 +66,7 @@ typedef struct
 	char  grid_file_path[2*_MAX_DIR];	  // Added to store the full path of the grid file
 #endif
 	char   receptor_name [64];
+	char   map_base_name [64];
 	int    size_xyz [3];
 	double spacing;
 	double size_xyz_angstr [3];

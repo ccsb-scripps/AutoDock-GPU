@@ -1,7 +1,7 @@
 AutoDock-GPU: AutoDock for GPUs and other accelerators
 ======================================================
 
-<img src=".png" width="200">
+<img src="logo.png" width="200">
 
 # About
 

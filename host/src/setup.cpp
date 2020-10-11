@@ -231,19 +231,21 @@ int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<
         {
 		all_maps[t].grid.resize(size_of_one_map);
 		float* mypoi = all_maps[t].grid.data();
-                //opening corresponding .map file
-                //-------------------------------------
-                // Added the complete path of associated grid files.
-                strcpy(tempstr,mygrid->grid_file_path);
-                strcat(tempstr, "/");
-                strcat(tempstr, mygrid->receptor_name);
-
-                //strcpy(tempstr, mygrid->receptor_name);
-                //-------------------------------------
+		//opening corresponding .map file
+		strcpy(tempstr,mygrid->map_base_name);
                 strcat(tempstr, ".");
                 strcat(tempstr, all_maps[t].atype.c_str());
                 strcat(tempstr, ".map");
                 fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
+		if (fp == NULL){ // try again with the receptor name in the .maps.fld file
+			strcpy(tempstr,mygrid->grid_file_path);
+			strcat(tempstr, "/");
+			strcat(tempstr, mygrid->receptor_name);
+			strcat(tempstr, ".");
+			strcat(tempstr, mygrid->grid_types[t]);
+			strcat(tempstr, ".map");
+			fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
+		}
                 if (fp == NULL)
                 {
                         printf("Error: can't open %s!\n", tempstr);

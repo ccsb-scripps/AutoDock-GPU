@@ -2252,7 +2252,7 @@ float calc_intraE_f(const Liganddata* myligand,
 				// 	 (sum of the vdW radii of two like atoms (A)) in the case of hbond
 				float opt_distance;
 
-				if (is_H_bond(myligand->atom_types [type_id1], myligand->atom_types [type_id2]) != 0)	//H-bond
+				if (tables.is_HB [type_id1][type_id2])	//H-bond
 				{
 					opt_distance = myligand->reqm_hbond [atom1_type_vdw_hb] + myligand->reqm_hbond [atom2_type_vdw_hb];
 				}
@@ -2288,7 +2288,7 @@ float calc_intraE_f(const Liganddata* myligand,
 
 				if (dist < dcutoff) //but only if the distance is less than distance cutoff value
 				{
-					if (is_H_bond(myligand->atom_types [type_id1], myligand->atom_types [type_id2]) != 0)	//H-bond
+					if (tables.is_HB [type_id1][type_id2])	//H-bond
 					{
 						vdW1 = myligand->VWpars_C [type_id1][type_id2]*tables.r_12_table [smoothed_distance_id];
 						vdW2 = myligand->VWpars_D [type_id1][type_id2]*tables.r_10_table [smoothed_distance_id];
