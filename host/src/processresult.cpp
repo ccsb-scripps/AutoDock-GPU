@@ -227,20 +227,20 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	fprintf(fp, "DPF> move %s\n\n\n", mypars->ligandfile);
 }
 
-void make_resfiles(float* final_population, 
-		   float* energies, 
+void make_resfiles(float* final_population,
+		   float* energies,
 		   const Liganddata* ligand_ref,
 		   const Liganddata* ligand_from_pdb,
 		   const Liganddata* ligand_xray,
-		   const Dockpars* mypars, 
-		         int evals_performed, 
-			 int generations_used, 
-		   const Gridinfo* mygrid, 
+		   const Dockpars* mypars,
+		         int evals_performed,
+			 int generations_used,
+		   const Gridinfo* mygrid,
 		   const float* grids,
-		   float* cpu_ref_ori_angles, 
-		   const int* argc, 
-		   char** argv, 
-		   int debug, 
+		   float* cpu_ref_ori_angles,
+		   const int* argc,
+		   char** argv,
+		   int debug,
 		   int run_cnt,
 		   float& best_energy_of_all,
 		   Ligandresult* best_result)
@@ -480,7 +480,6 @@ void cluster_analysis(Ligandresult myresults [], int num_of_runs, char* report_f
 	fp = fopen(report_file_name, "w");
 
 	write_basic_info(fp, ligand_ref, mypars, mygrid, argc, argv);	//Write basic information about docking and molecule parameters to file
-
 	fprintf(fp, "           RUN TIME INFO           \n");
 	fprintf(fp, "===================================\n\n");
 
@@ -820,37 +819,39 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 	fclose(fp);
 
 	//if xml has to be generated
-
-	strcpy(xml_file_name, mypars->resname);
-	strcat(xml_file_name, ".xml");
-	fp_xml = fopen(xml_file_name, "w");
-
-	fprintf(fp_xml, "<?xml version=\"1.0\" ?>\n");
-	fprintf(fp_xml, "<result>\n");
-
-	fprintf(fp_xml, "\t<clustering_histogram>\n");
-	for (i=0; i<num_of_clusters; i++)
+	if (mypars->no_output_xml == 0)
 	{
-		fprintf(fp_xml, "\t\t<cluster cluster_rank=\"%d\" lowest_binding_energy=\"%.2lf\" run=\"%d\" mean_binding_energy=\"%.2lf\" num_in_clus=\"%d\" />\n",
-				i+1, best_energy[i], best_energy_runid[i], sum_energy[i]/cluster_sizes[i], cluster_sizes [i]);
+		strcpy(xml_file_name, mypars->resname);
+		strcat(xml_file_name, ".xml");
+		fp_xml = fopen(xml_file_name, "w");
+
+		fprintf(fp_xml, "<?xml version=\"1.0\" ?>\n");
+		fprintf(fp_xml, "<result>\n");
+
+		fprintf(fp_xml, "\t<clustering_histogram>\n");
+		for (i=0; i<num_of_clusters; i++)
+		{
+			fprintf(fp_xml, "\t\t<cluster cluster_rank=\"%d\" lowest_binding_energy=\"%.2lf\" run=\"%d\" mean_binding_energy=\"%.2lf\" num_in_clus=\"%d\" />\n",
+					i+1, best_energy[i], best_energy_runid[i], sum_energy[i]/cluster_sizes[i], cluster_sizes [i]);
+		}
+		fprintf(fp_xml, "\t</clustering_histogram>\n");
+
+		fprintf(fp_xml, "\t<rmsd_table>\n");
+		for (i=0; i<num_of_clusters; i++)
+		{
+			for (j=0; j<num_of_runs; j++)
+				if (myresults [j].clus_id == i+1)
+				{
+	            	fprintf(fp_xml, "\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
+	            			(myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number, myresults[j].interE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
+				}
+		}
+		fprintf(fp_xml, "\t</rmsd_table>\n");
+
+		fprintf(fp_xml, "</result>\n");
+
+		fclose(fp_xml);
 	}
-	fprintf(fp_xml, "\t</clustering_histogram>\n");
-
-	fprintf(fp_xml, "\t<rmsd_table>\n");
-	for (i=0; i<num_of_clusters; i++)
-	{
-		for (j=0; j<num_of_runs; j++)
-			if (myresults [j].clus_id == i+1)
-			{
-	            fprintf(fp_xml, "\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
-	            		(myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number, myresults[j].interE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
-			}
-	}
-	fprintf(fp_xml, "\t</rmsd_table>\n");
-
-	fprintf(fp_xml, "</result>\n");
-
-	fclose(fp_xml);
 }
 
 void process_result(	const Gridinfo*         mygrid,
