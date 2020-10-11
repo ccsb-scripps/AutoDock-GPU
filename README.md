@@ -96,6 +96,7 @@ By default the output log file is written in the current working folder. Example
 | -asfreq     | Autostop testing frequency (in # of generations)      | 5                |
 | -initswgens | Initial # generations of Solis-Wets instead of -lsmet | 0                |
 | -filelist   | Batch file                                            | no default       |
+| -xmloutput  | Specify if xml output format is not wanted            | 1 (yes)          |
 
 When the heuristics is used and `-nev <max evals>` is provided as a command line argument it provides the (hard) upper # of evals limit to the value the heuristics suggests. Conversely, `-heurmax` is the rolling-off type asymptotic limit to the heuristic's # of evals formula and should only be changed with caution.
 The batch file is a text file containing the parameters to -ffile, -lfile, and -resnam each on an individual line. It is possible to only use one line to specify the Protein grid map file which means it will be used for all ligands. Here is an example:
