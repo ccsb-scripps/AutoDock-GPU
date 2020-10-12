@@ -289,7 +289,7 @@ void get_commandpars(const int* argc,
 	mypars->rmsd_tolerance 		= 2.0;			//2 Angstroem
 	strcpy(mypars->xrayligandfile, mypars->ligandfile);	// By default xray-ligand file is the same as the randomized input ligand
 	mypars->given_xrayligandfile	= false;		// That is, not given (explicitly by the user)
-	mypars->no_output_xml = 0;			// xml output file will be generated
+	mypars->output_xml = true;			// xml output file will be generated
 	// ------------------------------------------
 
 	//overwriting values which were defined as a command line argument
