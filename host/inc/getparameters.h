@@ -96,7 +96,7 @@ typedef struct
 		float adam_beta1;
 		float adam_beta2;
 		float adam_epsilon;
-		int no_output_xml;
+		bool output_xml;
 } Dockpars;
 
 int get_filelist(	const int* argc,
