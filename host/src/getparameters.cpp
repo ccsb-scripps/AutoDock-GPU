@@ -367,7 +367,7 @@ void get_commandpars(const int* argc,
 		}
 
 		//Argument: maximal delta movement during mutation. Must be an integer between 1 and 16.
-		//N means that the maximal delta movement will be +/- 2^(N-10)*grid spacing angstr�m.
+		//N means that the maximal delta movement will be +/- 2^(N-10)*grid spacing angström.
 		if (strcmp("-dmov", argv[i]) == 0)
 		{
 			arg_recognized = 1;
