@@ -819,7 +819,7 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 	fclose(fp);
 
 	//if xml has to be generated
-	if (mypars->no_output_xml == 0)
+	if (mypars->output_xml == true)
 	{
 		strcpy(xml_file_name, mypars->resname);
 		strcat(xml_file_name, ".xml");
