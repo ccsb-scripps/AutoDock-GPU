@@ -811,8 +811,9 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -rmstol argument ignored. Value must be a double greater than 0.\n");
 		}
 
-		// Argument: choose wether to output xml or not
-		//If the value is 1, xml output will still be generated
+		// Argument: choose wether to output XML or not
+		//If the value is 1, XML output will still be generated
+		//XML output won't be generated if 0 is specified
 		if (strcmp("-xmloutput", argv [i]) == 0)
 		{
 			arg_recognized = 1;
