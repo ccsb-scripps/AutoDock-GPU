@@ -818,10 +818,10 @@ void get_commandpars(const int* argc,
 			arg_recognized = 1;
 			sscanf(argv [i+1], "%ld", &tempint);
 			
-			if (tempint == true)
-				mypars->output_xml = true;
-			else
+			if (tempint == 0)
 				mypars->output_xml = false;
+			else
+				mypars->output_xml = true;
 		}
 
 		// ----------------------------------
