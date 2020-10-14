@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <cstdint>
 #include <fstream>
-#include <algorithm> 
+#include <algorithm>
 #include <cctype>
 #include <locale>
 
@@ -249,7 +249,7 @@ void get_commandpars(const int* argc,
 	mypars->use_heuristics		= false;	// Flag if we want to use Diogo's heuristics
 	mypars->heuristics_max		= 50000000;	// Maximum number of evaluations under the heuristics (50M evaluates to 80% at 12.5M evals calculated by heuristics)
 	mypars->abs_max_dmov		= 6.0/(*spacing); 	// +/-6A
-	mypars->abs_max_dang		= 90; 		// +/- 90°
+	mypars->abs_max_dang		= 90; 		// +/- 90Â°
 	mypars->mutation_rate		= 2; 		// 2%
 	mypars->crossover_rate		= 80;		// 80%
 	mypars->lsearch_rate		= 80;		// 80%
@@ -257,7 +257,7 @@ void get_commandpars(const int* argc,
 	mypars->adam_beta2		= 0.999f;
 	mypars->adam_epsilon		= 1.0e-8f;
 
-	strcpy(mypars->ls_method, "sw");		// "sw": Solis-Wets, 
+	strcpy(mypars->ls_method, "sw");		// "sw": Solis-Wets,
 							// "sd": Steepest-Descent
 							// "fire": FIRE, https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
 							// "ad": ADADELTA, https://arxiv.org/abs/1212.5701
@@ -267,7 +267,7 @@ void get_commandpars(const int* argc,
 	mypars->tournament_rate		= 60;		// 60%
 	mypars->rho_lower_bound		= 0.01;		// 0.01
 	mypars->base_dmov_mul_sqrt3	= 2.0/(*spacing)*sqrt(3.0);	// 2 A
-	mypars->base_dang_mul_sqrt3	= 75.0*sqrt(3.0);		// 75°
+	mypars->base_dang_mul_sqrt3	= 75.0*sqrt(3.0);		// 75Â°
 	mypars->cons_limit		= 4;		// 4
 	mypars->max_num_of_iters	= 300;
 	mypars->pop_size		= 150;
@@ -288,6 +288,7 @@ void get_commandpars(const int* argc,
 	mypars->rmsd_tolerance 		= 2.0;			//2 Angstroem
 	strcpy(mypars->xrayligandfile, mypars->ligandfile);	// By default xray-ligand file is the same as the randomized input ligand
 	mypars->given_xrayligandfile	= false;		// That is, not given (explicitly by the user)
+	mypars->output_xml = true;			// xml output file will be generated
 	// ------------------------------------------
 
 	//overwriting values which were defined as a command line argument
@@ -307,11 +308,11 @@ void get_commandpars(const int* argc,
 			} else
 				printf("Warning: value of -nev argument ignored. Value must be between 0 and 260000000.\n");
 		}
-        
+
         if (strcmp("-seed", argv[i]) == 0)
         {
 			arg_recognized = 1;
-			sscanf(argv[i+1], "%u", &(mypars->seed));        
+			sscanf(argv[i+1], "%u", &(mypars->seed));
         }
 
 		//Argument: number of generations. Must be a positive integer.
@@ -365,7 +366,7 @@ void get_commandpars(const int* argc,
 		}
 
 		//Argument: maximal delta movement during mutation. Must be an integer between 1 and 16.
-		//N means that the maximal delta movement will be +/- 2^(N-10)*grid spacing angström.
+		//N means that the maximal delta movement will be +/- 2^(N-10)*grid spacing angstrÃ¶m.
 		if (strcmp("-dmov", argv[i]) == 0)
 		{
 			arg_recognized = 1;
@@ -449,7 +450,7 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -smooth argument ignored. Value must be a float between 0 and 0.5.\n");
 		}
 
-		//Argument: local search method: 
+		//Argument: local search method:
 		// "sw": Solis-Wets
 		// "sd": Steepest-Descent
 		// "fire": FIRE
@@ -529,7 +530,7 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -lsmov argument ignored. Value must be a float between 0 and %lf.\n", 64*(*spacing));
 		}
 
-		//Argument: local search delta angle. Must be a float between 0 and 103°.
+		//Argument: local search delta angle. Must be a float between 0 and 103ï¿½.
 		//Means the spread of unifily distributed delta angle of local search.
 		if (strcmp("-lsang", argv [i]) == 0)
 		{
@@ -698,7 +699,7 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -stopstd argument ignored. Value must be a float between 0.01 and 2.0.\n");
 		}
 		// ----------------------------------
-		
+
 		//Argument: number of runs. Must be an integer between 1 and 1000.
 		//Means the number of required runs
 		if (strcmp("-nrun", argv [i]) == 0)
@@ -808,6 +809,20 @@ void get_commandpars(const int* argc,
 				mypars->rmsd_tolerance = tempfloat;
 			else
 				printf("Warning: value of -rmstol argument ignored. Value must be a double greater than 0.\n");
+		}
+
+		// Argument: choose wether to output XML or not
+		//If the value is 1, XML output will still be generated
+		//XML output won't be generated if 0 is specified
+		if (strcmp("-xmloutput", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv [i+1], "%ld", &tempint);
+			
+			if (tempint == 0)
+				mypars->output_xml = false;
+			else
+				mypars->output_xml = true;
 		}
 
 		// ----------------------------------
