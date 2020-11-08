@@ -10,7 +10,7 @@ ARG target
 # Install utilities
 RUN apt-get -yq update
 
-RUN apt-get install -yq git wget cmake unzip gcc g++ clang
+RUN apt-get install -yq git wget apt-utils cmake unzip gcc g++ clang
 
 RUN apt-get -yq update
 
