@@ -5,23 +5,20 @@ dist: bionic
 # Enabling testing on Linux
 #  macOS will be added later!
 os:
-	- linux
+- linux
 
 services:
-	- docker
+- docker
 
 # Defining environmental variables
 env:
-	- CXX_COMPILER=g++-7 TARGET=opencl
-	- CXX_COMPILER=clang++-6.0 TARGET=opencl
+- CXX_COMPILER=g++-7 TARGET=opencl
+- CXX_COMPILER=clang++-6.0 TARGET=opencl
 
 before_install:
 - export GIT_SLUG=${TRAVIS_REPO_SLUG}
 - export GIT_BRANCH=${TRAVIS_BRANCH}
-- docker build --build-arg cxx_compiler=${CXX_COMPILER}
-	       --build-arg git_branch=${GIT_BRANCH}
-	       --build-arg git_slug=${GIT_SLUG}
-	       --build-arg target=${TARGET}
+- docker build --build-arg cxx_compiler=${CXX_COMPILER} --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} --build-arg target=${TARGET}
 
 script:
 - docker run adgpu
