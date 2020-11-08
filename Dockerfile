@@ -5,12 +5,12 @@ ARG git_branch
 ARG git_slug
 ARG target
 
-SHELL /bin/bash
+SHELL [ "/bin/bash" ]
 
 # Install utilities
 RUN apt-get -yq update
 
-RUN apt-get install -yq git wget cmake unzip gcc g++
+RUN apt-get install -yq git wget cmake unzip gcc g++ clang
 
 RUN apt-get -yq update
 
