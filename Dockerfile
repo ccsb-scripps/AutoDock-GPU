@@ -12,6 +12,8 @@ RUN apt-get -yq update
 
 RUN apt-get install -yq git wget apt-utils cmake unzip gcc g++ clang
 
+RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
+
 RUN apt-get -yq update
 
 
