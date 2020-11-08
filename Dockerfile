@@ -5,7 +5,7 @@ ARG git_branch
 ARG git_slug
 ARG target
 
-SHELL [ "/bin/bash" ]
+#SHELL [ "/bin/bash" ]
 
 # Install utilities
 RUN apt-get -yq update
