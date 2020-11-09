@@ -37,4 +37,5 @@ RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
 # Intel OpenCL Runtime
 RUN if [ "${target}" = 'opencl' ]; then bash /AutoDock-GPU/.travis/install_intel_opencl.sh; fi
 
-#CMD
+CMD cd /AutoDock-GPU/ && \
+	make DEVICE=CPU test
