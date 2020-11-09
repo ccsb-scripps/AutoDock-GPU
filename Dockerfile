@@ -13,7 +13,7 @@ RUN apt-get -yq update
 
 # Utilities
 RUN apt-get install -yq --allow-downgrades --allow-remove-essential            \
-    --allow-change-held-packages git wget apt-utils cmake unzip                \
+    --allow-change-held-packages git wget apt-utils cmake unzip clinfo         \
     libboost-all-dev software-properties-common 
 
 RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
@@ -35,5 +35,6 @@ RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
 # Intel OpenCL Runtime
 RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh; fi
 
-CMD cd /AutoDock-GPU/ && \
+CMD clinfo && \
+	cd /AutoDock-GPU/ && \
 	make DEVICE=CPU NRUN=${nrun} TESTLS=${lsmet} test
