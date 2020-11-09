@@ -4,7 +4,7 @@ FROM ubuntu:bionic
 ARG git_branch
 ARG git_slug
 ARG cxx_compiler
-ARG target
+ARG test_ls
 
 RUN apt-get -yq update
 
@@ -33,4 +33,4 @@ RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
 RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh; fi
 
 CMD cd /AutoDock-GPU/ && \
-	make DEVICE=CPU NRUN=10 test
+	make DEVICE=CPU NRUN=10 TESTLS=${test_ls} test

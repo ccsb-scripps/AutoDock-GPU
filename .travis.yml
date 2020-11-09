@@ -12,13 +12,13 @@ services:
 
 # Defining environmental variables
 env:
-- CXX_COMPILER=g++-7 TARGET=opencl
-- CXX_COMPILER=clang++-6.0 TARGET=opencl
+- TESTLS=sw
+- TESTLS=ad
 
 before_install:
 - export GIT_SLUG=L30nardoSV/AutoDock-GPU
 - export GIT_BRANCH=docker
-- docker build --build-arg cxx_compiler=${CXX_COMPILER} --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} --build-arg target=${TARGET} -t adgpu .
+- docker build --build-arg cxx_compiler=${CXX_COMPILER} --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} -t adgpu .
 
 script:
-- docker run adgpu
+- docker run adgpu ${TESTLS}
