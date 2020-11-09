@@ -6,6 +6,9 @@ ARG git_slug
 ARG cxx_compiler
 ARG test_ls
 
+ENV lsmet sw
+ENV nrun  10
+
 RUN apt-get -yq update
 
 # Utilities
@@ -33,4 +36,4 @@ RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
 RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh; fi
 
 CMD cd /AutoDock-GPU/ && \
-	make DEVICE=CPU NRUN=10 TESTLS=${test_ls} test
+	make DEVICE=CPU NRUN=${nrun} TESTLS=${lsmet} test
