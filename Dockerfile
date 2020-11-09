@@ -1,6 +1,7 @@
 FROM ubuntu:bionic
 
 # Default values for the build
+ARG cxx_compiler
 ARG git_branch
 ARG git_slug
 ARG target
@@ -12,7 +13,7 @@ RUN apt-get -yq update
 
 RUN apt-get install -yq git wget apt-utils cmake unzip gcc g++ clang
 
-RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
+#RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 RUN apt-get -yq update
 
