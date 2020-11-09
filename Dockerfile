@@ -17,11 +17,6 @@ RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 RUN apt-get -yq update
 
-# Clang 6.0
-RUN if [ "${c_compiler}" = 'clang-6.0' ]; then apt-get install -yq             \
-    --allow-downgrades --allow-remove-essential --allow-change-held-packages   \
-     clang-6.0 libomp-dev; fi
-
 # GCC 7
 RUN if [ "${c_compiler}" = 'gcc-7' ]; then apt-get install -yq                 \
     --allow-downgrades --allow-remove-essential --allow-change-held-packages   \
@@ -35,7 +30,7 @@ RUN apt-get install -yq --allow-downgrades --allow-remove-essential           \
 RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
 
 # Intel OpenCL Runtime
-RUN if [ "${target}" = 'opencl' ]; then bash /AutoDock-GPU/.travis/install_intel_opencl.sh; fi
+RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh; fi
 
 CMD cd /AutoDock-GPU/ && \
-	make DEVICE=CPU test
+	make DEVICE=CPU NRUN=10 test
