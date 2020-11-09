@@ -12,8 +12,8 @@ services:
 
 # Defining environmental variables
 env:
-- TESTLS=sw
-- TESTLS=ad
+- TESTLS=sw NRUN=5
+- TESTLS=ad NRUN=2
 
 before_install:
 - export GIT_SLUG=L30nardoSV/AutoDock-GPU
@@ -22,4 +22,5 @@ before_install:
 
 script:
 - export lsmet=${TESTLS}
-- docker run -e lsmet adgpu
+- export nrun=${NRUN}
+- docker run -e lsmet -e nrun adgpu
