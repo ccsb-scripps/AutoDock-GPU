@@ -21,4 +21,4 @@ before_install:
 - docker build --build-arg cxx_compiler=${CXX_COMPILER} --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} -t adgpu .
 
 script:
-- docker run adgpu lsmet=${TESTLS}
+- docker run adgpu -e "lsmet=${TESTLS}"
