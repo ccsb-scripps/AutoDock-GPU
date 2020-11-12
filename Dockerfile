@@ -3,7 +3,6 @@ FROM ubuntu:bionic
 # Default values for the build
 ARG git_branch
 ARG git_slug
-ARG cxx_compiler
 ARG test_ls
 
 ENV lsmet sw
@@ -14,16 +13,11 @@ RUN apt-get -yq update
 # Utilities
 RUN apt-get install -yq --allow-downgrades --allow-remove-essential            \
     --allow-change-held-packages git wget apt-utils cmake unzip clinfo         \
-    libboost-all-dev software-properties-common 
+    g++ gcc clang libboost-all-dev software-properties-common 
 
 RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 RUN apt-get -yq update
-
-# GCC 7
-RUN if [ "${c_compiler}" = 'gcc-7' ]; then apt-get install -yq                 \
-    --allow-downgrades --allow-remove-essential --allow-change-held-packages   \
-    g++-7 gcc-7; fi
 
 # OpenCL ICD Loader
 RUN apt-get install -yq --allow-downgrades --allow-remove-essential           \
