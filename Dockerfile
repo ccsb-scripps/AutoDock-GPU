@@ -1,16 +1,16 @@
 FROM ubuntu:bionic
 
-# Default values for the build
+# Build arguments
 ARG git_branch
 ARG git_slug
-ARG test_ls
 
+# Execution arguments
 ENV lsmet sw
 ENV nrun  10
 
+# Utilities
 RUN apt-get -yq update
 
-# Utilities
 RUN apt-get install -yq --allow-downgrades --allow-remove-essential            \
     --allow-change-held-packages git wget apt-utils cmake unzip clinfo         \
     g++ gcc clang libboost-all-dev software-properties-common 
