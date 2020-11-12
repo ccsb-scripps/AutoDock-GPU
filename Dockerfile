@@ -7,6 +7,7 @@ ARG git_slug
 # Execution arguments
 ENV lsmet sw
 ENV nrun  10
+ENV ngen  1000
 
 # Utilities
 RUN apt-get -yq update
@@ -31,5 +32,5 @@ RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh; fi
 
 CMD clinfo && \
     cd /AutoDock-GPU/ && \
-    make DEVICE=CPU TESTLS=${lsmet} NRUN=${nrun} test && \
+    make DEVICE=CPU TESTLS=${lsmet} NRUN=${nrun} NGEN=${ngen} test && \
     tail -30 test.dlg

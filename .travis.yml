@@ -12,8 +12,8 @@ services:
 
 # Defining environmental variables
 env:
-- TESTLS=sw NRUN=5
-- TESTLS=ad NRUN=2
+- TESTLS=sw NRUN=5 NGEN=10000
+- TESTLS=ad NRUN=2 NGEN=15000
 
 before_install:
 - export GIT_BRANCH=docker
@@ -23,4 +23,5 @@ before_install:
 script:
 - export lsmet=${TESTLS}
 - export nrun=${NRUN}
-- docker run -e lsmet -e nrun adgpu
+- export ngen=${NGEN}
+- docker run -e lsmet -e nrun -e ngen adgpu
