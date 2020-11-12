@@ -5,6 +5,7 @@ ARG git_branch
 ARG git_slug
 
 # Execution arguments
+ENV numwi 16
 ENV lsmet sw
 ENV nrun  10
 ENV ngen  1000
@@ -32,5 +33,5 @@ RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh; fi
 
 CMD clinfo && \
     cd /AutoDock-GPU/ && \
-    make DEVICE=CPU TESTLS=${lsmet} NRUN=${nrun} NGEN=${ngen} test && \
+    make DEVICE=CPU NUMWI=${numwi} TESTLS=${lsmet} NRUN=${nrun} NGEN=${ngen} test && \
     tail -30 test.dlg
