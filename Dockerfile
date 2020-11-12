@@ -30,5 +30,6 @@ RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
 RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh; fi
 
 CMD clinfo && \
-	cd /AutoDock-GPU/ && \
-	make DEVICE=CPU TESTLS=${lsmet} NRUN=${nrun} test
+    cd /AutoDock-GPU/ && \
+    make DEVICE=CPU TESTLS=${lsmet} NRUN=${nrun} test \
+    tail -20 test.dlg
