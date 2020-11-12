@@ -16,8 +16,8 @@ env:
 - TESTLS=ad NRUN=2
 
 before_install:
-- export GIT_SLUG=ccsb-scripps/AutoDock-GPU
-- export GIT_BRANCH=develop
+- export GIT_SLUG=L30nardoSV/AutoDock-GPU
+- export GIT_BRANCH=docker
 - docker build --build-arg cxx_compiler=${CXX_COMPILER} --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} -t adgpu .
 
 script:
