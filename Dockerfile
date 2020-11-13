@@ -33,5 +33,5 @@ RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh; fi
 
 CMD clinfo && \
     cd /AutoDock-GPU/ && \
-    make DEVICE=CPU NUMWI=${numwi} TESTLS=${lsmet} NRUN=${nrun} NGEN=${ngen} test && \
+    make DEVICE=CPU NUMWI=${numwi} LSMET=${lsmet} NRUN=${nrun} NGEN=${ngen} test && \
     tail -30 test.dlg

@@ -257,7 +257,7 @@ NRUN     := 100
 NGEN     := 27000
 POPSIZE  := 150
 TESTNAME := test
-TESTLS   := sw
+LSMET    := sw
 
 test: odock
 	$(BIN_DIR)/$(TARGET) \
@@ -268,7 +268,7 @@ test: odock
 	-psize $(POPSIZE) \
 	-resnam $(TESTNAME) \
 	-gfpop 0 \
-	-lsmet $(TESTLS)
+	-lsmet $(LSMET)
 
 clean:
 	rm -f $(BIN_DIR)/* initpop.txt $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
