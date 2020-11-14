@@ -298,6 +298,7 @@ define function_eval_single
 	-psize $(5) \
 	-resnam $(RESNAM) \
 	-xmloutput 0
+	@echo " "
 	tail -30 $(RESNAM).dlg
 endef
 
