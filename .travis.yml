@@ -3,9 +3,9 @@ sudo: required
 dist: bionic
 
 # Enabling testing on Linux
-#  macOS will be added later!
 os:
 - linux
+- osx
 
 services:
 - docker
