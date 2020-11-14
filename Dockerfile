@@ -32,4 +32,4 @@ RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
 # Intel OpenCL Runtime
 RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh
 
-CMD bash source /AutoDock-GPU/.travis/run_test.sh NUMWI=${numwi}
+CMD bash -c "source /AutoDock-GPU/.travis/run_test.sh NUMWI=${numwi}"
