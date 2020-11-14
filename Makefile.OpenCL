@@ -270,5 +270,36 @@ test: odock
 	-gfpop 0 \
 	-lsmet $(LSMET)
 
+# ------------------------------------------------------
+# Just run e.g., make DEVICE=CPU test_single_exec
+
+asterix_line="************************************"
+
+test_single_exec:
+	@echo " "
+	@echo ${asterix_line}
+	@echo "Function: function_eval_single"
+	@echo "PDB     = $(PDB)"
+	@echo "LSMET   = $(LSMET)"
+	@echo "NRUN    = $(NRUN)"
+	@echo "NGEN    = $(NGEN)"
+	@echo "POPSIZE = $(POPSIZE)"
+	@echo "RESNAM  = $(RESNAM)"
+	@echo ${asterix_line}
+	@echo " "
+	$(BIN_DIR)/$(TARGET) \
+	-ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld \
+	-lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt \
+	-lsmet $(LSMET)
+	-nrun $(NRUN) \
+	-ngen $(NGEN) \
+	-psize $(PSIZE) \
+	-resnam $(RESNAME) \
+	-xmloutput 0
+	@echo " "
+	tail -30 $(RESNAME).dlg
+
+# ------------------------------------------------------
+
 clean:
 	rm -f $(BIN_DIR)/* initpop.txt $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp

@@ -33,4 +33,6 @@ script:
 - export lsmet=${LSMET}
 - export nrun=${NRUN}
 - export ngen=${NGEN}
-- docker run -e numwi -e lsmet -e nrun -e ngen adgpu
+- export psize=${PSIZE}
+- export resnam=${RESNAM}
+- docker run -e numwi -e lsmet -e nrun -e ngen -e psize -e resnam adgpu
