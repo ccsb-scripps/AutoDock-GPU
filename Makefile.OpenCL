@@ -270,5 +270,40 @@ test: odock
 	-gfpop 0 \
 	-lsmet $(LSMET)
 
+# ------------------------------------------------------
+# Just run e.g., make DEVICE=CPU eval_multiple
+
+asterix_line="************************************"
+
+define function_eval_single
+	@echo " "
+	@echo ${asterix_line}
+	@echo "Function: function_eval_single"
+	@echo "PDB     = $(1)"
+	@echo "LSMET   = $(2)"
+	@echo "NRUN    = $(3)"
+	@echo "NGEN    = $(4)"
+	@echo "POPSIZE = $(5)"
+	@echo ${asterix_line}
+	@echo " "
+	$(BIN_DIR)/$(TARGET) \
+	-ffile ./input/$(1)/derived/$(1)_protein.maps.fld \
+	-lfile ./input/$(1)/derived/$(1)_ligand.pdbqt \
+	-lsmet $(2) \
+	-nrun $(3) \
+	-ngen $(4) \
+	-psize $(5) \
+	-resnam $(1)-$(2)-$(3)-$(4)-$(5)-"`date +"%Y.%m.%d-%H:%M"`" \
+	-xmloutput 0
+endef
+
+eval_multiple:
+	$(call function_eval_single,3ce3,sw,3,1500,100)
+	$(call function_eval_single,3ce3,ad,1,1500,100)
+	$(call function_eval_single,1stp,sw,2,1000,100)
+	$(call function_eval_single,1stp,ad,1,1000,100)
+
+# ------------------------------------------------------
+
 clean:
 	rm -f $(BIN_DIR)/* initpop.txt $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
