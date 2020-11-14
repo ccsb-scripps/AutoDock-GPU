@@ -286,7 +286,7 @@ define function_eval_single
 	@echo "POPSIZE = $(5)"
 	@echo ${asterix_line}
 	$(eval NAME := $(1)-$(2)-$(3)-$(4)-$(5)-)
-	$(eval INNER_DATE := $$(shell date +"%Y.%m.%d-%H:%M"))
+	$(eval INNER_DATE := $$(shell date +"%Y.%m.%d-%H:%M:%S"))
 	$(eval RESNAM := $(NAME)$(INNER_DATE))
 	@echo " "
 	$(BIN_DIR)/$(TARGET) \
