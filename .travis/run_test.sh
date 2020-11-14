@@ -6,7 +6,10 @@ set -o xtrace
 # Run test
 ###########################
 
-# source ./run_test.sh
+# This script is invoked from the Dockerfile,
+# but can also be invoked independently (for local tests).
+# E.g.: source .travis/run_test.sh 4
+# The argument "4" passes the NUMWI value.
 
 info="[INFO]"
 asterix_line="========================================================================"
