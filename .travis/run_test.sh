@@ -32,8 +32,7 @@ function run_clinfo() {
     clinfo
 }
 
-#ADGPU_DIR=/AutoDock-GPU
-ADGPU_DIR=~/Desktop/AutoDock-GPU
+ADGPU_DIR=/AutoDock-GPU
 BIN_DIR=${ADGPU_DIR}/bin
 DEVICE=CPU
 NUMWI=1
