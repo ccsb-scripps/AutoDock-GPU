@@ -1,10 +1,5 @@
 language: cpp
 
-# Enabling testing on Linux
-os:
-- linux
-#- osx
-
 services:
 - docker
 
@@ -23,8 +18,10 @@ jobs:
     include:
         - os: linux
           dist: focal
+          sudo: required
         - os: linux 
           dist: bionic
+          sudo: required
 
 before_install:
 - export GIT_BRANCH=docker
