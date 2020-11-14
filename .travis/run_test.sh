@@ -35,7 +35,6 @@ function run_clinfo() {
 ADGPU_DIR=/AutoDock-GPU
 BIN_DIR=${ADGPU_DIR}/bin
 DEVICE=CPU
-NUMWI=1
 
 function compile_adgpu() {
     echo " "
