@@ -6,10 +6,6 @@ ARG git_slug
 
 # Execution arguments
 ENV numwi 16
-ENV nrun  10
-ENV ngen  1000
-ENV psize 100
-ENV resnam "testname"
 
 # Utilities
 RUN apt-get -yq update
