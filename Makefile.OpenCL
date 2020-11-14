@@ -285,6 +285,9 @@ define function_eval_single
 	@echo "NGEN    = $(4)"
 	@echo "POPSIZE = $(5)"
 	@echo ${asterix_line}
+	$(eval NAME := $(1)-$(2)-$(3)-$(4)-$(5)-)
+	$(eval INNER_DATE := $$(shell date +"%Y.%m.%d-%H:%M"))
+	$(eval RESNAM := $(NAME)$(INNER_DATE))
 	@echo " "
 	$(BIN_DIR)/$(TARGET) \
 	-ffile ./input/$(1)/derived/$(1)_protein.maps.fld \
@@ -293,12 +296,13 @@ define function_eval_single
 	-nrun $(3) \
 	-ngen $(4) \
 	-psize $(5) \
-	-resnam $(1)-$(2)-$(3)-$(4)-$(5)-"`date +"%Y.%m.%d-%H:%M"`" \
+	-resnam $(RESNAM) \
 	-xmloutput 0
+	tail -30 $(RESNAM).dlg
 endef
 
 eval_multiple:
-	$(call function_eval_single,3ce3,sw,3,1500,100)
+	$(call function_eval_single,3ce3,sw,2,1500,100)
 	$(call function_eval_single,3ce3,ad,1,1500,100)
 	$(call function_eval_single,1stp,sw,2,1000,100)
 	$(call function_eval_single,1stp,ad,1,1000,100)
