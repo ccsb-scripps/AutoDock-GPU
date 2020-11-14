@@ -294,10 +294,10 @@ test_single_exec:
 	-nrun $(NRUN) \
 	-ngen $(NGEN) \
 	-psize $(PSIZE) \
-	-resnam $(RESNAME) \
+	-resnam $(RESNAM) \
 	-xmloutput 0
 	@echo " "
-	tail -30 $(RESNAME).dlg
+	tail -30 $(RESNAM).dlg
 
 # ------------------------------------------------------
 
