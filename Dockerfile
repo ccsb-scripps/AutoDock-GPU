@@ -30,10 +30,6 @@ RUN apt-get install -yq --allow-downgrades --allow-remove-essential           \
 RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
 
 # Intel OpenCL Runtime
-RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh; fi
+RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh
 
-CMD clinfo && \
-    cd /AutoDock-GPU/ && \
-    make DEVICE=CPU NUMWI=${numwi} && \
-    for lsmet in "sw" "ad"; do make DEVICE=CPU NUMWI=${numwi} LSMET=${lsmet} NRUN=${nrun} NGEN=${ngen} PSIZE=${psize} RESNAM=${lsmet}-"`date +"%Y-%m-%d-%H:%M"`" test_single_exec; done && \
-    ls -asl *.dlg
+CMD bash /AutoDock-GPU/.travis/run_test.sh NUMWI=${numwi}
