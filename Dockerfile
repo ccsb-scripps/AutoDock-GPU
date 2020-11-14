@@ -36,4 +36,4 @@ RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh; fi
 CMD clinfo && \
     cd /AutoDock-GPU/ && \
     make DEVICE=CPU NUMWI=${numwi} && \
-    make DEVICE=CPU LSMET=${lsmet} NRUN=${nrun} NGEN=${ngen} PSIZE=${psize} RESNAM=${resnam} test_single_exec
+    make DEVICE=CPU NUMWI=${numwi} LSMET=${lsmet} NRUN=${nrun} NGEN=${ngen} PSIZE=${psize} RESNAM=${resnam} test_single_exec

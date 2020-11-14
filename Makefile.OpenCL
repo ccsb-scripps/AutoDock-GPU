@@ -278,7 +278,7 @@ asterix_line="************************************"
 test_single_exec:
 	@echo " "
 	@echo ${asterix_line}
-	@echo "Function: function_eval_single"
+	@echo "Target: test_single_exec"
 	@echo "PDB     = $(PDB)"
 	@echo "LSMET   = $(LSMET)"
 	@echo "NRUN    = $(NRUN)"
