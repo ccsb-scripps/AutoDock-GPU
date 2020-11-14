@@ -6,6 +6,7 @@ ARG git_slug
 
 # Execution arguments
 ENV numwi 16
+ENV lsmet sw
 ENV nrun  10
 ENV ngen  1000
 ENV psize 100
