@@ -1,6 +1,4 @@
 language: cpp
-sudo: required
-dist: bionic
 
 # Enabling testing on Linux
 os:
@@ -20,6 +18,13 @@ env:
 - NUMWI=1  LSMET=ad NRUN=1 NGEN=15000
 - NUMWI=8  LSMET=ad NRUN=1 NGEN=15000
 - NUMWI=16 LSMET=ad NRUN=2 NGEN=15000
+
+jobs:
+    include:
+        - os: linux
+          dist: focal
+        - os: linux 
+          dist: bionic
 
 before_install:
 - export GIT_BRANCH=docker
