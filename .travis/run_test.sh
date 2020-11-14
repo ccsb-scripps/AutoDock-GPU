@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -o xtrace
+
 ###########################
 # Run test
 ###########################
@@ -32,6 +34,7 @@ function run_clinfo() {
     clinfo
 }
 
+#ADGPU_DIR=~/Desktop/AutoDock-GPU
 ADGPU_DIR=/AutoDock-GPU
 BIN_DIR=${ADGPU_DIR}/bin
 DEVICE=CPU
@@ -43,7 +46,7 @@ function compile_adgpu() {
     echo "${asterix_line}"
     echo " "
     cd ${ADGPU_DIR}
-    make DEVICE=${DEVICE} NUMWI=${NUMWI}
+    make DEVICE=${DEVICE} NUMWI=${1}
     ls -asl ${BIN_DIR}
 }
 
@@ -58,7 +61,7 @@ function run_test() {
             for nrun in 1 10; do
                 for ngen in 10 100; do
                     for psize in 10 50; do
-                        ${BIN_DIR}/autodock_cpu_${NUMWI}wi \
+                        ${BIN_DIR}/autodock_cpu_${1}wi \
                         -ffile ./input/${pdb}/derived/${pdb}_protein.maps.fld \
                         -lfile ./input/${pdb}/derived/${pdb}_ligand.pdbqt \
                         -lsmet ${lsmet} \
@@ -80,5 +83,5 @@ function run_test() {
 
 verify_sourced_script
 run_clinfo
-compile_adgpu
-run_test
+compile_adgpu ${1}
+run_test ${1}
