@@ -5,14 +5,10 @@ services:
 
 # Defining environmental variables
 env:
-- NUMWI=1  LSMET=sw NRUN=1 NGEN=1
-- NUMWI=1  LSMET=sw NRUN=5 NGEN=10000
-- NUMWI=8  LSMET=sw NRUN=5 NGEN=10000
-- NUMWI=16 LSMET=sw NRUN=5 NGEN=10000
-- NUMWI=1  LSMET=ad NRUN=1 NGEN=1
-- NUMWI=1  LSMET=ad NRUN=1 NGEN=15000
-- NUMWI=8  LSMET=ad NRUN=1 NGEN=15000
-- NUMWI=16 LSMET=ad NRUN=2 NGEN=15000
+- NUMWI=1  NRUN=1 NGEN=1
+- NUMWI=1  NRUN=5 NGEN=10000
+- NUMWI=8  NRUN=5 NGEN=10000
+- NUMWI=16 NRUN=5 NGEN=10000
 
 jobs:
     include:
@@ -30,7 +26,6 @@ before_install:
 
 script:
 - export numwi=${NUMWI}
-- export lsmet=${LSMET}
 - export nrun=${NRUN}
 - export ngen=${NGEN}
-- docker run -e numwi -e lsmet -e nrun -e ngen adgpu
+- docker run -e numwi -e nrun -e ngen adgpu
