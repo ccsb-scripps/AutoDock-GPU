@@ -66,8 +66,8 @@ function run_test() {
                         -lfile ./input/${pdb}/derived/${pdb}_ligand.pdbqt \
                         -lsmet ${lsmet} \
                         -nrun ${nrun} \
-                        -ngen ${NGEN} \
-                        -psize ${PSIZE} \
+                        -ngen ${ngen} \
+                        -psize ${psize} \
                         -resnam ${pdb}-${lsmet}-${nrun}-${ngen}-${psize}-"`date +"%Y-%m-%d-%H:%M"`" \
                         -xmloutput 0
                         echo " "
