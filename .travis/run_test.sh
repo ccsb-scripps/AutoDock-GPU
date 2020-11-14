@@ -68,7 +68,7 @@ function run_test() {
                         -nrun ${nrun} \
                         -ngen ${ngen} \
                         -psize ${psize} \
-                        -resnam ${pdb}-${lsmet}-${nrun}-${ngen}-${psize}-"`date +"%Y-%m-%d-%H:%M"`" \
+                        -resnam ${pdb}-${lsmet}-${nrun}-${ngen}-${psize}-"`date +"%Y-%m-%d-%H:%M:%S"`" \
                         -xmloutput 0
                         echo " "
 	                    tail -30 ${pdb}-${lsmet}-${nrun}-${ngen}-${psize}-*.dlg
