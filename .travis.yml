@@ -3,21 +3,32 @@ language: cpp
 services:
 - docker
 
-# Defining environmental variables
-env:
-- NUMWI=1
-- NUMWI=4
-- NUMWI=8
-- NUMWI=16
-
 jobs:
-    include:
-        - os: linux
-          dist: focal
-          sudo: required
-        - os: linux 
-          dist: bionic
-          sudo: required
+  include:
+  - os: linux
+    dist: focal
+    sudo: required
+    env: NUMWI=1
+  - os: linux
+    dist: focal
+    sudo: required
+    env: NUMWI=4
+  - os: linux
+    dist: focal
+    sudo: required
+    env: NUMWI=8
+  - os: linux
+    dist: focal
+    sudo: required
+    env: NUMWI=16
+  - os: linux
+    dist: bionic
+    sudo: required
+    env: NUMWI=16
+  - os: linux
+    dist: xenial
+    sudo: required
+    env: NUMWI=16
 
 before_install:
 - export GIT_BRANCH=docker
