@@ -5,7 +5,7 @@ dist: bionic
 # Enabling testing on Linux
 os:
 - linux
-- osx
+#- osx
 
 services:
 - docker
