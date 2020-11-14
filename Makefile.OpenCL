@@ -290,7 +290,7 @@ test_single_exec:
 	$(BIN_DIR)/$(TARGET) \
 	-ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld \
 	-lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt \
-	-lsmet $(LSMET)
+	-lsmet $(LSMET) \
 	-nrun $(NRUN) \
 	-ngen $(NGEN) \
 	-psize $(PSIZE) \
