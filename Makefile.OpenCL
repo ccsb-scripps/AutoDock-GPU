@@ -255,20 +255,21 @@ odock: check-env-all stringify $(SRC)
 PDB      := 3ce3
 NRUN     := 100
 NGEN     := 27000
-POPSIZE  := 150
-TESTNAME := test
+PSIZE    := 150
+RESNAM   := test
 LSMET    := sw
 
 test: odock
 	$(BIN_DIR)/$(TARGET) \
 	-ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld \
 	-lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt \
+	-lsmet $(LSMET) \
 	-nrun $(NRUN) \
 	-ngen $(NGEN) \
-	-psize $(POPSIZE) \
-	-resnam $(TESTNAME) \
+	-psize $(PSIZE) \
+	-resnam $(RESNAM) \
 	-gfpop 0 \
-	-lsmet $(LSMET)
+	-xmloutput 0
 
 # ------------------------------------------------------
 
