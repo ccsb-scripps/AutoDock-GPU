@@ -33,6 +33,8 @@ jobs:
 before_install:
 - export GIT_BRANCH=docker
 - export GIT_SLUG=L30nardoSV/AutoDock-GPU
+#- export GIT_BRANCH=develop
+#- export GIT_SLUG=ccsb-scripps/AutoDock-GPU
 - docker build --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} -t adgpu .
 
 script:
