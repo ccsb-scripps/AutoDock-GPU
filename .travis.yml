@@ -22,6 +22,14 @@ jobs:
     sudo: required
     env: NUMWI=16
   - os: linux
+    dist: focal
+    sudo: required
+    env: NUMWI=32
+  - os: linux
+    dist: focal
+    sudo: required
+    env: NUMWI=64
+  - os: linux
     dist: bionic
     sudo: required
     env: NUMWI=16
