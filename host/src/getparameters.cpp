@@ -272,7 +272,7 @@ void get_commandpars(const int* argc,
 	mypars->max_num_of_iters	= 300;
 	mypars->pop_size		= 150;
 	mypars->initpop_gen_or_loadfile	= false;
-        strcpy(mypars->initpop_filename, "initpop.txt");
+	strcpy(mypars->initpop_filename, "initpop.txt");
 	mypars->gen_pdbs		= 0;
 
 	mypars->autostop		= 0;
