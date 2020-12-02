@@ -272,6 +272,7 @@ void get_commandpars(const int* argc,
 	mypars->max_num_of_iters	= 300;
 	mypars->pop_size		= 150;
 	mypars->initpop_gen_or_loadfile	= false;
+        strcpy(mypars->initpop_filename, "initpop.txt");
 	mypars->gen_pdbs		= 0;
 
 	mypars->autostop		= 0;
@@ -595,6 +596,14 @@ void get_commandpars(const int* argc,
 				mypars->initpop_gen_or_loadfile = true;
 		}
 
+		//Argument: name of the initial population file.
+		//If not provided, will default to "initpop.txt".
+		if (strcmp("-initpopfn", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			strcpy(mypars->initpop_filename, argv [i+1]);
+		}
+
 		//Argument: number of pdb files to be generated.
 		//The files will include the best docking poses from the final population.
 		if (strcmp("-npdb", argv [i]) == 0)
@@ -890,15 +899,15 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 	{
 		if (mypars->num_of_runs != 1)
 		{
-			printf("Warning: more than 1 run was requested. New populations will be generated \ninstead of being loaded from initpop.txt\n");
+			printf("Warning: more than 1 run was requested. New populations will be generated \ninstead of being loaded from %.*s\n", (int)sizeof(mypars->initpop_filename), mypars->initpop_filename);
 			gen_pop = 1;
 		}
 		else
 		{
-			fp = fopen("initpop.txt","rb"); // fp = fopen("initpop.txt","r");
+			fp = fopen(mypars->initpop_filename,"rb");
 			if (fp == NULL)
 			{
-				printf("Warning: can't find initpop.txt. A new population will be generated.\n");
+				printf("Warning: can't find %.*s. A new population will be generated.\n", (int)sizeof(mypars->initpop_filename), mypars->initpop_filename);
 				gen_pop = 1;
 			}
 			else
@@ -977,9 +986,9 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		}
 
 		//Writing first initial population to initpop.txt
-		fp = fopen("initpop.txt", "w");
+		fp = fopen(mypars->initpop_filename, "w");
 		if (fp == NULL)
-			printf("Warning: can't create initpop.txt.\n");
+			printf("Warning: can't create %.*s.\n", (int)sizeof(mypars->initpop_filename),  mypars->initpop_filename);
 		else
 		{
 			for (entity_id=0; entity_id<pop_size; entity_id++)

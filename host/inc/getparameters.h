@@ -73,6 +73,7 @@ typedef struct
 	unsigned long max_num_of_iters;
 	unsigned long pop_size;
 		bool  initpop_gen_or_loadfile;
+		char  initpop_filename [128];
 		int   gen_pdbs;
 		char  fldfile [128];
 		char  ligandfile [128];
