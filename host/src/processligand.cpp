@@ -979,7 +979,7 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 //If the operation was successful, the function returns 0, if not, it returns 1.
 {
 	FILE* fp;
-	char tempstr [128];
+	char tempstr [256];
 	int atom_counter;
 	int branch_counter;
 	int endbranch_counter;
@@ -1432,9 +1432,6 @@ void calc_distdep_tables_f(float r_6_table [],
 
 void calc_q_tables_f(const Liganddata* myligand,
 		     float qasp,
-		     #if 0
-		     float q1q2[][256],
-		     #endif
 		     float q1q2[][MAX_NUM_OF_ATOMS],
 		     float qasp_mul_absq [])
 //The function calculates q1*q2 and qasp*abs(q) values
@@ -2102,8 +2099,8 @@ float calc_intraE_f(const Liganddata* myligand,
 	//The following arrays will contain the q1*q2 and qasp*abs(q) values for the ligand which is the input parameter when this
 	//function is called first time (it is supposed that the energy must always be calculated for this ligand only, that is, there
 	//is only one ligand during the run of the program...)
-	static float q1q2 [256][256];
-	static float qasp_mul_absq [256];
+	static float q1q2 [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
+	static float qasp_mul_absq [MAX_NUM_OF_ATOMS];
 
 	//when first call, calculating tables
 	if (first_call)

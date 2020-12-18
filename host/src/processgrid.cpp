@@ -39,22 +39,20 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 	//char* dir = dirname(ts1);
 	//char* filename = basename(ts1);
 
-	#ifndef _WIN32
 	char* ts1 = strdup(fldfilename);
+	#ifndef _WIN32
 	mygrid->grid_file_path = dirname(ts1);
 	#else
-	char* ts1 = strdup(fldfilename);
 	char drive_tmp[_MAX_DRIVE];
 	char path_tmp[_MAX_DIR];
 	_splitpath(ts1, drive_tmp, path_tmp, NULL, NULL);
 	
-	char result[2*_MAX_DIR];
+	char result[_MAX_DRIVE+_MAX_DIR];
 	strcpy(result, drive_tmp);
-	strcpy(result, path_tmp);
-	for (unsigned int i=0; i<2*_MAX_DIR; i++) {
-		mygrid->grid_file_path[i] = result[i];
-	}
+	strcat(result, path_tmp);
+	mygrid->grid_file_path = strdup(result);
 	#endif
+	free(ts1); // clean up
 	// ----------------------------------------------------
 
 	//Processing fld file
@@ -67,11 +65,12 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 
 	const char* ext = strstr(fldfilename,".maps");
 	if(ext){
-		char tmp[64];
 		int len=ext-fldfilename;
+		char* tmp = (char*)malloc((len+1)*sizeof(char));
 		strncpy(tmp,fldfilename,len);
 		tmp[len]='\0';
 		strcpy(mygrid->map_base_name,tmp);
+		free(tmp);
 	} else
 		strcpy(mygrid->map_base_name,fldfilename);
 
@@ -169,7 +168,12 @@ int get_gridvalues_f(const Gridinfo* mygrid, float* fgrids, bool cgmaps)
 {
 	int t, x, y, z;
 	FILE* fp;
-	char tempstr [128];
+	int len = strlen(mygrid->grid_file_path)+strlen(mygrid->receptor_name)+1;
+	if(strlen(mygrid->map_base_name)>len)
+		len = strlen(mygrid->map_base_name);
+	len += 10; // "..map\0" = 6 entries + 4 at most for grid type
+	if(len<128) len=128;
+	char* tempstr = (char*)malloc(len*sizeof(char));
 	float* mypoi;
 
 	mypoi = fgrids;
@@ -228,6 +232,7 @@ int get_gridvalues_f(const Gridinfo* mygrid, float* fgrids, bool cgmaps)
 				}
 		fclose(fp);
 	}
+	free(tempstr);
 	return 0;
 }
 

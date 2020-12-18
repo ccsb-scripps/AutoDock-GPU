@@ -38,6 +38,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "calcenergy_basic.h"
 #include "filelist.hpp"
 
+#define LS_METHOD_STRING_LEN 8
+
 typedef struct
 {
 	double AD4_coeff_vdW;
@@ -63,7 +65,7 @@ typedef struct
 		float lsearch_rate;
 		float smooth;
 	unsigned long num_of_ls;
-		char  ls_method[128];
+		char  ls_method[LS_METHOD_STRING_LEN];
 		int initial_sw_generations;
 		float tournament_rate;
 		float rho_lower_bound;
@@ -74,9 +76,9 @@ typedef struct
 	unsigned long pop_size;
 		bool  initpop_gen_or_loadfile;
 		int   gen_pdbs;
-		char  fldfile [128];
-		char  ligandfile [128];
-		char  xrayligandfile [128];
+		char* fldfile;
+		char* ligandfile;
+		char* xrayligandfile;
 		bool  given_xrayligandfile;
 		float ref_ori_angles [3];
 		bool  autostop;
@@ -90,7 +92,7 @@ typedef struct
 		bool  handle_symmetry;
 		bool  gen_finalpop;
 		bool  gen_best;
-		char  resname [128];
+		char*  resname;
 		float qasp;
 		float rmsd_tolerance;
 		float adam_beta1;
