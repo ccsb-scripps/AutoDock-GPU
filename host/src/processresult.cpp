@@ -120,16 +120,13 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 	fprintf(fp, "\n\n");
 
 	//Writing out ligand parameters
-
-	int len = strlen(mypars->ligandfile) - 6;
-	char* temp_filename = (char*)malloc((len+1)*sizeof(char));
-	strncpy(temp_filename, mypars->ligandfile, len);
-	temp_filename [len] = '\0';
-
 	fprintf(fp, "         LIGAND PARAMETERS         \n");
 	fprintf(fp, "===================================\n\n");
 
-	fprintf(fp, "Ligand name:                               %s\n", temp_filename);
+	fprintf(fp, "Ligand name:                               ");
+	int len = strlen(mypars->ligandfile) - 6;
+	for(i=0; i<len; i++) fputc(mypars->ligandfile[i], fp);
+	fputc('\n', fp);
 	fprintf(fp, "Number of atoms:                           %d\n", ligand_ref->num_of_atoms);
 	fprintf(fp, "Number of rotatable bonds:                 %d\n", ligand_ref->num_of_rotbonds);
 	fprintf(fp, "Number of atom types:                      %d\n", ligand_ref->num_of_atypes);
@@ -139,7 +136,6 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 	fprintf(fp, "Number of rotation cycles:                 %d\n", ligand_ref->num_of_rotcyc);
 
 	fprintf(fp, "\n\n");
-	free(temp_filename);
 }
 
 void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars* mypars, const Gridinfo* mygrid, const int* argc, char** argv)
@@ -208,16 +204,13 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 
 
 	//Writing out ligand parameters
-
-	int len = strlen(mypars->ligandfile) - 6;
-	char* temp_filename = (char*)malloc((len+1)*sizeof(char));
-	strncpy(temp_filename, mypars->ligandfile, len);
-	temp_filename [len] = '\0';
-
 	fprintf(fp, "    LIGAND PARAMETERS\n");
 	fprintf(fp, "    ________________________\n\n\n");
 
-	fprintf(fp, "Ligand name:                               %s\n", temp_filename);
+	fprintf(fp, "Ligand name:                               ");
+	int len = strlen(mypars->ligandfile) - 6;
+	for(i=0; i<len; i++) fputc(mypars->ligandfile[i], fp);
+	fputc('\n', fp);
 	fprintf(fp, "Number of atoms:                           %d\n", ligand_ref->num_of_atoms);
 	fprintf(fp, "Number of rotatable bonds:                 %d\n", ligand_ref->num_of_rotbonds);
 	fprintf(fp, "Number of atom types:                      %d\n\n\n", ligand_ref->num_of_atypes);
@@ -228,7 +221,6 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	fprintf(fp, "DPF> ga_run %lu\n", mypars->num_of_runs);
 	fprintf(fp, "DPF> fld %s.maps.fld\n", mygrid->receptor_name);
 	fprintf(fp, "DPF> move %s\n\n\n", mypars->ligandfile);
-	free(temp_filename);
 }
 
 void make_resfiles(float* final_population,

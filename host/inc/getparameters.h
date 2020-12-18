@@ -76,9 +76,9 @@ typedef struct
 	unsigned long pop_size;
 		bool  initpop_gen_or_loadfile;
 		int   gen_pdbs;
-		char* fldfile;
-		char* ligandfile;
-		char* xrayligandfile;
+		char* fldfile = NULL;
+		char* ligandfile = NULL;
+		char* xrayligandfile = NULL;
 		bool  given_xrayligandfile;
 		float ref_ori_angles [3];
 		bool  autostop;
@@ -92,7 +92,7 @@ typedef struct
 		bool  handle_symmetry;
 		bool  gen_finalpop;
 		bool  gen_best;
-		char*  resname;
+		char*  resname = NULL;
 		float qasp;
 		float rmsd_tolerance;
 		float adam_beta1;

@@ -60,9 +60,9 @@ typedef struct
 //Struct which can contain all the important informations which derives from .gpf and .xyz files.
 {
 
-	char*  grid_file_path; // Added to store the full path of the grid file
-	char   receptor_name [64];
-	char   map_base_name [64];
+	char*  grid_file_path = NULL; // Added to store the full path of the grid file
+	char*  receptor_name = NULL;
+	char*  map_base_name = NULL;
 	int    size_xyz [3];
 	double spacing;
 	double size_xyz_angstr [3];

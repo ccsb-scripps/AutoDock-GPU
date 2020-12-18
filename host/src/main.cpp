@@ -251,10 +251,13 @@ int main(int argc, char* argv[])
 			total_processing_time+=seconds_since(processing_timer);
 		} // end of for loop
 		// Clean up memory dynamically allocated to not leak
-		free(mypars.fldfile);
-		free(mypars.ligandfile);
-		free(mypars.resname);
-		free(mypars.xrayligandfile);
+		if(mypars.fldfile) free(mypars.fldfile); // although those strings should be allocated, it doesn't hurt to make sure
+		if(mypars.ligandfile) free(mypars.ligandfile);
+		if(mypars.xrayligandfile) free(mypars.xrayligandfile);
+		if(mypars.resname) free(mypars.resname);
+		if(mygrid.grid_file_path) free(mygrid.grid_file_path);
+		if(mygrid.receptor_name) free(mygrid.receptor_name);
+		if(mygrid.map_base_name) free(mygrid.map_base_name);
 	} // end of parallel section
 
 #ifndef _WIN32

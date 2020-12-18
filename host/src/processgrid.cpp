@@ -66,13 +66,14 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 	const char* ext = strstr(fldfilename,".maps");
 	if(ext){
 		int len=ext-fldfilename;
-		char* tmp = (char*)malloc((len+1)*sizeof(char));
-		strncpy(tmp,fldfilename,len);
-		tmp[len]='\0';
-		strcpy(mygrid->map_base_name,tmp);
-		free(tmp);
-	} else
+		mygrid->map_base_name = (char*)malloc((len+1)*sizeof(char));
+		strncpy(mygrid->map_base_name,fldfilename,len);
+		mygrid->map_base_name[len]='\0';
+	} else{
+		int len=strlen(fldfilename)+1;
+		mygrid->map_base_name = (char*)malloc(len*sizeof(char));
 		strcpy(mygrid->map_base_name,fldfilename);
+	}
 
 	while (fscanf(fp, "%s", tempstr) != EOF)
 	{
@@ -119,6 +120,8 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 			fscanf(fp, "%s", tempstr);
 			recnamelen = strcspn(tempstr,".");
 			tempstr[recnamelen] = '\0';
+			int len = strlen(tempstr)+1;
+			mygrid->receptor_name = (char*)malloc(len*sizeof(char));
 			strcpy(mygrid->receptor_name, tempstr);
 		}
 
