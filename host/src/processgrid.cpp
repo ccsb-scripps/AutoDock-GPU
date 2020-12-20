@@ -41,7 +41,7 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 
 	char* ts1 = strdup(fldfilename);
 	#ifndef _WIN32
-	mygrid->grid_file_path = dirname(ts1);
+	mygrid->grid_file_path = strdup(dirname(ts1));
 	#else
 	char drive_tmp[_MAX_DRIVE];
 	char path_tmp[_MAX_DIR];
