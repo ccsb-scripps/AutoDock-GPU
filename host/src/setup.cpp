@@ -46,6 +46,9 @@ int preload_gridsize(FileList& filelist)
 		if(curr_size>gridsize)
 			gridsize=curr_size;
 	}
+	if(mygrid.grid_file_path) free(mygrid.grid_file_path);
+	if(mygrid.receptor_name) free(mygrid.receptor_name);
+	if(mygrid.map_base_name) free(mygrid.map_base_name);
 	return gridsize;
 }
 
@@ -151,11 +154,13 @@ int setup(std::vector<Map>& all_maps,
 	get_commandpars(&argc, argv, &(mygrid.spacing), &mypars);
 
 	if (filelist.resnames.size()>0){ // Overwrite resname with specified filename if specified in file list
-		mypars.resname = (char*)realloc(mypars.resname,(filelist.max_len+11)*sizeof(char));
+		free(mypars.resname);
+		mypars.resname = (char*)malloc((filelist.max_len+1)*sizeof(char));
 		strcpy(mypars.resname, filelist.resnames[i_file].c_str());
 	} else if (filelist.used) { // otherwise add the index to existing name distinguish the files if multiple
+		free(mypars.resname);
+		mypars.resname = (char*)malloc((filelist.max_len+11)*sizeof(char));
 		std::string if_str = std::to_string(i_file);
-		mypars.resname = (char*)realloc(mypars.resname,(filelist.max_len+11)*sizeof(char));
 		strcat(mypars.resname, if_str.c_str());
 	}
 
@@ -291,6 +296,7 @@ int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<
 
 		fclose(fp);
 	}
+	free(tempstr);
 	return 0;
 }
 

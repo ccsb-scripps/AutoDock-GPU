@@ -285,7 +285,7 @@ void get_commandpars(const int* argc,
 	mypars->handle_symmetry		= true;
 	mypars->gen_finalpop		= false;
 	mypars->gen_best		= false;
-	mypars->resname = strdup("docking");
+	mypars->resname			= strdup("docking");
 	mypars->qasp			= 0.01097f;
 	mypars->rmsd_tolerance 		= 2.0;			//2 Angstroem
 	mypars->xrayligandfile = strdup(mypars->ligandfile);	// By default xray-ligand file is the same as the randomized input ligand
@@ -678,7 +678,7 @@ void get_commandpars(const int* argc,
 		if (strcmp("-asfreq", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%u", &tempint);
+			sscanf(argv [i+1], "%ld", &tempint);
 			if ((tempint >= 1) && (tempint <= 100))
 				mypars->as_frequency = (unsigned int) tempint;
 			else
