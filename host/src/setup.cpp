@@ -158,10 +158,14 @@ int setup(std::vector<Map>& all_maps,
 		mypars.resname = (char*)malloc((filelist.max_len+1)*sizeof(char));
 		strcpy(mypars.resname, filelist.resnames[i_file].c_str());
 	} else if (filelist.used) { // otherwise add the index to existing name distinguish the files if multiple
+		char* tmp = strdup(mypars.resname);
+		char* nrtmp = strdup(std::to_string(i_file).c_str());
 		free(mypars.resname);
-		mypars.resname = (char*)malloc((filelist.max_len+11)*sizeof(char));
-		std::string if_str = std::to_string(i_file);
-		strcat(mypars.resname, if_str.c_str());
+		mypars.resname = (char*)malloc((strlen(tmp)+strlen(nrtmp)+1)*sizeof(char));
+		strcpy(mypars.resname, tmp);
+		strcat(mypars.resname, nrtmp);
+		free(tmp);
+		free(nrtmp);
 	}
 
 	Gridinfo mydummygrid;
