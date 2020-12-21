@@ -277,11 +277,11 @@ int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<
 		}
 
 		//seeking to first data
-		do    fscanf(fp, "%s", tempstr);
+		do    fscanf(fp, "%127s", tempstr);
 		while (strcmp(tempstr, "CENTER") != 0);
-		fscanf(fp, "%s", tempstr);
-		fscanf(fp, "%s", tempstr);
-		fscanf(fp, "%s", tempstr);
+		fscanf(fp, "%127s", tempstr);
+		fscanf(fp, "%127s", tempstr);
+		fscanf(fp, "%127s", tempstr);
 
 		unsigned int g1 = mygrid->size_xyz[0];
 		unsigned int g2 = g1*mygrid->size_xyz[1];

@@ -58,7 +58,7 @@ int init_liganddata(const char* ligfilename,
 	num_of_atypes = 0;
 
 	//reading the whole ligand pdbqt file
-	while (fscanf(fp, "%s", tempstr) != EOF)
+	while (fscanf(fp, "%255s", tempstr) != EOF)
 	{
 		if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 		{
@@ -75,7 +75,7 @@ int init_liganddata(const char* ligfilename,
 			result = fscanf(fp, "%*s");
 			result = fscanf(fp, "%*s");
 			result = fscanf(fp, "%*f");
-			result = fscanf(fp, "%s", tempstr);	//reading atom type
+			result = fscanf(fp, "%4s", tempstr);	//reading atom type
 
 			tempstr[3] = '\0';	//just to be sure strcpy wont fail even if something is wrong with position
 
@@ -999,7 +999,7 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 
 	//reading atomic coordinates, charges and atom types, and writing
 	//data to myligand->atom_idxyzq
-	while (fscanf(fp, "%s", tempstr) != EOF)
+	while (fscanf(fp, "%255s", tempstr) != EOF)
 	{
 		if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 		{
@@ -1017,10 +1017,10 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 			fscanf(fp, "%lf", &(myligand->atom_idxyzq [atom_counter][1]));
 			fscanf(fp, "%lf", &(myligand->atom_idxyzq [atom_counter][2]));
 			fscanf(fp, "%lf", &(myligand->atom_idxyzq [atom_counter][3]));
-			fscanf(fp, "%s", tempstr);	//skipping the next two fields
-			fscanf(fp, "%s", tempstr);
+			fscanf(fp, "%255s", tempstr);	//skipping the next two fields
+			fscanf(fp, "%255s", tempstr);
 			fscanf(fp, "%lf", &(myligand->atom_idxyzq [atom_counter][4]));	//reading charge
-			fscanf(fp, "%s", tempstr);	//reading atom type
+			fscanf(fp, "%4s", tempstr);	//reading atom type
 			if (set_liganddata_typeid(myligand, atom_counter, tempstr) != 0){	//the function sets the type index
 				fclose(fp);
 				return 1;
@@ -1055,7 +1055,7 @@ int get_liganddata(const char* ligfilename, Liganddata* myligand, const double A
 	reserved_highest_rigid_struct_id = 1;
 
 	//reading data for rotbonds and atom_rotbonds fields
-	while (fscanf(fp, "%s", tempstr) != EOF)
+	while (fscanf(fp, "%255s", tempstr) != EOF)
 	{
 		if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))		//if new atom, looking for open rotatable bonds
 		{

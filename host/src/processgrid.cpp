@@ -75,7 +75,7 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 		strcpy(mygrid->map_base_name,fldfilename);
 	}
 
-	while (fscanf(fp, "%s", tempstr) != EOF)
+	while (fscanf(fp, "%255s", tempstr) != EOF)
 	{
 		// -----------------------------------
 		// Reorder according to file *.maps.fld
@@ -117,7 +117,7 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 		//Name of the receptor and corresponding files
 		if (strcmp(tempstr, "#MACROMOLECULE") == 0)
 		{
-			fscanf(fp, "%s", tempstr);
+			fscanf(fp, "%255s", tempstr);
 			recnamelen = strcspn(tempstr,".");
 			tempstr[recnamelen] = '\0';
 			int len = strlen(tempstr)+1;
@@ -213,11 +213,11 @@ int get_gridvalues_f(const Gridinfo* mygrid, float* fgrids, bool cgmaps)
 		}
 
 		//seeking to first data
-		do    fscanf(fp, "%s", tempstr);
+		do    fscanf(fp, "%127s", tempstr);
 		while (strcmp(tempstr, "CENTER") != 0);
-		fscanf(fp, "%s", tempstr);
-		fscanf(fp, "%s", tempstr);
-		fscanf(fp, "%s", tempstr);
+		fscanf(fp, "%127s", tempstr);
+		fscanf(fp, "%127s", tempstr);
+		fscanf(fp, "%127s", tempstr);
 
 		unsigned int g1 = mygrid->size_xyz[0];
 		unsigned int g2 = g1*mygrid->size_xyz[1];
