@@ -63,7 +63,7 @@ int get_filelist(const int* argc,
 		if (strcmp("-filelist", argv[i]) == 0)
 		{
 			filelist.used = true;
-			strcpy(filelist.filename, argv[i+1]);
+			filelist.filename = strdup(argv[i+1]);
 		}
 	}
 
@@ -76,9 +76,11 @@ int get_filelist(const int* argc,
 		}
 		std::string line;
 		bool prev_line_was_fld=false;
+		filelist.max_len = 0;
 		while(std::getline(file, line)) {
 			trim(line); // Remove leading and trailing whitespace
 			int len = line.size();
+			if(len>filelist.max_len) filelist.max_len = len;
 			if (len>=4 && line.compare(len-4,4,".fld") == 0){
 				if (prev_line_was_fld){ // Overwrite the previous fld file if two in a row
 					filelist.fld_files[filelist.fld_files.size()-1] = line;
@@ -174,14 +176,14 @@ int get_filenames_and_ADcoeffs(const int* argc,
 			if (strcmp("-ffile", argv[i]) == 0)
 			{
 				ffile_given = 1;
-				strcpy(mypars->fldfile, argv[i+1]);
+				mypars->fldfile = strdup(argv[i+1]);
 			}
 
 			//Argument: ligand pdbqt file name
 			if (strcmp("-lfile", argv[i]) == 0)
 			{
 				lfile_given = 1;
-				strcpy(mypars->ligandfile, argv[i+1]);
+				mypars->ligandfile = strdup(argv[i+1]);
 			}
 		}
 
@@ -242,7 +244,7 @@ void get_commandpars(const int* argc,
 
 	// ------------------------------------------
 	//default values
-    mypars->seed                = time(NULL);   // If no seed supplied, base it on current time
+	mypars->seed			= time(NULL);   // If no seed supplied, base it on current time
 	mypars->num_of_energy_evals	= 2500000;
 	mypars->num_of_generations	= 27000;
 	mypars->nev_provided		= false;
@@ -283,10 +285,10 @@ void get_commandpars(const int* argc,
 	mypars->handle_symmetry		= true;
 	mypars->gen_finalpop		= false;
 	mypars->gen_best		= false;
-	strcpy(mypars->resname, "docking");
+	mypars->resname			= strdup("docking");
 	mypars->qasp			= 0.01097f;
 	mypars->rmsd_tolerance 		= 2.0;			//2 Angstroem
-	strcpy(mypars->xrayligandfile, mypars->ligandfile);	// By default xray-ligand file is the same as the randomized input ligand
+	mypars->xrayligandfile = strdup(mypars->ligandfile);	// By default xray-ligand file is the same as the randomized input ligand
 	mypars->given_xrayligandfile	= false;		// That is, not given (explicitly by the user)
 	mypars->output_xml = true;			// xml output file will be generated
 	// ------------------------------------------
@@ -460,9 +462,7 @@ void get_commandpars(const int* argc,
 		{
 			arg_recognized = 1;
 
-			char temp[128];
-
-			strcpy(temp, argv [i+1]);
+			char* temp = strdup(argv [i+1]);
 
 			if (strcmp(temp, "sw") == 0) {
 				strcpy(mypars->ls_method, temp);
@@ -488,6 +488,7 @@ void get_commandpars(const int* argc,
 				printf("Error: Value of -lsmet must be a valid string: \"sw\", \"sd\", \"fire\", \"ad\", or \"adam\".\n");
 				exit(-1);
 			}
+			free(temp);
 		}
 
 		//Argument: tournament rate. Must be a float between 50 and 100.
@@ -616,7 +617,7 @@ void get_commandpars(const int* argc,
 			arg_recognized = 1;
 
 		// ---------------------------------
-		// MISSING: char fldfile [128]
+		// MISSING: char* fldfile
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
 		//Argument: name of grid parameter file.
@@ -624,7 +625,7 @@ void get_commandpars(const int* argc,
 			arg_recognized = 1;
 
 		// ---------------------------------
-		// MISSING: char ligandfile [128]
+		// MISSING: char* ligandfile
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
 		//Argument: name of ligand pdbqt file
@@ -677,7 +678,7 @@ void get_commandpars(const int* argc,
 		if (strcmp("-asfreq", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%u", &tempint);
+			sscanf(argv [i+1], "%ld", &tempint);
 			if ((tempint >= 1) && (tempint <= 100))
 				mypars->as_frequency = (unsigned int) tempint;
 			else
@@ -782,7 +783,8 @@ void get_commandpars(const int* argc,
 		if (strcmp("-resnam", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			strcpy(mypars->resname, argv [i+1]);
+			free(mypars->resname); // as we assign a default value dynamically created to it
+			mypars->resname = strdup(argv [i+1]);
 		}
 
 		//Argument: use modified QASP (from VirtualDrug) instead of original one used by AutoDock
@@ -830,7 +832,8 @@ void get_commandpars(const int* argc,
 		if (strcmp("-xraylfile", argv[i]) == 0)
 		{
 			arg_recognized = 1;
-			strcpy(mypars->xrayligandfile, argv[i+1]);
+			free(mypars->xrayligandfile);
+			mypars->xrayligandfile = strdup(argv[i+1]);
 			mypars->given_xrayligandfile = true;
 			printf("Info: using -xraylfile value as X-ray ligand.\n");
 		}

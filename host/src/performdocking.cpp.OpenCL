@@ -629,7 +629,7 @@ filled with clock() */
 	
 	if(mypars->use_heuristics){
 		printf("Using heuristics: ");
-		char newmethod[128];
+		char newmethod[LS_METHOD_STRING_LEN];
 		unsigned long heur_evals;
 		unsigned long nev=mypars->num_of_energy_evals;
 		if(myligand_init->num_of_rotbonds<8){ // use Solis-Wets

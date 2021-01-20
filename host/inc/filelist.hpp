@@ -39,14 +39,16 @@ class FileList{
 	bool preload_maps;
 	bool maps_are_loaded;
 	bool load_maps_gpu;
-	char filename [128];
+	char* filename;
 	int nfiles;
+	int max_len; // maxium length of strings in arrays below
 	std::vector<std::string> resnames;
 	std::vector<std::string> fld_files;
 	std::vector<std::string> ligand_files;
 
 	// Default to unused, with 1 file
-	FileList() : used( false ), nfiles( 1 ), preload_maps( false ), maps_are_loaded( false ), load_maps_gpu( false ) {}
+	FileList() : used( false ), nfiles( 1 ), preload_maps( false ), maps_are_loaded( false ), load_maps_gpu( false ), filename( NULL ), max_len ( 0 ) {}
+	~FileList(){ if(filename) free(filename); }
 };
 
 #endif

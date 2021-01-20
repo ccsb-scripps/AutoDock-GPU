@@ -183,7 +183,7 @@ void calc_distdep_tables_f(float   	r_6_table [],
 
 void calc_q_tables_f(const Liganddata* myligand,
 		     float qasp,
-		     float q1q2 [][256],
+		     float q1q2 [][MAX_NUM_OF_ATOMS],
 		     float qasp_mul_absq []);
 
 void change_conform_f(Liganddata* myligand,

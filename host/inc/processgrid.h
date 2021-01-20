@@ -40,7 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <libgen.h>
 
-// libgen.h contains basename() and dir() from a fullpath name
+// libgen.h contains basename() and dirname() from a fullpath name
 // Specific: to open correctly grid map field fiels and associated files
 // http://ask.systutorials.com/681/get-the-directory-path-and-file-name-from-absolute-path-linux
 #endif
@@ -60,13 +60,9 @@ typedef struct
 //Struct which can contain all the important informations which derives from .gpf and .xyz files.
 {
 
-#ifndef _WIN32
-	char*  grid_file_path;	  // Added to store the full path of the grid file
-#else
-	char  grid_file_path[2*_MAX_DIR];	  // Added to store the full path of the grid file
-#endif
-	char   receptor_name [64];
-	char   map_base_name [64];
+	char*  grid_file_path = NULL; // Added to store the full path of the grid file
+	char*  receptor_name = NULL;
+	char*  map_base_name = NULL;
 	int    size_xyz [3];
 	double spacing;
 	double size_xyz_angstr [3];

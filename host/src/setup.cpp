@@ -46,6 +46,9 @@ int preload_gridsize(FileList& filelist)
 		if(curr_size>gridsize)
 			gridsize=curr_size;
 	}
+	if(mygrid.grid_file_path) free(mygrid.grid_file_path);
+	if(mygrid.receptor_name) free(mygrid.receptor_name);
+	if(mygrid.map_base_name) free(mygrid.map_base_name);
 	return gridsize;
 }
 
@@ -151,10 +154,18 @@ int setup(std::vector<Map>& all_maps,
 	get_commandpars(&argc, argv, &(mygrid.spacing), &mypars);
 
 	if (filelist.resnames.size()>0){ // Overwrite resname with specified filename if specified in file list
+		free(mypars.resname);
+		mypars.resname = (char*)malloc((filelist.max_len+1)*sizeof(char));
 		strcpy(mypars.resname, filelist.resnames[i_file].c_str());
 	} else if (filelist.used) { // otherwise add the index to existing name distinguish the files if multiple
-		std::string if_str = std::to_string(i_file);
-		strcat(mypars.resname, if_str.c_str());
+		char* tmp = strdup(mypars.resname);
+		char* nrtmp = strdup(std::to_string(i_file).c_str());
+		free(mypars.resname);
+		mypars.resname = (char*)malloc((strlen(tmp)+strlen(nrtmp)+1)*sizeof(char));
+		strcpy(mypars.resname, tmp);
+		strcat(mypars.resname, nrtmp);
+		free(tmp);
+		free(nrtmp);
 	}
 
 	Gridinfo mydummygrid;
@@ -222,21 +233,26 @@ int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<
 	if(fill_maplist(fldfilename,all_maps)==1) return 1;
 
 	// Now fill the maps
-        int t, x, y, z;
-        FILE* fp;
-        char tempstr [128];
+	int t, x, y, z;
+	FILE* fp;
+	int len = strlen(mygrid->grid_file_path)+strlen(mygrid->receptor_name)+1;
+	if(strlen(mygrid->map_base_name)>len)
+		len = strlen(mygrid->map_base_name);
+	len += 10; // "..map\0" = 6 entries + 4 at most for grid type
+	if(len<128) len=128;
+	char* tempstr = (char*)malloc(len*sizeof(char));
 	int size_of_one_map = 4*mygrid->size_xyz[0]*mygrid->size_xyz[1]*mygrid->size_xyz[2];
 
-        for (t=0; t < all_maps.size(); t++)
-        {
+	for (t=0; t < all_maps.size(); t++)
+	{
 		all_maps[t].grid.resize(size_of_one_map);
 		float* mypoi = all_maps[t].grid.data();
 		//opening corresponding .map file
 		strcpy(tempstr,mygrid->map_base_name);
-                strcat(tempstr, ".");
-                strcat(tempstr, all_maps[t].atype.c_str());
-                strcat(tempstr, ".map");
-                fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
+		strcat(tempstr, ".");
+		strcat(tempstr, all_maps[t].atype.c_str());
+		strcat(tempstr, ".map");
+		fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
 		if (fp == NULL){ // try again with the receptor name in the .maps.fld file
 			strcpy(tempstr,mygrid->grid_file_path);
 			strcat(tempstr, "/");
@@ -246,51 +262,52 @@ int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<
 			strcat(tempstr, ".map");
 			fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
 		}
-                if (fp == NULL)
-                {
-                        printf("Error: can't open %s!\n", tempstr);
-                        if ((strncmp(all_maps[t].atype.c_str(),"CG",2)==0) ||
-                            (strncmp(all_maps[t].atype.c_str(),"G",1)==0))
-                        {
-                                if(cgmaps)
-                                        printf("-> Expecting an individual map for each CGx and Gx (x=0..9) atom type.\n");
-                                else
-                                        printf("-> Expecting one map file, ending in .CG.map and .G0.map, for CGx and Gx atom types, respectively.\n");
-                        }
-                        return 1;
-                }
+		if (fp == NULL)
+		{
+			printf("Error: can't open %s!\n", tempstr);
+			if ((strncmp(all_maps[t].atype.c_str(),"CG",2)==0) ||
+			    (strncmp(all_maps[t].atype.c_str(),"G",1)==0))
+			{
+				if(cgmaps)
+					printf("-> Expecting an individual map for each CGx and Gx (x=0..9) atom type.\n");
+				else
+					printf("-> Expecting one map file, ending in .CG.map and .G0.map, for CGx and Gx atom types, respectively.\n");
+				}
+			return 1;
+		}
 
-                //seeking to first data
-                do    fscanf(fp, "%s", tempstr);
-                while (strcmp(tempstr, "CENTER") != 0);
-                fscanf(fp, "%s", tempstr);
-                fscanf(fp, "%s", tempstr);
-                fscanf(fp, "%s", tempstr);
+		//seeking to first data
+		do    fscanf(fp, "%127s", tempstr);
+		while (strcmp(tempstr, "CENTER") != 0);
+		fscanf(fp, "%127s", tempstr);
+		fscanf(fp, "%127s", tempstr);
+		fscanf(fp, "%127s", tempstr);
 
-                unsigned int g1 = mygrid->size_xyz[0];
-                unsigned int g2 = g1*mygrid->size_xyz[1];
-                //reading values
-                for (z=0; z < mygrid->size_xyz[2]; z++)
-                        for (y=0; y < mygrid->size_xyz[1]; y++)
-                                for (x=0; x < mygrid->size_xyz[0]; x++)
-                                {
-                                        fscanf(fp, "%f", mypoi);
-                                        // fill in duplicate data for linearized memory access in kernel
-                                        if(y>0) *(mypoi-4*g1+1) = *mypoi;
-                                        if(z>0) *(mypoi-4*g2+2) = *mypoi;
-                                        if(y>0 && z>0) *(mypoi-4*(g2+g1)+3) = *mypoi;
-                                        mypoi+=4;
-                                }
+		unsigned int g1 = mygrid->size_xyz[0];
+		unsigned int g2 = g1*mygrid->size_xyz[1];
+		//reading values
+		for (z=0; z < mygrid->size_xyz[2]; z++)
+			for (y=0; y < mygrid->size_xyz[1]; y++)
+				for (x=0; x < mygrid->size_xyz[0]; x++)
+				{
+					fscanf(fp, "%f", mypoi);
+					// fill in duplicate data for linearized memory access in kernel
+					if(y>0) *(mypoi-4*g1+1) = *mypoi;
+					if(z>0) *(mypoi-4*g2+2) = *mypoi;
+					if(y>0 && z>0) *(mypoi-4*(g2+g1)+3) = *mypoi;
+					mypoi+=4;
+				}
 
 		fclose(fp);
 	}
-        return 0;
+	free(tempstr);
+	return 0;
 }
 
 int copy_from_all_maps (const Gridinfo* mygrid, float* fgrids, std::vector<Map>& all_maps)
 {
 	int size_of_one_map = 4*mygrid->size_xyz[0]*mygrid->size_xyz[1]*mygrid->size_xyz[2];
-        for (int t=0; t < mygrid->num_of_atypes+2; t++) {
+	for (int t=0; t < mygrid->num_of_atypes+2; t++) {
 		// Look in all_maps for desired map
 		int i_map = -1;
 		for (int i_atype=0; i_atype < all_maps.size(); i_atype++){
@@ -306,8 +323,8 @@ int copy_from_all_maps (const Gridinfo* mygrid, float* fgrids, std::vector<Map>&
 
 		// Copy from all_maps into fgrids
 		memcpy(fgrids+t*size_of_one_map,all_maps[i_map].grid.data(),sizeof(float)*all_maps[i_map].grid.size());
-        }
+	}
 
-        return 0;
+	return 0;
 }
 

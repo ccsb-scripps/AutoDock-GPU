@@ -56,15 +56,17 @@ class Profiler{
 	std::vector<Profile> p;
 
 	void write_profiles_to_file(char* filename){
-		char profile_file_name[256];
-	        strcpy(profile_file_name, filename);
-	        strcat(profile_file_name, ".timing");
-	        FILE* fp = fopen(profile_file_name, "a");
-	        fprintf(fp, "ID ADADELTA n_evals capped autostopped nev_at_stop num_atoms num_rotbonds successful exec_time");
+		int len = strlen(filename) + 8; // ".timing\0" = 8 chars
+		char* profile_file_name = (char*)malloc(len*sizeof(char));
+		strcpy(profile_file_name, filename);
+		strcat(profile_file_name, ".timing");
+		FILE* fp = fopen(profile_file_name, "a");
+		fprintf(fp, "ID ADADELTA n_evals capped autostopped nev_at_stop num_atoms num_rotbonds successful exec_time");
 		for (int i=0;i<p.size();i++){
-		        p[i].write_to_file(fp);
+			p[i].write_to_file(fp);
 		}
-	        fclose(fp);
+		fclose(fp);
+		free(profile_file_name);
 	}
 };
 #endif

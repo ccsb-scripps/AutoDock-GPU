@@ -55,7 +55,6 @@ void arrange_result(float* final_population, float* energies, const int pop_size
 void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* mypars, const Gridinfo* mygrid, const int* argc, char** argv)
 //The function writes basic information (such as docking parameters) to the file whose file pointer is the first parameter of the function.
 {
-	char temp_filename [128];
 	int i;
 
 	fprintf(fp, "***********************************\n");
@@ -121,14 +120,13 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 	fprintf(fp, "\n\n");
 
 	//Writing out ligand parameters
-
-	strncpy(temp_filename, mypars->ligandfile, strlen(mypars->ligandfile) - 6);
-	temp_filename [strlen(mypars->ligandfile) - 6] = '\0';
-
 	fprintf(fp, "         LIGAND PARAMETERS         \n");
 	fprintf(fp, "===================================\n\n");
 
-	fprintf(fp, "Ligand name:                               %s\n", temp_filename);
+	fprintf(fp, "Ligand name:                               ");
+	int len = strlen(mypars->ligandfile) - 6;
+	for(i=0; i<len; i++) fputc(mypars->ligandfile[i], fp);
+	fputc('\n', fp);
 	fprintf(fp, "Number of atoms:                           %d\n", ligand_ref->num_of_atoms);
 	fprintf(fp, "Number of rotatable bonds:                 %d\n", ligand_ref->num_of_rotbonds);
 	fprintf(fp, "Number of atom types:                      %d\n", ligand_ref->num_of_atypes);
@@ -143,7 +141,6 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars* mypars, const Gridinfo* mygrid, const int* argc, char** argv)
 //The function writes basic information (such as docking parameters) to the file whose file pointer is the first parameter of the function.
 {
-	char temp_filename [128];
 	int i;
 
 	fprintf(fp, "AutoDock-GPU version: %s\n\n", VERSION);
@@ -207,14 +204,13 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 
 
 	//Writing out ligand parameters
-
-	strncpy(temp_filename, mypars->ligandfile, strlen(mypars->ligandfile) - 6);
-	temp_filename [strlen(mypars->ligandfile) - 6] = '\0';
-
 	fprintf(fp, "    LIGAND PARAMETERS\n");
 	fprintf(fp, "    ________________________\n\n\n");
 
-	fprintf(fp, "Ligand name:                               %s\n", temp_filename);
+	fprintf(fp, "Ligand name:                               ");
+	int len = strlen(mypars->ligandfile) - 6;
+	for(i=0; i<len; i++) fputc(mypars->ligandfile[i], fp);
+	fputc('\n', fp);
 	fprintf(fp, "Number of atoms:                           %d\n", ligand_ref->num_of_atoms);
 	fprintf(fp, "Number of rotatable bonds:                 %d\n", ligand_ref->num_of_rotbonds);
 	fprintf(fp, "Number of atom types:                      %d\n\n\n", ligand_ref->num_of_atypes);
@@ -257,7 +253,8 @@ void make_resfiles(float* final_population,
 	int i,j;
 	double entity_rmsds [MAX_POPSIZE];
 	Liganddata temp_docked;
-	char temp_filename [128];
+	int len = strlen(mypars->ligandfile) - 6 + 24 + 10 + 10; // length with added bits for things below (numbers below 11 digits should be a safe enough threshold)
+	char* temp_filename = (char*)malloc((len+1)*sizeof(char)); // +\0 at the end
 	char* name_ext_start;
 	float accurate_interE [MAX_POPSIZE];
 	float accurate_intraE [MAX_POPSIZE];
@@ -382,6 +379,7 @@ void make_resfiles(float* final_population,
 		fclose(fp);
 
 	}
+	free(temp_filename);
 }
 
 void cluster_analysis(Ligandresult myresults [], int num_of_runs, char* report_file_name, const Liganddata* ligand_ref,
@@ -545,8 +543,6 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 	double best_energy [1000];
 	int best_energy_runid [1000];
 	char tempstr [256];
-	char report_file_name [256];
-	char xml_file_name [256];
 
 	double cluster_tolerance = mypars->rmsd_tolerance;
 	const double AD4_coeff_tors = mypars->coeffs.AD4_coeff_tors;
@@ -555,14 +551,14 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 	//first of all, let's calculate the constant torsional free energy term
 	torsional_energy = AD4_coeff_tors * ligand_ref->num_of_rotbonds;
 
-
 	//GENERATING DLG FILE
 
-
+	int len = strlen(mypars->resname) + 4 + 1;
+	char* report_file_name = (char*)malloc(len*sizeof(char));
+	
 	strcpy(report_file_name, mypars->resname);
 	strcat(report_file_name, ".dlg");
 	fp = fopen(report_file_name, "w");
-
 
 	//writing basic info
 
@@ -817,10 +813,12 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 	fprintf(fp, "\nIdle time %.3f sec\n", idle_time);
 
 	fclose(fp);
+	free(report_file_name);
 
 	//if xml has to be generated
 	if (mypars->output_xml == true)
 	{
+		char* xml_file_name = (char*)malloc(len*sizeof(char));
 		strcpy(xml_file_name, mypars->resname);
 		strcat(xml_file_name, ".xml");
 		fp_xml = fopen(xml_file_name, "w");
@@ -851,6 +849,7 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 		fprintf(fp_xml, "</result>\n");
 
 		fclose(fp_xml);
+		free(xml_file_name);
 	}
 }
 
