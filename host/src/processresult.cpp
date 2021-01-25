@@ -67,6 +67,13 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 	fprintf(fp, "===================================\n\n");
 
 	fprintf(fp, "Ligand file:                               %s\n", mypars->ligandfile);
+	bool flexres = false;
+	if (mypars->flexresfile!=NULL){
+			if ( strlen(mypars->flexresfile)>0 ) {
+				fprintf(fp, "Flexible residue file:                     %s\n", mypars->flexresfile);
+				flexres = true;
+			}
+	}
 	fprintf(fp, "Grid fld file:                             %s\n", mypars->fldfile);
 
 	fprintf(fp, "Number of energy evaluations:              %ld\n", mypars->num_of_energy_evals);
@@ -120,13 +127,26 @@ void write_basic_info(FILE* fp, const Liganddata* ligand_ref, const Dockpars* my
 	fprintf(fp, "\n\n");
 
 	//Writing out ligand parameters
-	fprintf(fp, "         LIGAND PARAMETERS         \n");
+	if(flexres)
+		fprintf(fp, "     LIGAND+FLEXRES PARAMETERS     \n");
+	else
+		fprintf(fp, "         LIGAND PARAMETERS         \n");
 	fprintf(fp, "===================================\n\n");
 
 	fprintf(fp, "Ligand name:                               ");
 	int len = strlen(mypars->ligandfile) - 6;
 	for(i=0; i<len; i++) fputc(mypars->ligandfile[i], fp);
 	fputc('\n', fp);
+	if(flexres){
+		fprintf(fp, "Flexres name:                              ");
+		int len = strlen(mypars->flexresfile) - 6;
+		for(i=0; i<len; i++) fputc(mypars->flexresfile[i], fp);
+		fputc('\n', fp);
+		fprintf(fp, "Number of ligand atoms:                    %d\n", ligand_ref->true_ligand_atoms);
+		fprintf(fp, "Number of flexres atoms:                   %d\n", ligand_ref->num_of_atoms-ligand_ref->true_ligand_atoms);
+		fprintf(fp, "Number of ligand rotatable bonds:          %d\n", ligand_ref->true_ligand_rotbonds);
+		fprintf(fp, "Number of flexres rotatable bonds:         %d\n", ligand_ref->num_of_rotbonds-ligand_ref->true_ligand_rotbonds);
+	}
 	fprintf(fp, "Number of atoms:                           %d\n", ligand_ref->num_of_atoms);
 	fprintf(fp, "Number of rotatable bonds:                 %d\n", ligand_ref->num_of_rotbonds);
 	fprintf(fp, "Number of atom types:                      %d\n", ligand_ref->num_of_atypes);
@@ -155,6 +175,13 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	fprintf(fp, "    ________________________\n\n\n");
 
 	fprintf(fp, "Ligand file:                               %s\n", mypars->ligandfile);
+	bool flexres = false;
+	if (mypars->flexresfile!=NULL){
+			if ( strlen(mypars->flexresfile)>0 ) {
+				fprintf(fp, "Flexible residue file:                     %s\n", mypars->flexresfile);
+				flexres = true;
+			}
+	}
 	fprintf(fp, "Grid fld file:                             %s\n\n", mypars->fldfile);
 
 	fprintf(fp, "Random seed:                               %u\n", mypars->seed);
@@ -202,25 +229,40 @@ void write_basic_info_dlg(FILE* fp, const Liganddata* ligand_ref, const Dockpars
 	fprintf(fp, "Grid spacing:                              %lfA\n", mygrid->spacing);
 	fprintf(fp, "\n\n");
 
-
 	//Writing out ligand parameters
-	fprintf(fp, "    LIGAND PARAMETERS\n");
+	if(flexres)
+	fprintf(fp, "    LIGAND+FLEXRES PARAMETERS\n");
+	else
+		fprintf(fp, "    LIGAND PARAMETERS\n");
 	fprintf(fp, "    ________________________\n\n\n");
 
 	fprintf(fp, "Ligand name:                               ");
 	int len = strlen(mypars->ligandfile) - 6;
 	for(i=0; i<len; i++) fputc(mypars->ligandfile[i], fp);
 	fputc('\n', fp);
+	if(flexres){
+		fprintf(fp, "Flexres name:                              ");
+		int len = strlen(mypars->flexresfile) - 6;
+		for(i=0; i<len; i++) fputc(mypars->flexresfile[i], fp);
+		fputc('\n', fp);
+		fprintf(fp, "Number of ligand atoms:                    %d\n", ligand_ref->true_ligand_atoms);
+		fprintf(fp, "Number of flexres atoms:                   %d\n", ligand_ref->num_of_atoms-ligand_ref->true_ligand_atoms);
+		fprintf(fp, "Number of ligand rotatable bonds:          %d\n", ligand_ref->true_ligand_rotbonds);
+		fprintf(fp, "Number of flexres rotatable bonds:         %d\n", ligand_ref->num_of_rotbonds-ligand_ref->true_ligand_rotbonds);
+	}
 	fprintf(fp, "Number of atoms:                           %d\n", ligand_ref->num_of_atoms);
 	fprintf(fp, "Number of rotatable bonds:                 %d\n", ligand_ref->num_of_rotbonds);
-	fprintf(fp, "Number of atom types:                      %d\n\n\n", ligand_ref->num_of_atypes);
+	fprintf(fp, "Number of atom types:                      %d\n", ligand_ref->num_of_atypes);
+	fprintf(fp, "\n\n");
 
 	fprintf(fp, "    DUMMY DATA (only for ADT-compatibility)\n");
 	fprintf(fp, "    ________________________\n\n\n");
 	fprintf(fp, "DPF> outlev 1\n");
 	fprintf(fp, "DPF> ga_run %lu\n", mypars->num_of_runs);
 	fprintf(fp, "DPF> fld %s.maps.fld\n", mygrid->receptor_name);
-	fprintf(fp, "DPF> move %s\n\n\n", mypars->ligandfile);
+	fprintf(fp, "DPF> move %s\n", mypars->ligandfile);
+	if(flexres) fprintf(fp, "DPF> flexres %s\n", mypars->flexresfile);
+	fprintf(fp, "\n\n");
 }
 
 void make_resfiles(float* final_population,
@@ -583,6 +625,20 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 	fprintf(fp, "\n\n");
 
 	fclose(fp_orig);
+
+	//writing input flexres pdbqt file if specified
+	if (mypars->flexresfile!=NULL) {
+		if ( strlen(mypars->flexresfile)>0 ) {
+			fprintf(fp, "    INPUT FLEXRES PDBQT FILE:\n    ________________________\n\n\n");
+			fp_orig = fopen(mypars->flexresfile, "rb"); // fp_orig = fopen(mypars->flexresfile, "r");
+			while (fgets(tempstr, 255, fp_orig) != NULL)	//reading original flexres pdb line by line
+			{
+				fprintf(fp, "INPUT-FLEXRES-PDBQT: %s", tempstr);
+			}
+			fprintf(fp, "\n\n");
+			fclose(fp_orig);
+		}
+	}
 
 	//writing docked conformations
 
