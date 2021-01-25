@@ -257,7 +257,9 @@ void make_resfiles(float* final_population,
 	char* temp_filename = (char*)malloc((len+1)*sizeof(char)); // +\0 at the end
 	char* name_ext_start;
 	float accurate_interE [MAX_POPSIZE];
+	float accurate_intraflexE [MAX_POPSIZE];
 	float accurate_intraE [MAX_POPSIZE];
+	float accurate_interflexE [MAX_POPSIZE];
 	float temp_genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
 
 	int pop_size = mypars->pop_size;
@@ -287,29 +289,24 @@ void make_resfiles(float* final_population,
 	{
 		temp_docked = *ligand_ref;
 
-		//if (i==127)
-		//	change_conform(&temp_docked, final_population [i], 1);				//calculating the conformation of current entity
-		//else
-			change_conform_f(&temp_docked, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_ref_ori_angles, debug);
-
-		//if (i==78)
-		//	accurate_interE [i] = calc_interE(mygrid, &temp_docked, grids, 0.00, 1);
-		//else
-			accurate_interE[i] = calc_interE_f(mygrid, &temp_docked, grids, 0.00, debug);	//calculating the intermolecular energy
+		change_conform_f(&temp_docked, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_ref_ori_angles, debug);
+		
+		// the map interaction of flex res atoms is stored in accurate_intraflexE[i]
+		accurate_interE[i] = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE[i]);	//calculating the intermolecular energy
 
 		if (i == 0)		//additional calculations for ADT-compatible result file, only in case of best conformation
-			calc_interE_peratom_f(mygrid, &temp_docked, grids, 0.00, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec, debug);
+			calc_interE_peratom_f(mygrid, &temp_docked, grids, 0.0005, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec, debug);
 
 		scale_ligand(&temp_docked, mygrid->spacing);
-		//if (i==127)
-		//	accurate_intraE [i] = calc_intraE(&temp_docked, 8, 0, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, 1);				//calculating the intramolecular energy
-		//else
-			#if 0
-			accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, 0, tables, debug);
-			#endif
-			accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, tables, debug);
+		
+		// the interaction between flex res and ligand is stored in accurate_interflexE[i]
+		accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE[i], mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
 
-		move_ligand(&temp_docked, mygrid->origo_real_xyz);				//moving it according to grid location
+		move_ligand(&temp_docked, mygrid->origo_real_xyz, mygrid->origo_real_xyz);	//moving it according to grid location
+
+//		for (unsigned int atom_id=0; atom_id < temp_docked.num_of_atoms; atom_id++)
+//			printf("%i: %lf, %lf, %lf\n", atom_id+1, temp_docked.atom_idxyzq [atom_id][1], temp_docked.atom_idxyzq [atom_id][2], temp_docked.atom_idxyzq [atom_id][3]);
+
 		if (mypars->given_xrayligandfile == true) {
 			entity_rmsds [i] = calc_rmsd(ligand_xray, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original xray file
 		}
@@ -321,7 +318,9 @@ void make_resfiles(float* final_population,
 		if (i == 0)		//assuming this is the best one (final_population is arranged), however,
 		{				//arrangement was made according to the unaccurate values calculated by FPGA
 			best_result->interE = accurate_interE [i];
+			best_result->interflexE = accurate_interflexE [i];
 			best_result->intraE = accurate_intraE [i];
+			best_result->intraflexE = accurate_intraflexE [i];
 			best_result->reslig_realcoord = temp_docked;
 			best_result->rmsd_from_ref = entity_rmsds [i];
 			best_result->run_number = run_cnt+1;
@@ -405,7 +404,7 @@ void cluster_analysis(Ligandresult myresults [], int num_of_runs, char* report_f
 	double torsional_energy;
 
 	//first of all, let's calculate the constant torsional free energy term
-	torsional_energy = AD4_coeff_tors * ligand_ref->num_of_rotbonds;
+	torsional_energy = AD4_coeff_tors * ligand_ref->true_ligand_rotbonds;
 
 	//arranging results according to energy, myresults [0] will be the best one (with lowest energy)
 	for (j=0; j<num_of_runs-1; j++)
@@ -549,7 +548,7 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 	double torsional_energy;
 
 	//first of all, let's calculate the constant torsional free energy term
-	torsional_energy = AD4_coeff_tors * ligand_ref->num_of_rotbonds;
+	torsional_energy = AD4_coeff_tors * ligand_ref->true_ligand_rotbonds;
 
 	//GENERATING DLG FILE
 
@@ -599,13 +598,13 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 		fprintf(fp, "DOCKED: USER\n");
 
 		fprintf(fp, "DOCKED: USER    Estimated Free Energy of Binding    =");
-		PRINT1000(fp, ((float) (myresults[i].interE + torsional_energy)));
+		PRINT1000(fp, ((float) (myresults[i].interE + myresults[i].interflexE + torsional_energy)));
 		fprintf(fp, " kcal/mol  [=(1)+(2)+(3)-(4)]\n");
 
 		fprintf(fp, "DOCKED: USER\n");
 
 		fprintf(fp, "DOCKED: USER    (1) Final Intermolecular Energy     =");
-		PRINT1000(fp, ((float) myresults[i].interE));
+		PRINT1000(fp, ((float) (myresults[i].interE + myresults[i].interflexE)));
 		fprintf(fp, " kcal/mol\n");
 
 		fprintf(fp, "DOCKED: USER        vdW + Hbond + desolv Energy     =");
@@ -616,8 +615,16 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 		PRINT1000(fp, ((float) myresults[i].interE_elec));
 		fprintf(fp, " kcal/mol\n");
 
+		fprintf(fp, "DOCKED: USER        Moving Ligand-Fixed Receptor    =");
+		PRINT1000(fp, ((float) myresults[i].interE));
+		fprintf(fp, " kcal/mol\n");
+
+		fprintf(fp, "DOCKED: USER        Moving Ligand-Moving Receptor   =");
+		PRINT1000(fp, ((float) myresults[i].interflexE));
+		fprintf(fp, " kcal/mol\n");
+
 		fprintf(fp, "DOCKED: USER    (2) Final Total Internal Energy     =");
-		PRINT1000(fp, ((float) myresults[i].intraE));
+		PRINT1000(fp, ((float) (myresults[i].intraE + myresults[i].intraflexE)));
 		fprintf(fp, " kcal/mol\n");
 
 		fprintf(fp, "DOCKED: USER    (3) Torsional Free Energy           =");
@@ -625,45 +632,52 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 		fprintf(fp, " kcal/mol\n");
 
 		fprintf(fp, "DOCKED: USER    (4) Unbound System's Energy         =");
-		PRINT1000(fp, ((float) myresults[i].intraE));
+		PRINT1000(fp, ((float) (myresults[i].intraE + myresults[i].intraflexE)));
 		fprintf(fp, " kcal/mol\n");
 
 		fprintf(fp, "DOCKED: USER\n");
 		fprintf(fp, "DOCKED: USER\n");
 
-
-		fp_orig = fopen(mypars->ligandfile, "rb"); // fp_orig = fopen(mypars->ligandfile, "r");
-
-		atom_cnt = 0;
-
-		while (fgets(tempstr, 255, fp_orig) != NULL)	//reading original ligand pdb line by line
-		{
-			if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
-			{
-				tempstr[30] = '\0';
-				fprintf(fp, "DOCKED: %s", tempstr);
-				fprintf(fp, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][1]);		//x
-				fprintf(fp, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][2]);		//y
-				fprintf(fp, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][3]);		//z
-				fprintf(fp, "%+6.2lf", myresults[i].peratom_vdw[atom_cnt]);		//vdw
-				fprintf(fp, "%+6.2lf", myresults[i].peratom_elec[atom_cnt]);	//elec
-				fprintf(fp, "    %+6.3lf ", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][4]);	//q
-				fprintf(fp, "%-2s\n", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]);	//type
-				atom_cnt++;
-			}
-			else
-				if (strncmp("ROOT", tempstr, 4) == 0)
-				{
-					fprintf(fp, "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n");
-					fprintf(fp, "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n");
-					fprintf(fp, "DOCKED: %s", tempstr);
-				}
-				else
-					fprintf(fp, "DOCKED: %s", tempstr);
+		unsigned int lnr=1;
+		if ( mypars->flexresfile!=NULL) {
+			if ( strlen(mypars->flexresfile)>0 )
+				lnr++;
 		}
 
-		fclose(fp_orig);
-
+		atom_cnt = 0;
+		for (unsigned int l=0; l<lnr; l++)
+		{
+			if(l==0)
+				fp_orig = fopen(mypars->ligandfile, "rb");
+			else
+				fp_orig = fopen(mypars->flexresfile, "rb");
+			while (fgets(tempstr, 255, fp_orig) != NULL)	//reading original ligand pdb line by line
+			{
+				if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
+				{
+					tempstr[30] = '\0';
+					fprintf(fp, "DOCKED: %s", tempstr);
+					fprintf(fp, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][1]);		//x
+					fprintf(fp, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][2]);		//y
+					fprintf(fp, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][3]);		//z
+					fprintf(fp, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt]));		//vdw
+					fprintf(fp, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt]));	//elec
+					fprintf(fp, "    %+6.3lf ", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][4]);	//q
+					fprintf(fp, "%-2s\n", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]);	//type
+					atom_cnt++;
+				}
+				else
+					if (strncmp("ROOT", tempstr, 4) == 0)
+					{
+						fprintf(fp, "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n");
+						fprintf(fp, "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n");
+						fprintf(fp, "DOCKED: %s", tempstr);
+					}
+					else
+						fprintf(fp, "DOCKED: %s", tempstr);
+			}
+			fclose(fp_orig);
+		}
 		fprintf(fp, "DOCKED: TER\n");
 		fprintf(fp, "DOCKED: ENDMDL\n");
 		fprintf(fp, "________________________________________________________________________________\n\n\n");
@@ -677,7 +691,7 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 	//arranging results according to energy, myresults [0] will be the best one (with lowest energy)
 	for (j=0; j<num_of_runs-1; j++)
 		for (i=num_of_runs-2; i>=j; i--)		//arrange according to sum of inter- and intramolecular energies
-			if ((myresults [i]).interE /*+ (myresults [i]).intraE*/ > (myresults [i+1]).interE /*+ (myresults [i+1]).intraE*/)	//mimics the behaviour of AD4 unbound_same_as_bound
+			if ((myresults [i]).interE+myresults[i].interflexE /*+ (myresults [i]).intraE*/ > (myresults [i+1]).interE+myresults[i+1].interflexE /*+ (myresults [i+1]).intraE*/)	//mimics the behaviour of AD4 unbound_same_as_bound
 			//if ((myresults [i]).interE + (myresults [i]).intraE > (myresults [i+1]).interE + (myresults [i+1]).intraE)
 			{
 				temp_ligres = myresults [i];
@@ -735,11 +749,11 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 			{
 				subrank++;
 				(cluster_sizes [i-1])++;
-				sum_energy [i-1] += (myresults [j]).interE + /*(myresults [j]).intraE +*/ torsional_energy;		//intraE can be commented when unbound_same_as_bound
+				sum_energy [i-1] += (myresults [j]).interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy;		//intraE can be commented when unbound_same_as_bound
 				(myresults [j]).clus_subrank = subrank;
 				if (subrank == 1)
 				{
-					best_energy [i-1] = (myresults [j]).interE + /*(myresults [j]).intraE +*/ torsional_energy;		//intraE can be commented when unbound_same_as_bound
+					best_energy [i-1] = (myresults [j]).interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy;		//intraE can be commented when unbound_same_as_bound
 					best_energy_runid  [i-1] = (myresults [j]).run_number;
 				}
 			}
@@ -797,14 +811,23 @@ void clusanal_gendlg(Ligandresult myresults [], int num_of_runs, const Liganddat
 	for (i=0; i<num_of_clusters; i++)	//printing cluster info to file
 	{
 		for (j=0; j<num_of_runs; j++)
-			if (myresults [j].clus_id == i+1)
-			{
-	            if (myresults[j].interE + torsional_energy > 999999.99)
-	                fprintf(fp, "%4d   %4d   %4d  %+10.2e  %8.2f  %8.2f           RANKING\n", (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number,
-	                		myresults[j].interE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
-	            else
-	            	fprintf(fp, "%4d   %4d   %4d  %+10.2f  %8.2f  %8.2f           RANKING\n", (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number,
-	                		myresults[j].interE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
+			if (myresults [j].clus_id == i+1) {
+				if (myresults[j].interE + myresults[j].interflexE + torsional_energy > 999999.99)
+					fprintf(fp, "%4d   %4d   %4d  %+10.2e  %8.2f  %8.2f           RANKING\n",
+					             (myresults [j]).clus_id,
+					                   (myresults [j]).clus_subrank,
+					                         (myresults [j]).run_number,
+					                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
+					                                       (myresults [j]).rmsd_from_cluscent,
+					                                              (myresults [j]).rmsd_from_ref);
+				else
+					fprintf(fp, "%4d   %4d   %4d  %+10.2f  %8.2f  %8.2f           RANKING\n",
+					             (myresults [j]).clus_id,
+					                   (myresults [j]).clus_subrank,
+					                         (myresults [j]).run_number,
+					                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
+					                                       (myresults [j]).rmsd_from_cluscent,
+					                                              (myresults [j]).rmsd_from_ref);
 			}
 	}
 

@@ -27,9 +27,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // Alternative to Solis-Wets
 
 //#define DEBUG_ENERGY_KERNEL5
-	//#define PRINT_ENERGIES
-	//#define PRINT_GENES_AND_GRADS
-	//#define PRINT_ATOMIC_COORDS
+//#define PRINT_ENERGIES
+//#define PRINT_GENES_AND_GRADS
+//#define PRINT_ATOMIC_COORDS
 
 // Enable DEBUG_MINIMIZER for a seeing a detailed SD evolution
 // If only PRINT_MINIMIZER_ENERGY_EVOLUTION is enabled,
@@ -43,6 +43,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gradient_minSD(	
 			    int    dockpars_num_of_atoms,
+			    int    dockpars_true_ligand_atoms,
 			    int    dockpars_num_of_atypes,
 			    int    dockpars_num_of_map_atypes,
 			    int    dockpars_num_of_intraE_contributors,
@@ -56,6 +57,7 @@ gradient_minSD(
 	 __global const     float* restrict dockpars_fgrids, 		// This is too large to be allocated in __constant 
 			    int    dockpars_rotbondlist_length,
 			    float  dockpars_coeff_elec,
+			    float  dockpars_elec_min_distance,
 			    float  dockpars_coeff_desolv,
 	  __global          float* restrict dockpars_conformations_next,
 	  __global          float* restrict dockpars_energies_next,
@@ -221,6 +223,7 @@ gradient_minSD(
 	// =============================================================
 	gpu_calc_energy(dockpars_rotbondlist_length,
 			dockpars_num_of_atoms,
+			dockpars_true_ligand_atoms,
 			dockpars_gridsize_x,
 			dockpars_gridsize_y,
 			dockpars_gridsize_z,
@@ -233,10 +236,10 @@ gradient_minSD(
 			dockpars_num_of_intraE_contributors,
 			dockpars_grid_spacing,
 			dockpars_coeff_elec,
+			dockpars_elec_min_distance,
 			dockpars_qasp,
 			dockpars_coeff_desolv,
 			dockpars_smooth,
-
 			genotype, /*WARNING: calculating the energy of the hardcoded genotype*/
 			&energy,
 			&run_id,
@@ -424,6 +427,7 @@ gradient_minSD(
 		gpu_calc_gradient(
 				dockpars_rotbondlist_length,
 				dockpars_num_of_atoms,
+				dockpars_true_ligand_atoms,
 				dockpars_gridsize_x,
 				dockpars_gridsize_y,
 				dockpars_gridsize_z,
@@ -436,10 +440,10 @@ gradient_minSD(
 				dockpars_num_of_intraE_contributors,
 				dockpars_grid_spacing,
 				dockpars_coeff_elec,
+				dockpars_elec_min_distance,
 				dockpars_qasp,
 				dockpars_coeff_desolv,
 				dockpars_smooth,
-
 				// Some OpenCL compilers don't allow declaring 
 				// local variables within non-kernel functions.
 				// These local variables must be declared in a kernel, 
@@ -609,6 +613,7 @@ gradient_minSD(
 		// =============================================================
 		gpu_calc_energy(dockpars_rotbondlist_length,
 				dockpars_num_of_atoms,
+				dockpars_true_ligand_atoms,
 				dockpars_gridsize_x,
 				dockpars_gridsize_y,
 				dockpars_gridsize_z,
@@ -621,10 +626,10 @@ gradient_minSD(
 				dockpars_num_of_intraE_contributors,
 				dockpars_grid_spacing,
 				dockpars_coeff_elec,
+				dockpars_elec_min_distance,
 				dockpars_qasp,
 				dockpars_coeff_desolv,
 				dockpars_smooth,
-
 				candidate_genotype, /*genotype,*/ /*WARNING: use "genotype" ONLY to reproduce results*/
 				&candidate_energy,
 				&run_id,

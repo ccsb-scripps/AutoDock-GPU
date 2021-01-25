@@ -110,6 +110,7 @@ void atomicSub_g_f(volatile __local float *addr, float val)
 void gpu_calc_gradient(	    
 				int    dockpars_rotbondlist_length,
 				int    dockpars_num_of_atoms,
+				int    dockpars_true_ligand_atoms,
 			    	int    dockpars_gridsize_x,
 			    	int    dockpars_gridsize_y,
 			    	int    dockpars_gridsize_z,
@@ -122,6 +123,7 @@ void gpu_calc_gradient(
 		            	int    dockpars_num_of_intraE_contributors,
 			    	float  dockpars_grid_spacing,
 			    	float  dockpars_coeff_elec,
+			    	float  dockpars_elec_min_distance,
 			    	float  dockpars_qasp,
 			    	float  dockpars_coeff_desolv,
 				float  dockpars_smooth,
@@ -247,15 +249,27 @@ void gpu_calc_gradient(
 
 			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation
 			{
-				rotation_unitvec[0] = genrot_unitvec[0];
-				rotation_unitvec[1] = genrot_unitvec[1];
-				rotation_unitvec[2] = genrot_unitvec[2];
+				if (atom_id < dockpars_true_ligand_atoms){
+					rotation_unitvec[0] = genrot_unitvec[0];
+					rotation_unitvec[1] = genrot_unitvec[1];
+					rotation_unitvec[2] = genrot_unitvec[2];
 
-				rotation_movingvec[0] = genotype[0];
-				rotation_movingvec[1] = genotype[1];
-				rotation_movingvec[2] = genotype[2];
+					rotation_movingvec[0] = genotype[0];
+					rotation_movingvec[1] = genotype[1];
+					rotation_movingvec[2] = genotype[2];
 
-				rotation_angle = genrotangle;
+					rotation_angle = genrotangle;
+				} else{
+					rotation_unitvec[0] = 1.0f;
+					rotation_unitvec[1] = 0.0f;
+					rotation_unitvec[2] = 0.0f;
+
+					rotation_movingvec[0] = 0.0f;
+					rotation_movingvec[1] = 0.0f;
+					rotation_movingvec[2] = 0.0f;
+
+					rotation_angle = 0.0f;
+				}
 			}
 			else	// If rotating around rotatable bond
 			{
@@ -287,9 +301,9 @@ void gpu_calc_gradient(
 			quatrot_left_z  = sin_angle*rotation_unitvec[2];
 
 			// Performing rotation
-			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation,
-										// two rotations should be performed
-										// (multiplying the quaternions)
+			if (((rotation_list_element & RLIST_GENROT_MASK) != 0) && // If general rotation,
+			    (atom_id < dockpars_true_ligand_atoms))		  // two rotations should be performed
+										  // (multiplying the quaternions)
 			{
 				// Calculating quatrot_left*ref_orientation_quats_const,
 				// which means that reference orientation rotation is the first
@@ -364,6 +378,8 @@ void gpu_calc_gradient(
 	          atom_id < dockpars_num_of_atoms;
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
+		if (kerconst_interintra->ignore_inter_const[atom_id]>0) // first two atoms of a flex res are to be ignored here
+			continue;
 		uint atom_typeid = kerconst_interintra->atom_types_map_const[atom_id];
 		float x = calc_coords[atom_id].x;
 		float y = calc_coords[atom_id].y;
@@ -621,8 +637,8 @@ void gpu_calc_gradient(
 		float priv_gradient_per_intracontributor= 0.0f;
 
 		// Getting atom IDs
-		uint atom1_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter];
-		uint atom2_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+1];
+		uint atom1_id = kerconst_intracontrib->intraE_contributors_const[2*contributor_counter];
+		uint atom2_id = kerconst_intracontrib->intraE_contributors_const[2*contributor_counter+1];
 	
 		/*
 		printf ("%-5u %-5u %-5u\n", contributor_counter, atom1_id, atom2_id);
@@ -642,25 +658,15 @@ void gpu_calc_gradient(
 		uint atom1_typeid = kerconst_interintra->atom_types_const[atom1_id];
 		uint atom2_typeid = kerconst_interintra->atom_types_const[atom2_id];
 
-		uint atom1_type_vdw_hb = kerconst_intra->atom1_types_reqm_const [atom1_typeid];
-	     	uint atom2_type_vdw_hb = kerconst_intra->atom2_types_reqm_const [atom2_typeid];
+		uint atom1_type_vdw_hb = kerconst_intra->atom_types_reqm_const [atom1_typeid];
+	     	uint atom2_type_vdw_hb = kerconst_intra->atom_types_reqm_const [atom2_typeid];
 		//printf ("%-5u %-5u %-5u\n", contributor_counter, atom1_id, atom2_id);
 
+		ushort exps = kerconst_intra->VWpars_exp_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid];
+		char m=(exps & 0xFF00)>>8;
+		char n=(exps & 0xFF);
 		// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
-		// reqm: equilibrium internuclear separation 
-		//       (sum of the vdW radii of two like atoms (A)) in the case of vdW
-		// reqm_hbond: equilibrium internuclear separation
-		//  	 (sum of the vdW radii of two like atoms (A)) in the case of hbond 
-		float opt_distance;
-
-		if (kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1)	//H-bond
-		{
-			opt_distance = kerconst_intra->reqm_const [atom1_type_vdw_hb+ATYPE_NUM] + kerconst_intra->reqm_const [atom2_type_vdw_hb+ATYPE_NUM];
-		}
-		else	//van der Waals
-		{
-			opt_distance = (kerconst_intra->reqm_const [atom1_type_vdw_hb] + kerconst_intra->reqm_const [atom2_type_vdw_hb]);
-		}
+		float opt_distance = kerconst_intra->reqm_AB_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid];
 
 		// Getting smoothed distance
 		// smoothed_distance = function(atomic_distance, opt_distance)
@@ -682,26 +688,20 @@ void gpu_calc_gradient(
 		if (atomic_distance < 8.0f)
 		{
 			// Calculating van der Waals / hydrogen bond term
-			priv_gradient_per_intracontributor += native_divide (-12*kerconst_intra->VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
-									     native_powr(smoothed_distance/*atomic_distance*/, 13)
+			priv_gradient_per_intracontributor += native_divide (-(float)m*kerconst_intra->VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
+									      native_powr(smoothed_distance/*atomic_distance*/, m+1)
 									    );
 
-			if (kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1) {	//H-bond
-				priv_gradient_per_intracontributor += native_divide (10*kerconst_intra->VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
-										     native_powr(smoothed_distance/*atomic_distance*/, 11)
-										    );
-			}
-			else {	//van der Waals
-				priv_gradient_per_intracontributor += native_divide (6*kerconst_intra->VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
-										     native_powr(smoothed_distance/*atomic_distance*/, 7)
-										    );
-			}
+			priv_gradient_per_intracontributor += native_divide ((float)n*kerconst_intra->VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
+									     native_powr(smoothed_distance/*atomic_distance*/, n+1)
+									    );
 		} // if cuttoff1 - internuclear-distance at 8A	
 
 		// Calculating energy contributions
 		// Cuttoff2: internuclear-distance at 20.48A only for el and sol.
 		if (atomic_distance < 20.48f)
 		{
+			if(atomic_distance<dockpars_elec_min_distance) atomic_distance=dockpars_elec_min_distance;
 			// Calculating electrostatic term
 			// http://www.wolframalpha.com/input/?i=1%2F(x*(A%2B(B%2F(1%2BK*exp(-h*B*x)))))
 			float upper = DIEL_A*native_powr(native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K, 2) + (DIEL_B)*native_exp(DIEL_B_TIMES_H*atomic_distance)*(DIEL_B_TIMES_H_TIMES_K*atomic_distance + native_exp(DIEL_B_TIMES_H*atomic_distance) + DIEL_K);
@@ -808,7 +808,7 @@ void gpu_calc_gradient(
 	// ------------------------------------------
 	if (tidx == 0) {
 		for (uint lig_atom_id = 0;
-			  lig_atom_id<dockpars_num_of_atoms;
+			  lig_atom_id<dockpars_true_ligand_atoms;
 			  lig_atom_id++) {
 
 			// Re-using "gradient_inter_*" for total gradient (inter+intra)
@@ -870,7 +870,7 @@ void gpu_calc_gradient(
 		float3 r;
 			
 		for (uint lig_atom_id = 0;
-			  lig_atom_id<dockpars_num_of_atoms;
+			  lig_atom_id<dockpars_true_ligand_atoms;
 			  lig_atom_id++) {
 			r.x = (calc_coords[lig_atom_id].x - about.x) * dockpars_grid_spacing; 
 			r.y = (calc_coords[lig_atom_id].y - about.y) * dockpars_grid_spacing;  

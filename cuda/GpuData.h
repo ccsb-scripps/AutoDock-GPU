@@ -74,8 +74,9 @@ static const float MAXFORCE = FLT_MAX / 100.0; // Used to cap absurd energies so
 typedef struct
 {
         int             num_of_atoms;
+        int             true_ligand_atoms;
         int             num_of_atypes;
-        int		        num_of_map_atypes;
+        int             num_of_map_atypes;
         int             num_of_intraE_contributors;
         int             gridsize_x;
         int             gridsize_y;
@@ -85,6 +86,7 @@ typedef struct
         float           grid_spacing;
         int             rotbondlist_length;
         float           coeff_elec;
+        float           elec_min_distance;
         float           coeff_desolv;
         int             pop_size;
         int             num_of_genes;

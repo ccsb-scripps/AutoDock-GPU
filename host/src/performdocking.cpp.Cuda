@@ -188,14 +188,14 @@ void setup_gpu_for_docking(GpuData& cData, GpuTempData& tData)
     printf("\nCUDA Setup time %fs\n", elapsed_seconds(t0 ,t1));
 	size_t sz_interintra_const	= MAX_NUM_OF_ATOMS*sizeof(float) + 
 					  MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
-					  MAX_NUM_OF_ATOMS*sizeof(uint32_t);
+					  MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
+					  MAX_NUM_OF_ATOMS*sizeof(char);
 
-	size_t sz_intracontrib_const	= 3*MAX_INTRAE_CONTRIBUTORS*sizeof(uint32_t);
+	size_t sz_intracontrib_const	= 2*MAX_INTRAE_CONTRIBUTORS*sizeof(uint32_t);
 
-	size_t sz_intra_const		= ATYPE_NUM*sizeof(float) + 
-					  ATYPE_NUM*sizeof(float) + 
-					  ATYPE_NUM*sizeof(unsigned int) + 
-					  ATYPE_NUM*sizeof(unsigned int) + 
+	size_t sz_intra_const		= MAX_NUM_OF_ATYPES*sizeof(unsigned int) + 
+				          MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(unsigned short int) + 
+				          MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
 				          MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
 					  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
 					  MAX_NUM_OF_ATYPES*sizeof(float) + 
@@ -455,19 +455,19 @@ filled with clock() */
 	}
 
 	size_t sz_interintra_const	= MAX_NUM_OF_ATOMS*sizeof(float) + 
-					  MAX_NUM_OF_ATOMS*sizeof(uint32_t) + 
-                                          MAX_NUM_OF_ATOMS*sizeof(uint32_t);
+					  MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
+					  MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
+					  MAX_NUM_OF_ATOMS*sizeof(char);
 
-	size_t sz_intracontrib_const	= 3*MAX_INTRAE_CONTRIBUTORS*sizeof(uint32_t);
+	size_t sz_intracontrib_const	= 2*MAX_INTRAE_CONTRIBUTORS*sizeof(uint32_t);
 
-	size_t sz_intra_const		= ATYPE_NUM*sizeof(float) + 
-					  			  ATYPE_NUM*sizeof(float) + 
-					  			  ATYPE_NUM*sizeof(unsigned int) + 
-					  			  ATYPE_NUM*sizeof(unsigned int) + 
-			    			      MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
-					  			  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
-					  			  MAX_NUM_OF_ATYPES*sizeof(float) + 
-					  			  MAX_NUM_OF_ATYPES*sizeof(float);
+	size_t sz_intra_const		= MAX_NUM_OF_ATYPES*sizeof(unsigned int) + 
+				          MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(unsigned short int) + 
+				          MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
+				          MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
+					  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) + 
+					  MAX_NUM_OF_ATYPES*sizeof(float) + 
+					  MAX_NUM_OF_ATYPES*sizeof(float);
 
 	size_t sz_rotlist_const		= MAX_NUM_OF_ROTATIONS*sizeof(int);
 
@@ -475,7 +475,6 @@ filled with clock() */
 					  3*MAX_NUM_OF_ROTBONDS*sizeof(float) + 
 					  3*MAX_NUM_OF_ROTBONDS*sizeof(float) + 
 					  4*MAX_NUM_OF_RUNS*sizeof(float);
-
     
     // Upload kernel constant data - JL FIXME - Can these be moved once?
     status = cudaMemcpy(cData.pKerconst_interintra, &KerConst_interintra, sz_interintra_const, cudaMemcpyHostToDevice);
@@ -542,6 +541,7 @@ filled with clock() */
 
 	//preparing parameter struct
 	cData.dockpars.num_of_atoms                 = myligand_reference.num_of_atoms;
+	cData.dockpars.true_ligand_atoms            = ((int)  myligand_reference.true_ligand_atoms);
 	cData.dockpars.num_of_atypes                = myligand_reference.num_of_atypes;
 	cData.dockpars.num_of_map_atypes	    = mygrid->num_of_map_atypes;
 	cData.dockpars.num_of_intraE_contributors   = ((int) myligand_reference.num_of_intraE_contributors);
@@ -553,6 +553,7 @@ filled with clock() */
 	cData.dockpars.grid_spacing                 = ((float) mygrid->spacing);
 	cData.dockpars.rotbondlist_length           = ((int) NUM_OF_THREADS_PER_BLOCK*(myligand_reference.num_of_rotcyc));
 	cData.dockpars.coeff_elec                   = ((float) mypars->coeffs.scaled_AD4_coeff_elec);
+	cData.dockpars.elec_min_distance            = ((float) mypars->elec_min_distance);
 	cData.dockpars.coeff_desolv                 = ((float) mypars->coeffs.AD4_coeff_desolv);
 	cData.dockpars.pop_size                     = mypars->pop_size;
 	cData.dockpars.num_of_genes                 = myligand_reference.num_of_rotbonds + 6;

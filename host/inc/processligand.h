@@ -38,10 +38,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 typedef struct
 //Struct which contains ligand information. The fields contain the following information:
-//num_of_atoms: 	Number of ligand atoms.
-//num_of_atypes:	Number of different atom types in the ligand.
-//num_of_rotbonds: 	Number of rotatable bonds in the ligand.
+//num_of_atoms: 	Number of ligand/flexres atoms.
+//true_ligand_atoms	Number of ligand atoms
+//num_of_atypes:	Number of different atom types in the ligand/flexres.
+//num_of_rotbonds: 	Number of rotatable bonds in the ligand/flexres.
+//true_ligand_rotbonds:	Number of rotatable bonds in the ligand only.
 //atom_types: 		Each row (first index) contain an atom type (as two characters),
+//			the row index is equal to the atom type code.
+//base_atom_types:	Each row (first index) contain an atom base type (for derived types it'll be different from atom_types),
 //			the row index is equal to the atom type code.
 //atom_idxyzq: 		Each row describes one atom of the ligand.
 //			The columns (second index) contain the atom type code, x, y and z coordinate
@@ -88,9 +92,13 @@ typedef struct
 //						  it is necessary.
 {
 	int 	num_of_atoms;
+	int	true_ligand_atoms;
+	bool	ignore_inter [MAX_NUM_OF_ATOMS];
 	int 	num_of_atypes;
 	int 	num_of_rotbonds;
-	char 	atom_types [MAX_NUM_OF_ATYPES][4];
+	int 	true_ligand_rotbonds;
+	char 	atom_types [MAX_NUM_OF_ATOMS][4]; // there can be at most as many types (base+derived) as there are atoms
+	char	base_atom_types [MAX_NUM_OF_ATOMS][4];
 	int	atom_map_to_fgrids[MAX_NUM_OF_ATOMS];
 	double 	atom_idxyzq [MAX_NUM_OF_ATOMS][5];
 	int 	rotbonds [MAX_NUM_OF_ROTBONDS][2];
@@ -98,20 +106,13 @@ typedef struct
 	int 	atom_rigid_structures [MAX_NUM_OF_ATOMS];
 	char 	bonds [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
 	char 	intraE_contributors [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
+	int	base_type_idx [MAX_NUM_OF_ATOMS];
 
-	// -------------------------------------------
-	// Smoothed pairwise potentials
-	// -------------------------------------------
-	// Sizes are hardcoded, ATYPE_NUM=22 float elements as in
-	// https://git.esa.informatik.tu-darmstadt.de/docking/ocladock/blob/master/host/src/processligand.cpp#L456
-	// See "User Guide AutoDock 4.2" (page 34)
-	double  reqm [ATYPE_NUM];
-	double  reqm_hbond [ATYPE_NUM];
-
-	unsigned int  atom1_types_reqm [ATYPE_NUM];
-	unsigned int  atom2_types_reqm [ATYPE_NUM];
+	unsigned int  atom_types_reqm [MAX_NUM_OF_ATYPES];
 	// -------------------------------------------
 
+	unsigned short VWpars_exp [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];
+	double 	reqm_AB  [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];
 	double 	VWpars_A [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];
 	double	VWpars_B [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];
 	double 	VWpars_C [MAX_NUM_OF_ATYPES][MAX_NUM_OF_ATYPES];
@@ -125,7 +126,7 @@ typedef struct
 	double 	rotbonds_unit_vectors [MAX_NUM_OF_ROTBONDS][3];
 } Liganddata;
 
-int init_liganddata(const char*, Liganddata*, Gridinfo*, bool cgmaps);
+int init_liganddata(const char*, const char*, Liganddata*, Gridinfo*, int nr_deriv_atypes, deriv_atype* deriv_atypes, bool cgmaps);
 
 int set_liganddata_typeid(Liganddata*, int, const char*);
 
@@ -133,17 +134,41 @@ void get_intraE_contributors(Liganddata*);
 
 int get_bonds(Liganddata*);
 
-int get_VWpars(Liganddata*, const double, const double);
+pair_mod* is_mod_pair(	const char* A,
+			const char* B, 
+			int nr_mod_atype_pairs,
+			pair_mod* mod_atype_pairs
+		     );
+
+int get_VWpars(	Liganddata*,
+		const double,
+		const double,
+		int nr_deriv_atypes,
+		deriv_atype* deriv_atypes,
+		int nr_mod_atype_pairs,
+		pair_mod* mod_atype_pairs
+	      );
 
 int get_moving_and_unit_vectors(Liganddata*);
 
-int get_liganddata(const char*, Liganddata*, const double, const double);
+int get_liganddata(	const char*,
+			const char*,
+			Liganddata*,
+			const double,
+			const double,
+			int nr_deriv_atypes,
+			deriv_atype* deriv_atypes,
+			int nr_mod_atype_pairs,
+			pair_mod* mod_atype_pairs
+		  );
 
 int gen_new_pdbfile(const char*, const char*, const Liganddata*);
 
 void get_movvec_to_origo(const Liganddata*, double []);
 
 void move_ligand(Liganddata*, const double []);
+
+void move_ligand(Liganddata*, const double [], const double []);
 
 void scale_ligand(Liganddata*, const double);
 
@@ -153,22 +178,16 @@ double calc_ddd_Mehler_Solmajer(double);
 
 int is_H_bond(const char*, const char*);
 
-#if 0
-void print_ref_lig_energies_f(Liganddata,
-			      Gridinfo,
-			      const float*,
-			      const float,
-			      const float,
-			      const float);
-#endif
-
 void print_ref_lig_energies_f(Liganddata,
 			      const float,
 			      Gridinfo,
 			      const float*,
 			      const float,
 			      const float,
-			      const float);
+			      const float,
+			      const float,
+			      int,
+			      pair_mod*);
 
 //////////////////////////////////
 //float functions
@@ -187,6 +206,7 @@ void calc_q_tables_f(const Liganddata* myligand,
 		     float qasp_mul_absq []);
 
 void change_conform_f(Liganddata* myligand,
+		      const Gridinfo* mygrid,
 		      const float genotype_f [],
 		      float* 	  cpu_ref_ori_angles,
 		      int 	  debug);
@@ -195,7 +215,8 @@ float calc_interE_f(const Gridinfo* 	mygrid,
 		    const Liganddata* 	myligand,
 	            const float* 	fgrids,
 		    float 		outofgrid_tolerance,
-                    int 		debug);
+                    int 		debug,
+                    float &intraflexE);
 
 void calc_interE_peratom_f(const Gridinfo* 	mygrid,
 			   const Liganddata* 	myligand,
@@ -205,17 +226,6 @@ void calc_interE_peratom_f(const Gridinfo* 	mygrid,
 	                   float 		peratom_vdw [MAX_NUM_OF_ATOMS],
 			   float 		peratom_elec [MAX_NUM_OF_ATOMS],
 			   int 			debug);
-
-
-#if 0
-float calc_intraE_f(const Liganddata* 	myligand,
-		    float 		dcutoff,
-		    bool 		ignore_desolv,
-		    const float 	scaled_AD4_coeff_elec,
-		    const float 	AD4_coeff_desolv,
-		    const float 	qasp,
-		    int 		debug);
-#endif
 
 struct IntraTables{
         //The following tables will contain the 1/r^6, 1/r^10, 1/r^12, W_el/(r*eps(r)) and W_des*exp(-r^2/(2sigma^2)) functions for
@@ -250,8 +260,12 @@ float calc_intraE_f(const Liganddata* 	myligand,
 		    float 		dcutoff,
 		    float 		smooth,
 		    bool 		ignore_desolv,
+		    const float		elec_min_distance, 
 		    IntraTables&	tables,
-		    int 		debug);
+		    int 		debug,
+		    float &interflexE,
+		    int nr_mod_atype_pairs,
+		    pair_mod* mod_atype_pairs);
 
 int map_to_all_maps(Gridinfo* mygrid,
 		    Liganddata* myligand,

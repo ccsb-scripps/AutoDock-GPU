@@ -149,8 +149,17 @@ __device__ void gpu_calc_energrad(
 			atom_to_rotate.w = 0.0f;
 
 			// initialize with general rotation values
-			float4 rotation_unitvec = genrot_unitvec;
-			float4 rotation_movingvec = genrot_movingvec;
+			float4 rotation_unitvec;
+			float4 rotation_movingvec;
+			if (atom_id < cData.dockpars.true_ligand_atoms){
+				rotation_unitvec = genrot_unitvec;
+				rotation_movingvec = genrot_movingvec;
+			} else{
+				rotation_unitvec.x = 0.0f; rotation_unitvec.y = 0.0f; rotation_unitvec.z = 0.0f;
+				rotation_unitvec.w = 1.0f;
+				rotation_movingvec.x = 0.0f; rotation_movingvec.y = 0.0f; rotation_movingvec.z = 0.0f;
+				rotation_movingvec.w = 0.0f;
+			}
 
 			if ((rotation_list_element & RLIST_GENROT_MASK) == 0) // If rotating around rotatable bond
 			{
@@ -175,9 +184,9 @@ __device__ void gpu_calc_energrad(
 
 			float4 quatrot_left = rotation_unitvec;
 			// Performing rotation
-			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation,
-										// two rotations should be performed
-										// (multiplying the quaternions)
+			if (((rotation_list_element & RLIST_GENROT_MASK) != 0) && // If general rotation,
+			    (atom_id < cData.dockpars.true_ligand_atoms))	  // two rotations should be performed
+										  // (multiplying the quaternions)
 			{
 				// Calculating quatrot_left*ref_orientation_quats_const,
 				// which means that reference orientation rotation is the first
@@ -210,6 +219,8 @@ __device__ void gpu_calc_energrad(
 	              atom_id < cData.dockpars.num_of_atoms;
 	              atom_id+= blockDim.x)
 	{
+		if (cData.pKerconst_interintra->ignore_inter_const[atom_id]>0) // first two atoms of a flex res are to be ignored here
+			continue;
 		float x = calc_coords[atom_id].x;
 		float y = calc_coords[atom_id].y;
 		float z = calc_coords[atom_id].z;
@@ -447,9 +458,8 @@ __device__ void gpu_calc_energrad(
 		float priv_gradient_per_intracontributor= 0.0f;
 
 		// Getting atom IDs
-		uint32_t atom1_id = cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter];
-		uint32_t atom2_id = cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter+1];
-		bool hbond = (cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1);	// evaluates to 1 in case of H-bond, 0 otherwise
+		uint32_t atom1_id = cData.pKerconst_intracontrib->intraE_contributors_const[2*contributor_counter];
+		uint32_t atom2_id = cData.pKerconst_intracontrib->intraE_contributors_const[2*contributor_counter+1];
 
 		// Calculating vector components of vector going
 		// from first atom's to second atom's coordinates
@@ -465,8 +475,8 @@ __device__ void gpu_calc_energrad(
 		uint32_t atom1_typeid = cData.pKerconst_interintra->atom_types_const[atom1_id];
 		uint32_t atom2_typeid = cData.pKerconst_interintra->atom_types_const[atom2_id];
 
-		uint32_t atom1_type_vdw_hb = cData.pKerconst_intra->atom1_types_reqm_const [atom1_typeid];
-		uint32_t atom2_type_vdw_hb = cData.pKerconst_intra->atom2_types_reqm_const [atom2_typeid];
+		uint32_t atom1_type_vdw_hb = cData.pKerconst_intra->atom_types_reqm_const [atom1_typeid];
+		uint32_t atom2_type_vdw_hb = cData.pKerconst_intra->atom_types_reqm_const [atom2_typeid];
 
 		// ------------------------------------------------
 		// Required only for flexrings
@@ -486,12 +496,12 @@ __device__ void gpu_calc_energrad(
 		// Cuttoff1: internuclear-distance at 8A only for vdw and hbond.
 		if (atomic_distance < 8.0f)
 		{
-			// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
-			// reqm: equilibrium internuclear separation 
-			//       (sum of the vdW radii of two like atoms (A)) in the case of vdW
-			// reqm_hbond: equilibrium internuclear separation
-			//  	 (sum of the vdW radii of two like atoms (A)) in the case of hbond 
-			float opt_distance = (cData.pKerconst_intra->reqm_const [atom1_type_vdw_hb+ATYPE_NUM*(uint32_t)hbond] + cData.pKerconst_intra->reqm_const [atom2_type_vdw_hb+ATYPE_NUM*(uint32_t)hbond]);
+			uint32_t idx = atom1_typeid * cData.dockpars.num_of_atypes + atom2_typeid;
+			ushort exps = cData.pKerconst_intra->VWpars_exp_const[idx];
+			char m=(exps & 0xFF00)>>8;
+			char n=(exps & 0xFF);
+			// Getting optimum pair distance (opt_distance)
+			float opt_distance = cData.pKerconst_intra->reqm_AB_const[idx];
 
 			// Getting smoothed distance
 			// smoothed_distance = function(atomic_distance, opt_distance)
@@ -500,17 +510,11 @@ __device__ void gpu_calc_energrad(
 				smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
 			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
-			uint32_t idx = atom1_typeid * cData.dockpars.num_of_atypes + atom2_typeid;
 			float nvbond = 1.0 - vbond;
-			float s2 = smoothed_distance * smoothed_distance;
-			float s4 = s2 * s2;
-			float s6 = s2 * s4;
-			float s12 = s6 * s6;
-			float s10 = s6 * (hbond ? s4 : 1.0f);
-			float A = nvbond * cData.pKerconst_intra->VWpars_AC_const[idx] / s12;
-			float B = nvbond * cData.pKerconst_intra->VWpars_BD_const[idx] / s10;
+			float A = nvbond * cData.pKerconst_intra->VWpars_AC_const[idx] / positive_power(smoothed_distance,m);
+			float B = nvbond * cData.pKerconst_intra->VWpars_BD_const[idx] / positive_power(smoothed_distance,n);
 			energy += A - B;
-			priv_gradient_per_intracontributor += ((6.0f+4.0f*(uint32_t)hbond) * B - 12.0f * A) / smoothed_distance;
+			priv_gradient_per_intracontributor += ((float)n * B - (float)m * A) / smoothed_distance;
 			#if defined (DEBUG_ENERGY_KERNEL)
 			intraE += A - B;
 			#endif
@@ -520,6 +524,8 @@ __device__ void gpu_calc_energrad(
 		// Cuttoff2: internuclear-distance at 20.48A only for el and sol.
 		if (atomic_distance < 20.48f)
 		{
+			if(atomic_distance<cData.dockpars.elec_min_distance)
+				atomic_distance=cData.dockpars.elec_min_distance;
 			float q1 = cData.pKerconst_interintra->atom_charges_const[atom1_id];
 			float q2 = cData.pKerconst_interintra->atom_charges_const[atom2_id];
 //			float exp_el = native_exp(DIEL_B_TIMES_H*atomic_distance);
@@ -530,10 +536,10 @@ __device__ void gpu_calc_energrad(
 						 cData.dockpars.qasp*fabs(q1)) * cData.pKerconst_intra->dspars_V_const[atom2_typeid] +
 						(cData.pKerconst_intra->dspars_S_const[atom2_typeid] +
 						 cData.dockpars.qasp*fabs(q2)) * cData.pKerconst_intra->dspars_V_const[atom1_typeid]) *
-						(
+						 (
 							cData.dockpars.coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)) /
 							(12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2)))
-						);
+						 );
 
 			// Calculating electrostatic term
 			float dist_shift=atomic_distance+1.588f;
@@ -618,9 +624,10 @@ __device__ void gpu_calc_energrad(
 	float gx = 0.0f;
 	float gy = 0.0f;
 	float gz = 0.0f;
+	// overall rotation is only for the moving ligand
 	for (uint32_t atom_cnt = threadIdx.x;
-		      atom_cnt < cData.dockpars.num_of_atoms;
-		      atom_cnt+= blockDim.x) {
+	              atom_cnt < cData.dockpars.true_ligand_atoms;
+	              atom_cnt+= blockDim.x) {
 		float3 r;
 		r.x = (calc_coords[atom_cnt].x - genrot_movingvec.x) * cData.dockpars.grid_spacing;
 		r.y = (calc_coords[atom_cnt].y - genrot_movingvec.y) * cData.dockpars.grid_spacing;

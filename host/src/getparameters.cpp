@@ -187,6 +187,12 @@ int get_filenames_and_ADcoeffs(const int* argc,
 			}
 		}
 
+		//Argument: flexible residue pdbqt file name
+		if (strcmp("-flexres", argv[i]) == 0)
+		{
+			mypars->flexresfile = strdup(argv[i+1]);
+		}
+
 		//Argument: unbound model to be used.
 		//0 means the bound, 1 means the extended, 2 means the compact ...
 		//model's free energy coefficients will be used during docking.
@@ -279,6 +285,7 @@ void get_commandpars(const int* argc,
 	mypars->autostop		= 0;
 	mypars->as_frequency		= 5;
 	mypars->stopstd			= 0.15;
+	mypars->elec_min_distance	= 0.01;
 	mypars->num_of_runs		= 1;
 	mypars->reflig_en_required	= false;
 
@@ -633,9 +640,35 @@ void get_commandpars(const int* argc,
 			arg_recognized = 1;
 
 		// ---------------------------------
+		// MISSING: char* flexresfile
+		// UPDATED in : get_filenames_and_ADcoeffs()
+		// ---------------------------------
+		//Argument: name of ligand pdbqt file
+		if (strcmp("-flexres", argv [i]) == 0)
+			arg_recognized = 1;
+
+		// ---------------------------------
 		// MISSING: float ref_ori_angles [3]
 		// UPDATED in : gen_initpop_and_reflig()
 		// ---------------------------------
+
+		//Argument: derivate atom types
+		// - has already been tested for in
+		//   main.cpp, as it's needed at grid
+		//   creation time not after (now)
+		if (strcmp("-derivtype", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+		}
+
+		//Argument: modify pairwise atom type parameters (LJ only at this point)
+		// - has already been tested for in
+		//   main.cpp, as it's needed at grid
+		//   creation time not after (now)
+		if (strcmp("-modpair", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+		}
 
 		// ---------------------------------
 		// MISSING: devnum
@@ -698,6 +731,21 @@ void get_commandpars(const int* argc,
 				mypars->stopstd = tempfloat;
 			else
 				printf("Warning: value of -stopstd argument ignored. Value must be a float between 0.01 and 2.0.\n");
+		}
+		// ----------------------------------
+
+		// ----------------------------------
+		//Argument: Minimum electrostatic pair potential distance .. Must be a float between 0.0 and 2.0;
+		//This will cut the electrostatics interaction to the value at that distance below it. (default: 0.01)
+		if (strcmp("-elecmindist", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv [i+1], "%f", &tempfloat);
+
+			if ((tempfloat >= 0.0) && (tempfloat < 2.0))
+				mypars->elec_min_distance = tempfloat;
+			else
+				printf("Warning: value of -elecmindist argument ignored. Value must be a float between 0.0 and 2.0.\n");
 		}
 		// ----------------------------------
 
@@ -1058,7 +1106,10 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 	}
 
 	get_movvec_to_origo(myligand, movvec_to_origo);
-	move_ligand(myligand, movvec_to_origo);
+	double flex_vec[3];
+	for (unsigned int i=0; i<3; i++)
+		flex_vec [i] = -mygrid->origo_real_xyz [i];
+	move_ligand(myligand, movvec_to_origo, flex_vec);
 	scale_ligand(myligand, 1.0/mygrid->spacing);
 	get_moving_and_unit_vectors(myligand);
 

@@ -253,6 +253,7 @@ int main(int argc, char* argv[])
 		// Clean up memory dynamically allocated to not leak
 		if(mypars.fldfile) free(mypars.fldfile); // although those strings should be allocated, it doesn't hurt to make sure
 		if(mypars.ligandfile) free(mypars.ligandfile);
+		if(mypars.flexresfile) free(mypars.flexresfile);
 		if(mypars.xrayligandfile) free(mypars.xrayligandfile);
 		if(mypars.resname) free(mypars.resname);
 		if(mygrid.grid_file_path) free(mygrid.grid_file_path);

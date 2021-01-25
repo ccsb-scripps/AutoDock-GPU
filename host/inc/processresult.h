@@ -41,8 +41,10 @@ typedef struct
 {
 	Liganddata reslig_realcoord;
 	float 	   interE;
+	float 	   interflexE;
 	float 	   interE_elec;
 	float      intraE;
+	float      intraflexE;
 	float      peratom_vdw  [MAX_NUM_OF_ATOMS];
 	float      peratom_elec [MAX_NUM_OF_ATOMS];
 	float      rmsd_from_ref;

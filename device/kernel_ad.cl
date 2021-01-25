@@ -60,6 +60,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gradient_minAD(	
 			int    dockpars_num_of_atoms,
+			int    dockpars_true_ligand_atoms,
 			int    dockpars_num_of_atypes,
 			int    dockpars_num_of_map_atypes,
 			int    dockpars_num_of_intraE_contributors,
@@ -73,6 +74,7 @@ gradient_minAD(
 	 __global const float* restrict dockpars_fgrids, 		// This is too large to be allocated in __constant 
 			int    dockpars_rotbondlist_length,
 			float  dockpars_coeff_elec,
+			float  dockpars_elec_min_distance,
 			float  dockpars_coeff_desolv,
 	  __global      float* restrict dockpars_conformations_next,
 	  __global      float* restrict dockpars_energies_next,
@@ -245,6 +247,7 @@ gradient_minAD(
 	// =============================================================
 	gpu_calc_energy(dockpars_rotbondlist_length,
 			dockpars_num_of_atoms,
+			dockpars_true_ligand_atoms,
 			dockpars_gridsize_x,
 			dockpars_gridsize_y,
 			dockpars_gridsize_z,
@@ -257,6 +260,7 @@ gradient_minAD(
 			dockpars_num_of_intraE_contributors,
 			dockpars_grid_spacing,
 			dockpars_coeff_elec,
+			dockpars_elec_min_distance,
 			dockpars_qasp,
 			dockpars_coeff_desolv,
 			dockpars_smooth,
@@ -349,6 +353,7 @@ gradient_minAD(
 		gpu_calc_energrad(
 				dockpars_rotbondlist_length,
 				dockpars_num_of_atoms,
+				dockpars_true_ligand_atoms,
 				dockpars_gridsize_x,
 				dockpars_gridsize_y,
 				dockpars_gridsize_z,
@@ -361,6 +366,7 @@ gradient_minAD(
 				dockpars_num_of_intraE_contributors,
 				dockpars_grid_spacing,
 				dockpars_coeff_elec,
+				dockpars_elec_min_distance,
 				dockpars_qasp,
 				dockpars_coeff_desolv,
 				dockpars_smooth,

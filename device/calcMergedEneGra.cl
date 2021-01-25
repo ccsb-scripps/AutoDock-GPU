@@ -46,6 +46,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 void gpu_calc_energrad(
 				int    dockpars_rotbondlist_length,
 				int    dockpars_num_of_atoms,
+				int    dockpars_true_ligand_atoms,
 				int    dockpars_gridsize_x,
 				int    dockpars_gridsize_y,
 				int    dockpars_gridsize_z,
@@ -58,6 +59,7 @@ void gpu_calc_energrad(
 				int    dockpars_num_of_intraE_contributors,
 				float  dockpars_grid_spacing,
 				float  dockpars_coeff_elec,
+			    	float  dockpars_elec_min_distance,
 				float  dockpars_qasp,
 				float  dockpars_coeff_desolv,
 				float  dockpars_smooth,
@@ -185,8 +187,17 @@ void gpu_calc_energrad(
 			float4 atom_to_rotate = calc_coords[atom_id];
 
 			// initialize with general rotation values
-			float4 rotation_unitvec = genrot_unitvec;
-			float4 rotation_movingvec = genrot_movingvec;
+			float4 rotation_unitvec;
+			float4 rotation_movingvec;
+			if (atom_id < dockpars_true_ligand_atoms){
+				rotation_unitvec = genrot_unitvec;
+				rotation_movingvec = genrot_movingvec;
+			} else{
+				rotation_unitvec.x = 0.0f; rotation_unitvec.y = 0.0f; rotation_unitvec.z = 0.0f;
+				rotation_unitvec.w = 1.0f;
+				rotation_movingvec.x = 0.0f; rotation_movingvec.y = 0.0f; rotation_movingvec.z = 0.0f;
+				rotation_movingvec.w = 0.0f;
+			}
 
 			if ((rotation_list_element & RLIST_GENROT_MASK) == 0) // If rotating around rotatable bond
 			{
@@ -208,9 +219,9 @@ void gpu_calc_energrad(
 
 			float4 quatrot_left = rotation_unitvec;
 			// Performing rotation
-			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation,
-										// two rotations should be performed
-										// (multiplying the quaternions)
+			if (((rotation_list_element & RLIST_GENROT_MASK) != 0) && // If general rotation,
+			    (atom_id < dockpars_true_ligand_atoms))		  // two rotations should be performed
+										  // (multiplying the quaternions)
 			{
 				// Calculating quatrot_left*ref_orientation_quats_const,
 				// which means that reference orientation rotation is the first
@@ -240,6 +251,8 @@ void gpu_calc_energrad(
 	          atom_id < dockpars_num_of_atoms;
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
+		if (kerconst_interintra->ignore_inter_const[atom_id]>0) // first two atoms of a flex res are to be ignored here
+			continue;
 		float x = calc_coords[atom_id].x;
 		float y = calc_coords[atom_id].y;
 		float z = calc_coords[atom_id].z;
@@ -480,9 +493,8 @@ void gpu_calc_energrad(
 		float priv_gradient_per_intracontributor= 0.0f;
 
 		// Getting atom IDs
-		uint atom1_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter];
-		uint atom2_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+1];
-		uint hbond = (uint)(kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1);	// evaluates to 1 in case of H-bond, 0 otherwise
+		uint atom1_id = kerconst_intracontrib->intraE_contributors_const[2*contributor_counter];
+		uint atom2_id = kerconst_intracontrib->intraE_contributors_const[2*contributor_counter+1];
 
 		// Calculating vector components of vector going
 		// from first atom's to second atom's coordinates
@@ -498,8 +510,8 @@ void gpu_calc_energrad(
 		uint atom1_typeid = kerconst_interintra->atom_types_const[atom1_id];
 		uint atom2_typeid = kerconst_interintra->atom_types_const[atom2_id];
 
-		uint atom1_type_vdw_hb = kerconst_intra->atom1_types_reqm_const [atom1_typeid];
-		uint atom2_type_vdw_hb = kerconst_intra->atom2_types_reqm_const [atom2_typeid];
+		uint atom1_type_vdw_hb = kerconst_intra->atom_types_reqm_const [atom1_typeid];
+		uint atom2_type_vdw_hb = kerconst_intra->atom_types_reqm_const [atom2_typeid];
 
 		// ------------------------------------------------
 		// Required only for flexrings
@@ -516,15 +528,15 @@ void gpu_calc_energrad(
 		// ------------------------------------------------
 
 		// Calculating energy contributions
-		// Cuttoff1: internuclear-distance at 8A only for vdw and hbond.
+		// Cuttoff1: internuclear-distance at 8A only for vdw and hbond
 		if (atomic_distance < 8.0f)
 		{
-			// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
-			// reqm: equilibrium internuclear separation 
-			//       (sum of the vdW radii of two like atoms (A)) in the case of vdW
-			// reqm_hbond: equilibrium internuclear separation
-			//  	 (sum of the vdW radii of two like atoms (A)) in the case of hbond 
-			float opt_distance = (kerconst_intra->reqm_const [atom1_type_vdw_hb+ATYPE_NUM*hbond] + kerconst_intra->reqm_const [atom2_type_vdw_hb+ATYPE_NUM*hbond]);
+			uint idx = atom1_typeid * dockpars_num_of_atypes + atom2_typeid;
+			ushort exps = kerconst_intra->VWpars_exp_const[idx];
+			char m=(exps & 0xFF00)>>8;
+			char n=(exps & 0xFF);
+			// Getting optimum pair distance (opt_distance)
+			float opt_distance = kerconst_intra->reqm_AB_const[idx];
 
 			// Getting smoothed distance
 			// smoothed_distance = function(atomic_distance, opt_distance)
@@ -533,12 +545,11 @@ void gpu_calc_energrad(
 				smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
 			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
-			uint idx = atom1_typeid * dockpars_num_of_atypes + atom2_typeid;
 			float nvbond = 1.0 - vbond;
-			float A = nvbond * native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12));
-			float B = nvbond * native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
+			float A = nvbond * native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,m));
+			float B = nvbond * native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,n));
 			partial_energies[tidx] += A - B;
-			priv_gradient_per_intracontributor += native_divide ((6.0f+4.0f*hbond) * B - 12.0f * A, smoothed_distance);
+			priv_gradient_per_intracontributor += native_divide ((float)n * B - (float)m * A, smoothed_distance);
 			#if defined (DEBUG_ENERGY_KERNEL)
 			partial_intraE[tidx] += A - B;
 			#endif
@@ -548,6 +559,7 @@ void gpu_calc_energrad(
 		// Cuttoff2: internuclear-distance at 20.48A only for el and sol.
 		if (atomic_distance < 20.48f)
 		{
+			if(atomic_distance<dockpars_elec_min_distance) atomic_distance=dockpars_elec_min_distance;
 			float q1 = kerconst_interintra->atom_charges_const[atom1_id];
 			float q2 = kerconst_interintra->atom_charges_const[atom2_id];
 //			float exp_el = native_exp(DIEL_B_TIMES_H*atomic_distance);
@@ -711,7 +723,7 @@ void gpu_calc_energrad(
 	accumulator_y[tidx] = 0.0f;
 	accumulator_z[tidx] = 0.0f;
 	for (uint atom_cnt = tidx;
-		  atom_cnt < dockpars_num_of_atoms;
+		  atom_cnt < dockpars_true_ligand_atoms;
 		  atom_cnt+= NUM_OF_THREADS_PER_BLOCK) {
 		float4 r = (calc_coords[atom_cnt] - genrot_movingvec) * dockpars_grid_spacing;
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)

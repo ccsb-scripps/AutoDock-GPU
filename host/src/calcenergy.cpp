@@ -23,6 +23,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
+// Output interaction pairs
+// #define INTERACTION_PAIR_INFO
+
 #include "calcenergy.h"
 
 /*
@@ -91,16 +94,14 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 	int i, j;
 	int type_id1, type_id2;
 	float* floatpoi;
-	int* intpoi;
+	int *intpoi, *intpoi2;
 	float phi, theta, genrotangle;
 	// Allocating memory on the heap (not stack) with new
 	float* atom_charges            = new float[MAX_NUM_OF_ATOMS];
 	int*   atom_types              = new int[MAX_NUM_OF_ATOMS];
-	int*   intraE_contributors     = new int[3*MAX_INTRAE_CONTRIBUTORS];
-	float* reqm                    = new float[ATYPE_NUM];
-        float* reqm_hbond              = new float[ATYPE_NUM];
-	unsigned int* atom1_types_reqm = new unsigned int[ATYPE_NUM];
-        unsigned int* atom2_types_reqm = new unsigned int[ATYPE_NUM];
+	int*   intraE_contributors     = new int[2*MAX_INTRAE_CONTRIBUTORS];
+	unsigned short* VWpars_exp     = new unsigned short[MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
+	float* reqm_AB                 = new float[MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
 	float* VWpars_AC               = new float[MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
 	float* VWpars_BD               = new float[MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
 	float* dspars_S                = new float[MAX_NUM_OF_ATYPES];
@@ -144,18 +145,22 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 	for (i=0; i < myligand_reference->num_of_atoms; i++)
 	{
 		*floatpoi = (float) myligand_reference->atom_idxyzq[i][4];
-		*intpoi = (int) myligand_reference->atom_idxyzq[i][0];
+		*intpoi  = (int) myligand_reference->atom_idxyzq[i][0];
 		floatpoi++;
 		intpoi++;
 	}
-
+	
 	//intramolecular energy contributors
 	myligand_reference->num_of_intraE_contributors = 0;
 	for (i=0; i<myligand_reference->num_of_atoms-1; i++)
 		for (j=i+1; j<myligand_reference->num_of_atoms; j++)
 		{
-			if (myligand_reference->intraE_contributors[i][j])
+			if (myligand_reference->intraE_contributors[i][j]){
+#ifdef INTERACTION_PAIR_INFO
+				printf("Pair interaction between: %i <-> %i\n",i+1,j+1);
+#endif
 				myligand_reference->num_of_intraE_contributors++;
+			}
 		}
 
 	if (myligand_reference->num_of_intraE_contributors > MAX_INTRAE_CONTRIBUTORS)
@@ -175,32 +180,19 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 				intpoi++;
 				*intpoi = (int) j;
 				intpoi++;
-				type_id1 = (int) myligand_reference->atom_idxyzq [i][0];
-				type_id2 = (int) myligand_reference->atom_idxyzq [j][0];
-
-				if (is_H_bond(myligand_reference->atom_types[type_id1], myligand_reference->atom_types[type_id2]) != 0)
-					*intpoi = (int) 1;
-				else
-					*intpoi = (int) 0;
-				intpoi++;
 			}
 		}
-
-        // Smoothed pairwise potentials
-	// reqm, reqm_hbond: equilibrium internuclear separation for vdW and hbond
-	for (i= 0; i<ATYPE_NUM/*myligand_reference->num_of_atypes*/; i++) {
-		reqm[i]       = myligand_reference->reqm[i];
-		reqm_hbond[i] = myligand_reference->reqm_hbond[i];
-
-		atom1_types_reqm [i] = myligand_reference->atom1_types_reqm[i];
-		atom2_types_reqm [i] = myligand_reference->atom2_types_reqm[i];
-	}
 
 	//van der Waals parameters
 	for (i=0; i<myligand_reference->num_of_atypes; i++)
 		for (j=0; j<myligand_reference->num_of_atypes; j++)
 		{
-			if (is_H_bond(myligand_reference->atom_types[i], myligand_reference->atom_types[j]) != 0)
+			*(VWpars_exp + i*myligand_reference->num_of_atypes + j) = myligand_reference->VWpars_exp[i][j];
+			floatpoi = reqm_AB + i*myligand_reference->num_of_atypes + j;
+			*floatpoi = (float) myligand_reference->reqm_AB[i][j];
+	
+			if ((is_H_bond(myligand_reference->base_atom_types[i], myligand_reference->base_atom_types[j]) != 0) &&
+			    (!is_mod_pair(myligand_reference->atom_types[i], myligand_reference->atom_types[j], mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs)))
 			{
 				floatpoi = VWpars_AC + i*myligand_reference->num_of_atypes + j;
 				*floatpoi = (float) myligand_reference->VWpars_C[i][j];
@@ -330,39 +322,21 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 
 	int m;
 
-	/*
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst->atom_charges_const[m] = atom_charges[m]; }
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst->atom_types_const[m]   = atom_types[m]; }
-	for (m=0;m<3*MAX_INTRAE_CONTRIBUTORS;m++){ KerConst->intraE_contributors_const[m]   = intraE_contributors[m]; }
-	for (m=0;m<ATYPE_NUM;m++){ KerConst->reqm_const[m] = reqm[m]; }
-	for (m=0;m<ATYPE_NUM;m++){ KerConst->reqm_hbond_const[m] = reqm_hbond[m]; }
-	for (m=0;m<ATYPE_NUM;m++){ KerConst->atom1_types_reqm_const[m] = atom1_types_reqm[m]; }
-	for (m=0;m<ATYPE_NUM;m++){ KerConst->atom2_types_reqm_const[m] = atom2_types_reqm[m]; }
-	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++){ KerConst->VWpars_AC_const[m]   = VWpars_AC[m]; }
-	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++){ KerConst->VWpars_BD_const[m]   = VWpars_BD[m]; }
-	for (m=0;m<MAX_NUM_OF_ATYPES;m++)		   { KerConst->dspars_S_const[m]    = dspars_S[m]; }
-	for (m=0;m<MAX_NUM_OF_ATYPES;m++)		   { KerConst->dspars_V_const[m]    = dspars_V[m]; }
-	for (m=0;m<MAX_NUM_OF_ROTATIONS;m++)		   { KerConst->rotlist_const[m]     = rotlist[m]; }
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++)		   { KerConst->ref_coords_x_const[m]= ref_coords_x[m]; }
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++)		   { KerConst->ref_coords_y_const[m]= ref_coords_y[m]; }
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++)		   { KerConst->ref_coords_z_const[m]= ref_coords_z[m]; }
-	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst->rotbonds_moving_vectors_const[m]= rotbonds_moving_vectors[m]; }
-	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst->rotbonds_unit_vectors_const[m]  = rotbonds_unit_vectors[m]; }
-	for (m=0;m<4*MAX_NUM_OF_RUNS;m++)    { KerConst->ref_orientation_quats_const[m]  = ref_orientation_quats[m]; }
-	*/
-
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst_interintra->atom_charges_const[m] = atom_charges[m]; }
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst_interintra->atom_types_const[m]   = atom_types[m];   }
-	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst_interintra->atom_types_map_const[m] = myligand_reference->atom_map_to_fgrids[m];}
-
-	for (m=0;m<3*MAX_INTRAE_CONTRIBUTORS;m++){ KerConst_intracontrib->intraE_contributors_const[m] = intraE_contributors[m]; }
-
-	for (m=0;m<ATYPE_NUM;m++){
-		KerConst_intra->reqm_const[m] 	    = 0.5*reqm[m];
-		KerConst_intra->reqm_const[m+ATYPE_NUM]	    = reqm_hbond[m];
+	for (m=0;m<MAX_NUM_OF_ATOMS;m++){
+		if (m<myligand_reference->num_of_atoms)
+			KerConst_interintra->ignore_inter_const[m] = (char)myligand_reference->ignore_inter[m];
+		else
+			KerConst_interintra->ignore_inter_const[m] = 1;
 	}
-	for (m=0;m<ATYPE_NUM;m++)				{ KerConst_intra->atom1_types_reqm_const[m] = atom1_types_reqm[m]; }
-	for (m=0;m<ATYPE_NUM;m++)				{ KerConst_intra->atom2_types_reqm_const[m] = atom2_types_reqm[m]; }
+	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst_interintra->atom_charges_const[m]    = atom_charges[m];    }
+	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst_interintra->atom_types_const[m]      = atom_types[m];      }
+	for (m=0;m<MAX_NUM_OF_ATOMS;m++){ KerConst_interintra->atom_types_map_const[m]  = myligand_reference->atom_map_to_fgrids[m]; }
+
+	for (m=0;m<2*MAX_INTRAE_CONTRIBUTORS;m++){ KerConst_intracontrib->intraE_contributors_const[m] = intraE_contributors[m]; }
+
+	for (m=0;m<MAX_NUM_OF_ATYPES;m++)			{ KerConst_intra->atom_types_reqm_const[m]  = myligand_reference->atom_types_reqm[m]; }
+	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++)	{ KerConst_intra->VWpars_exp_const[m]       = VWpars_exp[m]; }
+	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++)	{ KerConst_intra->reqm_AB_const[m]          = reqm_AB[m]; }
 	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++)	{ KerConst_intra->VWpars_AC_const[m]        = VWpars_AC[m]; }
 	for (m=0;m<MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES;m++)	{ KerConst_intra->VWpars_BD_const[m]        = VWpars_BD[m]; }
 	for (m=0;m<MAX_NUM_OF_ATYPES;m++)		   	{ KerConst_intra->dspars_S_const[m]         = dspars_S[m]; }
@@ -370,11 +344,13 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 
 	for (m=0;m<MAX_NUM_OF_ROTATIONS;m++) {
 		KerConst_rotlist->rotlist_const[m]  = rotlist[m];
-/*		if(m!=0 && m%myligand_reference->num_of_atoms==0)
+/*
+		if(m!=0 && m%myligand_reference->num_of_atoms==0)
 			printf("***\n");
 		if(m!=0 && m%NUM_OF_THREADS_PER_BLOCK==0)
 			printf("===\n");
-		printf("%i (%i): %i -> atom_id: %i, dummy: %i, first: %i, genrot: %i, rotbond_id: %i\n",m,m%NUM_OF_THREADS_PER_BLOCK,rotlist[m],rotlist[m] & RLIST_ATOMID_MASK, rotlist[m] & RLIST_DUMMY_MASK,rotlist[m] & RLIST_FIRSTROT_MASK,rotlist[m] & RLIST_GENROT_MASK,(rotlist[m] & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT);*/
+		printf("%i (%i): %i -> atom_id: %i, dummy: %i, first: %i, genrot: %i, rotbond_id: %i\n",m,m%NUM_OF_THREADS_PER_BLOCK,rotlist[m],rotlist[m] & RLIST_ATOMID_MASK, rotlist[m] & RLIST_DUMMY_MASK,rotlist[m] & RLIST_FIRSTROT_MASK,rotlist[m] & RLIST_GENROT_MASK,(rotlist[m] & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT);
+*/
 	}
 
 	for (m=0;m<MAX_NUM_OF_ATOMS;m++) {
@@ -396,10 +372,8 @@ int prepare_const_fields_for_gpu(Liganddata* 	   		myligand_reference,
 	delete[] atom_charges;
 	delete[] atom_types;
 	delete[] intraE_contributors;
-	delete[] reqm;
-        delete[] reqm_hbond;
-	delete[] atom1_types_reqm;
-        delete[] atom2_types_reqm;
+	delete[] VWpars_exp;
+	delete[] reqm_AB;
 	delete[] VWpars_AC;
 	delete[] VWpars_BD;
 	delete[] dspars_S;

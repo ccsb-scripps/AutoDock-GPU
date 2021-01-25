@@ -44,6 +44,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 typedef struct
 {
 	int  	 	num_of_atoms;
+	int  	 	true_ligand_atoms;
 	int   		num_of_atypes;
 	int   		num_of_map_atypes;
 	int    		num_of_intraE_contributors;
@@ -54,6 +55,7 @@ typedef struct
 	float* 		fgrids;
 	int    		rotbondlist_length;
 	float  		coeff_elec;
+	float  		elec_min_distance;
 	float  		coeff_desolv;
 	float* 		conformations_current;
 	float* 		energies_current;
@@ -130,20 +132,21 @@ typedef struct
 typedef struct
 {
        float atom_charges_const[MAX_NUM_OF_ATOMS];
-       uint32_t  atom_types_const  [MAX_NUM_OF_ATOMS];
-       uint32_t  atom_types_map_const  [MAX_NUM_OF_ATOMS];
+       uint32_t atom_types_const  [MAX_NUM_OF_ATOMS];
+       uint32_t atom_types_map_const  [MAX_NUM_OF_ATOMS];
+       char ignore_inter_const  [MAX_NUM_OF_ATOMS];
 } kernelconstant_interintra;
 
 typedef struct
 {
-       uint32_t  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
+       uint32_t  intraE_contributors_const[2*MAX_INTRAE_CONTRIBUTORS];
 } kernelconstant_intracontrib;
 
 typedef struct
 {
-       float reqm_const [2*ATYPE_NUM]; // 1st ATYPE_NUM entries = vdW, 2nd ATYPE_NUM entries = hbond
-       unsigned int  atom1_types_reqm_const [ATYPE_NUM];
-       unsigned int  atom2_types_reqm_const [ATYPE_NUM];
+       unsigned int  atom_types_reqm_const [MAX_NUM_OF_ATYPES];
+       unsigned short int VWpars_exp_const [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
+       float reqm_AB_const     [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
        float VWpars_AC_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
        float VWpars_BD_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
        float dspars_S_const    [MAX_NUM_OF_ATYPES];

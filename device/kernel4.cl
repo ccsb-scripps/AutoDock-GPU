@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gpu_gen_and_eval_newpops(
 			 int    dockpars_num_of_atoms,
+			 int    dockpars_true_ligand_atoms,
 			 int    dockpars_num_of_atypes,
 			 int    dockpars_num_of_map_atypes,
 			 int    dockpars_num_of_intraE_contributors,
@@ -45,6 +46,7 @@ gpu_gen_and_eval_newpops(
           __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
 	                 int    dockpars_rotbondlist_length,
  			 float  dockpars_coeff_elec,
+ 			 float  dockpars_elec_min_distance,
 			 float  dockpars_coeff_desolv,
           __global const float* restrict  dockpars_conformations_current,
           __global       float* restrict  dockpars_energies_current,
@@ -273,6 +275,7 @@ gpu_gen_and_eval_newpops(
 		// =============================================================
 		gpu_calc_energy(dockpars_rotbondlist_length,
 				dockpars_num_of_atoms,
+				dockpars_true_ligand_atoms,
 				dockpars_gridsize_x,
 				dockpars_gridsize_y,
 	                        dockpars_gridsize_z,
@@ -285,10 +288,10 @@ gpu_gen_and_eval_newpops(
 				dockpars_num_of_intraE_contributors,
 				dockpars_grid_spacing,
 				dockpars_coeff_elec,
+				dockpars_elec_min_distance,
                                 dockpars_qasp,
 				dockpars_coeff_desolv,
 				dockpars_smooth,
-
 				offspring_genotype,
 				&energy,
 				&run_id,

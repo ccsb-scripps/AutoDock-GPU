@@ -35,18 +35,19 @@ typedef struct
        float atom_charges_const[MAX_NUM_OF_ATOMS];
        int  atom_types_const  [MAX_NUM_OF_ATOMS];
        int  atom_types_map_const  [MAX_NUM_OF_ATOMS];
+       char  ignore_inter_const  [MAX_NUM_OF_ATOMS];
 } kernelconstant_interintra;
 
 typedef struct
 {
-       int  intraE_contributors_const[3*MAX_INTRAE_CONTRIBUTORS];
+       int  intraE_contributors_const[2*MAX_INTRAE_CONTRIBUTORS];
 } kernelconstant_intracontrib;
 
 typedef struct
 {
-       float reqm_const [2*ATYPE_NUM]; // 1st ATYPE_NUM entries = vdW, 2nd ATYPE_NUM entries = hbond
-       unsigned int  atom1_types_reqm_const [ATYPE_NUM];
-       unsigned int  atom2_types_reqm_const [ATYPE_NUM];
+       unsigned int  atom_types_reqm_const [MAX_NUM_OF_ATYPES];
+       unsigned short int VWpars_exp_const [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
+       float reqm_AB_const     [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
        float VWpars_AC_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
        float VWpars_BD_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
        float dspars_S_const    [MAX_NUM_OF_ATYPES];
@@ -116,6 +117,7 @@ inline float4 quaternion_rotate(float4 v, float4 rot)
 void gpu_calc_energy(	    
 				int    dockpars_rotbondlist_length,
 				int    dockpars_num_of_atoms,
+				int    dockpars_true_ligand_atoms,
 			    	int    dockpars_gridsize_x,
 			    	int    dockpars_gridsize_y,
 			    	int    dockpars_gridsize_z,
@@ -128,6 +130,7 @@ void gpu_calc_energy(
 		            	int    dockpars_num_of_intraE_contributors,
 			    	float  dockpars_grid_spacing,
 			    	float  dockpars_coeff_elec,
+			    	float  dockpars_elec_min_distance,
 			    	float  dockpars_qasp,
 			    	float  dockpars_coeff_desolv,
 				float  dockpars_smooth,
@@ -223,10 +226,20 @@ void gpu_calc_energy(
 			float4 atom_to_rotate = calc_coords[atom_id];
 
 			// initialize with general rotation values
-			float4 rotation_unitvec = genrot_unitvec;
-			float4 rotation_movingvec = genrot_movingvec;
+			float4 rotation_unitvec;
+			float4 rotation_movingvec;
+			if (atom_id < dockpars_true_ligand_atoms){
+				rotation_unitvec = genrot_unitvec;
+				rotation_movingvec = genrot_movingvec;
+			} else{
+				rotation_unitvec.x = 0.0f; rotation_unitvec.y = 0.0f; rotation_unitvec.z = 0.0f;
+				rotation_unitvec.w = 1.0f;
+				rotation_movingvec.x = 0.0f; rotation_movingvec.y = 0.0f; rotation_movingvec.z = 0.0f;
+				rotation_movingvec.w = 0.0f;
+			}
 
 			if ((rotation_list_element & RLIST_GENROT_MASK) == 0) // If rotating around rotatable bond
+			    
 			{
 				uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
 
@@ -246,9 +259,9 @@ void gpu_calc_energy(
 
 			float4 quatrot_left = rotation_unitvec;
 			// Performing rotation
-			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation,
-										// two rotations should be performed
-										// (multiplying the quaternions)
+			if (((rotation_list_element & RLIST_GENROT_MASK) != 0) && // If general rotation,
+			    (atom_id < dockpars_true_ligand_atoms))		  // two rotations should be performed
+										  // (multiplying the quaternions)
 			{
 				// Calculating quatrot_left*ref_orientation_quats_const,
 				// which means that reference orientation rotation is the first
@@ -276,6 +289,8 @@ void gpu_calc_energy(
 	          atom_id < dockpars_num_of_atoms;
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
+		if (kerconst_interintra->ignore_inter_const[atom_id]>0) // first two atoms of a flex res are to be ignored here
+			continue;
 		uint atom_typeid = kerconst_interintra->atom_types_map_const[atom_id];
 		float x = calc_coords[atom_id].x;
 		float y = calc_coords[atom_id].y;
@@ -362,7 +377,8 @@ void gpu_calc_energy(
 	// are independent from each other, -> NO BARRIER NEEDED
 	// but require different operations,
 	// thus, they can be executed only sequentially on the GPU.
-	float delta_distance = 0.5f*dockpars_smooth; 
+	float delta_distance = 0.5f*dockpars_smooth;
+	float smoothed_distance;
 
 	// ================================================
 	// CALCULATING INTRAMOLECULAR ENERGY
@@ -388,9 +404,8 @@ if (tidx == 0) {
 #endif
 
 		// Getting atom IDs
-		uint atom1_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter];
-		uint atom2_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+1];
-		uint hbond = (uint)(kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1);	// evaluates to 1 in case of H-bond, 0 otherwise
+		uint atom1_id = kerconst_intracontrib->intraE_contributors_const[2*contributor_counter];
+		uint atom2_id = kerconst_intracontrib->intraE_contributors_const[2*contributor_counter+1];
 
 		// Calculating vector components of vector going
 		// from first atom's to second atom's coordinates
@@ -400,74 +415,87 @@ if (tidx == 0) {
 
 		// Calculating atomic_distance
 		float atomic_distance = native_sqrt(subx*subx + suby*suby + subz*subz)*dockpars_grid_spacing;
+		if(atomic_distance<0.01f) atomic_distance=0.01f;
 
 		// Getting type IDs
 		uint atom1_typeid = kerconst_interintra->atom_types_const[atom1_id];
 		uint atom2_typeid = kerconst_interintra->atom_types_const[atom2_id];
 
-		uint atom1_type_vdw_hb = kerconst_intra->atom1_types_reqm_const [atom1_typeid];
-		uint atom2_type_vdw_hb = kerconst_intra->atom2_types_reqm_const [atom2_typeid];
-
+		uint atom1_type_vdw_hb = kerconst_intra->atom_types_reqm_const [atom1_typeid];
+		uint atom2_type_vdw_hb = kerconst_intra->atom_types_reqm_const [atom2_typeid];
 
 		// Calculating energy contributions
-		// Cuttoff1: internuclear-distance at 8A only for vdw and hbond.
+		// Cuttoff1: internuclear-distance at 8A only for vdw and hbond
 		if (atomic_distance < 8.0f)
 		{
-			// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
-			// reqm: equilibrium internuclear separation 
-			//       (sum of the vdW radii of two like atoms (A)) in the case of vdW
-			// reqm_hbond: equilibrium internuclear separation
-			//  	 (sum of the vdW radii of two like atoms (A)) in the case of hbond 
-			float opt_distance = (kerconst_intra->reqm_const [atom1_type_vdw_hb+ATYPE_NUM*hbond] + kerconst_intra->reqm_const [atom2_type_vdw_hb+ATYPE_NUM*hbond]);
+			uint idx = atom1_typeid * dockpars_num_of_atypes + atom2_typeid;
+			ushort exps = kerconst_intra->VWpars_exp_const[idx];
+			char m=(exps & 0xFF00)>>8;
+			char n=(exps & 0xFF);
+			// Getting optimum pair distance (opt_distance)
+			float opt_distance = kerconst_intra->reqm_AB_const[idx];
 
 			// Getting smoothed distance
 			// smoothed_distance = function(atomic_distance, opt_distance)
-			float smoothed_distance = opt_distance;
-
-			if (atomic_distance <= (opt_distance - delta_distance)) {
-				smoothed_distance = atomic_distance + delta_distance;
-			}
-			if (atomic_distance >= (opt_distance + delta_distance)) {
-				smoothed_distance = atomic_distance - delta_distance;
-			}
+			float opt_dist_delta = opt_distance - atomic_distance;
+			if(fabs(opt_dist_delta)>=delta_distance){
+				smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
+			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
-			uint idx = atom1_typeid * dockpars_num_of_atypes + atom2_typeid;
-			partial_energies[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12)) -
-						  native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
+			partial_energies[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,m)) -
+						  native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,n));
 
 			#if 0
-			smoothed_intraE = native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12)) -
-					  native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
-			raw_intraE_vdw_hb = native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(atomic_distance,12)) -
-					    native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
+			smoothed_intraE = native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,m)) -
+					  native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,n));
+			raw_intraE_vdw_hb = native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(atomic_distance,m)) -
+					    native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,n));
 			#endif
 
 			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_intraE[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12)) -
-						native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
+			partial_intraE[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,m)) -
+						native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,n));
 			#endif
 		} // if cuttoff1 - internuclear-distance at 8A
 
 		// Calculating energy contributions
+
+		// ------------------------------------------------
+		// Required only for flexrings
+		// Checking if this is a CG-G0 atomic pair.
+		// If so, then adding energy term (E = G * distance).
+		// Initial specification required NON-SMOOTHED distance.
+		// This interaction is evaluated at any distance,
+		// so no cuttoffs considered here!
+		if (((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) || 
+		    ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX))) {
+			partial_energies[tidx] += G * atomic_distance;
+		}
+		// ------------------------------------------------
+
 		// Cuttoff2: internuclear-distance at 20.48A only for el and sol.
 		if (atomic_distance < 20.48f)
 		{
+			if(atomic_distance<dockpars_elec_min_distance) atomic_distance=dockpars_elec_min_distance;
 			float q1 = kerconst_interintra->atom_charges_const[atom1_id];
 			float q2 = kerconst_interintra->atom_charges_const[atom2_id];
 			float dist2 = atomic_distance*atomic_distance;
 			// Calculating desolvation term
+			// 1/25.92 = 0.038580246913580245
 			float desolv_energy =  ((kerconst_intra->dspars_S_const[atom1_typeid] +
 						 dockpars_qasp*fabs(q1)) * kerconst_intra->dspars_V_const[atom2_typeid] +
 						(kerconst_intra->dspars_S_const[atom2_typeid] +
 						 dockpars_qasp*fabs(q2)) * kerconst_intra->dspars_V_const[atom1_typeid]) *
 						native_divide (
 								dockpars_coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)),
-								(12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2))) // *native_exp(-0.03858025f*atomic_distance*atomic_distance);
+								(12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2)))
 							      );
-			// Calculating electrostatic term
-			float dist_shift=atomic_distance+1.261f;
+			float dist_shift=atomic_distance+1.588f;
 			dist2=dist_shift*dist_shift;
-			float diel = native_divide(1.105f,dist2)+0.0104f;
+			float disth_shift=atomic_distance+0.794f;
+			float disth4=disth_shift*disth_shift;
+			disth4*=disth4;
+			float diel = native_divide(1.404f,dist2)+native_divide(0.072f,disth4)+0.00831f;
 			float es_energy = native_divide (
 							  dockpars_coeff_elec * q1 * q2,
 							  atomic_distance
@@ -506,20 +534,6 @@ if (tidx == 0) {
 							dockpars_coeff_desolv*native_exp(-0.03858025f*native_powr(atomic_distance, 2));
 			#endif
 		} // if cuttoff2 - internuclear-distance at 20.48A
-
-		// ------------------------------------------------
-		// Required only for flexrings
-		// Checking if this is a CG-G0 atomic pair.
-		// If so, then adding energy term (E = G * distance).
-		// Initial specification required NON-SMOOTHED distance.
-		// This interaction is evaluated at any distance,
-		// so no cuttoffs considered here!
-		if (((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) || 
-		    ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX))) {
-			partial_energies[tidx] += G * atomic_distance;
-		}
-		// ------------------------------------------------
-
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
 
 	barrier(CLK_LOCAL_MEM_FENCE);
