@@ -424,6 +424,18 @@ if (tidx == 0) {
 		uint atom1_type_vdw_hb = kerconst_intra->atom_types_reqm_const [atom1_typeid];
 		uint atom2_type_vdw_hb = kerconst_intra->atom_types_reqm_const [atom2_typeid];
 
+		// ------------------------------------------------
+		// Required only for flexrings
+		// Checking if this is a CG-G0 atomic pair.
+		// If so, then adding energy term (E = G * distance).
+		// Initial specification required NON-SMOOTHED distance.
+		// This interaction is evaluated at any distance,
+		// so no cuttoffs considered here!
+		// vbond is G when calculating flexrings, 0.0 otherwise
+		float vbond = G * (float)(((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) ||
+					  ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX)));
+		partial_energies[tidx] += vbond * atomic_distance;
+
 		// Calculating energy contributions
 		// Cuttoff1: internuclear-distance at 8A only for vdw and hbond
 		if (atomic_distance < 8.0f)
@@ -442,37 +454,21 @@ if (tidx == 0) {
 				smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
 			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
-			partial_energies[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,m)) -
-						  native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,n));
-
-			#if 0
-			smoothed_intraE = native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,m)) -
-					  native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,n));
-			raw_intraE_vdw_hb = native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(atomic_distance,m)) -
-					    native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,n));
-			#endif
-
+/*			partial_energies[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,m)) -
+			                          native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,n));*/
+			partial_energies[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx]
+			                                        -native_powr(smoothed_distance,m-n)*kerconst_intra->VWpars_BD_const[idx]
+			                                        ,
+			                                        native_powr(smoothed_distance,m));
 			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_intraE[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,m)) -
-						native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,n));
+			partial_intraE[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx]
+			                                      -native_powr(smoothed_distance,m-n)kerconst_intra->VWpars_BD_const[idx]
+			                                      ,
+			                                      native_powr(smoothed_distance,m));
 			#endif
 		} // if cuttoff1 - internuclear-distance at 8A
 
 		// Calculating energy contributions
-
-		// ------------------------------------------------
-		// Required only for flexrings
-		// Checking if this is a CG-G0 atomic pair.
-		// If so, then adding energy term (E = G * distance).
-		// Initial specification required NON-SMOOTHED distance.
-		// This interaction is evaluated at any distance,
-		// so no cuttoffs considered here!
-		if (((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) || 
-		    ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX))) {
-			partial_energies[tidx] += G * atomic_distance;
-		}
-		// ------------------------------------------------
-
 		// Cuttoff2: internuclear-distance at 20.48A only for el and sol.
 		if (atomic_distance < 20.48f)
 		{
@@ -490,12 +486,10 @@ if (tidx == 0) {
 								dockpars_coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)),
 								(12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2)))
 							      );
-			float dist_shift=atomic_distance+1.588f;
+			// Calculating electrostatic term
+			float dist_shift=atomic_distance+1.26366f;
 			dist2=dist_shift*dist_shift;
-			float disth_shift=atomic_distance+0.794f;
-			float disth4=disth_shift*disth_shift;
-			disth4*=disth4;
-			float diel = native_divide(1.404f,dist2)+native_divide(0.072f,disth4)+0.00831f;
+			float diel = native_divide(1.10859f,dist2)+0.010358f;
 			float es_energy = native_divide (
 							  dockpars_coeff_elec * q1 * q2,
 							  atomic_distance

@@ -545,10 +545,9 @@ void gpu_calc_energrad(
 				smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
 			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
-			float nvbond = 1.0 - vbond;
-			float A = nvbond * native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,m));
-			float B = nvbond * native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,n));
-			partial_energies[tidx] += A - B;
+			float A = native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,m));
+			float B = native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,n));
+			partial_energies[tidx] += A - B; // these are zero for flexrings
 			priv_gradient_per_intracontributor += native_divide ((float)n * B - (float)m * A, smoothed_distance);
 			#if defined (DEBUG_ENERGY_KERNEL)
 			partial_intraE[tidx] += A - B;
@@ -575,18 +574,24 @@ void gpu_calc_energrad(
 								(12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2)))
 							      );
 //						dockpars_coeff_desolv*native_exp(-0.03858025f*atomic_distance*atomic_distance);
-						  // Calculating electrostatic term
+			// Calculating electrostatic term
 /*			partial_energies[tidx] += native_divide (
 								  dockpars_coeff_elec * q1 * q2,
 								  atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + native_divide(DIEL_K,exp_el))))
 								) +
 						  desolv_energy;*/
+#ifndef DIEL_FIT_ABC
+			float dist_shift=atomic_distance+1.26366f;
+			dist2=dist_shift*dist_shift;
+			float diel = native_divide(1.10859f,dist2)+0.010358f;
+#else
 			float dist_shift=atomic_distance+1.588f;
 			dist2=dist_shift*dist_shift;
 			float disth_shift=atomic_distance+0.794f;
 			float disth4=disth_shift*disth_shift;
 			disth4*=disth4;
 			float diel = native_divide(1.404f,dist2)+native_divide(0.072f,disth4)+0.00831f;
+#endif
 			float es_energy = native_divide (
 							  dockpars_coeff_elec * q1 * q2,
 							  atomic_distance
@@ -611,8 +616,13 @@ void gpu_calc_energrad(
 
 //			priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * q1 * q2 * native_divide (upper, lower) -
 //								0.0771605f * atomic_distance * desolv_energy;
-			priv_gradient_per_intracontributor +=  -native_divide(es_energy,atomic_distance) * diel - es_energy * (native_divide (2.808f,dist2*dist_shift)+native_divide(0.288f,disth4*disth_shift)) -
-								0.0771605f * atomic_distance * desolv_energy; // 1/3.6^2 = 1/12.96 = 0.0771605
+			priv_gradient_per_intracontributor +=  -native_divide(es_energy,atomic_distance) * diel
+#ifndef DIEL_FIT_ABC
+							       -es_energy * native_divide (2.21718f,dist2*dist_shift)
+#else
+							       -es_energy * (native_divide (2.808f,dist2*dist_shift)+native_divide(0.288f,disth4*disth_shift))
+#endif
+							       -0.0771605f * atomic_distance * desolv_energy; // 1/3.6^2 = 1/12.96 = 0.0771605
 		} // if cuttoff2 - internuclear-distance at 20.48A
 
 

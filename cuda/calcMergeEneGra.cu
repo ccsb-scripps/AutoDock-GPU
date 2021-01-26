@@ -510,10 +510,9 @@ __device__ void gpu_calc_energrad(
 				smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
 			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
-			float nvbond = 1.0 - vbond;
-			float A = nvbond * cData.pKerconst_intra->VWpars_AC_const[idx] / positive_power(smoothed_distance,m);
-			float B = nvbond * cData.pKerconst_intra->VWpars_BD_const[idx] / positive_power(smoothed_distance,n);
-			energy += A - B;
+			float A = cData.pKerconst_intra->VWpars_AC_const[idx] / positive_power(smoothed_distance,m);
+			float B = cData.pKerconst_intra->VWpars_BD_const[idx] / positive_power(smoothed_distance,n);
+			energy += A - B; // zero for flex rings
 			priv_gradient_per_intracontributor += ((float)n * B - (float)m * A) / smoothed_distance;
 			#if defined (DEBUG_ENERGY_KERNEL)
 			intraE += A - B;
@@ -542,12 +541,18 @@ __device__ void gpu_calc_energrad(
 						 );
 
 			// Calculating electrostatic term
+#ifndef DIEL_FIT_ABC
+			float dist_shift=atomic_distance+1.26366f;
+			dist2=dist_shift*dist_shift;
+			float diel = 1.10859f / dist2 + 0.010358f;
+#else
 			float dist_shift=atomic_distance+1.588f;
 			dist2=dist_shift*dist_shift;
 			float disth_shift=atomic_distance+0.794f;
 			float disth4=disth_shift*disth_shift;
 			disth4*=disth4;
 			float diel = 1.404f / dist2 + 0.072f / disth4 + 0.00831f;
+#endif
 			float es_energy = cData.dockpars.coeff_elec * q1 * q2 / atomic_distance;
 			energy += diel * es_energy + desolv_energy;
 
@@ -564,8 +569,13 @@ __device__ void gpu_calc_energrad(
 
 //			priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * q1 * q2 * native_divide (upper, lower) -
 //								0.0771605f * atomic_distance * desolv_energy;
-			priv_gradient_per_intracontributor +=  -(es_energy / atomic_distance) * diel - es_energy * ((2.808f / (dist2*dist_shift)) + (0.288f / (disth4*disth_shift))) -
-								0.0771605f * atomic_distance * desolv_energy; // 1/3.6^2 = 1/12.96 = 0.0771605
+			priv_gradient_per_intracontributor +=  -(es_energy / atomic_distance) * diel
+#ifndef DIEL_FIT_ABC
+							       -es_energy * 2.21718f / (dist2*dist_shift)
+#else
+							       -es_energy * ((2.808f / (dist2*dist_shift)) + (0.288f / (disth4*disth_shift)))
+#endif
+							       -0.0771605f * atomic_distance * desolv_energy; // 1/3.6^2 = 1/12.96 = 0.0771605
 		} // if cuttoff2 - internuclear-distance at 20.48A
 
 		// Decomposing "priv_gradient_per_intracontributor"

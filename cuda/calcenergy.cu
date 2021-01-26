@@ -398,12 +398,17 @@ __device__ void gpu_calc_energy(
 				smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
 			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
-			float nvbond = 1.0 - vbond;
-			float A = nvbond * cData.pKerconst_intra->VWpars_AC_const[idx] / positive_power(smoothed_distance,m);
-			float B = nvbond * cData.pKerconst_intra->VWpars_BD_const[idx] / positive_power(smoothed_distance,n);
-			energy += A - B;
+/*			energy += cData.pKerconst_intra->VWpars_AC_const[idx] / positive_power(smoothed_distance,m) -;
+			          cData.pKerconst_intra->VWpars_BD_const[idx] / positive_power(smoothed_distance,n);*/
+			energy += (cData.pKerconst_intra->VWpars_AC_const[idx]
+			           -positive_power(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx]
+			           /
+			           positive_power(smoothed_distance,m);
 			#if defined (DEBUG_ENERGY_KERNEL)
-			intraE += A - B;
+			intraE += (cData.pKerconst_intra->VWpars_AC_const[idx]
+			           -positive_power(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx]
+			           /
+			           positive_power(smoothed_distance,m);
 			#endif
 		} // if cuttoff1 - internuclear-distance at 8A
 
@@ -427,14 +432,10 @@ __device__ void gpu_calc_energy(
 							cData.dockpars.coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)) /
 							(12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2)))
 						 );
-
-            // Calculating electrostatic term
-			float dist_shift=atomic_distance+1.588f;
+			// Calculating electrostatic term
+			float dist_shift=atomic_distance+1.26366f;
 			dist2=dist_shift*dist_shift;
-			float disth_shift=atomic_distance+0.794f;
-			float disth4=disth_shift*disth_shift;
-			disth4*=disth4;
-			float diel = 1.404f / dist2 + 0.072f / disth4 + 0.00831f;
+			float diel = (1.10859f / dist2)+0.010358f;
 			float es_energy = cData.dockpars.coeff_elec * q1 * q2 / atomic_distance;
 			energy += diel * es_energy + desolv_energy;
 
