@@ -399,12 +399,12 @@ __device__ void gpu_calc_energy(
 			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
 			energy += (cData.pKerconst_intra->VWpars_AC_const[idx]
-			           -positive_power(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx]
+			           -positive_power(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx])
 			           /
 			           positive_power(smoothed_distance,m);
 			#if defined (DEBUG_ENERGY_KERNEL)
 			intraE += (cData.pKerconst_intra->VWpars_AC_const[idx]
-			           -positive_power(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx]
+			           -positive_power(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx])
 			           /
 			           positive_power(smoothed_distance,m);
 			#endif

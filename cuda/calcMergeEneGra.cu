@@ -511,18 +511,18 @@ __device__ void gpu_calc_energrad(
 			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
 			float rmn = positive_power(smoothed_distance,m-n);
-			float rm = positive_power(smoothed_distance,m)
+			float rm = positive_power(smoothed_distance,m);
 			energy += (cData.pKerconst_intra->VWpars_AC_const[idx]
-			           -rmn*cData.pKerconst_intra->VWpars_BD_const[idx]
+			           -rmn*cData.pKerconst_intra->VWpars_BD_const[idx])
 			           /
 			           rm;
-			priv_gradient_per_intracontributor += n*cData.pKerconst_intra->VWpars_BD_const[idx]*rmn
-			                                      -m*cData.pKerconst_intra->VWpars_AC_const[idx]
+			priv_gradient_per_intracontributor += (n*cData.pKerconst_intra->VWpars_BD_const[idx]*rmn
+			                                      -m*cData.pKerconst_intra->VWpars_AC_const[idx])
 			                                      /
-			                                      rm*smoothed_distance;
+			                                      (rm*smoothed_distance);
 			#if defined (DEBUG_ENERGY_KERNEL)
 			intraE += (cData.pKerconst_intra->VWpars_AC_const[idx]
-			           -positive_power(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx]
+			           -positive_power(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx])
 			           /
 			           positive_power(smoothed_distance,m);
 			#endif
