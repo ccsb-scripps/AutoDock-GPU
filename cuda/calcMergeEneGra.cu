@@ -215,6 +215,7 @@ __device__ void gpu_calc_energrad(
 	// ================================================
 	float weights[8];
 	float cube[8];
+	float inv_grid_spacing=1.0/cData.dockpars.grid_spacing;
 	for (uint32_t atom_id = threadIdx.x;
 	              atom_id < cData.dockpars.num_of_atoms;
 	              atom_id+= blockDim.x)
@@ -242,13 +243,13 @@ __device__ void gpu_calc_energrad(
 			// The idea here is to push the offending
 			// molecule towards the center rather
 #ifdef FLOAT_GRADIENTS
-			gradient[atom_id].x += 42.0f * x / cData.dockpars.grid_spacing;
-			gradient[atom_id].y += 42.0f * y / cData.dockpars.grid_spacing;
-			gradient[atom_id].z += 42.0f * z / cData.dockpars.grid_spacing;
+			gradient[atom_id].x += 42.0f * x * inv_grid_spacing;
+			gradient[atom_id].y += 42.0f * y * inv_grid_spacing;
+			gradient[atom_id].z += 42.0f * z * inv_grid_spacing;
 #else
-			gradient[atom_id].x += lrintf((TERMSCALE * 42.0f * x) / cData.dockpars.grid_spacing);
-			gradient[atom_id].y += lrintf((TERMSCALE * 42.0f * y) / cData.dockpars.grid_spacing);
-			gradient[atom_id].z += lrintf((TERMSCALE * 42.0f * z) / cData.dockpars.grid_spacing);
+			gradient[atom_id].x += lrintf(TERMSCALE * 42.0f * x * inv_grid_spacing);
+			gradient[atom_id].y += lrintf(TERMSCALE * 42.0f * y * inv_grid_spacing);
+			gradient[atom_id].z += lrintf(TERMSCALE * 42.0f * z * inv_grid_spacing);
 #endif // FLOAT_GRADIENTS
 #else
 			energy += 16777216.0f; //100000.0f;
@@ -345,13 +346,13 @@ __device__ void gpu_calc_energrad(
 		// AT - all in one go with no intermediate variables (following calcs are similar)
 		// Vector in x-direction
 		float gx = (omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
-		              dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011]))) / cData.dockpars.grid_spacing;
+		              dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011]))) * inv_grid_spacing;
 		// Vector in y-direction
 		float gy = (omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
-		              dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101]))) / cData.dockpars.grid_spacing;
+		              dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101]))) * inv_grid_spacing;
 		// Vectors in z-direction
 		float gz = (omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
-		              dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110]))) / cData.dockpars.grid_spacing;
+		              dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110]))) * inv_grid_spacing;
 		// -------------------------------------------------------------------
 		// Calculating gradients (forces) corresponding to 
 		// "elec" intermolecular energy
@@ -377,7 +378,7 @@ __device__ void gpu_calc_energrad(
 		interE += q *(cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
 		#endif
 
-		float q1 = q / cData.dockpars.grid_spacing;
+		float q1 = q * inv_grid_spacing;
 		// Vector in x-direction
 		gx += q1 * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
 		               dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011])));
@@ -510,21 +511,16 @@ __device__ void gpu_calc_energrad(
 				smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
 			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
-			float rmn = positive_power(smoothed_distance,m-n);
-			float rm = positive_power(smoothed_distance,m);
+			float rmn = __powf(smoothed_distance,m-n);
+			float rm = __powf(smoothed_distance,-m);
 			energy += (cData.pKerconst_intra->VWpars_AC_const[idx]
-			           -rmn*cData.pKerconst_intra->VWpars_BD_const[idx])
-			           /
-			           rm;
+			           -rmn*cData.pKerconst_intra->VWpars_BD_const[idx])*rm;
 			priv_gradient_per_intracontributor += (n*cData.pKerconst_intra->VWpars_BD_const[idx]*rmn
-			                                      -m*cData.pKerconst_intra->VWpars_AC_const[idx])
-			                                      /
-			                                      (rm*smoothed_distance);
+			                                      -m*cData.pKerconst_intra->VWpars_AC_const[idx])*rm
+			                                      /smoothed_distance;
 			#if defined (DEBUG_ENERGY_KERNEL)
 			intraE += (cData.pKerconst_intra->VWpars_AC_const[idx]
-			           -positive_power(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx])
-			           /
-			           positive_power(smoothed_distance,m);
+			           -rmn*cData.pKerconst_intra->VWpars_BD_const[idx])*rm
 			#endif
 		} // if cuttoff1 - internuclear-distance at 8A
 

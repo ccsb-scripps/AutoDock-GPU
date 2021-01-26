@@ -205,14 +205,13 @@ __device__ void gpu_calc_energy(
 
 				float rotation_angle = pGenotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
 				float s = sin(rotation_angle);
-                rotation_unitvec.x = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id];
-                rotation_unitvec.y = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1];
-                rotation_unitvec.z = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2];
-                rotation_unitvec.w = cos(rotation_angle);
-                rotation_movingvec.x = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id];
-                rotation_movingvec.y = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1];
-                rotation_movingvec.z = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2];
-                
+				rotation_unitvec.x = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id];
+				rotation_unitvec.y = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1];
+				rotation_unitvec.z = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2];
+				rotation_unitvec.w = cos(rotation_angle);
+				rotation_movingvec.x = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id];
+				rotation_movingvec.y = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1];
+				rotation_movingvec.z = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2];
 				// Performing additionally the first movement which
 				// is needed only if rotating around rotatable bond
 				atom_to_rotate.x -= rotation_movingvec.x;
@@ -252,6 +251,8 @@ __device__ void gpu_calc_energy(
 	// ================================================
 	// CALCULATING INTERMOLECULAR ENERGY
 	// ================================================
+	float weights[8];
+	float cube[8];
 	for (uint atom_id = threadIdx.x;
 	          atom_id < cData.dockpars.num_of_atoms;
 	          atom_id+= blockDim.x)
@@ -270,58 +271,81 @@ __device__ void gpu_calc_energy(
 			continue; // get on with loop as our work here is done (we crashed into the walls)
 		}
 		// Getting coordinates
-		uint x_low  = (uint)floor(x); 
-		uint y_low  = (uint)floor(y); 
-		uint z_low  = (uint)floor(z);
-
-		float dx = x - x_low;
-		float omdx = 1.0 - dx;
-		float dy = y - y_low; 
-		float omdy = 1.0 - dy;
-		float dz = z - z_low;
-		float omdz = 1.0 - dz;
-
-		// Calculating interpolation weights
-		float weights[8];
-		weights [idx_000] = omdx*omdy*omdz;
-		weights [idx_100] = dx*omdy*omdz;
-		weights [idx_010] = omdx*dy*omdz;
-		weights [idx_110] = dx*dy*omdz;
-		weights [idx_001] = omdx*omdy*dz;
-		weights [idx_101] = dx*omdy*dz;
-		weights [idx_011] = omdx*dy*dz;
-		weights [idx_111] = dx*dy*dz;
+		float x_low  = floor(x);
+		float y_low  = floor(y);
+		float z_low  = floor(z);
 
 		// Grid value at 000
-		float* grid_value_000 = cData.pMem_fgrids + ((x_low  + y_low*g1  + z_low*g2)<<2);
-		ulong mul_tmp = atom_typeid*g3<<2;
-		// Calculating affinity energy
-		energy += TRILININTERPOL((grid_value_000+mul_tmp), weights);
+		float* grid_value_000 = cData.pMem_fgrids + ((ulong)(x_low  + y_low*g1  + z_low*g2)<<2);
 
+		float dx = x - x_low;
+		float omdx = 1.0f - dx;
+		float dy = y - y_low; 
+		float omdy = 1.0f - dy;
+		float dz = z - z_low;
+		float omdz = 1.0f - dz;
+
+		// Calculating interpolation weights
+		weights [idx_000] = omdx*omdy*omdz;
+		weights [idx_010] = omdx*dy*omdz;
+		weights [idx_001] = omdx*omdy*dz;
+		weights [idx_011] = omdx*dy*dz;
+		weights [idx_100] = dx*omdy*omdz;
+		weights [idx_110] = dx*dy*omdz;
+		weights [idx_101] = dx*omdy*dz;
+		weights [idx_111] = dx*dy*dz;
+
+		ulong mul_tmp = atom_typeid*g3<<2;
+		cube[0] = *(grid_value_000+mul_tmp+0);
+		cube[1] = *(grid_value_000+mul_tmp+1);
+		cube[2] = *(grid_value_000+mul_tmp+2);
+		cube[3] = *(grid_value_000+mul_tmp+3);
+		cube[4] = *(grid_value_000+mul_tmp+4);
+		cube[5] = *(grid_value_000+mul_tmp+5);
+		cube[6] = *(grid_value_000+mul_tmp+6);
+		cube[7] = *(grid_value_000+mul_tmp+7);
+		// Calculating affinity energy
+		energy += cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7];
 		#if defined (DEBUG_ENERGY_KERNEL)
-		interE += TRILININTERPOL((grid_value_000+mul_tmp), weights);
+		interE += cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7];
 		#endif
 
 		// Capturing electrostatic values
 		atom_typeid = cData.dockpars.num_of_map_atypes;
 
-		mul_tmp = atom_typeid*g3<<2;
-		// Calculating electrostatic energy
-		energy += q * TRILININTERPOL((grid_value_000+mul_tmp), weights);
+		mul_tmp = atom_typeid*g3<<2; // different atom type id to get charge IA
+		cube[0] = *(grid_value_000+mul_tmp+0);
+		cube[1] = *(grid_value_000+mul_tmp+1);
+		cube[2] = *(grid_value_000+mul_tmp+2);
+		cube[3] = *(grid_value_000+mul_tmp+3);
+		cube[4] = *(grid_value_000+mul_tmp+4);
+		cube[5] = *(grid_value_000+mul_tmp+5);
+		cube[6] = *(grid_value_000+mul_tmp+6);
+		cube[7] = *(grid_value_000+mul_tmp+7);
 
+		// Calculating affinity energy
+		energy += q * (cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
 		#if defined (DEBUG_ENERGY_KERNEL)
-		interE += q * TRILININTERPOL((grid_value_000+mul_tmp), weights);
+		interE += q *(cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
 		#endif
 
-		// Capturing desolvation values
-		atom_typeid = cData.dockpars.num_of_map_atypes+1;
+		// Need only magnitude of charge from here on down
+		q = fabs(q);
+		// Capturing desolvation values (atom_typeid+1 compared to above => mul_tmp + g3*4)
+		mul_tmp += g3<<2;
+		cube[0] = *(grid_value_000+mul_tmp+0);
+		cube[1] = *(grid_value_000+mul_tmp+1);
+		cube[2] = *(grid_value_000+mul_tmp+2);
+		cube[3] = *(grid_value_000+mul_tmp+3);
+		cube[4] = *(grid_value_000+mul_tmp+4);
+		cube[5] = *(grid_value_000+mul_tmp+5);
+		cube[6] = *(grid_value_000+mul_tmp+6);
+		cube[7] = *(grid_value_000+mul_tmp+7);
 
-		mul_tmp = atom_typeid*g3<<2;
-		// Calculating desolvation energy
-		energy += fabs(q) * TRILININTERPOL((grid_value_000+mul_tmp), weights);
-
+		// Calculating affinity energy
+		energy += q * (cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
 		#if defined (DEBUG_ENERGY_KERNEL)
-		interE += fabs(q) * TRILININTERPOL((grid_value_000+mul_tmp), weights);
+		interE += q *(cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
 		#endif
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
 
@@ -399,14 +423,12 @@ __device__ void gpu_calc_energy(
 			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
 			energy += (cData.pKerconst_intra->VWpars_AC_const[idx]
-			           -positive_power(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx])
-			           /
-			           positive_power(smoothed_distance,m);
+			           -__powf(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx])
+			           *__powf(smoothed_distance,-m);
 			#if defined (DEBUG_ENERGY_KERNEL)
 			intraE += (cData.pKerconst_intra->VWpars_AC_const[idx]
-			           -positive_power(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx])
-			           /
-			           positive_power(smoothed_distance,m);
+			           -__powf(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx])
+			           *__powf(smoothed_distance,-m);
 			#endif
 		} // if cuttoff1 - internuclear-distance at 8A
 
