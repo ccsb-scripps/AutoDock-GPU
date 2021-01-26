@@ -67,6 +67,22 @@ typedef struct
        float ref_orientation_quats_const  [4*MAX_NUM_OF_RUNS];
 } kernelconstant_conform;
 
+// Magic positive integer exponent power ... -AT
+// - it's in here mostly for testing/optimizing Cuda performance:
+// - OpenCL's native_pwr(float, uint) is about 15%-20% faster, ...
+// - but Cuda's floating point power isn't optimized for positive integers so it's much slower
+inline float positive_power(float a, uint exp)
+{
+	// example a = 1.4, exp = 7
+	float result=(exp & 1)?a:1.0f; // result = 1.4
+	while(exp>>=1){ // [1] (exp>>=1) = true; exp -> 3 [2] true, exp -> 1 [3] false
+		a *= a; // [1] a = 1.4^2 [2] a = 1.4^4
+		result=(exp & 1)?result*a:result; // [1] result = 1.4^3 [2] result = 1.4^7
+	}
+	
+	return result;
+}
+
 #define invpi2 1.0f/(PI_TIMES_2)
 
 inline float fmod_pi2(float x)
@@ -454,16 +470,14 @@ if (tidx == 0) {
 				smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
 			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
-/*			partial_energies[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,m)) -
-			                          native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,n));*/
-			partial_energies[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx]
-			                                        -native_powr(smoothed_distance,m-n)*kerconst_intra->VWpars_BD_const[idx]
-			                                        ,
-			                                        native_powr(smoothed_distance,m));
+/*			partial_energies[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx]
+			                                        -native_powr(smoothed_distance,m-n)*kerconst_intra->VWpars_BD_const[idx],
+			                                        native_powr(smoothed_distance,m));*/
+			partial_energies[tidx] += (kerconst_intra->VWpars_AC_const[idx]-native_powr(smoothed_distance,m-n)*kerconst_intra->VWpars_BD_const[idx])
+			                          *native_powr(smoothed_distance,-m);
 			#if defined (DEBUG_ENERGY_KERNEL)
 			partial_intraE[tidx] += native_divide(kerconst_intra->VWpars_AC_const[idx]
-			                                      -native_powr(smoothed_distance,m-n)kerconst_intra->VWpars_BD_const[idx]
-			                                      ,
+			                                      -native_powr(smoothed_distance,m-n)*kerconst_intra->VWpars_BD_const[idx],
 			                                      native_powr(smoothed_distance,m));
 			#endif
 		} // if cuttoff1 - internuclear-distance at 8A
@@ -489,11 +503,8 @@ if (tidx == 0) {
 			// Calculating electrostatic term
 			float dist_shift=atomic_distance+1.26366f;
 			dist2=dist_shift*dist_shift;
-			float diel = native_divide(1.10859f,dist2)+0.010358f;
-			float es_energy = native_divide (
-							  dockpars_coeff_elec * q1 * q2,
-							  atomic_distance
-							);
+			float diel = 1.10859f*native_recip(dist2)+0.010358f;
+			float es_energy = dockpars_coeff_elec * q1 * q2 * native_recip(atomic_distance);
 			partial_energies[tidx] += diel * es_energy + desolv_energy;
 			#if 0
 			smoothed_intraE += native_divide (

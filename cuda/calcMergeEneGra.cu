@@ -510,12 +510,21 @@ __device__ void gpu_calc_energrad(
 				smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
 			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
-			float A = cData.pKerconst_intra->VWpars_AC_const[idx] / positive_power(smoothed_distance,m);
-			float B = cData.pKerconst_intra->VWpars_BD_const[idx] / positive_power(smoothed_distance,n);
-			energy += A - B; // zero for flex rings
-			priv_gradient_per_intracontributor += ((float)n * B - (float)m * A) / smoothed_distance;
+			float rmn = positive_power(smoothed_distance,m-n);
+			float rm = positive_power(smoothed_distance,m)
+			energy += (cData.pKerconst_intra->VWpars_AC_const[idx]
+			           -rmn*cData.pKerconst_intra->VWpars_BD_const[idx]
+			           /
+			           rm;
+			priv_gradient_per_intracontributor += n*cData.pKerconst_intra->VWpars_BD_const[idx]*rmn
+			                                      -m*cData.pKerconst_intra->VWpars_AC_const[idx]
+			                                      /
+			                                      rm*smoothed_distance;
 			#if defined (DEBUG_ENERGY_KERNEL)
-			intraE += A - B;
+			intraE += (cData.pKerconst_intra->VWpars_AC_const[idx]
+			           -positive_power(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx]
+			           /
+			           positive_power(smoothed_distance,m);
 			#endif
 		} // if cuttoff1 - internuclear-distance at 8A
 
