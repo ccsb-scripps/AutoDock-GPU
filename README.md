@@ -9,6 +9,12 @@ AutoDock-GPU: AutoDock for GPUs and other accelerators
 * The OpenCL version was developed in collaboration with TU-Darmstadt and is able to target CPU, GPU, and FPGA architectures.
 * The Cuda version was developed in collaboration with Nvidia to run AutoDock-GPU on the Oak Ridge National Laboratory's (ORNL) Summit, and it included a batched ligand pipeline developed by Aaron Scheinberg from Jubilee Development.
 
+# Citation
+
+Accelerating AutoDock4 with GPUs and Gradient-Based Local Search, [J. Chem. Theory Comput.](https://doi.org/10.1021/acs.jctc.0c01006) 2021, 10.1021/acs.jctc.0c01006
+
+See [more relevant papers](https://github.com/ccsb-scripps/AutoDock-GPU/wiki/Publications)
+
 # Features
 
 * Besides the legacy Solis-Wets local search method, AutoDock-GPU adds newly implemented local-search methods based on gradients of the scoring function. One of these methods, ADADELTA, has proven to increase significantly the docking quality in terms of RMSDs and scores.
