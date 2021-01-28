@@ -37,24 +37,24 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 int preload_gridsize(FileList& filelist);
 
-int load_all_maps (const char* fldfilename,
-		   const Gridinfo* mygrid,
-		   std::vector<Map>& all_maps,
-		   bool cgmaps);
+int load_all_maps(const char*             fldfilename,
+                  const Gridinfo*         mygrid,
+                        std::vector<Map>& all_maps,
+                        bool              cgmaps);
 
-int copy_from_all_maps (const Gridinfo* mygrid,
-		        float* fgrids,
-		        std::vector<Map>& all_maps);
+int copy_from_all_maps (const Gridinfo*         mygrid,
+                              float*            fgrids,
+                              std::vector<Map>& all_maps);
 
-int setup(std::vector<Map>&	all_maps,
-	  Gridinfo&		mygrid,
-	  std::vector<float>& floatgrids,
-	  Dockpars&		mypars,
-	  Liganddata&		myligand_init,
-	  Liganddata&		myxrayligand,
-	  FileList&             filelist,
-	  int 	                i_file,
-	  int			argc,
-	  char*			argv[]);
+int setup(std::vector<Map>&   all_maps,
+          Gridinfo&           mygrid,
+          std::vector<float>& floatgrids,
+          Dockpars&           mypars,
+          Liganddata&         myligand_init,
+          Liganddata&         myxrayligand,
+          FileList&           filelist,
+          int                 i_file,
+          int                 argc,
+          char*               argv[]);
 
 #endif

@@ -46,8 +46,8 @@ struct Profile{
 
 	void write_to_file(FILE* fp){
 		int success = (exec_time>=0.0f ? 1 : 0);
-                float real_exec_time = (exec_time>=0.0f ? exec_time : 0.0f);
-                fprintf(fp, "\n%d %d %d %d %d %d %d %d %d %.3f", id, adadelta?1:0, n_evals, capped?1:0, autostopped, nev_at_stop, num_atoms, num_rotbonds, success, real_exec_time );
+		float real_exec_time = (exec_time>=0.0f ? exec_time : 0.0f);
+		fprintf(fp, "\n%d %d %d %d %d %d %d %d %d %.3f", id, adadelta?1:0, n_evals, capped?1:0, autostopped, nev_at_stop, num_atoms, num_rotbonds, success, real_exec_time );
 	}
 };
 

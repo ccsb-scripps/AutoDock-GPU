@@ -53,8 +53,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 __global__ void
 __launch_bounds__(NUM_OF_THREADS_PER_BLOCK, 1024 / NUM_OF_THREADS_PER_BLOCK)
 gpu_gradient_minAdam_kernel(
-			    float* pMem_conformations_next,
-			    float* pMem_energies_next
+                            float* pMem_conformations_next,
+                            float* pMem_energies_next
 )
 //The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
 //The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
@@ -70,7 +70,7 @@ gpu_gradient_minAdam_kernel(
 
 	// Determining entity, and its run, energy, and genotype
 	int   run_id = blockIdx.x / cData.dockpars.num_of_lsentities;
-	float energy;  
+	float energy;
 	// Energy may go up, so we keep track of the best energy ever calculated.
 	// Then, we return the genotype corresponding 
 	// to the best observed energy, i.e. "best_genotype"
@@ -280,8 +280,9 @@ gpu_gradient_minAdam_kernel(
 			printf("\n%d %16.8f\n", blockIdx.x);
 			float sum = 0.0;
 			for (uint32_t i = 0;
-			     i < cData.dockpars.num_of_genes;
-			     i++) {
+			              i < cData.dockpars.num_of_genes;
+			              i++)
+			{
 				//printf("%06d | %12.6f\n", i, gradient[i]);
 				//printf("%06d | %12.6f %12.6f %12.6f | %12.6f %12.6f %12.6f\n", i, gradient_inter_x[i], gradient_inter_y[i], gradient_inter_z[i], gradient_intra_x[i], gradient_intra_y[i], gradient_intra_z[i]);
 			}
@@ -291,12 +292,12 @@ gpu_gradient_minAdam_kernel(
 		float beta2p = 1.0f - pow(cData.dockpars.adam_beta2, 1.0f + iteration_cnt);
 
 		for(int i = threadIdx.x;
-			 i < cData.dockpars.num_of_genes;
-			 i+= blockDim.x) {
-
+		        i < cData.dockpars.num_of_genes;
+		        i+= blockDim.x)
+		{
 			if (energy < best_energy) // we need to be careful not to change best_energy until we had a chance to update the whole array
 				best_genotype[i] = genotype[i];
-
+			
 			// Update Adam parameters
 			mt[i] = cData.dockpars.adam_beta1 * mt[i] + (1.0f - cData.dockpars.adam_beta1) * gradient[i];
 			vt[i] = cData.dockpars.adam_beta2 * vt[i] + (1.0f - cData.dockpars.adam_beta2) * gradient[i] * gradient[i];
@@ -378,8 +379,9 @@ gpu_gradient_minAdam_kernel(
 
 	// Mapping torsion angles
 	for (uint32_t gene_counter = threadIdx.x+3;
-	          gene_counter < cData.dockpars.num_of_genes;
-	          gene_counter += blockDim.x) {
+	              gene_counter < cData.dockpars.num_of_genes;
+	              gene_counter += blockDim.x)
+	{
 		map_angle(best_genotype[gene_counter]);
 	}
 
@@ -410,15 +412,15 @@ gpu_gradient_minAdam_kernel(
 
 
 void gpu_gradient_minAdam(
-			    uint32_t blocks,
-			    uint32_t threads,
-			    float* pMem_conformations_next,
-			    float* pMem_energies_next
+                          uint32_t blocks,
+                          uint32_t threads,
+                          float* pMem_conformations_next,
+                          float* pMem_energies_next
 )
 {
 	size_t sz_shared = (6 * cpuData.dockpars.num_of_atoms + 5 * cpuData.dockpars.num_of_genes) * sizeof(float);
 	gpu_gradient_minAdam_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
-	LAUNCHERROR("gpu_gradient_minAdam_kernel");     
+	LAUNCHERROR("gpu_gradient_minAdam_kernel");
 #if 0
 	cudaError_t status;
 	status = cudaDeviceSynchronize();

@@ -25,18 +25,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 //#define DEBUG_ENERGY_KERNEL
 
-// No needed to be included as all kernel sources are stringified
 #define invpi2 1.0f/(PI_TIMES_2)
 
 // Magic positive integer exponent power ... -AT
 __forceinline__ __device__ float positive_power(float a, uint exp)
 {
-    float result=(exp & 1)?a:1.0f;
-    while(exp>>=1){
-	a *= a;
-	result=(exp & 1)?result*a:result;
-    }
-    return result;
+	float result=(exp & 1)?a:1.0f;
+	while(exp>>=1){
+		a *= a;
+		result=(exp & 1)?result*a:result;
+	}
+	return result;
 }
 
 __forceinline__ __device__ float fmod_pi2(float x)
@@ -65,22 +64,22 @@ __forceinline__ __device__ float fast_acos(float cosine)
 
 __forceinline__ __device__ float4 cross(float3& u, float3& v)
 {
-    float4 result;
-    result.x = u.y * v.z - v.y * u.z;
-    result.y = v.x * u.z - u.x * v.z;
-    result.z = u.x * v.y - v.x * u.y;
-    result.w = 0.0f;
-    return result;
+	float4 result;
+	result.x = u.y * v.z - v.y * u.z;
+	result.y = v.x * u.z - u.x * v.z;
+	result.z = u.x * v.y - v.x * u.y;
+	result.w = 0.0f;
+	return result;
 }
 
 __forceinline__ __device__ float4 cross(float4& u, float4& v)
 {
-    float4 result;
-    result.x = u.y * v.z - v.y * u.z;
-    result.y = v.x * u.z - u.x * v.z;
-    result.z = u.x * v.y - v.x * u.y;
-    result.w = 0.0f;
-    return result;
+	float4 result;
+	result.x = u.y * v.z - v.y * u.z;
+	result.y = v.x * u.z - u.x * v.z;
+	result.z = u.x * v.y - v.x * u.y;
+	result.w = 0.0f;
+	return result;
 }
 
 __forceinline__ __device__ float4 quaternion_multiply(float4 a, float4 b)
@@ -96,26 +95,26 @@ __forceinline__ __device__ float4 quaternion_rotate(float4 v, float4 rot)
 	float4 result;
 	
 	float4 z = cross(rot,v);
-    z.x *= 2.0f;
-    z.y *= 2.0f;
-    z.z *= 2.0f;
-    float4 c = cross(rot, z); 
-    result.x = v.x + z.x * rot.w + c.x;
-    result.y = v.y + z.y * rot.w + c.y;    
-    result.z = v.z + z.z * rot.w + c.z;
-    result.w = 0.0f;	
+	z.x *= 2.0f;
+	z.y *= 2.0f;
+	z.z *= 2.0f;
+	float4 c = cross(rot, z); 
+	result.x = v.x + z.x * rot.w + c.x;
+	result.y = v.y + z.y * rot.w + c.y;    
+	result.z = v.z + z.z * rot.w + c.z;
+	result.w = 0.0f;	
 	return result;
 }
 
 
 // All related pragmas are in defines.h (accesible by host and device code)
 
-__device__ void gpu_calc_energy(	    
-    float* pGenotype,
-    float& energy,
-    int& run_id,
-    float3* calc_coords,  
-    float* pFloatAccumulator
+__device__ void gpu_calc_energy(
+                                float* pGenotype,
+                                float& energy,
+                                int& run_id,
+                                float3* calc_coords,
+                                float* pFloatAccumulator
 ) 
 
 //The GPU device function calculates the energy of the entity described by genotype, dockpars and the liganddata
@@ -124,9 +123,9 @@ __device__ void gpu_calc_energy(
 //determines which reference orientation should be used.
 {
 	energy = 0.0f;
-#if defined (DEBUG_ENERGY_KERNEL)    
-    float interE = 0.0f;
-    float intraE = 0.0f;
+#if defined (DEBUG_ENERGY_KERNEL)
+	float interE = 0.0f;
+	float intraE = 0.0f;
 #endif
 
 	// Initializing gradients (forces) 
@@ -135,9 +134,9 @@ __device__ void gpu_calc_energy(
 		  atom_id < cData.dockpars.num_of_atoms;
 		  atom_id+= blockDim.x) {
 		// Initialize coordinates
-        calc_coords[atom_id].x = cData.pKerconst_conform->ref_coords_const[3*atom_id];
-        calc_coords[atom_id].y = cData.pKerconst_conform->ref_coords_const[3*atom_id+1];
-        calc_coords[atom_id].z = cData.pKerconst_conform->ref_coords_const[3*atom_id+2];
+		calc_coords[atom_id].x = cData.pKerconst_conform->ref_coords_const[3*atom_id];
+		calc_coords[atom_id].y = cData.pKerconst_conform->ref_coords_const[3*atom_id+1];
+		calc_coords[atom_id].z = cData.pKerconst_conform->ref_coords_const[3*atom_id+2];
 	}
 
 	// General rotation moving vector
@@ -163,8 +162,8 @@ __device__ void gpu_calc_energy(
 	uint g2 = cData.dockpars.gridsize_x_times_y;
 	uint g3 = cData.dockpars.gridsize_x_times_y_times_z;
 
-    __threadfence();
-    __syncthreads();
+	__threadfence();
+	__syncthreads();
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -222,29 +221,28 @@ __device__ void gpu_calc_energy(
 			float4 quatrot_left = rotation_unitvec;
 			// Performing rotation
 			if (((rotation_list_element & RLIST_GENROT_MASK) != 0) && // If general rotation,
-			    (atom_id < cData.dockpars.true_ligand_atoms))	  // two rotations should be performed
-										  // (multiplying the quaternions)
+			    (atom_id < cData.dockpars.true_ligand_atoms))         // two rotations should be performed
+			                                                          // (multiplying the quaternions)
 			{
 				// Calculating quatrot_left*ref_orientation_quats_const,
 				// which means that reference orientation rotation is the first
 				uint rid4 = 4 * run_id;
-                float4 qt;
-                qt.x = cData.pKerconst_conform->ref_orientation_quats_const[rid4+0];
-                qt.y = cData.pKerconst_conform->ref_orientation_quats_const[rid4+1];
-                qt.z = cData.pKerconst_conform->ref_orientation_quats_const[rid4+2];
-                qt.w = cData.pKerconst_conform->ref_orientation_quats_const[rid4+3];
+				float4 qt;
+				qt.x = cData.pKerconst_conform->ref_orientation_quats_const[rid4+0];
+				qt.y = cData.pKerconst_conform->ref_orientation_quats_const[rid4+1];
+				qt.z = cData.pKerconst_conform->ref_orientation_quats_const[rid4+2];
+				qt.w = cData.pKerconst_conform->ref_orientation_quats_const[rid4+3];
 				quatrot_left = quaternion_multiply(quatrot_left, qt);
 			}
-
 			// Performing final movement and storing values
-            float4 qt = quaternion_rotate(atom_to_rotate,quatrot_left);
+			float4 qt = quaternion_rotate(atom_to_rotate,quatrot_left);
 			calc_coords[atom_id].x = qt.x + rotation_movingvec.x;
 			calc_coords[atom_id].y = qt.y + rotation_movingvec.y;
 			calc_coords[atom_id].z = qt.z + rotation_movingvec.z;
 		} // End if-statement not dummy rotation
 
-        __threadfence();
-        __syncthreads();
+		__threadfence();
+		__syncthreads();
 
 	} // End rotation_counter for-loop
 
@@ -265,8 +263,8 @@ __device__ void gpu_calc_energy(
 		float q = cData.pKerconst_interintra->atom_charges_const[atom_id];
 		uint atom_typeid = cData.pKerconst_interintra->atom_types_map_const[atom_id];
 		if ((x < 0) || (y < 0) || (z < 0) || (x >= cData.dockpars.gridsize_x-1)
-				                  || (y >= cData.dockpars.gridsize_y-1)
-						  || (z >= cData.dockpars.gridsize_z-1)){
+		                                  || (y >= cData.dockpars.gridsize_y-1)
+		                                  || (z >= cData.dockpars.gridsize_z-1)){
 			energy += 16777216.0f; //100000.0f;
 			continue; // get on with loop as our work here is done (we crashed into the walls)
 		}
@@ -350,7 +348,7 @@ __device__ void gpu_calc_energy(
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
 
 #if defined (DEBUG_ENERGY_KERNEL)
-    REDUCEFLOATSUM(interE, pFloatAccumulator)
+	REDUCEFLOATSUM(interE, pFloatAccumulator)
 #endif
 
 	// In paper: intermolecular and internal energy calculation
@@ -465,11 +463,10 @@ __device__ void gpu_calc_energy(
 		} // if cuttoff2 - internuclear-distance at 20.48A
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
 
-
 	// reduction to calculate energy
-    REDUCEFLOATSUM(energy, pFloatAccumulator)
+	REDUCEFLOATSUM(energy, pFloatAccumulator)
 #if defined (DEBUG_ENERGY_KERNEL)
-    REDUCEFLOATSUM(intraE, pFloatAccumulator)
+	REDUCEFLOATSUM(intraE, pFloatAccumulator)
 #endif
 }
 

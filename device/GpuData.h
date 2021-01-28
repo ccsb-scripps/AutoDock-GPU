@@ -36,9 +36,9 @@ struct GpuData {
 	cl_mem mem_intra_const;
 	cl_mem mem_rotlist_const;
 	cl_mem mem_conform_const;
-  	cl_mem mem_rotbonds_const;
-  	cl_mem mem_rotbonds_atoms_const;
-  	cl_mem mem_num_rotating_atoms_per_rotbond_const;
+	cl_mem mem_rotbonds_const;
+	cl_mem mem_rotbonds_atoms_const;
+	cl_mem mem_num_rotating_atoms_per_rotbond_const;
 	// Constant data for correcting axisangle gradients
 	cl_mem mem_angle_const;
 	cl_mem mem_dependence_on_theta_const;

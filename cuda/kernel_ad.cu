@@ -59,9 +59,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 __global__ void
 __launch_bounds__(NUM_OF_THREADS_PER_BLOCK, 1024 / NUM_OF_THREADS_PER_BLOCK)
-gpu_gradient_minAD_kernel(	
-    float* pMem_conformations_next,
-	float* pMem_energies_next
+gpu_gradient_minAD_kernel(
+                          float* pMem_conformations_next,
+                          float* pMem_energies_next
 )
 //The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
 //The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
@@ -77,7 +77,7 @@ gpu_gradient_minAD_kernel(
 
 	// Determining entity, and its run, energy, and genotype
 	int   run_id = blockIdx.x / cData.dockpars.num_of_lsentities;
-	float energy;  
+	float energy;
 	// Energy may go up, so we keep track of the best energy ever calculated.
 	// Then, we return the genotype corresponding 
 	// to the best observed energy, i.e. "best_genotype"
@@ -164,9 +164,10 @@ gpu_gradient_minAD_kernel(
 	__syncthreads();
 
 	// Initializing vectors
-	for(uint32_t i = threadIdx.x; 
-		 i < cData.dockpars.num_of_genes; 
-		 i+= blockDim.x) {
+	for(uint32_t i = threadIdx.x;
+	             i < cData.dockpars.num_of_genes;
+	             i+= blockDim.x)
+	{
 		gradient[i]        = 0.0f;
 		square_gradient[i] = 0.0f;
 		square_delta[i]    = 0.0f;
@@ -217,25 +218,25 @@ gpu_gradient_minAD_kernel(
 		__syncthreads();
 
 		gpu_calc_energrad(
-				// Some OpenCL compilers don't allow declaring 
-				// local variables within non-kernel functions.
-				// These local variables must be declared in a kernel, 
-				// and then passed to non-kernel functions.
-				genotype,
-				energy,
-				run_id,
-				calc_coords,
-				#if defined (DEBUG_ENERGY_KERNEL)
-				interE,
-				intraE,
-				#endif
-				// Gradient-related arguments
-				// Calculate gradients (forces) for intermolecular energy
-				// Derived from autodockdev/maps.py
-				cartesian_gradient,
-				gradient,
-				&sFloatAccumulator
-				);
+		                  // Some OpenCL compilers don't allow declaring
+		                  // local variables within non-kernel functions.
+		                  // These local variables must be declared in a kernel,
+		                  // and then passed to non-kernel functions.
+		                  genotype,
+		                  energy,
+		                  run_id,
+		                  calc_coords,
+		                  #if defined (DEBUG_ENERGY_KERNEL)
+		                  interE,
+		                  intraE,
+		                  #endif
+		                  // Gradient-related arguments
+		                  // Calculate gradients (forces) for intermolecular energy
+		                  // Derived from autodockdev/maps.py
+		                  cartesian_gradient,
+		                  gradient,
+		                  &sFloatAccumulator
+		                 );
 
 		// =============================================================
 		// =============================================================
@@ -276,9 +277,9 @@ gpu_gradient_minAD_kernel(
 		#endif // DEBUG_ENERGY_ADADELTA
 
 		for(int i = threadIdx.x;
-			 i < cData.dockpars.num_of_genes;
-			 i+= blockDim.x) {
-
+		        i < cData.dockpars.num_of_genes;
+		        i+= blockDim.x)
+		{
 			if (energy < best_energy) // we need to be careful not to change best_energy until we had a chance to update the whole array
 				best_genotype[i] = genotype[i];
 
@@ -367,8 +368,9 @@ gpu_gradient_minAD_kernel(
 	// -----------------------------------------------------------------------------
 	// Mapping torsion angles
 	for (uint32_t gene_counter = threadIdx.x+3;
-	     gene_counter < cData.dockpars.num_of_genes;
-	     gene_counter += blockDim.x) {
+	              gene_counter < cData.dockpars.num_of_genes;
+	              gene_counter += blockDim.x)
+	{
 		map_angle(best_genotype[gene_counter]);
 	}
 

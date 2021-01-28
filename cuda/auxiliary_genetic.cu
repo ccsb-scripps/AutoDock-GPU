@@ -26,9 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // -------------------------------------------------------
 //
 // -------------------------------------------------------
-inline __device__ uint32_t gpu_rand(
-    uint32_t* prng_states
-)
+inline __device__ uint32_t gpu_rand(uint32_t* prng_states)
 //The GPU device function generates a random int
 //with a linear congruential generator.
 //Each thread (supposing num_of_runs*pop_size blocks and NUM_OF_THREADS_PER_BLOCK threads per block)
@@ -37,37 +35,29 @@ inline __device__ uint32_t gpu_rand(
 //The random number generator uses the gcc linear congruential generator constants.
 {
 	uint state;
-
-  	// Current state of the threads own PRNG
-  	// state = prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)];
+	// Current state of the threads own PRNG
+	// state = prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)];
 	state = prng_states[blockIdx.x * blockDim.x + threadIdx.x];
-
 	// Calculating next state
-  	state = (RAND_A*state+RAND_C);
-
-  	// Saving next state to memory
-  	// prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)] = state;
+	state = (RAND_A*state+RAND_C);
+	// Saving next state to memory
+	// prng_states[get_group_id(0)*NUM_OF_THREADS_PER_BLOCK + get_local_id(0)] = state;
 	prng_states[blockIdx.x * blockDim.x + threadIdx.x] = state;
-
-  return state;
+	return state;
 }
 
 // -------------------------------------------------------
 //
 // -------------------------------------------------------
-inline __device__ float gpu_randf(
-		uint32_t* prng_states
-)
+inline __device__ float gpu_randf(uint32_t* prng_states)
 //The GPU device function generates a
 //random float greater than (or equal to) 0 and less than 1.
 //It uses gpu_rand() function.
 {
-  	float state;
-
+	float state;
 	// State will be between 0 and 1
 	state =  ((float)gpu_rand(prng_states) / (float)MAX_UINT)*0.999999f;
-
-  return state;
+	return state;
 }
 
 // -------------------------------------------------------

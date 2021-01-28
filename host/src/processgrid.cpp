@@ -55,7 +55,7 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 	free(ts1); // clean up
 	// ----------------------------------------------------
 
-	//Processing fld file
+	// Processing fld file
 	fp = fopen(fldfilename, "rb"); // fp = fopen(fldfilename, "r");
 	if (fp == NULL)
 	{
@@ -80,7 +80,7 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 		// -----------------------------------
 		// Reorder according to file *.maps.fld
 		// -----------------------------------
-		//Grid spacing
+		// Grid spacing
 		if (strcmp(tempstr, "#SPACING") == 0)
 		{
 			fscanf(fp, "%lf", &(mygrid->spacing));
@@ -91,16 +91,16 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 			}
 		}
 
-		//capturing number of grid points
+		// capturing number of grid points
 		if (strcmp(tempstr, "#NELEMENTS") == 0)
 		{
 			fscanf(fp, "%d%d%d", &(gpoints_even[0]), &(gpoints_even[1]), &(gpoints_even[2]));
-			//plus one gridpoint in each dimension
+			// plus one gridpoint in each dimension
 			mygrid->size_xyz[0] = gpoints_even[0] + 1;
 			mygrid->size_xyz[1] = gpoints_even[1] + 1;
 			mygrid->size_xyz[2] = gpoints_even[2] + 1;
 
-			//If the grid is too big, send message and change the value of truncated_size_xyz
+			// If the grid is too big, send message and change the value of truncated_size_xyz
 			if ((mygrid->size_xyz [0] > MAX_NUM_GRIDPOINTS) || (mygrid->size_xyz [1] > MAX_NUM_GRIDPOINTS) || (mygrid->size_xyz [2] > MAX_NUM_GRIDPOINTS))
 			{
 				printf("Error: each dimension of the grid must be below %i.\n", MAX_NUM_GRIDPOINTS);
@@ -108,13 +108,13 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 			}
 		}
 
-		//Capturing center
+		// Capturing center
 		if (strcmp(tempstr, "#CENTER") == 0)
 		{
 			fscanf(fp, "%lf%lf%lf", &(center[0]), &(center[1]), &(center[2]));
 		}
 
-		//Name of the receptor and corresponding files
+		// Name of the receptor and corresponding files
 		if (strcmp(tempstr, "#MACROMOLECULE") == 0)
 		{
 			fscanf(fp, "%255s", tempstr);
@@ -131,12 +131,12 @@ int get_gridinfo(const char* fldfilename, Gridinfo* mygrid)
 		// -----------------------------------
 	}
 
-	//calculating grid size
+	// calculating grid size
 	mygrid->size_xyz_angstr[0] = (mygrid->size_xyz[0]-1)*(mygrid->spacing);
 	mygrid->size_xyz_angstr[1] = (mygrid->size_xyz[1]-1)*(mygrid->spacing);
 	mygrid->size_xyz_angstr[2] = (mygrid->size_xyz[2]-1)*(mygrid->spacing);
 
-	//calculating coordinates of origo
+	// calculating coordinates of origo
 	mygrid->origo_real_xyz[0] = center[0] - (((double) gpoints_even[0])*0.5*(mygrid->spacing));
 	mygrid->origo_real_xyz[1] = center[1] - (((double) gpoints_even[1])*0.5*(mygrid->spacing));
 	mygrid->origo_real_xyz[2] = center[2] - (((double) gpoints_even[2])*0.5*(mygrid->spacing));
@@ -162,12 +162,12 @@ int get_gridvalues_f(const Gridinfo* mygrid, float** fgrids, bool cgmaps)
 }
 
 int get_gridvalues_f(const Gridinfo* mygrid, float* fgrids, bool cgmaps)
-//The function reads the grid point values from the .map files
-//that correspond to the receptor given by the first parameter.
-//It allocates the proper amount of memory and stores the data there,
-//which can be accessed with the fgrids pointer.
-//If there are any errors, it returns 1, otherwise
-//the return value is 0.
+// The function reads the grid point values from the .map files
+// that correspond to the receptor given by the first parameter.
+// It allocates the proper amount of memory and stores the data there,
+// which can be accessed with the fgrids pointer.
+// If there are any errors, it returns 1, otherwise
+// the return value is 0.
 {
 	int t, x, y, z;
 	FILE* fp;
@@ -183,7 +183,7 @@ int get_gridvalues_f(const Gridinfo* mygrid, float* fgrids, bool cgmaps)
 
 	for (t=0; t < mygrid->num_of_atypes+2; t++)
 	{
-		//opening corresponding .map file
+		// opening corresponding .map file
 		strcpy(tempstr,mygrid->map_base_name);
 		strcat(tempstr, ".");
 		strcat(tempstr, mygrid->grid_types[t]);
@@ -212,7 +212,7 @@ int get_gridvalues_f(const Gridinfo* mygrid, float* fgrids, bool cgmaps)
 			return 1;
 		}
 
-		//seeking to first data
+		// seeking to first data
 		do    fscanf(fp, "%127s", tempstr);
 		while (strcmp(tempstr, "CENTER") != 0);
 		fscanf(fp, "%127s", tempstr);
@@ -221,7 +221,7 @@ int get_gridvalues_f(const Gridinfo* mygrid, float* fgrids, bool cgmaps)
 
 		unsigned int g1 = mygrid->size_xyz[0];
 		unsigned int g2 = g1*mygrid->size_xyz[1];
-		//reading values
+		// reading values
 		for (z=0; z < mygrid->size_xyz[2]; z++)
 			for (y=0; y < mygrid->size_xyz[1]; y++)
 				for (x=0; x < mygrid->size_xyz[0]; x++)

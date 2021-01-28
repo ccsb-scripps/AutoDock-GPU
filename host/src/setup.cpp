@@ -57,15 +57,17 @@ int preload_gridsize(FileList& filelist)
 	return gridsize;
 }
 
-int setup(std::vector<Map>& all_maps,
-	  Gridinfo&            mygrid,
-	  std::vector<float>& floatgrids,
-	  Dockpars&            mypars,
-	  Liganddata&          myligand_init,
-	  Liganddata&          myxrayligand,
-	  FileList&            filelist,
-	  int i_file,
-	  int argc, char* argv[])
+int setup(std::vector<Map>&   all_maps,
+          Gridinfo&           mygrid,
+          std::vector<float>& floatgrids,
+          Dockpars&           mypars,
+          Liganddata&         myligand_init,
+          Liganddata&         myxrayligand,
+          FileList&           filelist,
+          int                 i_file,
+          int                 argc,
+          char* argv[]
+         )
 {
 	//------------------------------------------------------------
 	// Capturing names of grid parameter file and ligand pdbqt file
@@ -85,15 +87,15 @@ int setup(std::vector<Map>& all_maps,
 	// for derived atom types, and modified atom type pairs
 	// since they will be needed at ligand and grid creation
 	//------------------------------------------------------------
-	mypars.nr_deriv_atypes		= 0;	// this is to support: -derivtype C1,C2,C3=C
+	mypars.nr_deriv_atypes		= 0;    // this is to support: -derivtype C1,C2,C3=C
 	mypars.deriv_atypes		= NULL; // or even: -derivtype C1,C2,C3=C/S4=S/H5=HD
-	mypars.nr_mod_atype_pairs	= 0;	// this is to support: -modpair C1:S4,1.60,1.200,13,7
+	mypars.nr_mod_atype_pairs	= 0;    // this is to support: -modpair C1:S4,1.60,1.200,13,7
 	mypars.mod_atype_pairs		= NULL; // or even: -modpair C1:S4,1.60,1.200,13,7/C1:C3,1.20 0.025
 	mypars.cgmaps = 0; // default is 0 (use one maps for every CGx or Gx atom types, respectively)
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
 		// ----------------------------------
-		//Argument: Use individual maps for CG-G0 instead of the same one
+		// Argument: Use individual maps for CG-G0 instead of the same one
 		if (strcmp("-cgmaps", argv [i]) == 0)
 		{
 			int tempint;
@@ -104,7 +106,7 @@ int setup(std::vector<Map>& all_maps,
 				mypars.cgmaps = 1;
 		}
 		// ----------------------------------
-		//Argument: derivate atom types
+		// Argument: derivate atom types
 		if (strcmp("-derivtype", argv [i]) == 0)
 		{
 			if(mypars.nr_deriv_atypes==0){
@@ -181,7 +183,7 @@ int setup(std::vector<Map>& all_maps,
 			}
 		}
 
-		//Argument: modify pairwise atom type parameters (LJ only at this point)
+		// Argument: modify pairwise atom type parameters (LJ only at this point)
 		if (strcmp("-modpair", argv [i]) == 0)
 		{
 			bool success=true;
@@ -284,28 +286,28 @@ int setup(std::vector<Map>& all_maps,
 	}
 
 	// Filling the atom types filed of myligand according to the grid types
-	if (init_liganddata(	mypars.ligandfile,
-				mypars.flexresfile,
-				&myligand_init,
-				&mygrid,
-				mypars.nr_deriv_atypes,
-				mypars.deriv_atypes,
-				mypars.cgmaps) != 0)
+	if (init_liganddata(mypars.ligandfile,
+	                    mypars.flexresfile,
+	                    &myligand_init,
+	                    &mygrid,
+	                    mypars.nr_deriv_atypes,
+	                    mypars.deriv_atypes,
+	                    mypars.cgmaps) != 0)
 	{
 		printf("\n\nError in init_liganddata, stopped job.");
 		return 1;
 	}
 
 	// Filling myligand according to the pdbqt file
-	if (get_liganddata(	mypars.ligandfile,
-				mypars.flexresfile,
-				&myligand_init,
-				mypars.coeffs.AD4_coeff_vdW,
-				mypars.coeffs.AD4_coeff_hb,
-				mypars.nr_deriv_atypes,
-				mypars.deriv_atypes,
-				mypars.nr_mod_atype_pairs,
-				mypars.mod_atype_pairs) != 0)
+	if (get_liganddata(mypars.ligandfile,
+	                   mypars.flexresfile,
+	                   &myligand_init,
+	                   mypars.coeffs.AD4_coeff_vdW,
+	                   mypars.coeffs.AD4_coeff_hb,
+	                   mypars.nr_deriv_atypes,
+	                   mypars.deriv_atypes,
+	                   mypars.nr_mod_atype_pairs,
+	                   mypars.mod_atype_pairs) != 0)
 	{
 		printf("\n\nError in get_liganddata, stopped job.");
 		return 1;
@@ -323,29 +325,52 @@ int setup(std::vector<Map>& all_maps,
 			{
 				if (!filelist.maps_are_loaded) { // maps not yet loaded (but in critical, so only one thread will ever enter this)
 					// Load maps to all_maps
-					if (load_all_maps(mypars.fldfile, &mygrid, all_maps, mypars.cgmaps) != 0)
-                        			{got_error = true;}
+					if (load_all_maps(mypars.fldfile,
+					                  &mygrid,
+					                  all_maps,
+					                  mypars.cgmaps) != 0)
+					{
+						got_error = true;
+					}
 					filelist.maps_are_loaded = true;
 					filelist.load_maps_gpu = true; // first thread seeing this will copy to GPU
 				}
 			}
 			// Return must be outside pragma
-			if (got_error) {printf("\n\nError in load_all_maps, stopped job."); return 1;}
+			if (got_error) {
+				printf("\n\nError in load_all_maps, stopped job.");
+				return 1;
+			}
 		}
 
 		// Copy maps from all_maps
-		if (copy_from_all_maps(&mygrid, floatgrids.data(), all_maps) != 0)
-                        {printf("\n\nError in copy_from_all_maps, stopped job."); return 1;}
+		if (copy_from_all_maps(&mygrid,
+		                       floatgrids.data(),
+		                       all_maps) != 0)
+		{
+			printf("\n\nError in copy_from_all_maps, stopped job.");
+			return 1;
+		}
 
 		// Specify total number of maps that will be on GPU
 		mygrid.num_of_map_atypes = all_maps.size()-2; // For the two extra maps
 		// Map atom_types used for ligand processing to all_maps so all the maps can stay on GPU
-		if(map_to_all_maps(&mygrid, &myligand_init, all_maps) !=0)
-			{printf("\n\nError in map_to_all_maps, stopped job."); return 1;}
+		if (map_to_all_maps(&mygrid,
+		                    &myligand_init,
+		                    all_maps) !=0)
+		{
+			printf("\n\nError in map_to_all_maps, stopped job.");
+			return 1;
+		}
 	} else {
-		//Reading the grid files and storing values in the memory region pointed by floatgrids
-		if (get_gridvalues_f(&mygrid, floatgrids.data(), mypars.cgmaps) != 0)
-			{printf("\n\nError in get_gridvalues_f, stopped job."); return 1;}
+		// Reading the grid files and storing values in the memory region pointed by floatgrids
+		if (get_gridvalues_f(&mygrid,
+		                     floatgrids.data(),
+		                     mypars.cgmaps) != 0)
+		{
+			printf("\n\nError in get_gridvalues_f, stopped job.");
+			return 1;
+		}
 	}
 
 	//------------------------------------------------------------
@@ -372,27 +397,27 @@ int setup(std::vector<Map>& all_maps,
 	// if -lxrayfile provided, then read xray ligand data
 	if (mypars.given_xrayligandfile == true)
 	{
-		if (init_liganddata(	mypars.xrayligandfile,
-					"\0",
-					&myxrayligand,
-					&mydummygrid,
-					0,
-					NULL,
-					mypars.cgmaps) != 0)
+		if (init_liganddata(mypars.xrayligandfile,
+		                    "\0",
+		                    &myxrayligand,
+		                    &mydummygrid,
+		                    0,
+		                    NULL,
+		                    mypars.cgmaps) != 0)
 		{
 			printf("\n\nError in init_liganddata, stopped job.");
 			return 1;
 		}
 
-		if (get_liganddata(	mypars.xrayligandfile,
-					"\0",
-					&myxrayligand,
-					mypars.coeffs.AD4_coeff_vdW,
-					mypars.coeffs.AD4_coeff_hb,
-					mypars.nr_deriv_atypes,
-					mypars.deriv_atypes,
-					mypars.nr_mod_atype_pairs,
-					mypars.mod_atype_pairs) != 0)
+		if (get_liganddata(mypars.xrayligandfile,
+		                   "\0",
+		                   &myxrayligand,
+		                   mypars.coeffs.AD4_coeff_vdW,
+		                   mypars.coeffs.AD4_coeff_hb,
+		                   mypars.nr_deriv_atypes,
+		                   mypars.deriv_atypes,
+		                   mypars.nr_mod_atype_pairs,
+		                   mypars.mod_atype_pairs) != 0)
 		{
 			printf("\n\nError in get_liganddata, stopped job.");
 			return 1;
@@ -404,15 +429,15 @@ int setup(std::vector<Map>& all_maps,
 	//------------------------------------------------------------
 	if (mypars.reflig_en_required) {
 		print_ref_lig_energies_f(myligand_init,
-					 mypars.smooth,
-					 mygrid,
-					 floatgrids.data(),
-					 mypars.coeffs.scaled_AD4_coeff_elec,
-					 mypars.elec_min_distance,
-					 mypars.coeffs.AD4_coeff_desolv,
-					 mypars.qasp,
-					 mypars.nr_mod_atype_pairs,
-					 mypars.mod_atype_pairs);
+		                         mypars.smooth,
+		                         mygrid,
+		                         floatgrids.data(),
+		                         mypars.coeffs.scaled_AD4_coeff_elec,
+		                         mypars.elec_min_distance,
+		                         mypars.coeffs.AD4_coeff_desolv,
+		                         mypars.qasp,
+		                         mypars.nr_mod_atype_pairs,
+		                         mypars.mod_atype_pairs);
 	}
 
 	return 0;
@@ -421,10 +446,10 @@ int setup(std::vector<Map>& all_maps,
 int fill_maplist(const char* fldfilename, std::vector<Map>& all_maps)
 {
 	std::ifstream file(fldfilename);
-        if(file.fail()){
-                printf("\nError: Could not open %s. Check path and permissions.",fldfilename);
-                return 1;
-        }
+	if(file.fail()){
+		printf("\nError: Could not open %s. Check path and permissions.",fldfilename);
+		return 1;
+	}
 	std::string line;
 	bool prev_line_was_fld=false;
 	while(std::getline(file, line)) {
@@ -451,7 +476,11 @@ int fill_maplist(const char* fldfilename, std::vector<Map>& all_maps)
 	return 0;
 }
 
-int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<Map>& all_maps, bool cgmaps)
+int load_all_maps(const char*             fldfilename,
+                  const Gridinfo*         mygrid,
+                        std::vector<Map>& all_maps,
+                        bool              cgmaps
+                 )
 {
 	// First, parse .fld file to get map names
 	if(fill_maplist(fldfilename,all_maps)==1) return 1;
@@ -471,7 +500,7 @@ int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<
 	{
 		all_maps[t].grid.resize(size_of_one_map);
 		float* mypoi = all_maps[t].grid.data();
-		//opening corresponding .map file
+		// opening corresponding .map file
 		strcpy(tempstr,mygrid->map_base_name);
 		strcat(tempstr, ".");
 		strcat(tempstr, all_maps[t].atype.c_str());
@@ -500,7 +529,7 @@ int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<
 			return 1;
 		}
 
-		//seeking to first data
+		// seeking to first data
 		do    fscanf(fp, "%127s", tempstr);
 		while (strcmp(tempstr, "CENTER") != 0);
 		fscanf(fp, "%127s", tempstr);
@@ -509,7 +538,7 @@ int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<
 
 		unsigned int g1 = mygrid->size_xyz[0];
 		unsigned int g2 = g1*mygrid->size_xyz[1];
-		//reading values
+		// reading values
 		for (z=0; z < mygrid->size_xyz[2]; z++)
 			for (y=0; y < mygrid->size_xyz[1]; y++)
 				for (x=0; x < mygrid->size_xyz[0]; x++)
@@ -528,7 +557,10 @@ int load_all_maps (const char* fldfilename, const Gridinfo* mygrid, std::vector<
 	return 0;
 }
 
-int copy_from_all_maps (const Gridinfo* mygrid, float* fgrids, std::vector<Map>& all_maps)
+int copy_from_all_maps(const Gridinfo*         mygrid,
+                             float*            fgrids,
+                             std::vector<Map>& all_maps
+                      )
 {
 	int size_of_one_map = 4*mygrid->size_xyz[0]*mygrid->size_xyz[1]*mygrid->size_xyz[2];
 	for (int t=0; t < mygrid->num_of_atypes+2; t++) {

@@ -73,49 +73,49 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //#define DEBUG_FIRE_INITIAL_2BRT
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
-gradient_minFire(	
-			    int    dockpars_num_of_atoms,
-			    int    dockpars_true_ligand_atoms,
-			    int    dockpars_num_of_atypes,
-			    int    dockpars_num_of_map_atypes,
-			    int    dockpars_num_of_intraE_contributors,
-			    int    dockpars_gridsize_x,
-			    int    dockpars_gridsize_y,
-			    int    dockpars_gridsize_z,
-							    		// g1 = gridsize_x
-			    uint   dockpars_gridsize_x_times_y, 	// g2 = gridsize_x * gridsize_y
-			    uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
-			    float  dockpars_grid_spacing,
-	 __global const     float* restrict dockpars_fgrids, 		// This is too large to be allocated in __constant 
-			    int    dockpars_rotbondlist_length,
-			    float  dockpars_coeff_elec,
-			    float  dockpars_elec_min_distance,
-			    float  dockpars_coeff_desolv,
-	  __global          float* restrict dockpars_conformations_next,
-	  __global          float* restrict dockpars_energies_next,
-  	  __global 	    int*   restrict dockpars_evals_of_new_entities,
-	  __global          uint*  restrict dockpars_prng_states,
-			    int    dockpars_pop_size,
-			    int    dockpars_num_of_genes,
-			    float  dockpars_lsearch_rate,
-			    uint   dockpars_num_of_lsentities,
-			    uint   dockpars_max_num_of_iters,
-			    float  dockpars_qasp,
-			    float  dockpars_smooth,
+gradient_minFire(
+                   int    dockpars_num_of_atoms,
+                   int    dockpars_true_ligand_atoms,
+                   int    dockpars_num_of_atypes,
+                   int    dockpars_num_of_map_atypes,
+                   int    dockpars_num_of_intraE_contributors,
+                   int    dockpars_gridsize_x,
+                   int    dockpars_gridsize_y,
+                   int    dockpars_gridsize_z,
+                                                               // g1 = gridsize_x
+                   uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+                   uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+                   float  dockpars_grid_spacing,
+__global const     float* restrict dockpars_fgrids, // This is too large to be allocated in __constant
+                   int    dockpars_rotbondlist_length,
+                   float  dockpars_coeff_elec,
+                   float  dockpars_elec_min_distance,
+                   float  dockpars_coeff_desolv,
+ __global          float* restrict dockpars_conformations_next,
+ __global          float* restrict dockpars_energies_next,
+ __global          int*   restrict dockpars_evals_of_new_entities,
+ __global          uint*  restrict dockpars_prng_states,
+                   int    dockpars_pop_size,
+                   int    dockpars_num_of_genes,
+                   float  dockpars_lsearch_rate,
+                   uint   dockpars_num_of_lsentities,
+                   uint   dockpars_max_num_of_iters,
+                   float  dockpars_qasp,
+                   float  dockpars_smooth,
 
-	  __constant        kernelconstant_interintra* 	 kerconst_interintra,
-	  __global const    kernelconstant_intracontrib* kerconst_intracontrib,
-	  __constant        kernelconstant_intra*	 kerconst_intra,
-	  __constant        kernelconstant_rotlist*   	 kerconst_rotlist,
-	  __constant        kernelconstant_conform*	 kerconst_conform
-			,
-	  __constant int*   	  rotbonds_const,
-	  __global   const int*   rotbonds_atoms_const,
-	  __constant int*   	  num_rotating_atoms_per_rotbond_const
-			,
-	  __global   const float* angle_const,
-	  __constant       float* dependence_on_theta_const,
-	  __constant       float* dependence_on_rotangle_const
+        __constant        kernelconstant_interintra*   kerconst_interintra,
+        __global const    kernelconstant_intracontrib* kerconst_intracontrib,
+        __constant        kernelconstant_intra*        kerconst_intra,
+        __constant        kernelconstant_rotlist*      kerconst_rotlist,
+        __constant        kernelconstant_conform*      kerconst_conform,
+
+  __constant int*         rotbonds_const,
+  __global   const int*   rotbonds_atoms_const,
+  __constant int*         num_rotating_atoms_per_rotbond_const,
+
+  __global   const float* angle_const,
+  __constant       float* dependence_on_theta_const,
+  __constant       float* dependence_on_rotangle_const
 )
 //The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
 //The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
@@ -125,9 +125,7 @@ gradient_minFire(
 //it is always tested according to the ls probability, and if it not to be
 //subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
-
-
-  	// -----------------------------------------------------------------------------
+	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
 
@@ -159,14 +157,14 @@ gradient_minFire(
 			// If entity 0 is not selected according to LS-rate,
 			// choosing an other entity
 			if (100.0f*gpu_randf(dockpars_prng_states) > dockpars_lsearch_rate) {
-				entity_id = dockpars_num_of_lsentities;					
+				entity_id = dockpars_num_of_lsentities;
 			}
 		}
 		
 		energy = dockpars_energies_next[run_id*dockpars_pop_size+entity_id];
 
 		// Initializing gradient-minimizer counters and flags
-    		iteration_cnt  = 0;
+		iteration_cnt  = 0;
 
 		#if defined (DEBUG_FIRE_MINIMIZER) || defined (PRINT_FIRE_MINIMIZER_ENERGY_EVOLUTION)
 		printf("\n");
@@ -180,17 +178,16 @@ gradient_minFire(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-  	event_t ev = async_work_group_copy(genotype,
-  			      		   dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
-                              		   dockpars_num_of_genes, 0);
-
+	event_t ev = async_work_group_copy(genotype,
+	                                   dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
+	                                   dockpars_num_of_genes, 0);
 	// Asynchronous copy should be finished by here
 	wait_group_events(1, &ev);
 
-  	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
-	           
+	// -----------------------------------------------------------------------------
+
 	// Partial results of the gradient step
 	__local float gradient[ACTUAL_GENOTYPE_LENGTH];
 	__local float candidate_gradient[ACTUAL_GENOTYPE_LENGTH];
@@ -258,47 +255,47 @@ gradient_minFire(
 
 	// =============================================================
 	gpu_calc_energy(dockpars_rotbondlist_length,
-			dockpars_num_of_atoms,
-			dockpars_true_ligand_atoms,
-			dockpars_gridsize_x,
-			dockpars_gridsize_y,
-			dockpars_gridsize_z,
-							    	// g1 = gridsize_x
-			dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
-			dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
-			dockpars_fgrids,
-			dockpars_num_of_atypes,
-			dockpars_num_of_map_atypes,
-			dockpars_num_of_intraE_contributors,
-			dockpars_grid_spacing,
-			dockpars_coeff_elec,
-			dockpars_elec_min_distance,
-			dockpars_qasp,
-			dockpars_coeff_desolv,
-			dockpars_smooth,
-
-			genotype, /*WARNING: calculating the energy of the hardcoded genotype*/
-			&energy,
-			&run_id,
-			// Some OpenCL compilers don't allow declaring 
-			// local variables within non-kernel functions.
-			// These local variables must be declared in a kernel, 
-			// and then passed to non-kernel functions.
-			calc_coords,
-			partial_energies,
-			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_interE,
-			partial_intraE,
-			#endif
+	                dockpars_num_of_atoms,
+	                dockpars_true_ligand_atoms,
+	                dockpars_gridsize_x,
+	                dockpars_gridsize_y,
+	                dockpars_gridsize_z,
+	                                                     // g1 = gridsize_x
+	                dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+	                dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+	                dockpars_fgrids,
+	                dockpars_num_of_atypes,
+	                dockpars_num_of_map_atypes,
+	                dockpars_num_of_intraE_contributors,
+	                dockpars_grid_spacing,
+	                dockpars_coeff_elec,
+	                dockpars_elec_min_distance,
+	                dockpars_qasp,
+	                dockpars_coeff_desolv,
+	                dockpars_smooth,
+	
+	                genotype, /*WARNING: calculating the energy of the hardcoded genotype*/
+	                &energy,
+	                &run_id,
+	                // Some OpenCL compilers don't allow declaring
+	                // local variables within non-kernel functions.
+	                // These local variables must be declared in a kernel,
+	                // and then passed to non-kernel functions.
+	                calc_coords,
+	                partial_energies,
+	                #if defined (DEBUG_ENERGY_KERNEL)
+	                partial_interE,
+	                partial_intraE,
+	                #endif
 #if 0
-			true,
+	                true,
 #endif
-			kerconst_interintra,
-			kerconst_intracontrib,
-			kerconst_intra,
-			kerconst_rotlist,
-			kerconst_conform			
-			);
+	                kerconst_interintra,
+	                kerconst_intracontrib,
+	                kerconst_intra,
+	                kerconst_rotlist,
+	                kerconst_conform
+	               );
 	// =============================================================
 
 	// WARNING: hardcoded has priority over LGA genotype.
@@ -317,66 +314,57 @@ gradient_minFire(
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// =============================================================
-	gpu_calc_gradient(
-			dockpars_rotbondlist_length,
-			dockpars_num_of_atoms,
-			dockpars_true_ligand_atoms,
-			dockpars_gridsize_x,
-			dockpars_gridsize_y,
-			dockpars_gridsize_z,
-							    	// g1 = gridsize_x
-			dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
-			dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
-			dockpars_fgrids,
-			dockpars_num_of_atypes,
-			dockpars_num_of_map_atypes,
-			dockpars_num_of_intraE_contributors,
-			dockpars_grid_spacing,
-			dockpars_coeff_elec,
-			dockpars_elec_min_distance,
-			dockpars_qasp,
-			dockpars_coeff_desolv,
-			dockpars_smooth,
-
-			// Some OpenCL compilers don't allow declaring 
-			// local variables within non-kernel functions.
-			// These local variables must be declared in a kernel, 
-			// and then passed to non-kernel functions.
-			genotype,
-			&energy,
-			&run_id,
-
-			calc_coords,
-
-			kerconst_interintra,
-			kerconst_intracontrib,
-			kerconst_intra,
-			kerconst_rotlist,
-			kerconst_conform
-			,
-			rotbonds_const,
-			rotbonds_atoms_const,
-			num_rotating_atoms_per_rotbond_const
-			,
-	     		angle_const,
-	     		dependence_on_theta_const,
-	     		dependence_on_rotangle_const
-		 	// Gradient-related arguments
-		 	// Calculate gradients (forces) for intermolecular energy
-		 	// Derived from autodockdev/maps.py
-			,
-			dockpars_num_of_genes,
-			i_gradient_x, i_gradient_y, i_gradient_z,
-			f_gradient_x, f_gradient_y, f_gradient_z,
-			gradient
-			);
+	gpu_calc_gradient(dockpars_rotbondlist_length,
+	                  dockpars_num_of_atoms,
+	                  dockpars_true_ligand_atoms,
+	                  dockpars_gridsize_x,
+	                  dockpars_gridsize_y,
+	                  dockpars_gridsize_z,
+	                                                       // g1 = gridsize_x
+	                  dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+	                  dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+	                  dockpars_fgrids,
+	                  dockpars_num_of_atypes,
+	                  dockpars_num_of_map_atypes,
+	                  dockpars_num_of_intraE_contributors,
+	                  dockpars_grid_spacing,
+	                  dockpars_coeff_elec,
+	                  dockpars_elec_min_distance,
+	                  dockpars_qasp,
+	                  dockpars_coeff_desolv,
+	                  dockpars_smooth,
+	                  // Some OpenCL compilers don't allow declaring
+	                  // local variables within non-kernel functions.
+	                  // These local variables must be declared in a kernel,
+	                  // and then passed to non-kernel functions.
+	                  genotype,
+	                  &energy,
+	                  &run_id,
+	                  calc_coords,
+	                  kerconst_interintra,
+	                  kerconst_intracontrib,
+	                  kerconst_intra,
+	                  kerconst_rotlist,
+	                  kerconst_conform,
+	                  rotbonds_const,
+	                  rotbonds_atoms_const,
+	                  num_rotating_atoms_per_rotbond_const,
+	                  angle_const,
+	                  dependence_on_theta_const,
+	                  dependence_on_rotangle_const,
+	                  // Gradient-related arguments
+	                  dockpars_num_of_genes,
+	                  i_gradient_x, i_gradient_y, i_gradient_z,
+	                  f_gradient_x, f_gradient_y, f_gradient_z,
+	                  gradient
+	                 );
 	// =============================================================
 
 	// FIRE counters
-	__local float velocity [ACTUAL_GENOTYPE_LENGTH];// velocity
-	__local float alpha;				// alpha
-	__local uint  count_success;			// count_success
-	__local float dt;				// "dt"
+	__local float velocity [ACTUAL_GENOTYPE_LENGTH]; // velocity
+	__local float alpha;                             // alpha
+	__local uint  count_success;                     // count_success
+	__local float dt;                                // "dt"
 
 	// Calculating the gradient/velocity norm
 	__local float gradient_tmp [ACTUAL_GENOTYPE_LENGTH];
@@ -392,8 +380,9 @@ gradient_minFire(
 	// Calculating gradient-norm components
 	for (uint gene_counter = tidx;
 	          gene_counter < dockpars_num_of_genes;
-	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-		 gradient_tmp [gene_counter] = gradient [gene_counter] * gradient [gene_counter];
+	          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+	{
+		gradient_tmp [gene_counter] = gradient [gene_counter] * gradient [gene_counter];
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -422,8 +411,9 @@ gradient_minFire(
 	// This equation was found by trial and error
 	for (uint gene_counter = tidx;
 	          gene_counter < dockpars_num_of_genes;
-	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-		 velocity [gene_counter] = - gradient [gene_counter] * inv_gradient_norm;
+	          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+	{
+		velocity [gene_counter] = - gradient [gene_counter] * inv_gradient_norm;
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -431,7 +421,6 @@ gradient_minFire(
 	// may or may not be the last genotype
 	if (tidx == 0) {
 		best_energy = energy;
-
 		for (uint i = 0; i < dockpars_num_of_genes; i++) {
 			best_genotype [i] = genotype [i];
 		}
@@ -445,9 +434,9 @@ gradient_minFire(
 	// value of "dt" (fire specific)
 	do {
 		// Printing number of FIRE iterations
-		#if defined (DEBUG_FIRE_MINIMIZER) 
+		#if defined (DEBUG_FIRE_MINIMIZER)
 		if (tidx == 0) {
-			printf("%s\n", "----------------------------------------------------------");	
+			printf("%s\n", "----------------------------------------------------------");
 		}
 		#endif
 		
@@ -459,9 +448,10 @@ gradient_minFire(
 
 		// Creating new (candidate) genotypes
 		for (uint gene_counter = tidx;
-	        	  gene_counter < dockpars_num_of_genes;
-	        	  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {			
-			candidate_genotype [gene_counter] = genotype [gene_counter] + dt * velocity [gene_counter];	
+		          gene_counter < dockpars_num_of_genes;
+		          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+		{
+			candidate_genotype [gene_counter] = genotype [gene_counter] + dt * velocity [gene_counter];
 		}
 
 // Replacing separate gradient and energy 
@@ -475,59 +465,50 @@ gradient_minFire(
 		// from "candidate_genotype"
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		gpu_calc_gradient(
-				dockpars_rotbondlist_length,
-				dockpars_num_of_atoms,
-				dockpars_true_ligand_atoms,
-				dockpars_gridsize_x,
-				dockpars_gridsize_y,
-				dockpars_gridsize_z,
-								    	// g1 = gridsize_x
-				dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
-				dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
-				dockpars_fgrids,
-				dockpars_num_of_atypes,
-				dockpars_num_of_map_atypes,
-				dockpars_num_of_intraE_contributors,
-				dockpars_grid_spacing,
-				dockpars_coeff_elec,
-				dockpars_elec_min_distance,
-				dockpars_qasp,
-				dockpars_coeff_desolv,
-				dockpars_smooth,
-
-				// Some OpenCL compilers don't allow declaring 
-				// local variables within non-kernel functions.
-				// These local variables must be declared in a kernel, 
-				// and then passed to non-kernel functions.
-				candidate_genotype,
-				&candidate_energy,
-				&run_id,
-
-				calc_coords,
-
-				kerconst_interintra,
-				kerconst_intracontrib,
-				kerconst_intra,
-				kerconst_rotlist,
-				kerconst_conform
-				,
-				rotbonds_const,
-				rotbonds_atoms_const,
-				num_rotating_atoms_per_rotbond_const
-				,
-	     			angle_const,
-	     			dependence_on_theta_const,
-	     			dependence_on_rotangle_const
-			 	// Gradient-related arguments
-			 	// Calculate gradients (forces) for intermolecular energy
-			 	// Derived from autodockdev/maps.py
-				,
-				dockpars_num_of_genes,
-				i_gradient_x, i_gradient_y, i_gradient_z,
-				f_gradient_x, f_gradient_y, f_gradient_z,
-				candidate_gradient
-				);
+		gpu_calc_gradient(dockpars_rotbondlist_length,
+		                  dockpars_num_of_atoms,
+		                  dockpars_true_ligand_atoms,
+		                  dockpars_gridsize_x,
+		                  dockpars_gridsize_y,
+		                  dockpars_gridsize_z,
+		                                                       // g1 = gridsize_x
+		                  dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+		                  dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+		                  dockpars_fgrids,
+		                  dockpars_num_of_atypes,
+		                  dockpars_num_of_map_atypes,
+		                  dockpars_num_of_intraE_contributors,
+		                  dockpars_grid_spacing,
+		                  dockpars_coeff_elec,
+		                  dockpars_elec_min_distance,
+		                  dockpars_qasp,
+		                  dockpars_coeff_desolv,
+		                  dockpars_smooth,
+		                  // Some OpenCL compilers don't allow declaring
+		                  // local variables within non-kernel functions.
+		                  // These local variables must be declared in a kernel,
+		                  // and then passed to non-kernel functions.
+		                  candidate_genotype,
+		                  &candidate_energy,
+		                  &run_id,
+		                  calc_coords,
+		                  kerconst_interintra,
+		                  kerconst_intracontrib,
+		                  kerconst_intra,
+		                  kerconst_rotlist,
+		                  kerconst_conform,
+		                  rotbonds_const,
+		                  rotbonds_atoms_const,
+		                  num_rotating_atoms_per_rotbond_const,
+		                  angle_const,
+		                  dependence_on_theta_const,
+		                  dependence_on_rotangle_const,
+		                  // Gradient-related arguments
+		                  dockpars_num_of_genes,
+		                  i_gradient_x, i_gradient_y, i_gradient_z,
+		                  f_gradient_x, f_gradient_y, f_gradient_z,
+		                  candidate_gradient
+		                 );
 		// =============================================================
 
 		// Evaluating (candidate) genotype
@@ -536,47 +517,47 @@ gradient_minFire(
 
 		// =============================================================
 		gpu_calc_energy(dockpars_rotbondlist_length,
-				dockpars_num_of_atoms,
-				dockpars_true_ligand_atoms,
-				dockpars_gridsize_x,
-				dockpars_gridsize_y,
-				dockpars_gridsize_z,
-								    	// g1 = gridsize_x
-				dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
-				dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
-				dockpars_fgrids,
-				dockpars_num_of_atypes,
-				dockpars_num_of_map_atypes,
-				dockpars_num_of_intraE_contributors,
-				dockpars_grid_spacing,
-				dockpars_coeff_elec,
-				dockpars_elec_min_distance,
-				dockpars_qasp,
-				dockpars_coeff_desolv,
-				dockpars_smooth,
-
-				candidate_genotype,
-				&candidate_energy,
-				&run_id,
-				// Some OpenCL compilers don't allow declaring 
-				// local variables within non-kernel functions.
-				// These local variables must be declared in a kernel, 
-				// and then passed to non-kernel functions.
-				calc_coords,
-				partial_energies,
-			#if defined (DEBUG_ENERGY_KERNEL)
-				partial_interE,
-				partial_intraE,
-			#endif
-			#if 0
-				true,
-			#endif
-				kerconst_interintra,
-				kerconst_intracontrib,
-				kerconst_intra,
-				kerconst_rotlist,
-				kerconst_conform
-				);
+		                dockpars_num_of_atoms,
+		                dockpars_true_ligand_atoms,
+		                dockpars_gridsize_x,
+		                dockpars_gridsize_y,
+		                dockpars_gridsize_z,
+		                                                     // g1 = gridsize_x
+		                dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+		                dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+		                dockpars_fgrids,
+		                dockpars_num_of_atypes,
+		                dockpars_num_of_map_atypes,
+		                dockpars_num_of_intraE_contributors,
+		                dockpars_grid_spacing,
+		                dockpars_coeff_elec,
+		                dockpars_elec_min_distance,
+		                dockpars_qasp,
+		                dockpars_coeff_desolv,
+		                dockpars_smooth,
+		
+		                candidate_genotype, /*WARNING: calculating the energy of the hardcoded genotype*/
+		                &candidate_energy,
+		                &run_id,
+		                // Some OpenCL compilers don't allow declaring
+		                // local variables within non-kernel functions.
+		                // These local variables must be declared in a kernel,
+		                // and then passed to non-kernel functions.
+		                calc_coords,
+		                partial_energies,
+		                #if defined (DEBUG_ENERGY_KERNEL)
+		                partial_interE,
+		                partial_intraE,
+		                #endif
+#if 0
+		                true,
+#endif
+		                kerconst_interintra,
+		                kerconst_intracontrib,
+		                kerconst_intra,
+		                kerconst_rotlist,
+		                kerconst_conform
+		               );
 		// =============================================================
 #endif
 
@@ -586,77 +567,68 @@ gradient_minFire(
 		// Calculating energy & gradient
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		gpu_calc_energrad(
-				dockpars_rotbondlist_length,
-				dockpars_num_of_atoms,
-				dockpars_true_ligand_atoms,
-				dockpars_gridsize_x,
-				dockpars_gridsize_y,
-				dockpars_gridsize_z,
-								    	// g1 = gridsize_x
-				dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
-				dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
-				dockpars_fgrids,
-				dockpars_num_of_atypes,
-				dockpars_num_of_map_atypes,
-				dockpars_num_of_intraE_contributors,
-				dockpars_grid_spacing,
-				dockpars_coeff_elec,
-				dockpars_elec_min_distance,
-				dockpars_qasp,
-				dockpars_coeff_desolv,
-				dockpars_smooth,
-
-				// Some OpenCL compilers don't allow declaring 
-				// local variables within non-kernel functions.
-				// These local variables must be declared in a kernel, 
-				// and then passed to non-kernel functions.
-				candidate_genotype,
-				&candidate_energy,
-				&run_id,
-
-				calc_coords,
-				partial_energies,
-				#if defined (DEBUG_ENERGY_KERNEL)
-				partial_interE,
-				partial_intraE,
-				#endif
-
-				kerconst_interintra,
-				kerconst_intracontrib,
-				kerconst_intra,
-				kerconst_rotlist,
-				kerconst_conform
-				,
-				rotbonds_const,
-				rotbonds_atoms_const,
-				num_rotating_atoms_per_rotbond_const
-				,
-	     			angle_const,
-	     			dependence_on_theta_const,
-	     			dependence_on_rotangle_const
-			 	// Gradient-related arguments
-			 	// Calculate gradients (forces) for intermolecular energy
-			 	// Derived from autodockdev/maps.py
-				,
-				dockpars_num_of_genes,
-				i_gradient_x, i_gradient_y, i_gradient_z,
-				f_gradient_x, f_gradient_y, f_gradient_z,
-				candidate_gradient
-				);
+		gpu_calc_energrad(dockpars_rotbondlist_length,
+		                  dockpars_num_of_atoms,
+		                  dockpars_true_ligand_atoms,
+		                  dockpars_gridsize_x,
+		                  dockpars_gridsize_y,
+		                  dockpars_gridsize_z,
+		                  // g1 = gridsize_x
+		                  dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+		                  dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
+		                  dockpars_fgrids,
+		                  dockpars_num_of_atypes,
+		                  dockpars_num_of_map_atypes,
+		                  dockpars_num_of_intraE_contributors,
+		                  dockpars_grid_spacing,
+		                  dockpars_coeff_elec,
+		                  dockpars_elec_min_distance,
+		                  dockpars_qasp,
+		                  dockpars_coeff_desolv,
+		                  dockpars_smooth,
+		                  // Some OpenCL compilers don't allow declaring
+		                  // local variables within non-kernel functions.
+		                  // These local variables must be declared in a kernel,
+		                  // and then passed to non-kernel functions.
+		                  candidate_genotype,
+		                  &candidate_energy,
+		                  &run_id,
+		                  calc_coords,
+		                  partial_energies,
+		                  #if defined (DEBUG_ENERGY_KERNEL)
+		                  partial_interE,
+		                  partial_intraE,
+		                  #endif
+		                  kerconst_interintra,
+		                  kerconst_intracontrib,
+		                  kerconst_intra,
+		                  kerconst_rotlist,
+		                  kerconst_conform,
+		                  rotbonds_const,
+		                  rotbonds_atoms_const,
+		                  num_rotating_atoms_per_rotbond_const,
+		                  angle_const,
+		                  dependence_on_theta_const,
+		                  dependence_on_rotangle_const,
+		                  // Gradient-related arguments
+		                  dockpars_num_of_genes,
+		                  i_gradient_x, i_gradient_y, i_gradient_z,
+		                  f_gradient_x, f_gradient_y, f_gradient_z,
+		                  candidate_gradient
+		                 );
 		// =============================================================
 		// =============================================================
 		// =============================================================
 
 		// Calculating power
-        	// power is force * velocity.
-        	// force = -gradient
+		// power is force * velocity.
+		// force = -gradient
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		for (uint gene_counter = tidx;
-	        	  gene_counter < dockpars_num_of_genes;
-	        	  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-			
+		          gene_counter < dockpars_num_of_genes;
+		          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+		{
 			// Calculating power
 			power_tmp [gene_counter] = -candidate_gradient [gene_counter] * velocity [gene_counter];
 		}
@@ -664,7 +636,6 @@ gradient_minFire(
 
 		if (tidx == 0) {
 			power = 0.0f;
-
 			// Summing dot products
 			for (uint i = 0; i < dockpars_num_of_genes; i++) {
 				power += power_tmp [i];
@@ -726,12 +697,11 @@ gradient_minFire(
 
 		// Going uphill (against the gradient)
 		if (power < 0.0f) {
-
 			// Using same equation as for starting velocity
-
 			for (uint gene_counter = tidx;
-				  gene_counter < dockpars_num_of_genes;
-				  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
+			          gene_counter < dockpars_num_of_genes;
+			          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+			{
 				// Calculating gradient-norm
 				gradient_tmp [gene_counter] = gradient [gene_counter] * gradient [gene_counter];
 			}
@@ -752,16 +722,17 @@ gradient_minFire(
 			barrier(CLK_LOCAL_MEM_FENCE);
 
 			for (uint gene_counter = tidx;
-		        	  gene_counter < dockpars_num_of_genes;
-		        	  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {		
-				velocity [gene_counter] = - gradient [gene_counter] * inv_gradient_norm;	
+			          gene_counter < dockpars_num_of_genes;
+			          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+			{
+				velocity [gene_counter] = - gradient [gene_counter] * inv_gradient_norm;
 			}
 			barrier(CLK_LOCAL_MEM_FENCE);
 
 		 	if (tidx == 0) {
 				count_success = 0;
 				alpha         = ALPHA_START;
-				dt 	      = dt * DT_DEC; 
+				dt            = dt * DT_DEC;
 
 				#if defined PRINT_FIRE_PARAMETERS
 				printf("\nPower is negative :( = %f\n", power);
@@ -801,23 +772,23 @@ gradient_minFire(
 		// --------------------------------------
 		// Always update: energy, genotype, gradient
 		for (uint gene_counter = tidx;
-	        	  gene_counter < dockpars_num_of_genes;
-	        	  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-
+		          gene_counter < dockpars_num_of_genes;
+		          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+		{
 			if (gene_counter == 0) {
-				energy = candidate_energy;		
+				energy = candidate_energy;
 			}
-	
 			genotype [gene_counter] = candidate_genotype [gene_counter];
-			gradient [gene_counter] = candidate_gradient [gene_counter];	
+			gradient [gene_counter] = candidate_gradient [gene_counter];
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		// --------------------------------------
 		// Calculating gradient-norm
 		for (uint gene_counter = tidx;
-			  gene_counter < dockpars_num_of_genes;
-			  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
+		          gene_counter < dockpars_num_of_genes;
+		          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+		{
 			gradient_tmp [gene_counter] = gradient [gene_counter] * gradient [gene_counter];
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -838,8 +809,9 @@ gradient_minFire(
 		// --------------------------------------
 		// Calculating velocity-norm
 		for (uint gene_counter = tidx;
-			  gene_counter < dockpars_num_of_genes;
-			  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
+		          gene_counter < dockpars_num_of_genes;
+		          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+		{
 			velocity_tmp [gene_counter] = velocity [gene_counter] * velocity [gene_counter];
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -861,8 +833,9 @@ gradient_minFire(
 		// --------------------------------------
 		// Calculating velocity
 		for (uint gene_counter = tidx;
-			  gene_counter < dockpars_num_of_genes;
-			  gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
+		          gene_counter < dockpars_num_of_genes;
+		          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+		{
 			// NOTE: "velnorm_div_gradnorm" includes already the "alpha" factor
 			velocity [gene_counter] = (1 - alpha) * velocity [gene_counter] - gradient [gene_counter] * velnorm_div_gradnorm;
 		}
@@ -910,19 +883,20 @@ gradient_minFire(
 
 	// Mapping torsion angles
 	for (uint gene_counter = tidx;
-	     	  gene_counter < dockpars_num_of_genes;
-	          gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-		   if (gene_counter >= 3) {
-			    map_angle(&(best_genotype[gene_counter]));
-		   }
+	          gene_counter < dockpars_num_of_genes;
+	          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+	{
+		if (gene_counter >= 3) {
+			map_angle(&(best_genotype[gene_counter]));
+		}
 	}
 
 	// Updating old offspring in population
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	event_t ev2 = async_work_group_copy(dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
-			                    best_genotype,
-			                    dockpars_num_of_genes, 0);
+	                                    best_genotype,
+	                                    dockpars_num_of_genes, 0);
 
 	// Asynchronous copy should be finished by here
 	wait_group_events(1, &ev2);

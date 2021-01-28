@@ -24,10 +24,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
-gpu_sum_evals(	       
-		       uint pop_size,
-	      __global int* restrict dockpars_evals_of_new_entities,
-              __global int* restrict evals_of_runs
+gpu_sum_evals(
+              uint pop_size,
+     __global int* restrict dockpars_evals_of_new_entities,
+     __global int* restrict evals_of_runs
 )
 //The GPU global function sums the evaluation counter states
 //which are stored in evals_of_new_entities array foreach entity,
@@ -44,7 +44,8 @@ gpu_sum_evals(
 	// calculate partial sums
 	for (entity_counter = tidx;
 	     entity_counter < pop_size;
-	     entity_counter+= NUM_OF_THREADS_PER_BLOCK) {
+	     entity_counter+= NUM_OF_THREADS_PER_BLOCK)
+	{
 		partsum_evals[tidx] += dockpars_evals_of_new_entities[get_group_id(0)*pop_size + entity_counter];
 	}
 	// reduction to calculate energy

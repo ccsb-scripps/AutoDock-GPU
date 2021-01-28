@@ -91,16 +91,16 @@ void map_angle(__local float* angle)
 //
 // -------------------------------------------------------
 void gpu_perform_elitist_selection(
-					     int    dockpars_pop_size,
-				    __global float* restrict dockpars_energies_current,
-				    __global float* restrict dockpars_energies_next,
-				    __global int*   restrict dockpars_evals_of_new_entities,
-					     int    dockpars_num_of_genes,
-				    __global float* restrict dockpars_conformations_next,
-		       		    __global const float* restrict dockpars_conformations_current,
-				    __local  float* best_energies,
-				    __local  int*   best_IDs,
-				    __local  int*   best_ID
+                                            int    dockpars_pop_size,
+                                   __global float* restrict dockpars_energies_current,
+                                   __global float* restrict dockpars_energies_next,
+                                   __global int*   restrict dockpars_evals_of_new_entities,
+                                            int    dockpars_num_of_genes,
+                                   __global float* restrict dockpars_conformations_next,
+                                   __global const float* restrict dockpars_conformations_current,
+                                   __local  float* best_energies,
+                                   __local  int*   best_IDs,
+                                   __local  int*   best_ID
 )
 //The GPU device function performs elitist selection,
 //that is, it looks for the best entity in conformations_current and
@@ -120,12 +120,12 @@ void gpu_perform_elitist_selection(
 
 	for (entity_counter = NUM_OF_THREADS_PER_BLOCK+tidx;
 	     entity_counter < dockpars_pop_size;
-	     entity_counter+= NUM_OF_THREADS_PER_BLOCK) {
-
-	     if (dockpars_energies_current[get_group_id(0)+entity_counter] < best_energies[tidx]) {
-		best_energies[tidx] = dockpars_energies_current[get_group_id(0)+entity_counter];
-		best_IDs[tidx] = entity_counter;
-	     }
+	     entity_counter+= NUM_OF_THREADS_PER_BLOCK)
+	{
+		if (dockpars_energies_current[get_group_id(0)+entity_counter] < best_energies[tidx]) {
+			best_energies[tidx] = dockpars_energies_current[get_group_id(0)+entity_counter];
+			best_IDs[tidx] = entity_counter;
+		}
 	}
 
        barrier(CLK_LOCAL_MEM_FENCE);
@@ -139,12 +139,12 @@ void gpu_perform_elitist_selection(
 
 		for (entity_counter = 1;
 		     entity_counter < NUM_OF_THREADS_PER_BLOCK;
-		     entity_counter++) {
-
-		     if ((best_energies[entity_counter] < best_energy) && (entity_counter < dockpars_pop_size)) {
-			      best_energy = best_energies[entity_counter];
-			      best_ID[0] = best_IDs[entity_counter];
-		     }
+		     entity_counter++)
+		{
+			if ((best_energies[entity_counter] < best_energy) && (entity_counter < dockpars_pop_size)) {
+				best_energy = best_energies[entity_counter];
+				best_ID[0] = best_IDs[entity_counter];
+			}
 		}
 
 		// Setting energy value of new entity
@@ -160,7 +160,8 @@ void gpu_perform_elitist_selection(
 
 	for (gene_counter = tidx;
 	     gene_counter < dockpars_num_of_genes;
-	     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-	     dockpars_conformations_next[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+gene_counter] = dockpars_conformations_current[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0) + GENOTYPE_LENGTH_IN_GLOBMEM*best_ID[0]+gene_counter];
+	     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+	{
+		dockpars_conformations_next[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+gene_counter] = dockpars_conformations_current[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0) + GENOTYPE_LENGTH_IN_GLOBMEM*best_ID[0]+gene_counter];
 	}
 }

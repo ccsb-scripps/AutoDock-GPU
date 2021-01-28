@@ -40,17 +40,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 typedef struct
 {
-	int nr;			// this number starts at 1 and will be used to extend the base atom type nr
-	char deriv_name[4];	// name of derivative atom type (3 chars max + 1 for \0)
-	char base_name[4];	// name of base type
+	int  nr;            // this number starts at 1 and will be used to extend the base atom type nr
+	char deriv_name[4]; // name of derivative atom type (3 chars max + 1 for \0)
+	char base_name[4];  // name of base type
 } deriv_atype;
 
 typedef struct
 {
-	char A[4];		// name of one interaction atom type (order is arbitrary)
-	char B[4];		// name of the other interaction atom type
-	int nr_parameters;	// number of parameters (the order is unique)
-	float* parameters;	// parameter array ([0] = r, [1] = eps, [2] = rep. LJ exponent, [3] = attr. LJ exponent)
+	char   A[4];          // name of one interaction atom type (order is arbitrary)
+	char   B[4];          // name of the other interaction atom type
+	int    nr_parameters; // number of parameters (the order is unique)
+	float* parameters;    // parameter array ([0] = r, [1] = eps, [2] = rep. LJ exponent, [3] = attr. LJ exponent)
 } pair_mod;
 
 typedef struct

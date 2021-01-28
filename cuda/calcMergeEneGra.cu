@@ -46,29 +46,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // #define RESTORING_MAP_GRADIENT
 
 __device__ void gpu_calc_energrad(
-			float* genotype,
-			float& global_energy,
-			int&   run_id,
-
-            float3* calc_coords,
+                                  float* genotype,
+                                  float& global_energy,
+                                  int&   run_id,
+                                  float3* calc_coords,
 #if defined (DEBUG_ENERGY_KERNEL)
-			float& interE,
-			float& pintraE,
+                                  float& interE,
+                                  float& pintraE,
 #endif
-
-		    // Gradient-related arguments
-		    // Calculate gradients (forces) for intermolecular energy
-		    // Derived from autodockdev/maps.py
-		    // "is_enabled_gradient_calc": enables gradient calculation.
-		    // In Genetic-Generation: no need for gradients
-		    // In Gradient-Minimizer: must calculate gradients
 #ifdef FLOAT_GRADIENTS
-			float3* gradient,
+                                  float3* gradient,
 #else
-			int3* gradient,
+                                  int3* gradient,
 #endif
-			float* fgradient_genotype,
-			float* pFloatAccumulator
+                                  float* fgradient_genotype,
+                                  float* pFloatAccumulator
 )
 {
 	float energy = 0.0f;
@@ -80,8 +72,8 @@ __device__ void gpu_calc_energrad(
 	// Initializing gradients (forces) 
 	// Derived from autodockdev/maps.py
 	for (uint32_t atom_id = threadIdx.x;
-		      atom_id < cData.dockpars.num_of_atoms; // makes sure that gradient sum reductions give correct results if dockpars_num_atoms < NUM_OF_THREADS_PER_BLOCK
-		      atom_id+= blockDim.x) {
+	              atom_id < cData.dockpars.num_of_atoms; // makes sure that gradient sum reductions give correct results if dockpars_num_atoms < NUM_OF_THREADS_PER_BLOCK
+	              atom_id+= blockDim.x) {
 		// Initialize coordinates
 		calc_coords[atom_id].x = cData.pKerconst_conform->ref_coords_const[3*atom_id];
 		calc_coords[atom_id].y = cData.pKerconst_conform->ref_coords_const[3*atom_id+1];
@@ -95,8 +87,8 @@ __device__ void gpu_calc_energrad(
 
 	// Initializing gradient genotypes
 	for (uint32_t gene_cnt = threadIdx.x;
-		      gene_cnt < cData.dockpars.num_of_genes;
-		      gene_cnt+= blockDim.x) {
+	              gene_cnt < cData.dockpars.num_of_genes;
+	              gene_cnt+= blockDim.x) {
 		fgradient_genotype[gene_cnt] = 0;
 	}
 
@@ -185,8 +177,8 @@ __device__ void gpu_calc_energrad(
 			float4 quatrot_left = rotation_unitvec;
 			// Performing rotation
 			if (((rotation_list_element & RLIST_GENROT_MASK) != 0) && // If general rotation,
-			    (atom_id < cData.dockpars.true_ligand_atoms))	  // two rotations should be performed
-										  // (multiplying the quaternions)
+			    (atom_id < cData.dockpars.true_ligand_atoms))         // two rotations should be performed
+                                                                                  // (multiplying the quaternions)
 			{
 				// Calculating quatrot_left*ref_orientation_quats_const,
 				// which means that reference orientation rotation is the first
@@ -229,8 +221,8 @@ __device__ void gpu_calc_energrad(
 		uint32_t atom_typeid = cData.pKerconst_interintra->atom_types_map_const[atom_id];
 
 		if ((x < 0) || (y < 0) || (z < 0) || (x >= cData.dockpars.gridsize_x-1)
-				                  || (y >= cData.dockpars.gridsize_y-1)
-						  || (z >= cData.dockpars.gridsize_z-1)){
+		                                  || (y >= cData.dockpars.gridsize_y-1)
+		                                  || (z >= cData.dockpars.gridsize_z-1)){
 #ifdef RESTORING_MAP_GRADIENT
 			x -= 0.5f * cData.dockpars.gridsize_x;
 			y -= 0.5f * cData.dockpars.gridsize_y;
@@ -309,17 +301,16 @@ __device__ void gpu_calc_energrad(
 		// -------------------------------------------------------------------
 		/*
 		    deltas: (x-x0)/(x1-x0), (y-y0...
-		    vertices: (000, 100, 010, 001, 101, 110, 011, 111)        
-
-			  Z
-			  '
-			  3 - - - - 6
-			 /.        /|
-			4 - - - - 7 |
-			| '       | |
-			| 0 - - - + 2 -- Y
-			'/        |/
-			1 - - - - 5
+		    vertices: (000, 100, 010, 001, 101, 110, 011, 111)
+		          Z
+		          '
+		          3 - - - - 6
+		         /.        /|
+		        4 - - - - 7 |
+		        | '       | |
+		        | 0 - - - + 2 -- Y
+		        '/        |/
+		        1 - - - - 5
 		       /
 		      X
 		*/
@@ -568,19 +559,19 @@ __device__ void gpu_calc_energrad(
 			// http://www.wolframalpha.com/input/?i=1%2F(x*(A%2B(B%2F(1%2BK*exp(-h*B*x)))))
 /*			float exp_el_DIEL_K = exp_el + DIEL_K;
 			float upper = DIEL_A * exp_el_DIEL_K*exp_el_DIEL_K +
-				      DIEL_B * exp_el * (DIEL_B_TIMES_H_TIMES_K*atomic_distance + exp_el_DIEL_K);
+			              DIEL_B * exp_el * (DIEL_B_TIMES_H_TIMES_K*atomic_distance + exp_el_DIEL_K);
 			float lower = atomic_distance * (DIEL_A * exp_el_DIEL_K + DIEL_B * exp_el);
 			lower *= lower;*/
 
 //			priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * q1 * q2 * native_divide (upper, lower) -
-//								0.0771605f * atomic_distance * desolv_energy;
+//			                                       0.0771605f * atomic_distance * desolv_energy;
 			priv_gradient_per_intracontributor +=  -(es_energy / atomic_distance) * diel
 #ifndef DIEL_FIT_ABC
-							       -es_energy * 2.21718f / (dist2*dist_shift)
+			                                       -es_energy * 2.21718f / (dist2*dist_shift)
 #else
-							       -es_energy * ((2.808f / (dist2*dist_shift)) + (0.288f / (disth4*disth_shift)))
+			                                       -es_energy * ((2.808f / (dist2*dist_shift)) + (0.288f / (disth4*disth_shift)))
 #endif
-							       -0.0771605f * atomic_distance * desolv_energy; // 1/3.6^2 = 1/12.96 = 0.0771605
+			                                       -0.0771605f * atomic_distance * desolv_energy; // 1/3.6^2 = 1/12.96 = 0.0771605
 		} // if cuttoff2 - internuclear-distance at 20.48A
 
 		// Decomposing "priv_gradient_per_intracontributor"
@@ -824,9 +815,9 @@ __device__ void gpu_calc_energrad(
 			|                        Y1
 			|
 			|             Y=?
-			|    Y0   
+			|    Y0
 			|_________________________________ angle_const
-			     X0  	X	 X1
+			     X0         X        X1
 		*/
 
 		// Finding the index-position of "grad_delta" in the "angle_const" array
@@ -966,8 +957,8 @@ __device__ void gpu_calc_energrad(
 	__syncthreads();
 
 	for (uint32_t gene_cnt = threadIdx.x;
-		      gene_cnt < cData.dockpars.num_of_genes;
-		      gene_cnt+= blockDim.x) {
+	              gene_cnt < cData.dockpars.num_of_genes;
+	              gene_cnt+= blockDim.x) {
 		fgradient_genotype[gene_cnt] = ONEOVERTERMSCALE * (float)gradient_genotype[gene_cnt];
 	}
 	__threadfence();
@@ -975,8 +966,8 @@ __device__ void gpu_calc_energrad(
 
 	#if defined (CONVERT_INTO_ANGSTROM_RADIAN)
 	for (uint32_t gene_cnt = threadIdx.x+3; // Only for gene_cnt > 2 means start gene_cnt at 3
-		      gene_cnt < cData.dockpars.num_of_genes;
-		      gene_cnt+= blockDim.x) {
+	              gene_cnt < cData.dockpars.num_of_genes;
+	              gene_cnt+= blockDim.x) {
 		fgradient_genotype[gene_cnt] *= cData.dockpars.grid_spacing * cData.dockpars.grid_spacing * SCFACTOR_ANGSTROM_RADIAN;
 	}
 	__threadfence();
