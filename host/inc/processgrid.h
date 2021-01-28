@@ -78,14 +78,21 @@ struct Map
 	Map(std::string atype) : atype(atype){}
 };
 
-int get_gridinfo(const char*, Gridinfo*);
+int get_gridinfo(
+                 const char*,
+                       Gridinfo*
+                );
 
-int get_gridvalues_f(const Gridinfo* mygrid,
+int get_gridvalues_f(
+                     const Gridinfo* mygrid,
                            float**   fgrids,
-                           bool      cgmaps);
+                           bool      cgmaps
+                    );
 
-int get_gridvalues_f(const Gridinfo* mygrid,
+int get_gridvalues_f(
+                     const Gridinfo* mygrid,
                            float*    fgrids,
-                           bool      cgmaps);
+                           bool      cgmaps
+                    );
 
 #endif /* PROCESSGRID_H_ */

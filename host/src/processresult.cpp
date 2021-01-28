@@ -26,7 +26,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "processresult.h"
 
 
-void arrange_result(float* final_population, float* energies, const int pop_size)
+void arrange_result(
+                          float* final_population,
+                          float* energies,
+                    const int    pop_size
+                   )
 // The function arranges the rows of the input array (first array index is considered to be the row
 // index) according to the sum of [] [38] and [][39] elements, which can be used for arranging the
 // genotypes of the final population according to the sum of energy values. Genotypes with lower
@@ -52,7 +56,8 @@ void arrange_result(float* final_population, float* energies, const int pop_size
 }
 
 
-void write_basic_info(      FILE*       fp,
+void write_basic_info(
+                            FILE*       fp,
                       const Liganddata* ligand_ref,
                       const Dockpars*   mypars,
                       const Gridinfo*   mygrid,
@@ -164,12 +169,14 @@ void write_basic_info(      FILE*       fp,
 	fprintf(fp, "\n\n");
 }
 
-void write_basic_info_dlg(      FILE*       fp,
+void write_basic_info_dlg(
+                                FILE*       fp,
                           const Liganddata* ligand_ref,
                           const Dockpars*   mypars,
                           const Gridinfo*   mygrid,
                           const int*        argc,
-                                char**      argv)
+                                char**      argv
+                         )
 // The function writes basic information (such as docking parameters) to the file whose file pointer is the first parameter of the function.
 {
 	int i;
@@ -276,7 +283,8 @@ void write_basic_info_dlg(      FILE*       fp,
 	fprintf(fp, "\n\n");
 }
 
-void make_resfiles(      float*        final_population,
+void make_resfiles(
+                         float*        final_population,
                          float*        energies,
                    const Liganddata*   ligand_ref,
                    const Liganddata*   ligand_from_pdb,
@@ -435,7 +443,8 @@ void make_resfiles(      float*        final_population,
 	free(temp_filename);
 }
 
-void cluster_analysis(      Ligandresult myresults [],
+void cluster_analysis(
+                            Ligandresult myresults [],
                             int          num_of_runs,
                             char*        report_file_name,
                       const Liganddata*  ligand_ref,
@@ -581,7 +590,8 @@ void cluster_analysis(      Ligandresult myresults [],
 	fclose(fp);
 }
 
-void clusanal_gendlg(      Ligandresult  myresults [],
+void clusanal_gendlg(
+                           Ligandresult  myresults [],
                            int           num_of_runs,
                      const Liganddata*   ligand_ref,
                      const Dockpars*     mypars,
@@ -951,7 +961,8 @@ void clusanal_gendlg(      Ligandresult  myresults [],
 	}
 }
 
-void process_result(const Gridinfo*        mygrid,
+void process_result(
+                    const Gridinfo*        mygrid,
                     const float*           cpu_floatgrids,
                     const Dockpars*        mypars,
                     const Liganddata*      myligand_init,

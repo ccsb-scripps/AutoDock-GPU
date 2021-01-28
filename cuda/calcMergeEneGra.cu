@@ -46,22 +46,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // #define RESTORING_MAP_GRADIENT
 
 __device__ void gpu_calc_energrad(
-                                  float* genotype,
-                                  float& global_energy,
-                                  int&   run_id,
+                                  float*  genotype,
+                                  float&  global_energy,
+                                  int&    run_id,
                                   float3* calc_coords,
 #if defined (DEBUG_ENERGY_KERNEL)
-                                  float& interE,
-                                  float& pintraE,
+                                  float&  interE,
+                                  float&  pintraE,
 #endif
 #ifdef FLOAT_GRADIENTS
                                   float3* gradient,
 #else
-                                  int3* gradient,
+                                  int3*   gradient,
 #endif
-                                  float* fgradient_genotype,
-                                  float* pFloatAccumulator
-)
+                                  float*  fgradient_genotype,
+                                  float*  pFloatAccumulator
+                                 )
 {
 	float energy = 0.0f;
 #if defined (DEBUG_ENERGY_KERNEL)
@@ -69,11 +69,12 @@ __device__ void gpu_calc_energrad(
 	intraE = 0.0f;
 #endif
 
-	// Initializing gradients (forces) 
+	// Initializing gradients (forces)
 	// Derived from autodockdev/maps.py
 	for (uint32_t atom_id = threadIdx.x;
 	              atom_id < cData.dockpars.num_of_atoms; // makes sure that gradient sum reductions give correct results if dockpars_num_atoms < NUM_OF_THREADS_PER_BLOCK
-	              atom_id+= blockDim.x) {
+	              atom_id+= blockDim.x)
+	{
 		// Initialize coordinates
 		calc_coords[atom_id].x = cData.pKerconst_conform->ref_coords_const[3*atom_id];
 		calc_coords[atom_id].y = cData.pKerconst_conform->ref_coords_const[3*atom_id+1];
@@ -88,7 +89,8 @@ __device__ void gpu_calc_energrad(
 	// Initializing gradient genotypes
 	for (uint32_t gene_cnt = threadIdx.x;
 	              gene_cnt < cData.dockpars.num_of_genes;
-	              gene_cnt+= blockDim.x) {
+	              gene_cnt+= blockDim.x)
+	{
 		fgradient_genotype[gene_cnt] = 0;
 	}
 
@@ -129,7 +131,7 @@ __device__ void gpu_calc_energrad(
 	{
 		int rotation_list_element = cData.pKerconst_rotlist->rotlist_const[rotation_counter];
 
-		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0)	// If not dummy rotation
+		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0) // If not dummy rotation
 		{
 			uint32_t atom_id = rotation_list_element & RLIST_ATOMID_MASK;
 
@@ -967,7 +969,8 @@ __device__ void gpu_calc_energrad(
 	#if defined (CONVERT_INTO_ANGSTROM_RADIAN)
 	for (uint32_t gene_cnt = threadIdx.x+3; // Only for gene_cnt > 2 means start gene_cnt at 3
 	              gene_cnt < cData.dockpars.num_of_genes;
-	              gene_cnt+= blockDim.x) {
+	              gene_cnt+= blockDim.x)
+	{
 		fgradient_genotype[gene_cnt] *= cData.dockpars.grid_spacing * cData.dockpars.grid_spacing * SCFACTOR_ANGSTROM_RADIAN;
 	}
 	__threadfence();

@@ -32,36 +32,36 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 typedef struct
 {
-	float atom_charges_const[MAX_NUM_OF_ATOMS];
-	int  atom_types_const  [MAX_NUM_OF_ATOMS];
-	int  atom_types_map_const  [MAX_NUM_OF_ATOMS];
+	float atom_charges_const  [MAX_NUM_OF_ATOMS];
+	int   atom_types_const    [MAX_NUM_OF_ATOMS];
+	int   atom_types_map_const[MAX_NUM_OF_ATOMS];
 	char  ignore_inter_const  [MAX_NUM_OF_ATOMS];
 } kernelconstant_interintra;
 
 typedef struct
 {
-	int  intraE_contributors_const[2*MAX_INTRAE_CONTRIBUTORS];
+	int intraE_contributors_const[2*MAX_INTRAE_CONTRIBUTORS];
 } kernelconstant_intracontrib;
 
 typedef struct
 {
-	unsigned int  atom_types_reqm_const [MAX_NUM_OF_ATYPES];
-	unsigned short int VWpars_exp_const [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
-	float reqm_AB_const     [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
-	float VWpars_AC_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
-	float VWpars_BD_const   [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
-	float dspars_S_const    [MAX_NUM_OF_ATYPES];
-	float dspars_V_const    [MAX_NUM_OF_ATYPES];
+	unsigned int       atom_types_reqm_const[MAX_NUM_OF_ATYPES];
+	unsigned short int VWpars_exp_const     [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
+	float              reqm_AB_const        [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
+	float              VWpars_AC_const      [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
+	float              VWpars_BD_const      [MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES];
+	float              dspars_S_const       [MAX_NUM_OF_ATYPES];
+	float              dspars_V_const       [MAX_NUM_OF_ATYPES];
 } kernelconstant_intra;
 
 typedef struct
 {
-	int   rotlist_const     [MAX_NUM_OF_ROTATIONS];
+	int rotlist_const     [MAX_NUM_OF_ROTATIONS];
 } kernelconstant_rotlist;
 
 typedef struct
 {
-	float ref_coords_const[3*MAX_NUM_OF_ATOMS];
+	float ref_coords_const             [3*MAX_NUM_OF_ATOMS];
 	float rotbonds_moving_vectors_const[3*MAX_NUM_OF_ROTBONDS];
 	float rotbonds_unit_vectors_const  [3*MAX_NUM_OF_ROTBONDS];
 	float ref_orientation_quats_const  [4*MAX_NUM_OF_RUNS];
@@ -131,55 +131,54 @@ inline float4 quaternion_rotate(float4 v, float4 rot)
 // All related pragmas are in defines.h (accesible by host and device code)
 
 void gpu_calc_energy(
-                     int    dockpars_rotbondlist_length,
-                     int    dockpars_num_of_atoms,
-                     int    dockpars_true_ligand_atoms,
-                     int    dockpars_gridsize_x,
-                     int    dockpars_gridsize_y,
-                     int    dockpars_gridsize_z,
-                                                                 // g1 = gridsize_x
-                     uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
-                     uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
-      __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
-                     int    dockpars_num_of_atypes,
-                     int    dockpars_num_of_map_atypes,
-                     int    dockpars_num_of_intraE_contributors,
-                     float  dockpars_grid_spacing,
-                     float  dockpars_coeff_elec,
-                     float  dockpars_elec_min_distance,
-                     float  dockpars_qasp,
-                     float  dockpars_coeff_desolv,
-                     float  dockpars_smooth,
+                           int     dockpars_rotbondlist_length,
+                           int     dockpars_num_of_atoms,
+                           int     dockpars_true_ligand_atoms,
+                           int     dockpars_gridsize_x,
+                           int     dockpars_gridsize_y,
+                           int     dockpars_gridsize_z,
+                                                                        // g1 = gridsize_x
+                           uint    dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+                           uint    dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+            __global const float*  restrict dockpars_fgrids, // This is too large to be allocated in __constant
+                           int     dockpars_num_of_atypes,
+                           int     dockpars_num_of_map_atypes,
+                           int     dockpars_num_of_intraE_contributors,
+                           float   dockpars_grid_spacing,
+                           float   dockpars_coeff_elec,
+                           float   dockpars_elec_min_distance,
+                           float   dockpars_qasp,
+                           float   dockpars_coeff_desolv,
+                           float   dockpars_smooth,
 
-                     // Some OpenCL compilers don't allow declaring
-                     // local variables within non-kernel functions.
-                     // These local variables must be declared in a kernel,
-                     // and then passed to non-kernel functions.
-             __local float* genotype,
-             __local float* energy,
-             __local int*   run_id,
+                           // Some OpenCL compilers don't allow declaring
+                           // local variables within non-kernel functions.
+                           // These local variables must be declared in a kernel,
+                           // and then passed to non-kernel functions.
+                   __local float*  genotype,
+                   __local float*  energy,
+                   __local int*    run_id,
 
-            __local float4* calc_coords,
-             __local float* partial_energies,
+                   __local float4* calc_coords,
+                   __local float*  partial_energies,
 
             #if defined (DEBUG_ENERGY_KERNEL)
-             __local float* partial_interE,
-             __local float* partial_intraE,
+                   __local float*  partial_interE,
+                   __local float*  partial_intraE,
             #endif
 #if 0
-                     bool   debug,
+                           bool    debug,
 #endif
-             __constant     kernelconstant_interintra*   kerconst_interintra,
-             __global const kernelconstant_intracontrib* kerconst_intracontrib,
-             __constant     kernelconstant_intra*        kerconst_intra,
-             __constant     kernelconstant_rotlist*      kerconst_rotlist,
-             __constant     kernelconstant_conform*      kerconst_conform
-)
-
-//The GPU device function calculates the energy of the entity described by genotype, dockpars and the liganddata
-//arrays in constant memory and returns it in the energy parameter. The parameter run_id has to be equal to the ID
-//of the run whose population includes the current entity (which can be determined with blockIdx.x), since this
-//determines which reference orientation should be used.
+          __constant       kernelconstant_interintra*   kerconst_interintra,
+            __global const kernelconstant_intracontrib* kerconst_intracontrib,
+          __constant       kernelconstant_intra*        kerconst_intra,
+          __constant       kernelconstant_rotlist*      kerconst_rotlist,
+          __constant       kernelconstant_conform*      kerconst_conform
+                    )
+// The GPU device function calculates the energy of the entity described by genotype, dockpars and the liganddata
+// arrays in constant memory and returns it in the energy parameter. The parameter run_id has to be equal to the ID
+// of the run whose population includes the current entity (which can be determined with blockIdx.x), since this
+// determines which reference orientation should be used.
 {
 	int tidx = get_local_id(0);
 	partial_energies[tidx] = 0.0f;
@@ -197,8 +196,8 @@ void gpu_calc_energy(
 	{
 		// Initialize coordinates
 		calc_coords[atom_id] = (float4)(kerconst_conform->ref_coords_const[3*atom_id],
-						kerconst_conform->ref_coords_const[3*atom_id+1],
-						kerconst_conform->ref_coords_const[3*atom_id+2],0);
+		                                kerconst_conform->ref_coords_const[3*atom_id+1],
+		                                kerconst_conform->ref_coords_const[3*atom_id+2],0);
 	}
 
 	// General rotation moving vector
@@ -418,7 +417,6 @@ void gpu_calc_energy(
 	for (uint contributor_counter = tidx;
 	          contributor_counter < dockpars_num_of_intraE_contributors;
 	          contributor_counter +=NUM_OF_THREADS_PER_BLOCK)
-
 #if 0
 if (tidx == 0) {
 	for (uint contributor_counter = 0;
@@ -434,7 +432,6 @@ if (tidx == 0) {
 		float raw_intraE_sol    = 0.0f;
 		float raw_intraE        = 0.0f;
 #endif
-
 		// Getting atom IDs
 		uint atom1_id = kerconst_intracontrib->intraE_contributors_const[2*contributor_counter];
 		uint atom2_id = kerconst_intracontrib->intraE_contributors_const[2*contributor_counter+1];

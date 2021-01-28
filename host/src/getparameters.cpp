@@ -51,9 +51,11 @@ static inline void trim(std::string &s) {
     rtrim(s);
 }
 
-int get_filelist(const int*      argc,
+int get_filelist(
+                 const int*      argc,
                        char**    argv,
-                       FileList& filelist)
+                       FileList& filelist
+                )
 // The function checks if a filelist has been provided according to the proper command line arguments.
 // If it is, it loads the .fld, .pdbqt, and resname files into vectors
 {
@@ -128,10 +130,12 @@ int get_filelist(const int*      argc,
 	return 0;
 }
 
-int get_filenames_and_ADcoeffs(const int*      argc,
+int get_filenames_and_ADcoeffs(
+                               const int*      argc,
                                      char**    argv,
                                      Dockpars* mypars,
-                               const bool      multiple_files)
+                               const bool      multiple_files
+                              )
 // The function fills the file name and coeffs fields of mypars parameter
 // according to the proper command line arguments.
 {
@@ -234,10 +238,12 @@ int get_filenames_and_ADcoeffs(const int*      argc,
 	return 0;
 }
 
-void get_commandpars(const int*      argc,
+void get_commandpars(
+                     const int*      argc,
                            char**    argv,
                            double*   spacing,
-                           Dockpars* mypars)
+                           Dockpars* mypars
+                    )
 // The function processes the command line arguments given with the argc and argv parameters,
 // and fills the proper fields of mypars according to that. If a parameter was not defined
 // in the command line, the default value will be assigned. The mypars' fields will contain
@@ -902,11 +908,13 @@ void get_commandpars(const int*      argc,
 
 }
 
-void gen_initpop_and_reflig(      Dockpars*   mypars,
+void gen_initpop_and_reflig(
+                                  Dockpars*   mypars,
                                   float*      init_populations,
                                   float*      ref_ori_angles,
                                   Liganddata* myligand,
-                            const Gridinfo*   mygrid)
+                            const Gridinfo*   mygrid
+                           )
 // The function generates a random initial population
 // (or alternatively, it reads from an external file according to mypars),
 // and the angles of the reference orientation.

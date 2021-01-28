@@ -53,8 +53,8 @@ typedef struct
 	float* parameters;    // parameter array ([0] = r, [1] = eps, [2] = rep. LJ exponent, [3] = attr. LJ exponent)
 } pair_mod;
 
+// Struct which describes a quaternion.
 typedef struct
-//Struct which describes a quaternion.
 {
 	double q;
 	double x;
@@ -62,11 +62,11 @@ typedef struct
 	double z;
 } Quaternion;
 
+// macro that calculates the trilinear interpolation,
+// the first parameter is a 2*2*2 array of the values of the function
+// in the vertices of the cube,
+// and the second one is a 2*2*2 array of the interpolation weights
 #define trilin_interpol(cube, weights) (cube[0][0][0]*weights[0][0][0] +cube[1][0][0]*weights[1][0][0] +cube[0][1][0]*weights[0][1][0] +cube[1][1][0]*weights[1][1][0] +cube[0][0][1]*weights[0][0][1] +cube[1][0][1]*weights[1][0][1] +cube[0][1][1]*weights[0][1][1] +cube[1][1][1]*weights[1][1][1])
-//macro that calculates the trilinear interpolation,
-//the first parameter is a 2*2*2 array of the values of the function
-//in the vertices of the cube,
-//and the second one is a 2*2*2 array of the interpolation weights
 
 int float2fracint(double, int);
 

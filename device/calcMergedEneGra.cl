@@ -23,9 +23,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
-#define TERMBITS 10
-#define MAXTERM ((float)(1 << (31 - TERMBITS - 8))) // 2^(31 - 10 - 8) = 2^13 = 8192
-#define TERMSCALE ((float)(1 << TERMBITS)) // 2^10 = 1024
+#define TERMBITS         10
+#define MAXTERM          ((float)(1 << (31 - TERMBITS - 8))) // 2^(31 - 10 - 8) = 2^13 = 8192
+#define TERMSCALE        ((float)(1 << TERMBITS)) // 2^10 = 1024
 #define ONEOVERTERMSCALE (1.0f / TERMSCALE) // 1 / 1024 = 0.000977
 
 // Enables full floating point gradient calculation.
@@ -44,68 +44,68 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // The latter can be distinguised this way: they are place within lines without indentation.
 
 void gpu_calc_energrad(
-                       int    dockpars_rotbondlist_length,
-                       int    dockpars_num_of_atoms,
-                       int    dockpars_true_ligand_atoms,
-                       int    dockpars_gridsize_x,
-                       int    dockpars_gridsize_y,
-                       int    dockpars_gridsize_z,
-                                                                   // g1 = gridsize_x
-                       uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
-                       uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
-        __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant
-                       int    dockpars_num_of_atypes,
-                       int    dockpars_num_of_map_atypes,
-                       int    dockpars_num_of_intraE_contributors,
-                       float  dockpars_grid_spacing,
-                       float  dockpars_coeff_elec,
-                       float  dockpars_elec_min_distance,
-                       float  dockpars_qasp,
-                       float  dockpars_coeff_desolv,
-                       float  dockpars_smooth,
+                             int    dockpars_rotbondlist_length,
+                             int    dockpars_num_of_atoms,
+                             int    dockpars_true_ligand_atoms,
+                             int    dockpars_gridsize_x,
+                             int    dockpars_gridsize_y,
+                             int    dockpars_gridsize_z,
+                                                                         // g1 = gridsize_x
+                             uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+                             uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+              __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant
+                             int    dockpars_num_of_atypes,
+                             int    dockpars_num_of_map_atypes,
+                             int    dockpars_num_of_intraE_contributors,
+                             float  dockpars_grid_spacing,
+                             float  dockpars_coeff_elec,
+                             float  dockpars_elec_min_distance,
+                             float  dockpars_qasp,
+                             float  dockpars_coeff_desolv,
+                             float  dockpars_smooth,
 
-                       // Some OpenCL compilers don't allow declaring
-                       // local variables within non-kernel functions.
-                       // These local variables must be declared in a kernel,
-                       // and then passed to non-kernel functions.
-               __local float* genotype,
-               __local float* energy,
-               __local int*   run_id,
+                             // Some OpenCL compilers don't allow declaring
+                             // local variables within non-kernel functions.
+                             // These local variables must be declared in a kernel,
+                             // and then passed to non-kernel functions.
+                     __local float* genotype,
+                     __local float* energy,
+                     __local int*   run_id,
 
-               __local float4* calc_coords,
-               __local float* partial_energies,
+                     __local float4* calc_coords,
+                     __local float* partial_energies,
 #if defined (DEBUG_ENERGY_KERNEL)
-               __local float* partial_interE,
-               __local float* partial_intraE,
+                     __local float* partial_interE,
+                     __local float* partial_intraE,
 #endif
-            __constant        kernelconstant_interintra*   kerconst_interintra,
-            __global const    kernelconstant_intracontrib* kerconst_intracontrib,
-            __constant        kernelconstant_intra*        kerconst_intra,
-            __constant        kernelconstant_rotlist*      kerconst_rotlist,
-            __constant        kernelconstant_conform*      kerconst_conform,
+            __constant       kernelconstant_interintra*   kerconst_interintra,
+              __global const kernelconstant_intracontrib* kerconst_intracontrib,
+            __constant       kernelconstant_intra*        kerconst_intra,
+            __constant       kernelconstant_rotlist*      kerconst_rotlist,
+            __constant       kernelconstant_conform*      kerconst_conform,
 
-            __constant int*   rotbonds_const,
-        __global const int*   rotbonds_atoms_const,
-            __constant int*   num_rotating_atoms_per_rotbond_const,
+            __constant       int*   rotbonds_const,
+              __global const int*   rotbonds_atoms_const,
+            __constant int*         num_rotating_atoms_per_rotbond_const,
 
-        __global const float* angle_const,
-            __constant float* dependence_on_theta_const,
-            __constant float* dependence_on_rotangle_const,
-                       int    dockpars_num_of_genes,
+              __global const float* angle_const,
+            __constant       float* dependence_on_theta_const,
+            __constant       float* dependence_on_rotangle_const,
+                             int    dockpars_num_of_genes,
 #ifdef FLOAT_GRADIENTS
-             __local float*   gradient_x,
-             __local float*   gradient_y,
-             __local float*   gradient_z,
+                     __local float* gradient_x,
+                     __local float* gradient_y,
+                     __local float* gradient_z,
 #else
-               __local int*   gradient_x,
-               __local int*   gradient_y,
-               __local int*   gradient_z,
+                     __local int*   gradient_x,
+                     __local int*   gradient_y,
+                     __local int*   gradient_z,
 #endif
-               __local float* accumulator_x,
-               __local float* accumulator_y,
-               __local float* accumulator_z,
-               __local float* gradient_genotype
-)
+                     __local float* accumulator_x,
+                     __local float* accumulator_y,
+                     __local float* accumulator_z,
+                     __local float* gradient_genotype
+                      )
 {
 	uint tidx = get_local_id(0);
 	partial_energies[tidx] = 0.0f;
@@ -173,7 +173,7 @@ void gpu_calc_energrad(
 	          rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
 	{
 		int rotation_list_element = kerconst_rotlist->rotlist_const[rotation_counter];
-		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0)	// If not dummy rotation
+		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0) // If not dummy rotation
 		{
 			uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
 			// Capturing atom coordinates
@@ -209,17 +209,17 @@ void gpu_calc_energrad(
 			float4 quatrot_left = rotation_unitvec;
 			// Performing rotation
 			if (((rotation_list_element & RLIST_GENROT_MASK) != 0) && // If general rotation,
-			    (atom_id < dockpars_true_ligand_atoms))		  // two rotations should be performed
-										  // (multiplying the quaternions)
+			    (atom_id < dockpars_true_ligand_atoms))               // two rotations should be performed
+			                                                          // (multiplying the quaternions)
 			{
 				// Calculating quatrot_left*ref_orientation_quats_const,
 				// which means that reference orientation rotation is the first
 				uint rid4 = (*run_id)<<2;
 				quatrot_left = quaternion_multiply(quatrot_left,
-								   (float4)(kerconst_conform->ref_orientation_quats_const[rid4+0],
-									    kerconst_conform->ref_orientation_quats_const[rid4+1],
-									    kerconst_conform->ref_orientation_quats_const[rid4+2],
-									    kerconst_conform->ref_orientation_quats_const[rid4+3]));
+				                                   (float4)(kerconst_conform->ref_orientation_quats_const[rid4+0],
+				                                            kerconst_conform->ref_orientation_quats_const[rid4+1],
+				                                            kerconst_conform->ref_orientation_quats_const[rid4+2],
+				                                            kerconst_conform->ref_orientation_quats_const[rid4+3]));
 			}
 			// Performing final movement and storing values
 			calc_coords[atom_id] = quaternion_rotate(atom_to_rotate,quatrot_left) + rotation_movingvec;
@@ -642,8 +642,9 @@ void gpu_calc_energrad(
 	accumulator_y[tidx] = 0.0f;
 	accumulator_z[tidx] = 0.0f;
 	for (uint atom_cnt = tidx;
-		  atom_cnt < dockpars_num_of_atoms;
-		  atom_cnt+= NUM_OF_THREADS_PER_BLOCK) {
+	          atom_cnt < dockpars_num_of_atoms;
+	          atom_cnt+= NUM_OF_THREADS_PER_BLOCK)
+	{
 #ifdef FLOAT_GRADIENTS
 		accumulator_x[tidx] += gradient_x[atom_cnt];
 		accumulator_y[tidx] += gradient_y[atom_cnt];
@@ -705,8 +706,9 @@ void gpu_calc_energrad(
 	accumulator_y[tidx] = 0.0f;
 	accumulator_z[tidx] = 0.0f;
 	for (uint atom_cnt = tidx;
-		  atom_cnt < dockpars_true_ligand_atoms;
-		  atom_cnt+= NUM_OF_THREADS_PER_BLOCK) {
+	          atom_cnt < dockpars_true_ligand_atoms;
+	          atom_cnt+= NUM_OF_THREADS_PER_BLOCK)
+	{
 		float4 r = (calc_coords[atom_cnt] - genrot_movingvec) * dockpars_grid_spacing;
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)
 		float4 force;
@@ -895,7 +897,7 @@ void gpu_calc_energrad(
 		#endif
 
 		// Interpolating rotangle values
-		float dependence_on_rotangle; 	//Y = dependence_on_rotangle
+		float dependence_on_rotangle; // Y = dependence_on_rotangle
 		// Using interpolation on previous and/or next elements results in hang
 		// Using interpolation on out-of-bounds elements results in hang
 		if ((index_rotangle <= 0) || (index_rotangle >= 999))

@@ -26,7 +26,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "ImportSource.h"
 
 /* convert the kernel file into a string */
-int convertToString2(const char *filename, std::string& s)
+int convertToString2(
+                     const char*        filename,
+                           std::string& s
+                    )
 {
 	size_t size;
 	char*  str;
@@ -56,11 +59,12 @@ int convertToString2(const char *filename, std::string& s)
 	return EXIT_FAILURE;
 }
 
-int ImportSourceToProgram(const char*    filename,
-	 		  cl_device_id*  device_id,
-  		   	  cl_context	 context,
-			  cl_program*	 program,
-	 		  const char*    options)
+int ImportSourceToProgram(
+                          const char*         filename,
+                                cl_device_id* device_id,
+                                cl_context    context,
+                                cl_program*   program,
+                          const char*         options)
 {
 	cl_int err;
 

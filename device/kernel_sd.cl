@@ -35,63 +35,63 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // If only PRINT_MINIMIZER_ENERGY_EVOLUTION is enabled,
 // then a only a simplified SD evolution will be shown
 //#define DEBUG_MINIMIZER
-//	#define PRINT_MINIMIZER_ENERGY_EVOLUTION
+//#define PRINT_MINIMIZER_ENERGY_EVOLUTION
 
 // Enable this for debugging SD from a defined initial genotype
 //#define DEBUG_INITIAL_2BRT
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gradient_minSD(
-                   int    dockpars_num_of_atoms,
-                   int    dockpars_true_ligand_atoms,
-                   int    dockpars_num_of_atypes,
-                   int    dockpars_num_of_map_atypes,
-                   int    dockpars_num_of_intraE_contributors,
-                   int    dockpars_gridsize_x,
-                   int    dockpars_gridsize_y,
-                   int    dockpars_gridsize_z,
-                                                               // g1 = gridsize_x
-                   uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
-                   uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
-                   float  dockpars_grid_spacing,
-__global const     float* restrict dockpars_fgrids, // This is too large to be allocated in __constant
-                   int    dockpars_rotbondlist_length,
-                   float  dockpars_coeff_elec,
-                   float  dockpars_elec_min_distance,
-                   float  dockpars_coeff_desolv,
- __global          float* restrict dockpars_conformations_next,
- __global          float* restrict dockpars_energies_next,
- __global          int*   restrict dockpars_evals_of_new_entities,
- __global          uint*  restrict dockpars_prng_states,
-                   int    dockpars_pop_size,
-                   int    dockpars_num_of_genes,
-                   float  dockpars_lsearch_rate,
-                   uint   dockpars_num_of_lsentities,
-                   uint   dockpars_max_num_of_iters,
-                   float  dockpars_qasp,
-                   float  dockpars_smooth,
+                     int    dockpars_num_of_atoms,
+                     int    dockpars_true_ligand_atoms,
+                     int    dockpars_num_of_atypes,
+                     int    dockpars_num_of_map_atypes,
+                     int    dockpars_num_of_intraE_contributors,
+                     int    dockpars_gridsize_x,
+                     int    dockpars_gridsize_y,
+                     int    dockpars_gridsize_z,
+                                                                 // g1 = gridsize_x
+                     uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+                     uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+                     float  dockpars_grid_spacing,
+      __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant
+                     int    dockpars_rotbondlist_length,
+                     float  dockpars_coeff_elec,
+                     float  dockpars_elec_min_distance,
+                     float  dockpars_coeff_desolv,
+      __global       float* restrict dockpars_conformations_next,
+      __global       float* restrict dockpars_energies_next,
+      __global       int*   restrict dockpars_evals_of_new_entities,
+      __global       uint*  restrict dockpars_prng_states,
+                     int    dockpars_pop_size,
+                     int    dockpars_num_of_genes,
+                     float  dockpars_lsearch_rate,
+                     uint   dockpars_num_of_lsentities,
+                     uint   dockpars_max_num_of_iters,
+                     float  dockpars_qasp,
+                     float  dockpars_smooth,
 
-  __constant              kernelconstant_interintra*   kerconst_interintra,
-  __global   const        kernelconstant_intracontrib* kerconst_intracontrib,
-  __constant              kernelconstant_intra*        kerconst_intra,
-  __constant              kernelconstant_rotlist*      kerconst_rotlist,
-  __constant              kernelconstant_conform*      kerconst_conform,
+    __constant       kernelconstant_interintra*   kerconst_interintra,
+      __global const kernelconstant_intracontrib* kerconst_intracontrib,
+    __constant       kernelconstant_intra*        kerconst_intra,
+    __constant       kernelconstant_rotlist*      kerconst_rotlist,
+    __constant       kernelconstant_conform*      kerconst_conform,
 
-  __constant       int*   rotbonds_const,
-  __global   const int*   rotbonds_atoms_const,
-  __constant       int*   num_rotating_atoms_per_rotbond_const,
+    __constant       int*   rotbonds_const,
+      __global const int*   rotbonds_atoms_const,
+    __constant       int*   num_rotating_atoms_per_rotbond_const,
 
-  __global   const float* angle_const,
-  __constant       float* dependence_on_theta_const,
-  __constant       float* dependence_on_rotangle_const
-)
-//The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
-//The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
-//This way the first num_of_lsentities entity of each population will be subjected to local search
-//(and each CU carries out the algorithm for one entity).
-//Since the first entity is always the best one in the current population,
-//it is always tested according to the ls probability, and if it not to be
-//subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
+      __global const float* angle_const,
+    __constant       float* dependence_on_theta_const,
+    __constant       float* dependence_on_rotangle_const
+              )
+// The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
+// The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
+// This way the first num_of_lsentities entity of each population will be subjected to local search
+// (and each CU carries out the algorithm for one entity).
+// Since the first entity is always the best one in the current population,
+// it is always tested according to the ls probability, and if it not to be
+// subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
@@ -272,7 +272,7 @@ __global const     float* restrict dockpars_fgrids, // This is too large to be a
 		printf("\n");
 		printf("%20s \n", "hardcoded genotype: ");
 		printf("%20s %.6f\n", "initial energy: ", energy);
-		printf("%20s %.6f\n\n", "initial stepsize: ", stepsize);		
+		printf("%20s %.6f\n\n", "initial stepsize: ", stepsize);
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	#endif
@@ -310,9 +310,9 @@ __global const     float* restrict dockpars_fgrids, // This is too large to be a
 	// Storing torsion gradients here
 	__local float torsions_gradient[ACTUAL_GENOTYPE_LENGTH];
 
-	// The termination criteria is based on 
+	// The termination criteria is based on
 	// a maximum number of iterations, and
-	// the minimum step size allowed for single-floating point numbers 
+	// the minimum step size allowed for single-floating point numbers
 	// (IEEE-754 single float has a precision of about 6 decimal digits)
 	do {
 		#if 0
@@ -323,7 +323,7 @@ __global const     float* restrict dockpars_fgrids, // This is too large to be a
 		// Rotation genes are expresed in the Shoemake space: genotype [3|4|5]
 		// xyz_gene_gridspace = gridcenter_gridspace + (input_gene_realspace - gridcenter_realspace)/gridsize
 
-		// 1ac8				
+		// 1ac8
 		genotype[0] = 30 + (31.79575  - 31.924) / dockpars_grid_spacing;
 		genotype[1] = 30 + (93.743875 - 93.444) / dockpars_grid_spacing;
 		genotype[2] = 30 + (47.699875 - 47.924) / dockpars_grid_spacing;
@@ -408,9 +408,9 @@ __global const     float* restrict dockpars_fgrids, // This is too large to be a
 		#endif
 
 		// Printing number of stepest-descent iterations
-		#if defined (DEBUG_MINIMIZER) 
+		#if defined (DEBUG_MINIMIZER)
 		if (tidx == 0) {
-			printf("%s\n", "----------------------------------------------------------");	
+			printf("%s\n", "----------------------------------------------------------");
 		}
 		#endif
 		
@@ -472,7 +472,7 @@ __global const     float* restrict dockpars_fgrids, // This is too large to be a
 
 		// This could be enabled back for double checking
 		#if 0
-		#if defined (DEBUG_ENERGY_KERNEL5)	
+		#if defined (DEBUG_ENERGY_KERNEL5)
 		if (/*(get_group_id(0) == 0) &&*/ (tidx == 0)) {
 		
 			#if defined (PRINT_GENES_AND_GRADS)
@@ -560,7 +560,7 @@ __global const     float* restrict dockpars_fgrids, // This is too large to be a
 		
 		for(uint i = tidx; i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {
 			// Taking step
-			candidate_genotype[i] = genotype[i] - stepsize * gradient[i];	
+			candidate_genotype[i] = genotype[i] - stepsize * gradient[i];
 
 			#if defined (DEBUG_MINIMIZER)
 			if (i == 0) {

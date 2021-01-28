@@ -35,24 +35,24 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // "epsilon":  to better condition the square root
 
 // Adadelta parameters (TODO: to be moved to header file?)
-//#define RHO		0.9f
-//#define EPSILON 	1e-6
-#define RHO		0.8f
-#define EPSILON 	1e-2f
+//#define RHO             0.9f
+//#define EPSILON         1e-6
+#define RHO             0.8f
+#define EPSILON         1e-2f
 
 // Enabling "DEBUG_ENERGY_ADADELTA" requires
 // manually enabling "DEBUG_ENERGY_KERNEL" in calcenergy.cl
 //#define DEBUG_ENERGY_ADADELTA
-	//#define PRINT_ADADELTA_ENERGIES
-	//#define PRINT_ADADELTA_GENES_AND_GRADS
-	//#define PRINT_ADADELTA_ATOMIC_COORDS
-	//#define DEBUG_SQDELTA_ADADELTA
+//#define PRINT_ADADELTA_ENERGIES
+//#define PRINT_ADADELTA_GENES_AND_GRADS
+//#define PRINT_ADADELTA_ATOMIC_COORDS
+//#define DEBUG_SQDELTA_ADADELTA
 
 // Enable DEBUG_ADADELTA_MINIMIZER for a seeing a detailed ADADELTA evolution
 // If only PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION is enabled,
 // then a only a simplified ADADELTA evolution will be shown
 //#define DEBUG_ADADELTA_MINIMIZER
-	//#define PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION
+//#define PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION
 
 // Enable this for debugging ADADELTA from a defined initial genotype
 //#define DEBUG_ADADELTA_INITIAL_2BRT
@@ -62,14 +62,14 @@ __launch_bounds__(NUM_OF_THREADS_PER_BLOCK, 1024 / NUM_OF_THREADS_PER_BLOCK)
 gpu_gradient_minAD_kernel(
                           float* pMem_conformations_next,
                           float* pMem_energies_next
-)
-//The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
-//The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
-//This way the first num_of_lsentities entity of each population will be subjected to local search
-//(and each CU carries out the algorithm for one entity).
-//Since the first entity is always the best one in the current population,
-//it is always tested according to the ls probability, and if it not to be
-//subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
+                         )
+// The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
+// The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
+// This way the first num_of_lsentities entity of each population will be subjected to local search
+// (and each CU carries out the algorithm for one entity).
+// Since the first entity is always the best one in the current population,
+// it is always tested according to the ls probability, and if it not to be
+// subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
@@ -110,7 +110,7 @@ gpu_gradient_minAD_kernel(
 	float* square_gradient = square_delta + cData.dockpars.num_of_genes;
 
 	// Iteration counter for the minimizer
-	uint32_t iteration_cnt = 0; 
+	uint32_t iteration_cnt = 0;
 
 	if (threadIdx.x == 0)
 	{
@@ -401,15 +401,15 @@ gpu_gradient_minAD_kernel(
 
 
 void gpu_gradient_minAD(
-			uint32_t blocks,
-			uint32_t threads,
-			float* pMem_conformations_next,
-			float* pMem_energies_next
-)
+                        uint32_t blocks,
+                        uint32_t threads,
+                        float*   pMem_conformations_next,
+                        float*   pMem_energies_next
+                       )
 {
 	size_t sz_shared = (6 * cpuData.dockpars.num_of_atoms + 5 * cpuData.dockpars.num_of_genes) * sizeof(float);
 	gpu_gradient_minAD_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
-	LAUNCHERROR("gpu_gradient_minAD_kernel");     
+	LAUNCHERROR("gpu_gradient_minAD_kernel");
 #if 0
 	cudaError_t status;
 	status = cudaDeviceSynchronize();

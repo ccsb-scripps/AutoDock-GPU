@@ -26,9 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef DEVICES_H
 #define DEVICES_H
 
-  //#include <stdio.h>
-  //#include <CL/opencl.h>
-  #include "commonMacros.h"
+#include "commonMacros.h"
 
 /*
 Get devices of the first platform
@@ -39,11 +37,12 @@ Outputs:
 	device_id -
 	deviceCount -
 */
-
-  int getDevices(cl_platform_id  platform_id,
-                 cl_uint         platformCount,
-                 cl_device_id**  device_id,
-                 cl_uint*        deviceCount);
+int getDevices(
+               cl_platform_id  platform_id,
+               cl_uint         platformCount,
+               cl_device_id**  device_id,
+               cl_uint*        deviceCount
+              );
 
 /*
 Get devices' attributes
@@ -53,8 +52,10 @@ Inputs:
 Outputs:
         none
 */
-  int getDeviceAttributes(cl_device_id* device_id,
-			  cl_uint       deviceCount);
+int getDeviceAttributes(
+                        cl_device_id* device_id,
+                        cl_uint       deviceCount
+                       );
 
 
 #endif /* DEVICES_H */

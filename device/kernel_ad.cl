@@ -35,80 +35,80 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // "epsilon":  to better condition the square root
 
 // Adadelta parameters (TODO: to be moved to header file?)
-//#define RHO		0.9f
-//#define EPSILON 	1e-6
-#define RHO		0.8f
-#define EPSILON 	1e-2
+//#define RHO             0.9f
+//#define EPSILON         1e-6
+#define RHO             0.8f
+#define EPSILON         1e-2
 
 // Enabling "DEBUG_ENERGY_ADADELTA" requires
 // manually enabling "DEBUG_ENERGY_KERNEL" in calcenergy.cl
 //#define DEBUG_ENERGY_ADADELTA
-	//#define PRINT_ADADELTA_ENERGIES
-	//#define PRINT_ADADELTA_GENES_AND_GRADS
-	//#define PRINT_ADADELTA_ATOMIC_COORDS
-	//#define DEBUG_SQDELTA_ADADELTA
+//#define PRINT_ADADELTA_ENERGIES
+//#define PRINT_ADADELTA_GENES_AND_GRADS
+//#define PRINT_ADADELTA_ATOMIC_COORDS
+//#define DEBUG_SQDELTA_ADADELTA
 
 // Enable DEBUG_ADADELTA_MINIMIZER for a seeing a detailed ADADELTA evolution
 // If only PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION is enabled,
 // then a only a simplified ADADELTA evolution will be shown
 //#define DEBUG_ADADELTA_MINIMIZER
-	//#define PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION
+//#define PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION
 
 // Enable this for debugging ADADELTA from a defined initial genotype
 //#define DEBUG_ADADELTA_INITIAL_2BRT
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gradient_minAD(
-                 int    dockpars_num_of_atoms,
-                 int    dockpars_true_ligand_atoms,
-                 int    dockpars_num_of_atypes,
-                 int    dockpars_num_of_map_atypes,
-                 int    dockpars_num_of_intraE_contributors,
-                 int    dockpars_gridsize_x,
-                 int    dockpars_gridsize_y,
-                 int    dockpars_gridsize_z,
-                                                           // g1 = gridsize_x
-                 uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
-                 uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
-                 float  dockpars_grid_spacing,
-  __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant
-                 int    dockpars_rotbondlist_length,
-                 float  dockpars_coeff_elec,
-                 float  dockpars_elec_min_distance,
-                 float  dockpars_coeff_desolv,
-   __global      float* restrict dockpars_conformations_next,
-   __global      float* restrict dockpars_energies_next,
-   __global      int*   restrict dockpars_evals_of_new_entities,
-   __global      uint*  restrict dockpars_prng_states,
-                 int    dockpars_pop_size,
-                 int    dockpars_num_of_genes,
-                 float  dockpars_lsearch_rate,
-                 uint   dockpars_num_of_lsentities,
-                 uint   dockpars_max_num_of_iters,
-                 float  dockpars_qasp,
-                 float  dockpars_smooth,
+                     int    dockpars_num_of_atoms,
+                     int    dockpars_true_ligand_atoms,
+                     int    dockpars_num_of_atypes,
+                     int    dockpars_num_of_map_atypes,
+                     int    dockpars_num_of_intraE_contributors,
+                     int    dockpars_gridsize_x,
+                     int    dockpars_gridsize_y,
+                     int    dockpars_gridsize_z,
+                                                                 // g1 = gridsize_x
+                     uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+                     uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+                     float  dockpars_grid_spacing,
+      __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant
+                     int    dockpars_rotbondlist_length,
+                     float  dockpars_coeff_elec,
+                     float  dockpars_elec_min_distance,
+                     float  dockpars_coeff_desolv,
+      __global       float* restrict dockpars_conformations_next,
+      __global       float* restrict dockpars_energies_next,
+      __global       int*   restrict dockpars_evals_of_new_entities,
+      __global       uint*  restrict dockpars_prng_states,
+                     int    dockpars_pop_size,
+                     int    dockpars_num_of_genes,
+                     float  dockpars_lsearch_rate,
+                     uint   dockpars_num_of_lsentities,
+                     uint   dockpars_max_num_of_iters,
+                     float  dockpars_qasp,
+                     float  dockpars_smooth,
 
-      __constant        kernelconstant_interintra*   kerconst_interintra,
-      __global const    kernelconstant_intracontrib* kerconst_intracontrib,
-      __constant        kernelconstant_intra*        kerconst_intra,
-      __constant        kernelconstant_rotlist*      kerconst_rotlist,
-      __constant        kernelconstant_conform*      kerconst_conform,
+    __constant       kernelconstant_interintra*   kerconst_interintra,
+      __global const kernelconstant_intracontrib* kerconst_intracontrib,
+    __constant       kernelconstant_intra*        kerconst_intra,
+    __constant       kernelconstant_rotlist*      kerconst_rotlist,
+    __constant       kernelconstant_conform*      kerconst_conform,
 
-__constant int*         rotbonds_const,
-__global   const int*   rotbonds_atoms_const,
-__constant int*         num_rotating_atoms_per_rotbond_const,
+    __constant       int*   rotbonds_const,
+      __global const int*   rotbonds_atoms_const,
+    __constant       int*   num_rotating_atoms_per_rotbond_const,
 
-__global   const float* angle_const,
-__constant       float* dependence_on_theta_const,
-__constant       float* dependence_on_rotangle_const
-)
-//The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
-//The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
-//This way the first num_of_lsentities entity of each population will be subjected to local search
-//(and each CU carries out the algorithm for one entity).
-//Since the first entity is always the best one in the current population,
-//it is always tested according to the ls probability, and if it not to be
-//subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
+      __global const float* angle_const,
+    __constant       float* dependence_on_theta_const,
+    __constant       float* dependence_on_rotangle_const
+              )
+// The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
+// The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
+// This way the first num_of_lsentities entity of each population will be subjected to local search
+// (and each CU carries out the algorithm for one entity).
+// Since the first entity is always the best one in the current population,
+// it is always tested according to the ls probability, and if it not to be
+// subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
@@ -122,7 +122,7 @@ __constant       float* dependence_on_rotangle_const
 	__local float genotype[ACTUAL_GENOTYPE_LENGTH];
 
 	// Iteration counter fot the minimizer
-	__local uint iteration_cnt; 
+	__local uint iteration_cnt;
 
 	if (tidx == 0)
 	{
@@ -163,7 +163,7 @@ __constant       float* dependence_on_rotangle_const
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
-         
+
 	// Partial results of the gradient step
 	__local float gradient[ACTUAL_GENOTYPE_LENGTH];
 
@@ -296,7 +296,7 @@ __constant       float* dependence_on_rotangle_const
 	{
 		printf("\n");
 		printf("%20s \n", "hardcoded genotype: ");
-		printf("%20s %.6f\n", "initial energy: ", energy);		
+		printf("%20s %.6f\n", "initial energy: ", energy);
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 #endif // DEBUG_ADADELTA_INITIAL_2BRT
@@ -330,9 +330,9 @@ __constant       float* dependence_on_rotangle_const
 #endif
 	// Perform adadelta iterations
 
-	// The termination criteria is based on 
+	// The termination criteria is based on
 	// a maximum number of iterations, and
-	// the minimum step size allowed for single-floating point numbers 
+	// the minimum step size allowed for single-floating point numbers
 	// (IEEE-754 single float has a precision of about 6 decimal digits)
 	do {
 		// Printing number of ADADELTA iterations

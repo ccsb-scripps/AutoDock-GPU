@@ -29,52 +29,52 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 perform_LS(
-               int    dockpars_num_of_atoms,
-               int    dockpars_true_ligand_atoms,
-               int    dockpars_num_of_atypes,
-               int    dockpars_num_of_map_atypes,
-               int    dockpars_num_of_intraE_contributors,
-               int    dockpars_gridsize_x,
-               int    dockpars_gridsize_y,
-               int    dockpars_gridsize_z,
-                                                           // g1 = gridsize_x
-               uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
-               uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
-               float  dockpars_grid_spacing,
-__global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant
-               int    dockpars_rotbondlist_length,
-               float  dockpars_coeff_elec,
-               float  dockpars_elec_min_distance,
-               float  dockpars_coeff_desolv,
-__global       float* restrict dockpars_conformations_next,
-__global       float* restrict dockpars_energies_next,
-__global       int*   restrict dockpars_evals_of_new_entities,
-__global       uint*  restrict dockpars_prng_states,
-               int    dockpars_pop_size,
-               int    dockpars_num_of_genes,
-               float  dockpars_lsearch_rate,
-               uint   dockpars_num_of_lsentities,
-               float  dockpars_rho_lower_bound,
-               float  dockpars_base_dmov_mul_sqrt3,
-               float  dockpars_base_dang_mul_sqrt3,
-               uint   dockpars_cons_limit,
-               uint   dockpars_max_num_of_iters,
-               float  dockpars_qasp,
-               float  dockpars_smooth,
+                 int    dockpars_num_of_atoms,
+                 int    dockpars_true_ligand_atoms,
+                 int    dockpars_num_of_atypes,
+                 int    dockpars_num_of_map_atypes,
+                 int    dockpars_num_of_intraE_contributors,
+                 int    dockpars_gridsize_x,
+                 int    dockpars_gridsize_y,
+                 int    dockpars_gridsize_z,
+                                                             // g1 = gridsize_x
+                 uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+                 uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+                 float  dockpars_grid_spacing,
+  __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant
+                 int    dockpars_rotbondlist_length,
+                 float  dockpars_coeff_elec,
+                 float  dockpars_elec_min_distance,
+                 float  dockpars_coeff_desolv,
+  __global       float* restrict dockpars_conformations_next,
+  __global       float* restrict dockpars_energies_next,
+  __global       int*   restrict dockpars_evals_of_new_entities,
+  __global       uint*  restrict dockpars_prng_states,
+                 int    dockpars_pop_size,
+                 int    dockpars_num_of_genes,
+                 float  dockpars_lsearch_rate,
+                 uint   dockpars_num_of_lsentities,
+                 float  dockpars_rho_lower_bound,
+                 float  dockpars_base_dmov_mul_sqrt3,
+                 float  dockpars_base_dang_mul_sqrt3,
+                 uint   dockpars_cons_limit,
+                 uint   dockpars_max_num_of_iters,
+                 float  dockpars_qasp,
+                 float  dockpars_smooth,
 
-       __constant     kernelconstant_interintra*   kerconst_interintra,
-       __global const kernelconstant_intracontrib* kerconst_intracontrib,
-       __constant     kernelconstant_intra*        kerconst_intra,
-       __constant     kernelconstant_rotlist*      kerconst_rotlist,
-       __constant     kernelconstant_conform*      kerconst_conform
-)
-//The GPU global function performs local search on the pre-defined entities of conformations_next.
-//The number of blocks which should be started equals to num_of_lsentities*num_of_runs.
-//This way the first num_of_lsentities entity of each population will be subjected to local search
-//(and each block carries out the algorithm for one entity).
-//Since the first entity is always the best one in the current population,
-//it is always tested according to the ls probability, and if it not to be
-//subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
+__constant       kernelconstant_interintra*   kerconst_interintra,
+  __global const kernelconstant_intracontrib* kerconst_intracontrib,
+__constant       kernelconstant_intra*        kerconst_intra,
+__constant       kernelconstant_rotlist*      kerconst_rotlist,
+__constant       kernelconstant_conform*      kerconst_conform
+          )
+// The GPU global function performs local search on the pre-defined entities of conformations_next.
+// The number of blocks which should be started equals to num_of_lsentities*num_of_runs.
+// This way the first num_of_lsentities entity of each population will be subjected to local search
+// (and each block carries out the algorithm for one entity).
+// Since the first entity is always the best one in the current population,
+// it is always tested according to the ls probability, and if it not to be
+// subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
 	// Some OpenCL compilers don't allow declaring 
 	// local variables within non-kernel functions.
@@ -118,7 +118,7 @@ __global       uint*  restrict dockpars_prng_states,
 			// If entity 0 is not selected according to LS-rate,
 			// choosing an other entity
 			if (100.0f*gpu_randf(dockpars_prng_states) > dockpars_lsearch_rate) {
-				entity_id = dockpars_num_of_lsentities;					
+				entity_id = dockpars_num_of_lsentities;
 			}
 		}
 
@@ -258,7 +258,7 @@ __global       uint*  restrict dockpars_prng_states,
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (candidate_energy < offspring_energy)	// If candidate is better, success
+		if (candidate_energy < offspring_energy) // If candidate is better, success
 		{
 			for (gene_counter = tidx;
 			     gene_counter < dockpars_num_of_genes;
@@ -282,7 +282,7 @@ __global       uint*  restrict dockpars_prng_states,
 				cons_fail = 0;
 			}
 		}
-		else	// If candidate is worser, check the opposite direction
+		else // If candidate is worse, check the opposite direction
 		{
 			// Generating the other genotype candidate
 			for (gene_counter = tidx;
@@ -355,7 +355,7 @@ __global       uint*  restrict dockpars_prng_states,
 			{
 				for (gene_counter = tidx;
 				     gene_counter < dockpars_num_of_genes;
-			       	     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+				     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 				{
 					// Updating offspring_genotype
 					offspring_genotype[gene_counter] = genotype_candidate[gene_counter];
@@ -375,7 +375,7 @@ __global       uint*  restrict dockpars_prng_states,
 					cons_fail = 0;
 				}
 			}
-			else	// Failure in both directions
+			else // Failure in both directions
 			{
 				for (gene_counter = tidx;
 				     gene_counter < dockpars_num_of_genes;

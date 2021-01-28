@@ -57,7 +57,8 @@ int preload_gridsize(FileList& filelist)
 	return gridsize;
 }
 
-int setup(std::vector<Map>&   all_maps,
+int setup(
+          std::vector<Map>&   all_maps,
           Gridinfo&           mygrid,
           std::vector<float>& floatgrids,
           Dockpars&           mypars,
@@ -66,7 +67,7 @@ int setup(std::vector<Map>&   all_maps,
           FileList&           filelist,
           int                 i_file,
           int                 argc,
-          char* argv[]
+          char*               argv[]
          )
 {
 	//------------------------------------------------------------
@@ -443,7 +444,9 @@ int setup(std::vector<Map>&   all_maps,
 	return 0;
 }
 
-int fill_maplist(const char* fldfilename, std::vector<Map>& all_maps)
+int fill_maplist(
+                 const char*             fldfilename,
+                       std::vector<Map>& all_maps)
 {
 	std::ifstream file(fldfilename);
 	if(file.fail()){
@@ -476,7 +479,8 @@ int fill_maplist(const char* fldfilename, std::vector<Map>& all_maps)
 	return 0;
 }
 
-int load_all_maps(const char*             fldfilename,
+int load_all_maps(
+                  const char*             fldfilename,
                   const Gridinfo*         mygrid,
                         std::vector<Map>& all_maps,
                         bool              cgmaps
@@ -557,7 +561,8 @@ int load_all_maps(const char*             fldfilename,
 	return 0;
 }
 
-int copy_from_all_maps(const Gridinfo*         mygrid,
+int copy_from_all_maps(
+                       const Gridinfo*         mygrid,
                              float*            fgrids,
                              std::vector<Map>& all_maps
                       )

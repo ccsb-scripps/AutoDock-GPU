@@ -214,12 +214,14 @@ void rotate(double point [], const double movvec [], const double normvec [], co
 // Random generator in the host is changed:
 // LCG (original, myrand()) -> CPP std (rand())
 // -------------------------------------------------------------------
-void rotate_shoemake(double point [], 
-		    const double movvec [], 
-		    const double shoemake [],
-	//	    const double normvec [], 
-	//	    const double* angle, 
-		    int debug)
+void rotate_shoemake(
+                     double point [],
+                     const double movvec [],
+                     const double shoemake [],
+//                     const double normvec [],
+//                     const double* angle,
+                     int debug
+                    )
 // The function rotates the point given by the first parameter around an axis
 // which is parallel to vector normvec and which
 // can be moved to the origo with vector movvec.

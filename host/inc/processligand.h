@@ -134,27 +134,35 @@ typedef struct
 	double         rotbonds_unit_vectors   [MAX_NUM_OF_ROTBONDS][3];
 } Liganddata;
 
-int init_liganddata(const char*,
+int init_liganddata(
+                    const char*,
                     const char*,
                           Liganddata*,
                           Gridinfo*,
                           int          nr_deriv_atypes,
                           deriv_atype* deriv_atypes,
-                          bool         cgmaps);
+                          bool         cgmaps
+                   );
 
-int set_liganddata_typeid(Liganddata*, int, const char*);
+int set_liganddata_typeid(
+                                Liganddata*,
+                                int,
+                          const char*
+                         );
 
 void get_intraE_contributors(Liganddata*);
 
 int get_bonds(Liganddata*);
 
-pair_mod* is_mod_pair(const char* A,
+pair_mod* is_mod_pair(
+                      const char* A,
                       const char* B,
                             int       nr_mod_atype_pairs,
                             pair_mod* mod_atype_pairs
                      );
 
-int get_VWpars(      Liganddata*,
+int get_VWpars(
+                     Liganddata*,
                const double,
                const double,
                      int          nr_deriv_atypes,
@@ -165,7 +173,8 @@ int get_VWpars(      Liganddata*,
 
 int get_moving_and_unit_vectors(Liganddata*);
 
-int get_liganddata(const char*,
+int get_liganddata(
+                   const char*,
                    const char*,
                          Liganddata*,
                    const double,
@@ -192,7 +201,8 @@ double calc_ddd_Mehler_Solmajer(double);
 
 int is_H_bond(const char*, const char*);
 
-void print_ref_lig_energies_f(      Liganddata,
+void print_ref_lig_energies_f(
+                                    Liganddata,
                               const float,
                                     Gridinfo,
                               const float*,
@@ -201,67 +211,80 @@ void print_ref_lig_energies_f(      Liganddata,
                               const float,
                               const float,
                                     int,
-                                    pair_mod*);
+                                    pair_mod*
+                             );
 
 //////////////////////////////////
 //float functions
 
-void calc_distdep_tables_f(      float r_6_table [],
+void calc_distdep_tables_f(
+                                 float r_6_table [],
                                  float r_10_table [],
                                  float r_12_table [],
                                  float r_epsr_table [],
                                  float desolv_table [],
                            const float scaled_AD4_coeff_elec,
-                           const float AD4_coeff_desolv);
+                           const float AD4_coeff_desolv
+                          );
 
-void calc_q_tables_f(const Liganddata* myligand,
+void calc_q_tables_f(
+                     const Liganddata* myligand,
                            float       qasp,
                            float       q1q2 [][MAX_NUM_OF_ATOMS],
-                           float       qasp_mul_absq []);
+                           float       qasp_mul_absq []
+                    );
 
-void change_conform_f(      Liganddata* myligand,
+void change_conform_f(
+                            Liganddata* myligand,
                       const Gridinfo*   mygrid,
                       const float       genotype_f [],
                             float*      cpu_ref_ori_angles,
-                            int         debug);
+                            int         debug
+                     );
 
-float calc_interE_f(const Gridinfo*   mygrid,
+float calc_interE_f(
+                    const Gridinfo*   mygrid,
                     const Liganddata* myligand,
                     const float*      fgrids,
                           float       outofgrid_tolerance,
                           int         debug,
-                          float&      intraflexE);
+                          float&      intraflexE
+                   );
 
-void calc_interE_peratom_f(const Gridinfo*   mygrid,
+void calc_interE_peratom_f(
+                           const Gridinfo*   mygrid,
                            const Liganddata* myligand,
                            const float*      fgrids,
                                  float       outofgrid_tolerance,
                                  float*      elecE,
                                  float       peratom_vdw [MAX_NUM_OF_ATOMS],
                                  float       peratom_elec[MAX_NUM_OF_ATOMS],
-                                 int         debug);
+                                 int         debug
+                          );
 
 struct IntraTables{
 	//The following tables will contain the 1/r^6, 1/r^10, 1/r^12, W_el/(r*eps(r)) and W_des*exp(-r^2/(2sigma^2)) functions for
 	//distances 0.01:0.01:20.48 A
-	float r_6_table [2048];
-	float r_10_table [2048];
-	float r_12_table [2048];
+	float r_6_table    [2048];
+	float r_10_table   [2048];
+	float r_12_table   [2048];
 	float r_epsr_table [2048];
 	float desolv_table [2048];
 
 	//The following arrays will contain the q1*q2 and qasp*abs(q) values for the ligand which is the input parameter when this
 	//function is called first time (it is supposed that the energy must always be calculated for this ligand only, that is, there
 	//is only one ligand during the run of the program...)
-	float q1q2 [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
+	float q1q2          [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
 	float qasp_mul_absq [MAX_NUM_OF_ATOMS];
-	bool is_HB [MAX_NUM_OF_ATYPES] [MAX_NUM_OF_ATYPES];
+	bool is_HB          [MAX_NUM_OF_ATYPES] [MAX_NUM_OF_ATYPES];
 
 	// Fill intraE tables
-	IntraTables(const Liganddata* myligand,
+	IntraTables(
+	            const Liganddata* myligand,
 	            const float       scaled_AD4_coeff_elec,
 	            const float       AD4_coeff_desolv,
-	            const float       qasp)
+	            const float       qasp
+	           )
 	{
 		calc_distdep_tables_f(r_6_table, r_10_table, r_12_table, r_epsr_table, desolv_table, scaled_AD4_coeff_elec, AD4_coeff_desolv);
 		calc_q_tables_f(myligand, qasp, q1q2, qasp_mul_absq);
@@ -272,7 +295,8 @@ struct IntraTables{
 	}
 };
 
-float calc_intraE_f(const Liganddata*  myligand,
+float calc_intraE_f(
+                    const Liganddata*  myligand,
                           float        dcutoff,
                           float        smooth,
                           bool         ignore_desolv,
@@ -281,10 +305,13 @@ float calc_intraE_f(const Liganddata*  myligand,
                           int          debug,
                           float&       interflexE,
                           int          nr_mod_atype_pairs,
-                          pair_mod*    mod_atype_pairs);
+                          pair_mod*    mod_atype_pairs
+                   );
 
-int map_to_all_maps(Gridinfo*         mygrid,
+int map_to_all_maps(
+                    Gridinfo*         mygrid,
                     Liganddata*       myligand,
-                    std::vector<Map>& all_maps);
+                    std::vector<Map>& all_maps
+                   );
 
 #endif /* PROCESSLIGAND_H_ */

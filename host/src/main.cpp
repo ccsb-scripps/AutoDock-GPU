@@ -230,7 +230,7 @@ int main(int argc, char* argv[])
 			} else { // Successful run
 #ifndef _WIN32
 #ifdef USE_PIPELINE
-                                #pragma omp atomic update
+				#pragma omp atomic update
 #endif
 				total_exec_time+=sim_state.exec_time;
 				printf("\nJob #%d took %.3f sec after waiting %.3f sec for setup\n", i_job, sim_state.exec_time, sim_state.idle_time);
@@ -246,7 +246,7 @@ int main(int argc, char* argv[])
 			start_timer(processing_timer);
 			process_result(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), &argc,argv, sim_state);
 #ifdef USE_PIPELINE
-	                #pragma omp atomic update
+			#pragma omp atomic update
 #endif
 			total_processing_time+=seconds_since(processing_timer);
 		} // end of for loop
@@ -282,9 +282,9 @@ int main(int argc, char* argv[])
 		if (err[i]==1){
 			if (filelist.used){
 				if (n_errors==0) printf("\nWARNING: The following jobs were not successful:");
-				printf("\nJob %d: %s", i, filelist.ligand_files[i].c_str());
+				printf("\nJob %d: %s\n", i, filelist.ligand_files[i].c_str());
 			} else {
-				printf("\nThe job was not successful.");
+				printf("\nThe job was not successful.\n");
 			}
 			n_errors+=1;
 		}

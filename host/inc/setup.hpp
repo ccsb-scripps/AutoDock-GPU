@@ -37,16 +37,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 int preload_gridsize(FileList& filelist);
 
-int load_all_maps(const char*             fldfilename,
+int load_all_maps(
+                  const char*             fldfilename,
                   const Gridinfo*         mygrid,
                         std::vector<Map>& all_maps,
-                        bool              cgmaps);
+                        bool              cgmaps
+                 );
 
-int copy_from_all_maps (const Gridinfo*         mygrid,
-                              float*            fgrids,
-                              std::vector<Map>& all_maps);
+int copy_from_all_maps(
+                       const Gridinfo*         mygrid,
+                             float*            fgrids,
+                             std::vector<Map>& all_maps
+                      );
 
-int setup(std::vector<Map>&   all_maps,
+int setup(
+          std::vector<Map>&   all_maps,
           Gridinfo&           mygrid,
           std::vector<float>& floatgrids,
           Dockpars&           mypars,
@@ -55,6 +60,7 @@ int setup(std::vector<Map>&   all_maps,
           FileList&           filelist,
           int                 i_file,
           int                 argc,
-          char*               argv[]);
+          char*               argv[]
+         );
 
 #endif

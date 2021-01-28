@@ -26,20 +26,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef PROGRAMS_H
 #define PROGRAMS_H
 
-  //#include <stdio.h>
-  //#include <CL/opencl.h>
-  #include "commonMacros.h"
+#include "commonMacros.h"
 
-/*
+int getProgramInfo(cl_program program);
 
-*/
-  int getProgramInfo(cl_program program);
-
-/*
-
-*/
-  int getprogramBuildInfo(cl_program   program,
-			  cl_device_id device);
+int getprogramBuildInfo(
+                        cl_program   program,
+                        cl_device_id device
+                       );
 
 #endif /* PROGRAMS_H */
 

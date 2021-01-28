@@ -57,8 +57,10 @@ __forceinline__ __device__ float fast_acos(float cosine)
 	float x2=x*x;
 	float x3=x2*x;
 	float x4=x3*x;
-	float ac=(((fast_acos_o*x4+fast_acos_a)*x3+fast_acos_b)*x2+fast_acos_c)*x+fast_acos_d+
-		 fast_acos_e*sqrt(2.0f-sqrt(2.0f+2.0f*x))-fast_acos_f*sqrt(2.0f-2.0f*x);
+	float ac=(((fast_acos_o*x4+fast_acos_a)*x3+fast_acos_b)*x2+fast_acos_c)*x
+	         +fast_acos_d
+	         +fast_acos_e*sqrt(2.0f-sqrt(2.0f+2.0f*x))
+	         -fast_acos_f*sqrt(2.0f-2.0f*x);
 	return copysign(ac,cosine) + (cosine<0.0f)*PI_FLOAT;
 }
 
@@ -98,11 +100,11 @@ __forceinline__ __device__ float4 quaternion_rotate(float4 v, float4 rot)
 	z.x *= 2.0f;
 	z.y *= 2.0f;
 	z.z *= 2.0f;
-	float4 c = cross(rot, z); 
+	float4 c = cross(rot, z);
 	result.x = v.x + z.x * rot.w + c.x;
-	result.y = v.y + z.y * rot.w + c.y;    
+	result.y = v.y + z.y * rot.w + c.y;
 	result.z = v.z + z.z * rot.w + c.z;
-	result.w = 0.0f;	
+	result.w = 0.0f;
 	return result;
 }
 
@@ -110,17 +112,16 @@ __forceinline__ __device__ float4 quaternion_rotate(float4 v, float4 rot)
 // All related pragmas are in defines.h (accesible by host and device code)
 
 __device__ void gpu_calc_energy(
-                                float* pGenotype,
-                                float& energy,
-                                int& run_id,
+                                float*  pGenotype,
+                                float&  energy,
+                                int&    run_id,
                                 float3* calc_coords,
-                                float* pFloatAccumulator
-) 
-
-//The GPU device function calculates the energy of the entity described by genotype, dockpars and the liganddata
-//arrays in constant memory and returns it in the energy parameter. The parameter run_id has to be equal to the ID
-//of the run whose population includes the current entity (which can be determined with blockIdx.x), since this
-//determines which reference orientation should be used.
+                                float*  pFloatAccumulator
+                               )
+// The GPU device function calculates the energy of the entity described by genotype, dockpars and the liganddata
+// arrays in constant memory and returns it in the energy parameter. The parameter run_id has to be equal to the ID
+// of the run whose population includes the current entity (which can be determined with blockIdx.x), since this
+// determines which reference orientation should be used.
 {
 	energy = 0.0f;
 #if defined (DEBUG_ENERGY_KERNEL)
@@ -128,7 +129,7 @@ __device__ void gpu_calc_energy(
 	float intraE = 0.0f;
 #endif
 
-	// Initializing gradients (forces) 
+	// Initializing gradients (forces)
 	// Derived from autodockdev/maps.py
 	for (uint atom_id = threadIdx.x;
 		  atom_id < cData.dockpars.num_of_atoms;
@@ -174,7 +175,7 @@ __device__ void gpu_calc_energy(
 	{
 		int rotation_list_element = cData.pKerconst_rotlist->rotlist_const[rotation_counter];
 
-		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0)	// If not dummy rotation
+		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0) // If not dummy rotation
 		{
 			uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
 
@@ -364,9 +365,7 @@ __device__ void gpu_calc_energy(
 	for (uint contributor_counter = threadIdx.x;
 	          contributor_counter < cData.dockpars.num_of_intraE_contributors;
 	          contributor_counter += blockDim.x)
-
 	{
-
 		// Getting atom IDs
 		uint32_t atom1_id = cData.pKerconst_intracontrib->intraE_contributors_const[2*contributor_counter];
 		uint32_t atom2_id = cData.pKerconst_intracontrib->intraE_contributors_const[2*contributor_counter+1];

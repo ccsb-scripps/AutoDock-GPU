@@ -28,12 +28,8 @@ __launch_bounds__(NUM_OF_THREADS_PER_BLOCK, 1024 / NUM_OF_THREADS_PER_BLOCK)
 gpu_calc_initpop_kernel(
                         float* pMem_conformations_current,
                         float* pMem_energies_current
-)
+                       )
 {
-	// Some OpenCL compilers don't allow declaring 
-	// local variables within non-kernel functions.
-	// These local variables must be declared in a kernel, 
-	// and then passed to non-kernel functions.
 	__shared__ float3 calc_coords[MAX_NUM_OF_ATOMS];
 	__shared__ float sFloatAccumulator;
 	float  energy = 0.0f;
@@ -48,7 +44,7 @@ gpu_calc_initpop_kernel(
 	                calc_coords,
 	                &sFloatAccumulator
 	               );
-	// =============================================================  
+	// =============================================================
 
 	// Write out final energy
 	if (threadIdx.x == 0)
@@ -58,7 +54,12 @@ gpu_calc_initpop_kernel(
 	}
 }
 
-void gpu_calc_initpop(uint32_t blocks, uint32_t threadsPerBlock, float* pConformations_current, float* pEnergies_current)
+void gpu_calc_initpop(
+                      uint32_t blocks,
+                      uint32_t threadsPerBlock,
+                      float*   pConformations_current,
+                      float*   pEnergies_current
+                     )
 {
 	gpu_calc_initpop_kernel<<<blocks, threadsPerBlock>>>(pConformations_current, pEnergies_current);
 	LAUNCHERROR("gpu_calc_initpop_kernel");

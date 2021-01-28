@@ -31,15 +31,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <cmath>
 
 struct Profile{
-	public:
-	int id;
-	bool adadelta;
-	int n_evals;
-	bool capped;
-	bool autostopped;
-	int nev_at_stop;
-	int num_atoms;
-	int num_rotbonds;
+public:
+	int   id;
+	bool  adadelta;
+	int   n_evals;
+	bool  capped;
+	bool  autostopped;
+	int   nev_at_stop;
+	int   num_atoms;
+	int   num_rotbonds;
 	float exec_time;
 
 	Profile(const int id_in) : id(id_in), capped(false), autostopped(false), exec_time(-1.0f) {}
@@ -52,7 +52,7 @@ struct Profile{
 };
 
 class Profiler{
-	public:
+public:
 	std::vector<Profile> p;
 
 	void write_profiles_to_file(char* filename){
@@ -70,3 +70,4 @@ class Profiler{
 	}
 };
 #endif
+

@@ -36,24 +36,15 @@ __launch_bounds__(NUM_OF_THREADS_PER_BLOCK, 1408 / NUM_OF_THREADS_PER_BLOCK)
 gpu_perform_LS_kernel(
                       float* pMem_conformations_next,
                       float* pMem_energies_next
-)
-//The GPU global function performs local search on the pre-defined entities of conformations_next.
-//The number of blocks which should be started equals to num_of_lsentities*num_of_runs.
-//This way the first num_of_lsentities entity of each population will be subjected to local search
-//(and each block carries out the algorithm for one entity).
-//Since the first entity is always the best one in the current population,
-//it is always tested according to the ls probability, and if it not to be
-//subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
+                     )
+// The GPU global function performs local search on the pre-defined entities of conformations_next.
+// The number of blocks which should be started equals to num_of_lsentities*num_of_runs.
+// This way the first num_of_lsentities entity of each population will be subjected to local search
+// (and each block carries out the algorithm for one entity).
+// Since the first entity is always the best one in the current population,
+// it is always tested according to the ls probability, and if it not to be
+// subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
-	// Some OpenCL compilers don't allow declaring 
-	// local variables within non-kernel functions.
-	// These local variables must be declared in a kernel, 
-	// and then passed to non-kernel functions.
-	//__shared__ float3 calc_coords[MAX_NUM_OF_ATOMS];
-	//__shared__ float* genotype_candidate[ACTUAL_GENOTYPE_LENGTH];
-	//__shared__ float* genotype_deviate  [ACTUAL_GENOTYPE_LENGTH];
-	//__shared__ float* genotype_bias     [ACTUAL_GENOTYPE_LENGTH];
-	//__shared__ float* offspring_genotype[ACTUAL_GENOTYPE_LENGTH];
 	__shared__ float rho;
 	__shared__ int   cons_succ;
 	__shared__ int   cons_fail;
@@ -68,7 +59,7 @@ gpu_perform_LS_kernel(
 	float candidate_energy;
 	int run_id;
 	// Ligand-atom position and partial energies
-	float3* calc_coords = (float3*)sFloatBuff; 
+	float3* calc_coords = (float3*)sFloatBuff;
 
 	// Genotype pointers
 	float* genotype_candidate = (float*)(calc_coords + cData.dockpars.num_of_atoms);
@@ -82,14 +73,13 @@ gpu_perform_LS_kernel(
 	if (threadIdx.x == 0)
 	{
 		entity_id = blockIdx.x % cData.dockpars.num_of_lsentities;
-
 		// Since entity 0 is the best one due to elitism,
 		// it should be subjected to random selection
 		if (entity_id == 0) {
 			// If entity 0 is not selected according to LS-rate,
 			// choosing an other entity
 			if (100.0f*gpu_randf(cData.pMem_prng_states) > cData.dockpars.lsearch_rate) {
-				entity_id = cData.dockpars.num_of_lsentities;					
+				entity_id = cData.dockpars.num_of_lsentities;
 			}
 		}
 
@@ -98,7 +88,7 @@ gpu_perform_LS_kernel(
 		cons_succ = 0;
 		cons_fail = 0;
 		iteration_cnt = 0;
-		evaluation_cnt = 0;        
+		evaluation_cnt = 0;
 	}
 	__threadfence();
 	__syncthreads();
@@ -106,7 +96,8 @@ gpu_perform_LS_kernel(
 	size_t offset = (run_id * cData.dockpars.pop_size + entity_id) * GENOTYPE_LENGTH_IN_GLOBMEM;
 	for (uint32_t gene_counter = threadIdx.x;
 	              gene_counter < cData.dockpars.num_of_genes;
-	              gene_counter+= blockDim.x) {
+	              gene_counter+= blockDim.x)
+	{
 		offspring_genotype[gene_counter] = pMem_conformations_next[offset + gene_counter];
 		genotype_bias[gene_counter] = 0.0f;
 	}
@@ -157,7 +148,8 @@ gpu_perform_LS_kernel(
 		// Generating new genotype candidate
 		for (uint32_t gene_counter = threadIdx.x;
 		              gene_counter < cData.dockpars.num_of_genes;
-		              gene_counter+= blockDim.x) {
+		              gene_counter+= blockDim.x)
+		{
 			genotype_candidate[gene_counter] = offspring_genotype[gene_counter] +
 			                                   genotype_deviate[gene_counter]   +
 			                                   genotype_bias[gene_counter];
@@ -166,7 +158,7 @@ gpu_perform_LS_kernel(
 		__threadfence();
 		__syncthreads();
 
-		// ==================================================================
+		// =================================================================
 		gpu_calc_energy(
 		                genotype_candidate,
 		                candidate_energy,
@@ -205,12 +197,13 @@ gpu_perform_LS_kernel(
 				cons_fail = 0;
 			}
 		}
-		else	// If candidate is worser, check the opposite direction
+		else // If candidate is worse, check the opposite direction
 		{
 			// Generating the other genotype candidate
 			for (uint32_t gene_counter = threadIdx.x;
 			              gene_counter < cData.dockpars.num_of_genes;
-			              gene_counter+= blockDim.x) {
+			              gene_counter+= blockDim.x)
+			{
 				genotype_candidate[gene_counter] = offspring_genotype[gene_counter] -
 				                                   genotype_deviate[gene_counter] -
 				                                   genotype_bias[gene_counter];
@@ -269,9 +262,10 @@ gpu_perform_LS_kernel(
 				for (uint32_t gene_counter = threadIdx.x;
 				              gene_counter < cData.dockpars.num_of_genes;
 				              gene_counter+= blockDim.x)
+				{
 					// Updating genotype_bias
 					genotype_bias[gene_counter] = 0.5f*genotype_bias[gene_counter];
-				
+				}
 				if (threadIdx.x == 0)
 				{
 					cons_succ = 0;
@@ -323,9 +317,9 @@ gpu_perform_LS_kernel(
 void gpu_perform_LS(
                     uint32_t blocks,
                     uint32_t threads,
-                    float* pMem_conformations_next,
-                    float* pMem_energies_next
-)
+                    float*   pMem_conformations_next,
+                    float*   pMem_energies_next
+                   )
 {
 	size_t sz_shared = (3 * cpuData.dockpars.num_of_atoms + 4 * cpuData.dockpars.num_of_genes) * sizeof(float);
 	gpu_perform_LS_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);

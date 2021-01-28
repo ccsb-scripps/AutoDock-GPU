@@ -28,14 +28,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <float.h>
 
 
-static const int   TERMBITS = 10;
-static const float MAXTERM = (float)(1 << (31 - TERMBITS - 8)); // 2^(31 - 10 - 8) = 2^13 = 8192
-static const float TERMSCALE = (float)(1 << TERMBITS); // 2^10 = 1024
-static const float ONEOVERTERMSCALE = 1.0f / TERMSCALE; // 1 / 1024 = 0.000977
-static const float MAXREDUCE = (float)(1 << (31 - TERMBITS - 4)); // 2^(31 - 10 - 4) = 2^17 = 131072
+static const int   TERMBITS         = 10;
+static const float MAXTERM          = (float)(1 << (31 - TERMBITS - 8)); // 2^(31 - 10 - 8) = 2^13 = 8192
+static const float TERMSCALE        = (float)(1 << TERMBITS);            // 2^10 = 1024
+static const float ONEOVERTERMSCALE = 1.0f / TERMSCALE;                  // 1 / 1024 = 0.000977
+static const float MAXREDUCE        = (float)(1 << (31 - TERMBITS - 4)); // 2^(31 - 10 - 4) = 2^17 = 131072
 
-static const float MAXENERGY = FLT_MAX / 100.0; // Used to cap absurd energies so placeholder energy is always skipped in sorts
-static const float MAXFORCE = FLT_MAX / 100.0; // Used to cap absurd energies so placeholder energy is always skipped in sorts
+static const float MAXENERGY        = FLT_MAX / 100.0; // Used to cap absurd energies so placeholder energy is always skipped in sorts
+static const float MAXFORCE         = FLT_MAX / 100.0; // Used to cap absurd gradients
 
 #define RTERROR(status, s) \
 	if (status != cudaSuccess) { \
@@ -148,5 +148,4 @@ struct GpuTempData {
 	uint32_t*   pMem_prng_states;
 };
 #endif
-
 

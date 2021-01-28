@@ -49,8 +49,8 @@ typedef struct
 	double AD4_coeff_tors;
 } AD4_free_energy_coeffs;
 
+// Struct which contains the docking parameters (partly parameters for fpga)
 typedef struct
-//Struct which contains the docking parameters (partly parameters for fpga)
 {
 	unsigned int           seed;
 	unsigned long          num_of_energy_evals;
@@ -108,9 +108,11 @@ typedef struct
 	bool                   output_xml;
 } Dockpars;
 
-inline bool add_deriv_atype(Dockpars* mypars,
+inline bool add_deriv_atype(
+                            Dockpars* mypars,
                             char*     name,
-                            int       length)
+                            int       length
+                           )
 {
 	mypars->nr_deriv_atypes++;
 	mypars->deriv_atypes=(deriv_atype*)realloc(mypars->deriv_atypes,mypars->nr_deriv_atypes*sizeof(deriv_atype));
@@ -133,25 +135,33 @@ inline bool add_deriv_atype(Dockpars* mypars,
 	return true;
 }
 
-int get_filelist(const int*      argc,
+int get_filelist(
+                 const int*      argc,
                        char**    argv,
-                       FileList& filelist);
+                       FileList& filelist
+                );
 
-int get_filenames_and_ADcoeffs(const int*,
+int get_filenames_and_ADcoeffs(
+                               const int*,
                                      char**,
                                      Dockpars*,
-                               const bool);
+                               const bool
+                              );
 
-void get_commandpars(const int*,
+void get_commandpars(
+                     const int*,
                            char**,
                            double*,
-                           Dockpars*);
+                           Dockpars*
+                    );
 
-void gen_initpop_and_reflig(      Dockpars*   mypars,
+void gen_initpop_and_reflig(
+                                  Dockpars*   mypars,
                                   float*      init_populations,
                                   float*      ref_ori_angles,
                                   Liganddata* myligand,
-                            const Gridinfo*   mygrid);
+                            const Gridinfo*   mygrid
+                           );
 
 #endif /* GETPARAMETERS_H_ */
 

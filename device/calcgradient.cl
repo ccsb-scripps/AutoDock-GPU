@@ -107,59 +107,59 @@ void atomicSub_g_f(volatile __local float *addr, float val)
 }
 
 void gpu_calc_gradient(
-                       int    dockpars_rotbondlist_length,
-                       int    dockpars_num_of_atoms,
-                       int    dockpars_true_ligand_atoms,
-                       int    dockpars_gridsize_x,
-                       int    dockpars_gridsize_y,
-                       int    dockpars_gridsize_z,
-                                                                   // g1 = gridsize_x
-                       uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
-                       uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
-        __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
-                       int    dockpars_num_of_atypes,
-                       int    dockpars_num_of_map_atypes,
-                       int    dockpars_num_of_intraE_contributors,
-                       float  dockpars_grid_spacing,
-                       float  dockpars_coeff_elec,
-                       float  dockpars_elec_min_distance,
-                       float  dockpars_qasp,
-                       float  dockpars_coeff_desolv,
-                       float  dockpars_smooth,
+                             int    dockpars_rotbondlist_length,
+                             int    dockpars_num_of_atoms,
+                             int    dockpars_true_ligand_atoms,
+                             int    dockpars_gridsize_x,
+                             int    dockpars_gridsize_y,
+                             int    dockpars_gridsize_z,
+                                                                         // g1 = gridsize_x
+                             uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+                             uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+              __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
+                             int    dockpars_num_of_atypes,
+                             int    dockpars_num_of_map_atypes,
+                             int    dockpars_num_of_intraE_contributors,
+                             float  dockpars_grid_spacing,
+                             float  dockpars_coeff_elec,
+                             float  dockpars_elec_min_distance,
+                             float  dockpars_qasp,
+                             float  dockpars_coeff_desolv,
+                             float  dockpars_smooth,
 
-                       // Some OpenCL compilers don't allow declaring
-                       // local variables within non-kernel functions.
-                       // These local variables must be declared in a kernel,
-                       // and then passed to non-kernel functions.
-               __local float* genotype,
-               __local float* energy,
-               __local int*   run_id,
+                             // Some OpenCL compilers don't allow declaring
+                             // local variables within non-kernel functions.
+                             // These local variables must be declared in a kernel,
+                             // and then passed to non-kernel functions.
+                     __local float* genotype,
+                     __local float* energy,
+                     __local int*   run_id,
 
-              __local float4* calc_coords,
+                    __local float4* calc_coords,
 
-            __constant        kernelconstant_interintra*   kerconst_interintra,
-            __global const    kernelconstant_intracontrib* kerconst_intracontrib,
-            __constant        kernelconstant_intra*        kerconst_intra,
-            __constant        kernelconstant_rotlist*      kerconst_rotlist,
-            __constant        kernelconstant_conform*      kerconst_conform,
+                 __constant kernelconstant_interintra*   kerconst_interintra,
+             __global const kernelconstant_intracontrib* kerconst_intracontrib,
+                 __constant kernelconstant_intra*        kerconst_intra,
+                 __constant kernelconstant_rotlist*      kerconst_rotlist,
+                 __constant kernelconstant_conform*      kerconst_conform,
 
-      __constant       int*   rotbonds_const,
-        __global const int*   rotbonds_atoms_const,
-      __constant       int*   num_rotating_atoms_per_rotbond_const,
+                 __constant int*    rotbonds_const,
+             __global const int*    rotbonds_atoms_const,
+                 __constant int*    num_rotating_atoms_per_rotbond_const,
 
-        __global const float* angle_const,
-      __constant       float* dependence_on_theta_const,
-      __constant       float* dependence_on_rotangle_const,
+             __global const float*  angle_const,
+                 __constant float*  dependence_on_theta_const,
+                 __constant float*  dependence_on_rotangle_const,
 
-                       int    dockpars_num_of_genes,
-               __local float* gradient_inter_x,
-               __local float* gradient_inter_y,
-               __local float* gradient_inter_z,
-               __local float* gradient_intra_x,
-               __local float* gradient_intra_y,
-               __local float* gradient_intra_z,
-               __local float* gradient_genotype
-)
+                            int     dockpars_num_of_genes,
+                    __local float*  gradient_inter_x,
+                    __local float*  gradient_inter_y,
+                    __local float*  gradient_inter_z,
+                    __local float*  gradient_intra_x,
+                    __local float*  gradient_intra_y,
+                    __local float*  gradient_intra_z,
+                    __local float*  gradient_genotype
+                      )
 {
 	uint tidx = get_local_id(0);
 	// Initializing gradients (forces) 
@@ -210,12 +210,12 @@ void gpu_calc_gradient(
 	          rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
 	{
 		int rotation_list_element = kerconst_rotlist->rotlist_const[rotation_counter];
-		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0)	// If not dummy rotation
+		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0) // If not dummy rotation
 		{
 			uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
 			// Capturing atom coordinates
 			float atom_to_rotate[3];
-			if ((rotation_list_element & RLIST_FIRSTROT_MASK) != 0)	// If first rotation of this atom
+			if ((rotation_list_element & RLIST_FIRSTROT_MASK) != 0) // If first rotation of this atom
 			{
 				atom_to_rotate[0] = kerconst_conform->ref_coords_const[3*atom_id];
 				atom_to_rotate[1] = kerconst_conform->ref_coords_const[3*atom_id+1];
@@ -301,53 +301,51 @@ void gpu_calc_gradient(
 				quatrot_temp_z = quatrot_left_z;
 
 				quatrot_left_q = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]-
-						 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]-
-						 quatrot_temp_y*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]-
-						 quatrot_temp_z*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2];
+				                 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]-
+				                 quatrot_temp_y*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]-
+				                 quatrot_temp_z*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2];
 				quatrot_left_x = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]+
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]*quatrot_temp_x+
-						 quatrot_temp_y*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]-
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_z;
+				                 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]*quatrot_temp_x+
+				                 quatrot_temp_y*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]-
+				                 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_z;
 				quatrot_left_y = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]+
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]*quatrot_temp_y+
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]*quatrot_temp_z-
-						 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2];
+				                 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]*quatrot_temp_y+
+				                 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]*quatrot_temp_z-
+				                 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2];
 				quatrot_left_z = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]+
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]*quatrot_temp_z+
-						 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]-
-						 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]*quatrot_temp_y;
+				                 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]*quatrot_temp_z+
+				                 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]-
+				                 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]*quatrot_temp_y;
 			}
-
 			quatrot_temp_q = 0 -
-					 quatrot_left_x*atom_to_rotate [0] -
-					 quatrot_left_y*atom_to_rotate [1] -
-					 quatrot_left_z*atom_to_rotate [2];
+			                 quatrot_left_x*atom_to_rotate [0] -
+			                 quatrot_left_y*atom_to_rotate [1] -
+			                 quatrot_left_z*atom_to_rotate [2];
 			quatrot_temp_x = quatrot_left_q*atom_to_rotate [0] +
-					 quatrot_left_y*atom_to_rotate [2] -
-					 quatrot_left_z*atom_to_rotate [1];
+			                 quatrot_left_y*atom_to_rotate [2] -
+			                 quatrot_left_z*atom_to_rotate [1];
 			quatrot_temp_y = quatrot_left_q*atom_to_rotate [1] -
-					 quatrot_left_x*atom_to_rotate [2] +
-					 quatrot_left_z*atom_to_rotate [0];
+			                 quatrot_left_x*atom_to_rotate [2] +
+			                 quatrot_left_z*atom_to_rotate [0];
 			quatrot_temp_z = quatrot_left_q*atom_to_rotate [2] +
-					 quatrot_left_x*atom_to_rotate [1] -
-					 quatrot_left_y*atom_to_rotate [0];
+			                 quatrot_left_x*atom_to_rotate [1] -
+			                 quatrot_left_y*atom_to_rotate [0];
 
 			atom_to_rotate [0] = 0 -
-					  quatrot_temp_q*quatrot_left_x +
-					  quatrot_temp_x*quatrot_left_q -
-					  quatrot_temp_y*quatrot_left_z +
-					  quatrot_temp_z*quatrot_left_y;
+			                     quatrot_temp_q*quatrot_left_x +
+			                     quatrot_temp_x*quatrot_left_q -
+			                     quatrot_temp_y*quatrot_left_z +
+			                     quatrot_temp_z*quatrot_left_y;
 			atom_to_rotate [1] = 0 -
-					  quatrot_temp_q*quatrot_left_y +
-					  quatrot_temp_x*quatrot_left_z +
-					  quatrot_temp_y*quatrot_left_q -
-					  quatrot_temp_z*quatrot_left_x;
+			                     quatrot_temp_q*quatrot_left_y +
+			                     quatrot_temp_x*quatrot_left_z +
+			                     quatrot_temp_y*quatrot_left_q -
+			                     quatrot_temp_z*quatrot_left_x;
 			atom_to_rotate [2] = 0 -
-					  quatrot_temp_q*quatrot_left_z -
-					  quatrot_temp_x*quatrot_left_y +
-					  quatrot_temp_y*quatrot_left_x +
-					  quatrot_temp_z*quatrot_left_q;
-
+			                     quatrot_temp_q*quatrot_left_z -
+			                     quatrot_temp_x*quatrot_left_y +
+			                     quatrot_temp_y*quatrot_left_x +
+			                     quatrot_temp_z*quatrot_left_q;
 			// Performing final movement and storing values
 			calc_coords[atom_id].x = atom_to_rotate [0] + rotation_movingvec[0];
 			calc_coords[atom_id].y = atom_to_rotate [1] + rotation_movingvec[1];
@@ -386,14 +384,14 @@ void gpu_calc_gradient(
 		else
 		{
 			// Getting coordinates
-			uint x_low  = (uint)floor(x); 
-			uint y_low  = (uint)floor(y); 
+			uint x_low  = (uint)floor(x);
+			uint y_low  = (uint)floor(y);
 			uint z_low  = (uint)floor(z);
-			uint x_high = (uint)ceil(x); 
-			uint y_high = (uint)ceil(y); 
+			uint x_high = (uint)ceil(x);
+			uint y_high = (uint)ceil(y);
 			uint z_high = (uint)ceil(z);
-			float dx = x - x_low; 
-			float dy = y - y_low; 
+			float dx = x - x_low;
+			float dy = y - y_low;
 			float dz = z - z_low;
 
 			//printf("%-15s %-5u %-10.8f %-10.8f %-10.8f\n", "dx,dy,dz", atom_id, dx, dy, dz);
@@ -676,13 +674,13 @@ void gpu_calc_gradient(
 		{
 			// Calculating van der Waals / hydrogen bond term
 			priv_gradient_per_intracontributor += native_divide (-(float)m*kerconst_intra->VWpars_AC_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
-									      native_powr(smoothed_distance/*atomic_distance*/, m+1)
-									    );
+			                                                      native_powr(smoothed_distance/*atomic_distance*/, m+1)
+			                                                    );
 
 			priv_gradient_per_intracontributor += native_divide ((float)n*kerconst_intra->VWpars_BD_const[atom1_typeid * dockpars_num_of_atypes+atom2_typeid],
-									     native_powr(smoothed_distance/*atomic_distance*/, n+1)
-									    );
-		} // if cuttoff1 - internuclear-distance at 8A	
+			                                                     native_powr(smoothed_distance/*atomic_distance*/, n+1)
+			                                                    );
+		} // if cuttoff1 - internuclear-distance at 8A
 
 		// Calculating energy contributions
 		// Cuttoff2: internuclear-distance at 20.48A only for el and sol.
@@ -857,9 +855,9 @@ void gpu_calc_gradient(
 		          lig_atom_id<dockpars_true_ligand_atoms;
 		          lig_atom_id++)
 		{
-			r.x = (calc_coords[lig_atom_id].x - about.x) * dockpars_grid_spacing; 
-			r.y = (calc_coords[lig_atom_id].y - about.y) * dockpars_grid_spacing;  
-			r.z = (calc_coords[lig_atom_id].z - about.z) * dockpars_grid_spacing; 
+			r.x = (calc_coords[lig_atom_id].x - about.x) * dockpars_grid_spacing;
+			r.y = (calc_coords[lig_atom_id].y - about.y) * dockpars_grid_spacing;
+			r.z = (calc_coords[lig_atom_id].z - about.z) * dockpars_grid_spacing;
 
 			// Re-using "gradient_inter_*" for total gradient (inter+intra)
 			float3 force;

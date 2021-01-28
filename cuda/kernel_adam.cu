@@ -35,17 +35,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // "epsilon":  to better condition the square root
 
 // Adadelta parameters (TODO: to be moved to header file?)
-//#define RHO		0.9f
-//#define EPSILON 	1e-6
-#define RHO		0.8f
-#define EPSILON 	1e-2f
+//#define RHO             0.9f
+//#define EPSILON         1e-6
+#define RHO             0.8f
+#define EPSILON         1e-2f
 
 
 // Enable DEBUG_ADADELTA_MINIMIZER for a seeing a detailed ADADELTA evolution
 // If only PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION is enabled,
 // then a only a simplified ADADELTA evolution will be shown
 //#define DEBUG_ADADELTA_MINIMIZER
-	//#define PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION
+//#define PRINT_ADADELTA_MINIMIZER_ENERGY_EVOLUTION
 
 // Enable this for debugging ADADELTA from a defined initial genotype
 //#define DEBUG_ADADELTA_INITIAL_2BRT
@@ -55,14 +55,14 @@ __launch_bounds__(NUM_OF_THREADS_PER_BLOCK, 1024 / NUM_OF_THREADS_PER_BLOCK)
 gpu_gradient_minAdam_kernel(
                             float* pMem_conformations_next,
                             float* pMem_energies_next
-)
-//The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
-//The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
-//This way the first num_of_lsentities entity of each population will be subjected to local search
-//(and each CU carries out the algorithm for one entity).
-//Since the first entity is always the best one in the current population,
-//it is always tested according to the ls probability, and if it not to be
-//subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
+                           )
+// The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
+// The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
+// This way the first num_of_lsentities entity of each population will be subjected to local search
+// (and each CU carries out the algorithm for one entity).
+// Since the first entity is always the best one in the current population,
+// it is always tested according to the ls probability, and if it not to be
+// subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
@@ -72,7 +72,7 @@ gpu_gradient_minAdam_kernel(
 	int   run_id = blockIdx.x / cData.dockpars.num_of_lsentities;
 	float energy;
 	// Energy may go up, so we keep track of the best energy ever calculated.
-	// Then, we return the genotype corresponding 
+	// Then, we return the genotype corresponding
 	// to the best observed energy, i.e. "best_genotype"
 	__shared__ int entity_id;
 	__shared__ float best_energy;
@@ -80,7 +80,7 @@ gpu_gradient_minAdam_kernel(
 	extern __shared__ float sFloatBuff[];
 
 	// Ligand-atom position and partial energies
-	float3* calc_coords = (float3*)sFloatBuff;  
+	float3* calc_coords = (float3*)sFloatBuff;
 
 	// Gradient of the intermolecular energy per each ligand atom
 	// Also used to store the accummulated gradient per each ligand atom
@@ -92,7 +92,7 @@ gpu_gradient_minAdam_kernel(
 
 	// Genotype pointers
 	float* genotype = (float*)(cartesian_gradient + cData.dockpars.num_of_atoms);
-	float* best_genotype = genotype + cData.dockpars.num_of_genes;  
+	float* best_genotype = genotype + cData.dockpars.num_of_genes;
 
 	// Partial results of the gradient step
 	float* gradient = best_genotype + cData.dockpars.num_of_genes;
@@ -101,16 +101,16 @@ gpu_gradient_minAdam_kernel(
 	float* mt = gradient + cData.dockpars.num_of_genes;
 
 	// Adam vt parameter
-	float* vt = mt + cData.dockpars.num_of_genes;    
+	float* vt = mt + cData.dockpars.num_of_genes;
 
 	// Iteration counter for the minimizer
-	uint32_t iteration_cnt = 0; 
+	uint32_t iteration_cnt = 0;
 
 	if (threadIdx.x == 0)
 	{
 		// Since entity 0 is the best one due to elitism,
 		// it should be subjected to random selection
-		entity_id = blockIdx.x % cData.dockpars.num_of_lsentities;        
+		entity_id = blockIdx.x % cData.dockpars.num_of_lsentities;
 		if (entity_id == 0) {
 			// If entity 0 is not selected according to LS-rate,
 			// choosing another entity
@@ -157,7 +157,6 @@ gpu_gradient_minAdam_kernel(
 	// It is added to the genotype to create the next genotype.
 	// E.g. in steepest descent "delta" is -1.0 * stepsize * gradient
 
-
 	// Asynchronous copy should be finished by here
 	__threadfence();
 	__syncthreads();
@@ -165,8 +164,8 @@ gpu_gradient_minAdam_kernel(
 	// Enable this for debugging ADADELTA from a defined initial genotype
 
 	// Initializing vectors
-	for(uint32_t i = threadIdx.x; 
-		 i < cData.dockpars.num_of_genes; 
+	for(uint32_t i = threadIdx.x;
+		 i < cData.dockpars.num_of_genes;
 		 i+= blockDim.x) {
 		gradient[i]        = 0.0f;
 		mt[i]              = 0.0f;
@@ -215,26 +214,19 @@ gpu_gradient_minAdam_kernel(
 		__syncthreads();
 
 		gpu_calc_energrad(
-				// Some OpenCL compilers don't allow declaring 
-				// local variables within non-kernel functions.
-				// These local variables must be declared in a kernel, 
-				// and then passed to non-kernel functions.
-				genotype,
-				energy,
-				run_id,
-
-				calc_coords,
-				#if defined (DEBUG_ENERGY_KERNEL)
-				interE,
-				intraE,
-				#endif
-				// Gradient-related arguments
-				// Calculate gradients (forces) for intermolecular energy
-				// Derived from autodockdev/maps.py
-				cartesian_gradient,
-				gradient,
-				&sFloatAccumulator
-				);
+		                  genotype,
+		                  energy,
+		                  run_id,
+		                  calc_coords,
+		                  #if defined (DEBUG_ENERGY_KERNEL)
+		                  interE,
+		                  intraE,
+		                  #endif
+		                  // Gradient-related arguments
+		                  cartesian_gradient,
+		                  gradient,
+		                  &sFloatAccumulator
+		                 );
 
 		// =============================================================
 		// =============================================================

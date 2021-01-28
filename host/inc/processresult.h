@@ -55,25 +55,32 @@ typedef struct
 } Ligandresult;
 
 
-void arrange_result(      float* final_population,
+void arrange_result(
+                          float* final_population,
                           float* energies,
-                    const int    pop_size);
+                    const int    pop_size
+                   );
 
-void write_basic_info(      FILE*       fp,
+void write_basic_info(
+                            FILE*       fp,
                       const Liganddata* ligand_ref,
                       const Dockpars*   mypars,
                       const Gridinfo*   mygrid,
                       const int*        argc,
-                      char**            argv);
+                      char**            argv
+                     );
 
-void write_basic_info_dlg(      FILE*       fp,
+void write_basic_info_dlg(
+                                FILE*       fp,
                           const Liganddata* ligand_ref,
                           const Dockpars*   mypars,
                           const Gridinfo*   mygrid,
                           const int*        argc,
-                                char**      argv);
+                                char**      argv
+                         );
 
-void make_resfiles(      float*        final_population,
+void make_resfiles(
+                         float*        final_population,
                          float*        energies,
                    const Liganddata*   ligand_ref,
                    const Liganddata*   ligand_from_pdb,
@@ -89,9 +96,11 @@ void make_resfiles(      float*        final_population,
                          int           debug,
                          int           run_cnt,
                          float&        best_energy_of_all,
-                         Ligandresult* best_result);
+                         Ligandresult* best_result
+                  );
 
-void cluster_analysis(      Ligandresult myresults [],
+void cluster_analysis(
+                            Ligandresult myresults [],
                             int          num_of_runs,
                             char*        report_file_name,
                       const Liganddata*  ligand_ref,
@@ -100,10 +109,12 @@ void cluster_analysis(      Ligandresult myresults [],
                       const int*         argc,
                             char**       argv,
                       const double       docking_avg_runtime,
-                      const double       program_runtime);
+                      const double       program_runtime
+                     );
 
-void clusanal_gendlg(      Ligandresult  myresults [],
-                                  int    num_of_runs,
+void clusanal_gendlg(
+                           Ligandresult  myresults [],
+                           int           num_of_runs,
                      const Liganddata*   ligand_ref,
                      const Dockpars*     mypars,
                      const Gridinfo*     mygrid,
@@ -113,15 +124,18 @@ void clusanal_gendlg(      Ligandresult  myresults [],
                            unsigned long generations_used,
                            unsigned long evals_performed,
                            double        exec_time,
-                           double        idle_time);
+                           double        idle_time
+                    );
 
-void process_result(const Gridinfo*        mygrid,
+void process_result(
+                    const Gridinfo*        mygrid,
                     const float*           cpu_floatgrids,
                     const Dockpars*        mypars,
                     const Liganddata*      myligand_init,
                     const Liganddata*      myxrayligand,
                     const int*             argc,
                           char**           argv,
-                          SimulationState& sim_state);
+                          SimulationState& sim_state
+                   );
 
 #endif /* PROCESSRESULT_H_ */

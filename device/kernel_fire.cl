@@ -33,97 +33,97 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //            - DT_INC is larger          [ larger increments of "dt" ]
 //            - DT_DEC is closer to 1.0   [ smaller decrements of "dt" ]
 //            - ALPHA_START is larger     [ less inertia ]
-        
+
 // As a result, this implementation is "less local" than the original.
 // In other words, it is easier to exit the current local minima and
 // jump to a nearby local minima.
 
 // Fire parameters (TODO: to be moved to header file?)
-#define SUCCESS_MIN		5			// N_min   = 5
-#define DT_INC			1.2f			// f_inc   = 1.1
-#define DT_DEC			0.8f			// f_dec   = 0.5
-#define ALPHA_START 		0.2f			// a_start = 0.1
-#define ALPHA_DEC		0.99f			// f_a     = 0.99
+#define SUCCESS_MIN      5     // N_min   = 5
+#define DT_INC           1.2f  // f_inc   = 1.1
+#define DT_DEC           0.8f  // f_dec   = 0.5
+#define ALPHA_START      0.2f  // a_start = 0.1
+#define ALPHA_DEC        0.99f // f_a     = 0.99
 
 // Tunable parameters
 // This one tuned by trial and error
-#define DT_MAX      		10.0f
-#define DT_MAX_DIV_THREE	(DT_MAX / 3.0f)
+#define DT_MAX           10.0f
+#define DT_MAX_DIV_THREE (DT_MAX / 3.0f)
 
 // New parameter
 // Not in original implementation
 // if "dt" becomes smaller than this value, stop optimization
-#define DT_MIN			1e-6
+#define DT_MIN           1e-6
 
 // Enabling "DEBUG_ENERGY_FIRE" requires
 // manually enabling "DEBUG_ENERGY_KERNEL" in calcenergy.cl
 //#define DEBUG_ENERGY_FIRE
-	//#define PRINT_FIRE_ENERGIES
-	//#define PRINT_FIRE_GENES_AND_GRADS
-	//#define PRINT_FIRE_ATOMIC_COORDS
-	//#define PRINT_FIRE_PARAMETERS
+//#define PRINT_FIRE_ENERGIES
+//#define PRINT_FIRE_GENES_AND_GRADS
+//#define PRINT_FIRE_ATOMIC_COORDS
+//#define PRINT_FIRE_PARAMETERS
 
 // Enable DEBUG_FIRE_MINIMIZER for a seeing a detailed FIRE evolution
 // If only PRINT_FIRE_MINIMIZER_ENERGY_EVOLUTION is enabled,
 // then a only a simplified FIRE evolution will be shown
 //#define DEBUG_FIRE_MINIMIZER
-	//#define PRINT_FIRE_MINIMIZER_ENERGY_EVOLUTION
+//#define PRINT_FIRE_MINIMIZER_ENERGY_EVOLUTION
 
 // Enable this for debugging FIRE from a defined initial genotype
 //#define DEBUG_FIRE_INITIAL_2BRT
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gradient_minFire(
-                   int    dockpars_num_of_atoms,
-                   int    dockpars_true_ligand_atoms,
-                   int    dockpars_num_of_atypes,
-                   int    dockpars_num_of_map_atypes,
-                   int    dockpars_num_of_intraE_contributors,
-                   int    dockpars_gridsize_x,
-                   int    dockpars_gridsize_y,
-                   int    dockpars_gridsize_z,
-                                                               // g1 = gridsize_x
-                   uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
-                   uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
-                   float  dockpars_grid_spacing,
-__global const     float* restrict dockpars_fgrids, // This is too large to be allocated in __constant
-                   int    dockpars_rotbondlist_length,
-                   float  dockpars_coeff_elec,
-                   float  dockpars_elec_min_distance,
-                   float  dockpars_coeff_desolv,
- __global          float* restrict dockpars_conformations_next,
- __global          float* restrict dockpars_energies_next,
- __global          int*   restrict dockpars_evals_of_new_entities,
- __global          uint*  restrict dockpars_prng_states,
-                   int    dockpars_pop_size,
-                   int    dockpars_num_of_genes,
-                   float  dockpars_lsearch_rate,
-                   uint   dockpars_num_of_lsentities,
-                   uint   dockpars_max_num_of_iters,
-                   float  dockpars_qasp,
-                   float  dockpars_smooth,
+                       int    dockpars_num_of_atoms,
+                       int    dockpars_true_ligand_atoms,
+                       int    dockpars_num_of_atypes,
+                       int    dockpars_num_of_map_atypes,
+                       int    dockpars_num_of_intraE_contributors,
+                       int    dockpars_gridsize_x,
+                       int    dockpars_gridsize_y,
+                       int    dockpars_gridsize_z,
+                                                                   // g1 = gridsize_x
+                       uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+                       uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+                       float  dockpars_grid_spacing,
+        __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant
+                       int    dockpars_rotbondlist_length,
+                       float  dockpars_coeff_elec,
+                       float  dockpars_elec_min_distance,
+                       float  dockpars_coeff_desolv,
+        __global       float* restrict dockpars_conformations_next,
+        __global       float* restrict dockpars_energies_next,
+        __global       int*   restrict dockpars_evals_of_new_entities,
+        __global       uint*  restrict dockpars_prng_states,
+                       int    dockpars_pop_size,
+                       int    dockpars_num_of_genes,
+                       float  dockpars_lsearch_rate,
+                       uint   dockpars_num_of_lsentities,
+                       uint   dockpars_max_num_of_iters,
+                       float  dockpars_qasp,
+                       float  dockpars_smooth,
 
-        __constant        kernelconstant_interintra*   kerconst_interintra,
-        __global const    kernelconstant_intracontrib* kerconst_intracontrib,
-        __constant        kernelconstant_intra*        kerconst_intra,
-        __constant        kernelconstant_rotlist*      kerconst_rotlist,
-        __constant        kernelconstant_conform*      kerconst_conform,
+      __constant       kernelconstant_interintra*   kerconst_interintra,
+        __global const kernelconstant_intracontrib* kerconst_intracontrib,
+      __constant       kernelconstant_intra*        kerconst_intra,
+      __constant       kernelconstant_rotlist*      kerconst_rotlist,
+      __constant       kernelconstant_conform*      kerconst_conform,
 
-  __constant int*         rotbonds_const,
-  __global   const int*   rotbonds_atoms_const,
-  __constant int*         num_rotating_atoms_per_rotbond_const,
+      __constant       int*   rotbonds_const,
+        __global const int*   rotbonds_atoms_const,
+      __constant       int*   num_rotating_atoms_per_rotbond_const,
 
-  __global   const float* angle_const,
-  __constant       float* dependence_on_theta_const,
-  __constant       float* dependence_on_rotangle_const
-)
-//The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
-//The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
-//This way the first num_of_lsentities entity of each population will be subjected to local search
-//(and each CU carries out the algorithm for one entity).
-//Since the first entity is always the best one in the current population,
-//it is always tested according to the ls probability, and if it not to be
-//subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
+        __global const float* angle_const,
+      __constant       float* dependence_on_theta_const,
+      __constant       float* dependence_on_rotangle_const
+                )
+// The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
+// The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
+// This way the first num_of_lsentities entity of each population will be subjected to local search
+// (and each CU carries out the algorithm for one entity).
+// Since the first entity is always the best one in the current population,
+// it is always tested according to the ls probability, and if it not to be
+// subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
@@ -305,7 +305,7 @@ __global const     float* restrict dockpars_fgrids, // This is too large to be a
 	{
 		printf("\n");
 		printf("%20s \n", "hardcoded genotype: ");
-		printf("%20s %.6f\n", "initial energy: ", energy);		
+		printf("%20s %.6f\n", "initial energy: ", energy);
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	#endif

@@ -107,26 +107,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "stringify.h"
 #include "correct_grad_axisangle.h"
 
-inline float average(float* average_sd2_N)
-{
-	if(average_sd2_N[2]<1.0f)
-		return 0.0;
-	return average_sd2_N[0]/average_sd2_N[2];
-}
-
-inline float stddev(float* average_sd2_N)
-{
-	if(average_sd2_N[2]<1.0f)
-		return 0.0;
-	float sq = average_sd2_N[1]*average_sd2_N[2]-average_sd2_N[0]*average_sd2_N[0];
-	if((fabs(sq)<=0.000001) || (sq<0.0)) return 0.0;
-	return sqrt(sq)/average_sd2_N[2];
-}
-
-void copy_map_to_gpu(GpuTempData&      tData,
+void copy_map_to_gpu(
+                     GpuTempData&      tData,
                      std::vector<Map>& all_maps,
                      int               t,
-                     int               size_of_one_map)
+                     int               size_of_one_map
+                    )
 {
 	cl_int err;
 	err = clEnqueueWriteBuffer(tData.command_queue,tData.pMem_fgrids,true,t*size_of_one_map*sizeof(float),size_of_one_map*sizeof(float),all_maps[t].grid.data(),0,NULL,NULL);
@@ -137,7 +123,10 @@ void copy_map_to_gpu(GpuTempData&      tData,
 	}
 }
 
-void setup_gpu_for_docking(GpuData& cData, GpuTempData& tData)
+void setup_gpu_for_docking(
+                           GpuData& cData,
+                           GpuTempData& tData
+                          )
 {
 // =======================================================================
 // OpenCL Host Setup
@@ -324,8 +313,10 @@ void setup_gpu_for_docking(GpuData& cData, GpuTempData& tData)
 		mallocBufferObject(tData.context,CL_MEM_READ_ONLY,cData.preload_gridsize* (sizeof(float)) * (ATYPE_NUM+2),&(tData.pMem_fgrids));
 }
 
-void finish_gpu_from_docking(GpuData&     cData,
-                             GpuTempData& tData)
+void finish_gpu_from_docking(
+                             GpuData&     cData,
+                             GpuTempData& tData
+                            )
 {
 	clReleaseMemObject(cData.mem_interintra_const);
 	clReleaseMemObject(cData.mem_intracontrib_const);
@@ -359,7 +350,8 @@ void finish_gpu_from_docking(GpuData&     cData,
 	clReleaseContext(tData.context);
 }
 
-int docking_with_gpu(const Gridinfo*        mygrid,
+int docking_with_gpu(
+                     const Gridinfo*        mygrid,
                      /*const*/ float*       cpu_floatgrids,
                            Dockpars*        mypars,
                      const Liganddata*      myligand_init,
@@ -370,7 +362,8 @@ int docking_with_gpu(const Gridinfo*        mygrid,
                            SimulationState& sim_state,
                            GpuData&         cData,
                            GpuTempData&     tData,
-                           bool             floatgrids_preloaded)
+                           bool             floatgrids_preloaded
+                    )
 /* The function performs the docking algorithm and generates the corresponding result files.
 parameter mygrid:
 		describes the grid
@@ -1296,7 +1289,14 @@ parameters argc and argv:
 	return 0;
 }
 
-double check_progress(int* evals_of_runs, int generation_cnt, int max_num_of_evals, int max_num_of_gens, int num_of_runs, unsigned long &total_evals)
+double check_progress(
+                      int* evals_of_runs,
+                      int generation_cnt,
+                      int max_num_of_evals,
+                      int max_num_of_gens,
+                      int num_of_runs,
+                      unsigned long& total_evals
+                     )
 // The function checks if the stop condition of the docking is satisfied, returns 0 if no, and returns 1 if yes. The fitst
 // parameter points to the array which stores the number of evaluations performed for each run. The second parameter stores
 // the generations used. The other parameters describe the maximum number of energy evaluations, the maximum number of

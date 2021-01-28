@@ -64,7 +64,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // Experimental TSRI gradient-based minimizer kernel argument
 // Setup here (temporarily?) the gradient-based minimizer and associated parameters.
 // This should be ultimately configurable by the user as program exec. flags.
-
 typedef struct {
 	unsigned int max_num_of_iters;
 	/*
@@ -75,18 +74,25 @@ typedef struct {
 } Gradientparameters;
 #endif
 
-void copy_map_to_gpu(GpuTempData&      tData,
+void copy_map_to_gpu(
+                     GpuTempData&      tData,
                      std::vector<Map>& all_maps,
                      int               t,
-                     int               size_of_one_map);
+                     int               size_of_one_map
+                    );
 
-void setup_gpu_for_docking(GpuData&     cData,
-                           GpuTempData& tData);
+void setup_gpu_for_docking(
+                           GpuData&     cData,
+                           GpuTempData& tData
+                          );
 
-void finish_gpu_from_docking(GpuData&     cData,
-                             GpuTempData& tData);
+void finish_gpu_from_docking(
+                             GpuData&     cData,
+                             GpuTempData& tData
+                            );
 
-int docking_with_gpu(const Gridinfo*        mygrid,
+int docking_with_gpu(
+                     const Gridinfo*        mygrid,
                      /*const*/ float*       cpu_floatgrids,
                            Dockpars*        mypars,
                      const Liganddata*      myligand_init,
@@ -97,13 +103,16 @@ int docking_with_gpu(const Gridinfo*        mygrid,
                            SimulationState& sim_state,
                            GpuData&         cData,
                            GpuTempData&     tData,
-                           bool             floatgrids_preloaded);
+                           bool             floatgrids_preloaded
+                    );
 
-double check_progress(int*           evals_of_runs,
+double check_progress(
+                      int*           evals_of_runs,
                       int            generation_cnt,
                       int            max_num_of_evals,
                       int            max_num_of_gens,
                       int            num_of_runs,
-                      unsigned long& total_evals);
+                      unsigned long& total_evals
+                     );
 
 #endif /* PERFORMDOCKING_H_ */

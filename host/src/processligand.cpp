@@ -37,13 +37,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "processligand.h"
 
-int init_liganddata(const char*        ligfilename,
+int init_liganddata(
+                    const char*        ligfilename,
                     const char*        flexresfilename,
                           Liganddata*  myligand,
                           Gridinfo*    mygrid,
                           int          nr_deriv_atypes,
                           deriv_atype* deriv_atypes,
-                          bool         cgmaps)
+                          bool         cgmaps
+                   )
 // The functions first parameter is an empty Liganddata, the second a variable of
 // Gridinfo type. The function fills the num_of_atypes and atom_types fields of
 // myligand according to the num_of_atypes and grid_types fields of mygrid. In
@@ -188,9 +190,11 @@ int init_liganddata(const char*        ligfilename,
 	return 0;
 }
 
-int set_liganddata_typeid(      Liganddata* myligand,
+int set_liganddata_typeid(
+                                Liganddata* myligand,
                                 int         atom_id,
-                          const char*       typeof_new_atom)
+                          const char*       typeof_new_atom
+                         )
 // The function sets the type index of the atom_id-th atom of myligand (in atom_idxyzq field),
 // that is, it looks for the row in the atom_types field of myligand which is the same as
 // typeof_new_atom, and sets the type index according to the row index.
@@ -664,7 +668,8 @@ int get_bonds(Liganddata* myligand)
 	return 0;
 }
 
-pair_mod* is_mod_pair(const char*     A,
+pair_mod* is_mod_pair(
+                      const char*     A,
                       const char*     B,
                             int       nr_mod_atype_pairs,
                             pair_mod* mod_atype_pairs
@@ -677,7 +682,8 @@ pair_mod* is_mod_pair(const char*     A,
 	return NULL;
 }
 
-int get_VWpars(      Liganddata*  myligand,
+int get_VWpars(
+                     Liganddata*  myligand,
                const double       AD4_coeff_vdW,
                const double       AD4_coeff_hb,
                      int          nr_deriv_atypes,
@@ -1050,7 +1056,8 @@ int get_moving_and_unit_vectors(Liganddata* myligand)
 	return 0;
 }
 
-int get_liganddata(const char*        ligfilename,
+int get_liganddata(
+                   const char*        ligfilename,
                    const char*        flexresfilename,
                          Liganddata*  myligand,
                    const double       AD4_coeff_vdW,
@@ -1150,7 +1157,6 @@ int get_liganddata(const char*        ligfilename,
 		
 		fsetpos (fp, &fp_start);
 		
-	
 		// reading data for rotbonds and atom_rotbonds fields
 		while (fscanf(fp, "%255s", tempstr) != EOF)
 		{
@@ -1244,7 +1250,11 @@ int get_liganddata(const char*        ligfilename,
 	return 0;
 }
 
-int gen_new_pdbfile(const char* oldpdb, const char* newpdb, const Liganddata* myligand)
+int gen_new_pdbfile(
+                    const char* oldpdb,
+                    const char* newpdb,
+                    const       Liganddata* myligand
+                   )
 // The function opens old pdb file, which is supposed to be an AutoDock4 pdbqt file, and
 // copies it to newpdb file, but switches the coordinate values to the atomic coordinates
 // of myligand, so newpdb file will be identical to oldpdb except the coordinate values.
@@ -1312,7 +1322,10 @@ int gen_new_pdbfile(const char* oldpdb, const char* newpdb, const Liganddata* my
 	return 0;
 }
 
-void get_movvec_to_origo(const Liganddata* myligand, double movvec [])
+void get_movvec_to_origo(
+                         const Liganddata* myligand,
+                               double      movvec []
+                        )
 // The function returns the moving vector in the second parameter which moves the ligand
 // (that is, its geometrical center point) given by the first parameter to the origo).
 {
@@ -1335,12 +1348,19 @@ void get_movvec_to_origo(const Liganddata* myligand, double movvec [])
 	movvec [2] = -1*tmp_z/myligand->true_ligand_atoms;
 }
 
-void move_ligand(Liganddata* myligand, const double movvec [])
+void move_ligand(
+                       Liganddata*  myligand,
+                 const double       movvec []
+                )
 {
 	move_ligand(myligand, movvec, NULL);
 }
 
-void move_ligand(Liganddata* myligand, const double movvec [], const double flexmovvec [])
+void move_ligand(
+                       Liganddata*  myligand,
+                 const double       movvec [],
+                 const double       flexmovvec []
+                )
 // The function moves the ligand given by the first parameter according to
 // the vector given by the second one.
 {
@@ -1362,7 +1382,10 @@ void move_ligand(Liganddata* myligand, const double movvec [], const double flex
 		}
 }
 
-void scale_ligand(Liganddata* myligand, const double scale_factor)
+void scale_ligand(
+                        Liganddata*  myligand,
+                  const double       scale_factor
+                 )
 // The function scales the ligand given by the first parameter according to the factor
 // given by the second (that is, all the ligand atom coordinates will be multiplied by
 // scale_factor).
@@ -1377,7 +1400,11 @@ void scale_ligand(Liganddata* myligand, const double scale_factor)
 	}
 }
 
-double calc_rmsd(const Liganddata* myligand_ref, const Liganddata* myligand, const bool handle_symmetry)
+double calc_rmsd(
+                 const Liganddata* myligand_ref,
+                 const Liganddata* myligand,
+                 const bool        handle_symmetry
+                )
 // The function calculates the RMSD value (root mean square deviation of the
 // atomic distances for two conformations of the same ligand) and returns it.
 // If the handle_symmetry parameter is 0, symmetry is not handled, and the
@@ -1469,7 +1496,8 @@ int is_H_bond(const char* atype1, const char* atype2)
 		return 0;
 }
 
-void print_ref_lig_energies_f(      Liganddata myligand,
+void print_ref_lig_energies_f(
+                                    Liganddata myligand,
                               const float      smooth,
                                     Gridinfo   mygrid,
                               const float*     fgrids,
@@ -1478,7 +1506,8 @@ void print_ref_lig_energies_f(      Liganddata myligand,
                               const float      AD4_coeff_desolv,
                               const float      qasp,
                                     int        nr_mod_atype_pairs,
-                                    pair_mod*  mod_atype_pairs)
+                                    pair_mod*  mod_atype_pairs
+                            )
 // The function calculates the energies of the ligand given in the first parameter,
 // and prints them to the screen.
 {
@@ -1503,13 +1532,15 @@ void print_ref_lig_energies_f(      Liganddata myligand,
 //////////////////////////////////
 //float functions
 
-void calc_distdep_tables_f(      float r_6_table [],
+void calc_distdep_tables_f(
+                                 float r_6_table [],
                                  float r_10_table [],
                                  float r_12_table [],
                                  float r_epsr_table [],
                                  float desolv_table [],
                            const float scaled_AD4_coeff_elec,
-                           const float AD4_coeff_desolv)
+                           const float AD4_coeff_desolv
+                          )
 // The function fills the input arrays with the following functions:
 // 1/r^6, 1/r^10, 1/r^12, W_el/(r*eps(r)) and W_des*exp(-r^2/(2sigma^2))
 // for distances 0.01, 0.02, ..., 20.48 A
@@ -1530,10 +1561,12 @@ void calc_distdep_tables_f(      float r_6_table [],
 	}
 }
 
-void calc_q_tables_f(const Liganddata* myligand,
+void calc_q_tables_f(
+                     const Liganddata* myligand,
                            float       qasp,
                            float       q1q2[][MAX_NUM_OF_ATOMS],
-                           float       qasp_mul_absq [])
+                           float       qasp_mul_absq []
+                    )
 // The function calculates q1*q2 and qasp*abs(q) values
 // based on the myligand parameter.
 {
@@ -1548,11 +1581,13 @@ void calc_q_tables_f(const Liganddata* myligand,
 
 }
 
-void change_conform_f(      Liganddata* myligand,
+void change_conform_f(
+                            Liganddata* myligand,
                       const Gridinfo*   mygrid,
                       const float       genotype_f [],
                             float*      cpu_ref_ori_angles,
-                            int         debug)
+                            int         debug
+                     )
 // The function changes the conformation of myligand according to
 // the genotype given by the second parameter.
 {
@@ -1635,12 +1670,14 @@ void change_conform_f(      Liganddata* myligand,
 			printf("Moved point (final values) (x,y,z): %lf, %lf, %lf\n", myligand->atom_idxyzq [atom_id][1], myligand->atom_idxyzq [atom_id][2], myligand->atom_idxyzq [atom_id][3]);
 }
 
-float calc_interE_f(const Gridinfo*   mygrid,
+float calc_interE_f(
+                    const Gridinfo*   mygrid,
                     const Liganddata* myligand,
                     const float*      fgrids,
                           float       outofgrid_tolerance,
                           int         debug,
-                          float&      intraflexE)
+                          float&      intraflexE
+                   )
 // The function calculates the intermolecular energy of a ligand (given by myligand parameter),
 // and a receptor (represented as a grid). The grid point values must be stored at the location
 // which starts at fgrids, the memory content can be generated with get_gridvalues funciton.
@@ -1856,7 +1893,8 @@ float calc_interE_f(const Gridinfo*   mygrid,
 	return interE;
 }
 
-void calc_interE_peratom_f(const Gridinfo*   mygrid,
+void calc_interE_peratom_f(
+                           const Gridinfo*   mygrid,
                            const Liganddata* myligand,
                            const float*      fgrids,
                                  float       outofgrid_tolerance,
@@ -2065,7 +2103,8 @@ void calc_interE_peratom_f(const Gridinfo*   mygrid,
 }
 
 // Corrected host "calc_intraE_f" function after smoothing was added
-float calc_intraE_f(const Liganddata*  myligand,
+float calc_intraE_f(
+                    const Liganddata*  myligand,
                           float        dcutoff,
                           float        smooth,
                           bool         ignore_desolv,
@@ -2074,7 +2113,8 @@ float calc_intraE_f(const Liganddata*  myligand,
                           int          debug,
                           float&       interflexE,
                           int          nr_mod_atype_pairs,
-                          pair_mod*    mod_atype_pairs)
+                          pair_mod*    mod_atype_pairs
+                   )
 // The function calculates the intramolecular energy of the ligand given by the first parameter,
 // and returns it as a double. The second parameter is the distance cutoff, if the third isn't 0,
 // desolvation energy won't be included by the energy value, the fourth indicates if messages
@@ -2244,7 +2284,8 @@ float calc_intraE_f(const Liganddata*  myligand,
 		return (vW + el);
 }
 
-int map_to_all_maps(Gridinfo*         mygrid,
+int map_to_all_maps(
+                    Gridinfo*         mygrid,
                     Liganddata*       myligand,
                     std::vector<Map>& all_maps
                    )

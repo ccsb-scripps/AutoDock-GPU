@@ -32,27 +32,23 @@ gpu_gen_and_eval_newpops_kernel(
                                 float* pMem_energies_current,
                                 float* pMem_conformations_next,
                                 float* pMem_energies_next
-)
-//The GPU global function
+                               )
+// The GPU global function
 {
-	// Some OpenCL compilers don't allow declaring 
-	// local variables within non-kernel functions.
-	// These local variables must be declared in a kernel, 
-	// and then passed to non-kernel functions.
-	__shared__ float offspring_genotype[ACTUAL_GENOTYPE_LENGTH];
-	__shared__ int parent_candidates[4];
-	__shared__ float candidate_energies[4];
-	__shared__ int parents[2];
-	__shared__ int covr_point[2];
-	__shared__ float randnums[10];
-	__shared__ float sBestEnergy[32];
-	__shared__ int sBestID[32];
-	__shared__ float3 calc_coords[MAX_NUM_OF_ATOMS];
-	__shared__ float sFloatAccumulator;
+	__shared__ float  offspring_genotype[ACTUAL_GENOTYPE_LENGTH];
+	__shared__ int    parent_candidates [4];
+	__shared__ float  candidate_energies[4];
+	__shared__ int    parents           [2];
+	__shared__ int    covr_point        [2];
+	__shared__ float  randnums          [10];
+	__shared__ float  sBestEnergy       [32];
+	__shared__ int    sBestID           [32];
+	__shared__ float3 calc_coords       [MAX_NUM_OF_ATOMS];
+	__shared__ float  sFloatAccumulator;
 	int run_id;
 	int temp_covr_point;
 	float energy;
-	int bestID; 
+	int bestID;
 
 	// In this case this compute-unit is responsible for elitist selection
 	if ((blockIdx.x % cData.dockpars.pop_size) == 0) {
@@ -105,7 +101,7 @@ gpu_gen_and_eval_newpops_kernel(
 				bestID = -1;
 				energy = FLT_MAX;
 			}
-			WARPMINIMUM2(tgx, energy, bestID);     
+			WARPMINIMUM2(tgx, energy, bestID);
 			
 			if (tgx == 0)
 			{
@@ -152,7 +148,7 @@ gpu_gen_and_eval_newpops_kernel(
 		__syncthreads();
 
 
-		if (threadIdx.x < 4)	//it is not ensured that the four candidates will be different...
+		if (threadIdx.x < 4) //it is not ensured that the four candidates will be different...
 		{
 			parent_candidates[threadIdx.x]  = (int) (cData.dockpars.pop_size*randnums[threadIdx.x]); //using randnums[0..3]
 			candidate_energies[threadIdx.x] = pMem_energies_current[run_id*cData.dockpars.pop_size+parent_candidates[threadIdx.x]];
@@ -160,13 +156,13 @@ gpu_gen_and_eval_newpops_kernel(
 		__threadfence();
 		__syncthreads();
 
-		if (threadIdx.x < 2) 
+		if (threadIdx.x < 2)
 		{
 			// Notice: dockpars_tournament_rate was scaled down to [0,1] in host
 			// to reduce number of operations in device
 			if (candidate_energies[2*threadIdx.x] < candidate_energies[2*threadIdx.x+1])
 			{
-				if (/*100.0f**/randnums[4+threadIdx.x] < cData.dockpars.tournament_rate) {		//using randnum[4..5]
+				if (/*100.0f**/randnums[4+threadIdx.x] < cData.dockpars.tournament_rate) { // using randnum[4..5]
 					parents[threadIdx.x] = parent_candidates[2*threadIdx.x];
 				}
 				else {
@@ -189,7 +185,7 @@ gpu_gen_and_eval_newpops_kernel(
 		// Performing crossover
 		// Notice: dockpars_crossover_rate was scaled down to [0,1] in host
 		// to reduce number of operations in device
-		if (/*100.0f**/randnums[6] < cData.dockpars.crossover_rate)	// Using randnums[6]
+		if (/*100.0f**/randnums[6] < cData.dockpars.crossover_rate) // Using randnums[6]
 		{
 			if (threadIdx.x < 2) {
 				// Using randnum[7..8]
@@ -224,7 +220,7 @@ gpu_gen_and_eval_newpops_kernel(
 				}
 				// Single-point crossover
 				else
-				{												 
+				{
 					if (gene_counter <= covr_point[0])
 						offspring_genotype[gene_counter] = pMem_conformations_current[(run_id*cData.dockpars.pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter];
 					else
@@ -232,7 +228,7 @@ gpu_gen_and_eval_newpops_kernel(
 				}
 			}
 		}
-		else	//no crossover
+		else //no crossover
 		{
 			for (uint32_t gene_counter = threadIdx.x;
 			              gene_counter < cData.dockpars.num_of_genes;
@@ -311,11 +307,11 @@ gpu_gen_and_eval_newpops_kernel(
 void gpu_gen_and_eval_newpops(
                               uint32_t blocks,
                               uint32_t threadsPerBlock,
-                              float* pMem_conformations_current,
-                              float* pMem_energies_current,
-                              float* pMem_conformations_next,
-                              float* pMem_energies_next
-)
+                              float*   pMem_conformations_current,
+                              float*   pMem_energies_current,
+                              float*   pMem_conformations_next,
+                              float*   pMem_energies_next
+                             )
 {
 	gpu_gen_and_eval_newpops_kernel<<<blocks, threadsPerBlock>>>(pMem_conformations_current, pMem_energies_current, pMem_conformations_next, pMem_energies_next);
 	LAUNCHERROR("gpu_gen_and_eval_newpops_kernel");

@@ -28,12 +28,12 @@ gpu_sum_evals(
               uint pop_size,
      __global int* restrict dockpars_evals_of_new_entities,
      __global int* restrict evals_of_runs
-)
-//The GPU global function sums the evaluation counter states
-//which are stored in evals_of_new_entities array foreach entity,
-//calculates the sums for each run and stores it in evals_of_runs array.
-//The number of blocks which should be started equals to num_of_runs,
-//since each block performs the summation for one run.
+             )
+// The GPU global function sums the evaluation counter states
+// which are stored in evals_of_new_entities array foreach entity,
+// calculates the sums for each run and stores it in evals_of_runs array.
+// The number of blocks which should be started equals to num_of_runs,
+// since each block performs the summation for one run.
 {
 	int entity_counter;
 	__local int partsum_evals[NUM_OF_THREADS_PER_BLOCK];

@@ -26,38 +26,23 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef CONTEXTS_H
 #define CONTEXTS_H
 
-  //#include <stdio.h>
-  //#include <CL/opencl.h>
-  #include "commonMacros.h"
+#include "commonMacros.h"
 
 /*
 Create context
 Inputs:
-       	platform_id -
-       	num_devices -
+        platform_id -
+        num_devices -
         device_id -
 Outputs:
-       	context -
+        context -
 */
-  int createContext(
-		  /*
-		  const cl_context_properties* properties,
-		  */
+int createContext(
                   cl_platform_id        platform_id,
                   cl_uint               num_devices,
-                  cl_device_id*   	device_id,
-		  /*
-                  void (*pfn_notify)(const char* errinfo,
-                                     const void* private_info,
-                                     size_t      cb,
-                                     void*       user_data)
-                  void* user_data,
-		  */
-		  /*
-                  cl_int*               errcode_ret,
-                  */
-		  cl_context*           context);
-
+                  cl_device_id*         device_id,
+                  cl_context*           context
+                 );
 
 /*
 Get context info
@@ -66,7 +51,7 @@ Inputs:
 Outputs:
         none
 */
-  int getContextInfo(cl_context context);
+int getContextInfo(cl_context context);
 
 #endif /* CONTEXTS_H */
 

@@ -28,7 +28,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "calcenergy.h"
 
-int prepare_const_fields_for_gpu(Liganddata*                  myligand_reference,
+int prepare_const_fields_for_gpu(
+                                 Liganddata*                  myligand_reference,
                                  Dockpars*                    mypars,
                                  float*                       cpu_ref_ori_angles,
                                  kernelconstant_interintra*   KerConst_interintra,
@@ -36,7 +37,8 @@ int prepare_const_fields_for_gpu(Liganddata*                  myligand_reference
                                  kernelconstant_intra*        KerConst_intra,
                                  kernelconstant_rotlist*      KerConst_rotlist,
                                  kernelconstant_conform*      KerConst_conform,
-                                 kernelconstant_grads*        KerConst_grads)
+                                 kernelconstant_grads*        KerConst_grads
+                                )
 // The function fills the constant memory field of the GPU
 // based on the parameters describing ligand, flexres, and
 // docking parameters as well as reference orientation angles.
@@ -383,9 +385,11 @@ int prepare_const_fields_for_gpu(Liganddata*                  myligand_reference
 
 
 
-void make_reqrot_ordering(int number_of_req_rotations[MAX_NUM_OF_ATOMS],
-			  int atom_id_of_numrots     [MAX_NUM_OF_ATOMS],
-			  int num_of_atoms)
+void make_reqrot_ordering(
+                          int number_of_req_rotations[MAX_NUM_OF_ATOMS],
+                          int atom_id_of_numrots     [MAX_NUM_OF_ATOMS],
+                          int num_of_atoms
+                         )
 // The function puts the first array into a descending order and
 // performs the same operations on the second array (since element i of
 // number_or_req_rotations and element i of atom_id_of_numrots correspond to each other).
@@ -419,7 +423,10 @@ void make_reqrot_ordering(int number_of_req_rotations[MAX_NUM_OF_ATOMS],
 
 
 
-int gen_rotlist(Liganddata* myligand, int rotlist[MAX_NUM_OF_ROTATIONS])
+int gen_rotlist(
+                Liganddata* myligand,
+                int         rotlist[MAX_NUM_OF_ROTATIONS]
+               )
 // The function generates the rotation list which will be stored in the constant memory field rotlist_const by
 // prepare_const_fields_for_gpu(). The structure of this array is described at that function.
 {
