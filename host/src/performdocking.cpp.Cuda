@@ -555,9 +555,9 @@ parameters argc and argv:
 		// => e = 1/19*hm
 		// at hm = 50 M => e0 = 2.63 M where e becomes less than 95% (about 11 torsions)
 		mypars->num_of_energy_evals = (unsigned long)ceil(heur_evals*(float)mypars->heuristics_max/(mypars->heuristics_max+heur_evals));
-		printf("-lsmet %s -nev %u\n",newmethod,mypars->num_of_energy_evals);
+		printf("-lsmet %s -nev %lu\n",newmethod,mypars->num_of_energy_evals);
 		if (mypars->nev_provided && (mypars->num_of_energy_evals>nev)){
-			printf("Overriding heuristics, setting number of evaluations to -nev = %u instead.\n",nev);
+			printf("Overriding heuristics, setting number of evaluations to -nev = %lu instead.\n",nev);
 			mypars->num_of_energy_evals = nev;
 			profile.capped = true;
 		}

@@ -57,7 +57,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //The other parameters are the type index, z, y and x coordinates of the grid point.
 
 // Struct containing all the important information coming from .gpf and .xyz files.
-typedef struct
+typedef struct _Gridinfo
 {
 	char*  grid_file_path = NULL; // Added to store the full path of the grid file
 	char*  receptor_name  = NULL;

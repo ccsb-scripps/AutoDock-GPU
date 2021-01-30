@@ -86,9 +86,12 @@ int main(int argc, char* argv[])
 
 	// File list setup if -filelist option is on
 	FileList filelist;
+	Dockpars initial_pars;
+	if (preparse_dpf(&argc, argv, &initial_pars, filelist) != 0)
+		return 1;
 	int n_files;
-	if (get_filelist(&argc, argv, filelist) != 0)
-		      return 1;
+	if (get_filelist(&argc, argv, &initial_pars, filelist) != 0)
+		return 1;
 	if (filelist.used){
 		n_files = filelist.nfiles;
 		printf("Running %d jobs in pipeline mode\n", n_files);
@@ -147,11 +150,7 @@ int main(int argc, char* argv[])
 	{
 		int t_id = 0;
 #endif
-		Dockpars   mypars;
-		if(filelist.used){ // otherwise it gets created from command line arguments
-			mypars.fldfile = (char*)malloc((filelist.max_len+1)*sizeof(char));
-			mypars.ligandfile = (char*)malloc((filelist.max_len+1)*sizeof(char));
-		}
+		Dockpars   mypars = initial_pars;
 		Liganddata myligand_init;
 		Gridinfo   mygrid;
 		Liganddata myxrayligand;
@@ -169,6 +168,7 @@ int main(int argc, char* argv[])
 			// Setup the next file in the queue
 			printf ("(Thread %d is setting up Job %d)\n",t_id,i_job); fflush(stdout);
 			start_timer(setup_timer);
+			if(filelist.used) mypars = filelist.mypars[i_job];
 			// Load files, read inputs, prepare arrays for docking stage
 			if (setup(all_maps, mygrid, floatgrids, mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv) != 0) {
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
@@ -249,16 +249,29 @@ int main(int argc, char* argv[])
 			#pragma omp atomic update
 #endif
 			total_processing_time+=seconds_since(processing_timer);
+			if(filelist.used){
+				// Clean up memory dynamically allocated to not leak
+				if(mypars.fldfile) free(mypars.fldfile);
+				if(mypars.ligandfile) free(mypars.ligandfile);
+				if(mypars.flexresfile) free(mypars.flexresfile);
+				if(mypars.xrayligandfile) free(mypars.xrayligandfile);
+				if(mypars.resname) free(mypars.resname);
+				if(mygrid.grid_file_path) free(mygrid.grid_file_path);
+				if(mygrid.receptor_name) free(mygrid.receptor_name);
+				if(mygrid.map_base_name) free(mygrid.map_base_name);
+			}
 		} // end of for loop
-		// Clean up memory dynamically allocated to not leak
-		if(mypars.fldfile) free(mypars.fldfile); // although those strings should be allocated, it doesn't hurt to make sure
-		if(mypars.ligandfile) free(mypars.ligandfile);
-		if(mypars.flexresfile) free(mypars.flexresfile);
-		if(mypars.xrayligandfile) free(mypars.xrayligandfile);
-		if(mypars.resname) free(mypars.resname);
-		if(mygrid.grid_file_path) free(mygrid.grid_file_path);
-		if(mygrid.receptor_name) free(mygrid.receptor_name);
-		if(mygrid.map_base_name) free(mygrid.map_base_name);
+		if(!filelist.used){
+			// Clean up memory dynamically allocated to not leak
+			if(mypars.fldfile) free(mypars.fldfile);
+			if(mypars.ligandfile) free(mypars.ligandfile);
+			if(mypars.flexresfile) free(mypars.flexresfile);
+			if(mypars.xrayligandfile) free(mypars.xrayligandfile);
+			if(mypars.resname) free(mypars.resname);
+			if(mygrid.grid_file_path) free(mygrid.grid_file_path);
+			if(mygrid.receptor_name) free(mygrid.receptor_name);
+			if(mygrid.map_base_name) free(mygrid.map_base_name);
+		}
 	} // end of parallel section
 
 #ifndef _WIN32

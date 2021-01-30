@@ -51,25 +51,170 @@ static inline void trim(std::string &s) {
     rtrim(s);
 }
 
+int dpf_token(const char* token)
+{
+	const struct {
+		const char* string;
+		const int   token;
+		bool        evaluate; // need to evaluate parameters (and either use it or make sure it's a certain value)
+	} supported_dpf_tokens [] = {
+	      {"ligand",             DPF_MOVE,              true},  /* movable ligand file name */
+	      {"move",               DPF_MOVE,              true},  /* movable ligand file name */
+	      {"fld",                DPF_FLD,               true},  /* grid data file name */
+	      {"map",                DPF_MAP,               true},  /* grid map specifier */
+	      {"about",              DPF_ABOUT,             false}, /* rotate about */
+	      {"tran0",              DPF_TRAN0,             true},  /* translate (needs to be "random") */
+	      {"axisangle0",         DPF_AXISANGLE0,        true},  /* rotation axisangle (needs to be "random") */
+	      {"quaternion0",        DPF_QUATERNION0,       true},  /* quaternion (of rotation, needs to be "random") */
+	      {"quat0",              DPF_QUAT0,             true},  /* quaternion (of rotation, needs to be "random") */
+	      {"dihe0",              DPF_DIHE0,             true},  /* number of dihedrals (needs to be "random") */
+	      {"ndihe",              DPF_NDIHE,             false}, /* number of dihedrals (is in pdbqt) */
+	      {"torsdof",            DPF_TORSDOF,           false}, /* torsional degrees of freedom (is in pdbqt) */
+	      {"intnbp_coeffs",      DPF_INTNBP_COEFFS,     true},  /* internal pair energy coefficients */
+	      {"intnbp_r_eps",       DPF_INTNBP_REQM_EPS,   true},  /* internal pair energy coefficients */
+	      {"runs",               DPF_RUNS,              true},  /* number of runs */
+	      {"ga_run",             DPF_GALS,              true},  /* number of runs */
+	      {"gals_run",           DPF_GALS,              true},  /* number of runs */
+	      {"outlev",             DPF_OUTLEV,            false}, /* output level */
+	      {"rmstol",             DPF_RMSTOL,            false}, /* cluster tolerance */
+	      {"extnrg",             DPF_EXTNRG,            false}, /* external grid energy */
+	      {"intelec",            DPF_INTELEC,           true},  /* calculate ES energy (needs not be "off") */
+	      {"smooth",             DPF_SMOOTH,            true},  /* smoothing range */
+	      {"seed",               DPF_SEED,              true},  /* random number seed */
+	      {"e0max",              DPF_E0MAX,             false}, /* simanneal max inital energy (ignored) */
+	      {"set_ga",             DPF_SET_GA,            false}, /* use genetic algorithm (yes, that's us) */
+	      {"set_sw1",            DPF_SET_SW1,           false}, /* use Solis-Wets (we are by default)*/
+	      {"set_psw1",           DPF_SET_PSW1,          false}, /* use pseudo Solis-Wets (nope, SW) */
+	      {"analysis",           DPF_ANALYSIS,          false}, /* analysis data (we're doing it) */
+	      {"ga_pop_size",        GA_pop_size,           true},  /* population size */
+	      {"ga_num_generations", GA_num_generations,    true},  /* number of generations */
+	      {"ga_num_evals",       GA_num_evals,          true},  /* number of evals */
+	      {"ga_window_size",     GA_window_size,        false}, /* genetic algorithm window size */
+	      {"ga_elitism",         GA_elitism,            false}, /* GA parameters: */
+	      {"ga_mutation_rate",   GA_mutation_rate,      true},  /*     The ones set to true */
+	      {"ga_crossover_rate",  GA_crossover_rate,     true},  /*     have a corresponding */
+	      {"ga_cauchy_alpha",    GA_Cauchy_alpha,       false}, /*     parameter in AD-GPU  */
+	      {"ga_cauchy_beta",     GA_Cauchy_beta,        false}, /*     the others ignored   */
+	      {"sw_max_its",         SW_max_its,            true},  /* local search iterations */
+	      {"sw_max_succ",        SW_max_succ,           true},  /* cons. success limit */
+	      {"sw_max_fail",        SW_max_fail,           true},  /* cons. failure limit */
+	      {"sw_rho",             SW_rho,                false}, /* rho - is 1.0 here */
+	      {"sw_lb_rho",          SW_lb_rho,             true},  /* lower bound of rho */
+	      {"ls_search_freq",     LS_search_freq,        false}, /* ignored as likely wrong for algorithm here */
+	      {"parameter_file",     DPF_PARAMETER_LIBRARY, false}, /* parameter file (use internal currently) */
+	      {"ligand_types",       DPF_LIGAND_TYPES,      true},  /* ligand types used */
+	      {"output_pop_file",    DPF_POPFILE,           false}, /* output population to file */
+	      {"flexible_residues",  DPF_FLEXRES,           true},  /* flexibe residue file name */
+	      {"flexres",            DPF_FLEXRES,           true},  /* flexibe residue file name */
+	      {"elecmap",            DPF_ELECMAP,           false}, /* electrostatic grid map (we use fld file basename) */
+	      {"desolvmap",          DPF_DESOLVMAP,         false}, /* desolvation grid map (we use fld file basename) */
+	      {"dsolvmap",           DPF_DESOLVMAP,         false}, /* desolvation grid map (we use fld file basename) */
+	      {"unbound_model",      DPF_UNBOUND_MODEL,     true}   /* unbound model (bound|extended|compact) */
+	                            };
+	
+	if ((token[0]=='\n') || (token[0]=='\0'))
+		return DPF_BLANK_LINE;
+	if (token[0]=='#')
+		return DPF_COMMENT;
+
+	for (int i=0; i<(int)(sizeof(supported_dpf_tokens)/sizeof(*supported_dpf_tokens)); i++){
+		if(stricmp(supported_dpf_tokens[i].string,token) == 0){
+			if(supported_dpf_tokens[i].evaluate)
+				return supported_dpf_tokens[i].token;
+			else
+				return DPF_NULL;
+			break; // found
+		}
+	}
+
+	return DPF_UNKNOWN;
+}
+
+int preparse_dpf(
+                 const int*      argc,
+                       char**    argv,
+                       Dockpars* mypars,
+                       FileList& filelist
+                )
+// This function checks if a dpf file is used and, if runs are specified, map and ligand information
+// is stored in the filelist; flexres information and which location in the dpf parameters are in each
+// run is stored separately to allow logical parsing with the correct parameters initialized per run
+{
+	char* dpf_filename = NULL;
+	bool output_multiple_warning = true;
+	for (int i=1; i<(*argc)-1; i++)
+	{
+		// Argument: dpf file name.
+		if (strcmp("-import_dpf", argv[i]) == 0){
+			if(dpf_filename){
+				free(dpf_filename);
+				if(output_multiple_warning){
+					printf("Warning: Multiple -import_dpf arguments, only the last one will be used.");
+					output_multiple_warning = false;
+				}
+			}
+			dpf_filename = strdup(argv[i+1]);
+		}
+	}
+	if (dpf_filename){
+		std::ifstream file(dpf_filename);
+		if(file.fail()){
+			printf("\nError: Could not open dpf file %s. Check path and permissions.\n",dpf_filename);
+			return 1;
+		}
+		std::string line;
+		char tempstr[256];
+		int line_count = 0;
+		while(std::getline(file, line)) {
+			line_count++;
+			trim(line); // Remove leading and trailing whitespace
+			sscanf(line.c_str(),"%255s",tempstr);
+			int token_id = dpf_token(tempstr);
+			switch(token_id){
+				case DPF_UNKNOWN: // error condition
+						printf("\nError: Unknown or unsupported dpf token <%s> at %s:%u.\n",tempstr,dpf_filename,line_count);
+						return 1;
+				default: // not yet implemented
+					printf("<%s> has not yet been implemented.\n",tempstr);
+				case DPF_BLANK_LINE: // nothing to do here
+				case DPF_COMMENT:
+				case DPF_NULL:
+						break;
+			}
+		}
+	}
+	return 0;
+}
+
 int get_filelist(
                  const int*      argc,
                        char**    argv,
+                       Dockpars* mypars,
                        FileList& filelist
                 )
 // The function checks if a filelist has been provided according to the proper command line arguments.
 // If it is, it loads the .fld, .pdbqt, and resname files into vectors
 {
+	bool output_multiple_warning = true;
 	for (int i=1; i<(*argc)-1; i++)
 	{
 		// Argument: file name that contains list of files.
 		if (strcmp("-filelist", argv[i]) == 0)
 		{
 			filelist.used = true;
+			if(filelist.filename){
+				free(filelist.filename);
+				if(output_multiple_warning){
+					printf("Warning: Multiple -filelist arguments, only the last one will be used.");
+					output_multiple_warning = false;
+				}
+			}
 			filelist.filename = strdup(argv[i+1]);
 		}
 	}
 
-	if (filelist.used){
+	if (filelist.filename){ // true when -filelist specifies a filename
+	                        // filelist.used may be true when dpf file is specified as it uses the filelist to store runs
 		filelist.preload_maps = true; // By default, preload maps if filelist used
 		std::ifstream file(filelist.filename);
 		if(file.fail()){
@@ -100,6 +245,8 @@ int get_filelist(
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
 				// Add the .pdbqt
 				filelist.ligand_files.push_back(line);
+				// Add the parameter block
+				filelist.mypars.push_back(*mypars);
 				if (filelist.fld_files.size()==0){
 					printf("\nError: No map file on record yet. Please specify a .fld file before the first ligand (%s).\n",line.c_str());
 					return 1;
@@ -143,33 +290,6 @@ int get_filenames_and_ADcoeffs(
 	int ffile_given, lfile_given;
 	long tempint;
 
-	// AutoDock 4 free energy coefficients
-	const double coeff_elec_scale_factor = 332.06363;
-
-	// this model assumes the BOUND conformation is the SAME as the UNBOUND, default in AD4.2
-	const AD4_free_energy_coeffs coeffs_bound = {0.1662,
-						     0.1209,
-						     coeff_elec_scale_factor*0.1406,
-						     0.1322,
-						     0.2983};
-
-	// this model assumes the unbound conformation is EXTENDED, default if AD4.0
-	const AD4_free_energy_coeffs coeffs_extended = {0.1560,
-						        0.0974,
-							coeff_elec_scale_factor*0.1465,
-							0.1159,
-							0.2744};
-
-	// this model assumes the unbound conformation is COMPACT
-	const AD4_free_energy_coeffs coeffs_compact = {0.1641,
-						       0.0531,
-						       coeff_elec_scale_factor*0.1272,
-						       0.0603,
-						       0.2272};
-
-	mypars->coeffs = coeffs_bound; // default coeffs
-	mypars->unbound_model = 0;
-
 	ffile_given = 0;
 	lfile_given = 0;
 
@@ -203,23 +323,22 @@ int get_filenames_and_ADcoeffs(
 		if (strcmp("-ubmod", argv[i]) == 0)
 		{
 			sscanf(argv[i+1], "%ld", &tempint);
-
-			if (tempint == 0)
-			{
-				mypars->coeffs = coeffs_bound;
-				mypars->unbound_model = 0;
-			}
-			else
-				if (tempint == 1)
-				{
-					mypars->coeffs = coeffs_extended;
+			switch(tempint){
+				case 0:
+					mypars->unbound_model = 0;
+					mypars->coeffs = unbound_models[mypars->unbound_model];
+					break;
+				case 1:
 					mypars->unbound_model = 1;
-				}
-				else
-				{
-					mypars->coeffs = coeffs_compact;
+					mypars->coeffs = unbound_models[mypars->unbound_model];
+					break;
+				case 2:
 					mypars->unbound_model = 2;
-				}
+					mypars->coeffs = unbound_models[mypars->unbound_model];
+					break;
+				default:
+					printf("Warning: value of -ubmod argument ignored. Can only be 0 (unbound same as bound), 1 (extended), or 2 (compact).\n");
+			}
 		}
 	}
 
@@ -256,54 +375,10 @@ void get_commandpars(
 
 	// ------------------------------------------
 	// default values
-	mypars->seed			= time(NULL);        // If no seed supplied, base it on current time
-	mypars->num_of_energy_evals	= 2500000;
-	mypars->num_of_generations	= 27000;
-	mypars->nev_provided		= false;
-	mypars->use_heuristics		= false;             // Flag if we want to use Diogo's heuristics
-	mypars->heuristics_max		= 50000000;          // Maximum number of evaluations under the heuristics (50M evaluates to 80% at 12.5M evals calculated by heuristics)
-	mypars->abs_max_dmov		= 6.0/(*spacing);    // +/-6A
-	mypars->abs_max_dang		= 90;                // +/- 90°
-	mypars->mutation_rate		= 2;                 // 2%
-	mypars->crossover_rate		= 80;                // 80%
-	mypars->lsearch_rate		= 80;                // 80%
-	mypars->adam_beta1		= 0.9f;
-	mypars->adam_beta2		= 0.999f;
-	mypars->adam_epsilon		= 1.0e-8f;
-
-	strcpy(mypars->ls_method, "sw");                     // "sw": Solis-Wets,
-	                                                     // "sd": Steepest-Descent
-	                                                     // "fire": FIRE, https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
-	                                                     // "ad": ADADELTA, https://arxiv.org/abs/1212.5701
-	                                                     // "adam": ADAM (currently only on Cuda)
-	mypars->initial_sw_generations  = 0;
-	mypars->smooth			= 0.5f;
-	mypars->tournament_rate		= 60;                // 60%
-	mypars->rho_lower_bound		= 0.01;              // 0.01
-	mypars->base_dmov_mul_sqrt3	= 2.0/(*spacing)*sqrt(3.0); // 2 A
-	mypars->base_dang_mul_sqrt3	= 75.0*sqrt(3.0);           // 75°
-	mypars->cons_limit		= 4;                 // 4
-	mypars->max_num_of_iters	= 300;
-	mypars->pop_size		= 150;
-	mypars->initpop_gen_or_loadfile	= false;
-	mypars->gen_pdbs		= 0;
-
-	mypars->autostop		= 0;
-	mypars->as_frequency		= 5;
-	mypars->stopstd			= 0.15;
-	mypars->elec_min_distance	= 0.01;
-	mypars->num_of_runs		= 1;
-	mypars->reflig_en_required	= false;
-
-	mypars->handle_symmetry		= true;
-	mypars->gen_finalpop		= false;
-	mypars->gen_best		= false;
-	mypars->resname			= strdup("docking");
-	mypars->qasp			= 0.01097f;
-	mypars->rmsd_tolerance 		= 2.0;               // 2 Angstroem
-	mypars->xrayligandfile = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
-	mypars->given_xrayligandfile	= false;             // That is, not given (explicitly by the user)
-	mypars->output_xml = true;                           // xml output file will be generated
+	mypars->abs_max_dmov        = 6.0/(*spacing);             // +/-6A
+	mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);   // 2 A
+	mypars->xrayligandfile      = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
+	mypars->resname             = strdup("docking");          // Default dynamically created name
 	// ------------------------------------------
 
 	// overwriting values which were defined as a command line argument
@@ -902,7 +977,7 @@ void get_commandpars(
 
 	if (mypars->pop_size < mypars->gen_pdbs)
 	{
-		printf("Warning: value of -npdb argument igonred. Value mustn't be greater than the population size.\n");
+		printf("Warning: value of -npdb argument ignored. Value cannot be greater than the population size.\n");
 		mypars->gen_pdbs = 1;
 	}
 

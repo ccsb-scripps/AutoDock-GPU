@@ -31,6 +31,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <string>
 #include <vector>
 
+typedef struct _Dockpars Dockpars;
+
 class FileList{
 	public:
 
@@ -40,10 +42,11 @@ class FileList{
 	bool                     load_maps_gpu;
 	char*                    filename;
 	int                      nfiles;
-	int                      max_len; // maxium length of strings in arrays below
+	int                      max_len; // maximum length of strings in arrays below
 	std::vector<std::string> resnames;
 	std::vector<std::string> fld_files;
 	std::vector<std::string> ligand_files;
+	std::vector<Dockpars>    mypars;
 
 	// Default to unused, with 1 file
 	FileList() : used( false ), nfiles( 1 ), preload_maps( false ), maps_are_loaded( false ), load_maps_gpu( false ), filename( NULL ), max_len ( 0 ) {}

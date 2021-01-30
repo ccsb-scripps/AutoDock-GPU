@@ -975,7 +975,7 @@ void process_result(
 	std::vector<Ligandresult> cpu_result_ligands(mypars->num_of_runs);
 
 	// Fill in cpu_result_ligands
-	float best_energy_of_all = 1000000000000;
+	float best_energy_of_all = 1000000000000.0;
 	for (unsigned long run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
 	{
 		arrange_result(sim_state.cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, sim_state.cpu_energies.data()+run_cnt*mypars->pop_size, mypars->pop_size);

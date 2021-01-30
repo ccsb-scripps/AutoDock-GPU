@@ -148,7 +148,7 @@ class AutoStop{
 
 	inline void print_intro(unsigned long num_of_generations, unsigned long num_of_energy_evals)
 	{
-		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation of\nthe best molecules of the last 4 * %u generations, %u generations, or %u evaluations:\n\n",stopstd,as_frequency,num_of_generations,num_of_energy_evals);
+		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation of\nthe best molecules of the last 4 * %u generations, %lu generations, or %lu evaluations:\n\n",stopstd,as_frequency,num_of_generations,num_of_energy_evals);
 		printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
 		printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
 	}
@@ -209,9 +209,9 @@ class AutoStop{
 			tabulate_energies(energies);  // Fills average_sd2_N and overall_best_energy
 			set_stats(); // set curr_avg, curr_std, bestN, average_sd2_N
 
-			printf("%11u | %12u |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/num_of_runs,threshold,curr_avg,curr_std,bestN,overall_best_energy);
+			printf("%11u | %12lu |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/num_of_runs,threshold,curr_avg,curr_std,bestN,overall_best_energy);
 			printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
-			printf("\n%43s evaluation after reaching\n%33u evaluations. Best energy %8.2f kcal/mol.\n","Finished",total_evals/num_of_runs,overall_best_energy);
+			printf("\n%43s evaluation after reaching\n%33lu evaluations. Best energy %8.2f kcal/mol.\n","Finished",total_evals/num_of_runs,overall_best_energy);
 		}
 		fflush(stdout);
 	}

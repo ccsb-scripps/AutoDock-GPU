@@ -75,8 +75,10 @@ int setup(
 	//------------------------------------------------------------
 
 	if(filelist.used){
-		strcpy(mypars.fldfile, filelist.fld_files[i_file].c_str());
-		strcpy(mypars.ligandfile, filelist.ligand_files[i_file].c_str());
+		if(mypars.fldfile) free(mypars.fldfile);
+		if(mypars.ligandfile) free(mypars.ligandfile);
+		mypars.fldfile = strdup(filelist.fld_files[i_file].c_str());
+		mypars.ligandfile = strdup(filelist.ligand_files[i_file].c_str());
 	}
 
 	// Filling the filename and coeffs fields of mypars according to command line arguments
@@ -88,11 +90,6 @@ int setup(
 	// for derived atom types, and modified atom type pairs
 	// since they will be needed at ligand and grid creation
 	//------------------------------------------------------------
-	mypars.nr_deriv_atypes		= 0;    // this is to support: -derivtype C1,C2,C3=C
-	mypars.deriv_atypes		= NULL; // or even: -derivtype C1,C2,C3=C/S4=S/H5=HD
-	mypars.nr_mod_atype_pairs	= 0;    // this is to support: -modpair C1:S4,1.60,1.200,13,7
-	mypars.mod_atype_pairs		= NULL; // or even: -modpair C1:S4,1.60,1.200,13,7/C1:C3,1.20 0.025
-	mypars.cgmaps = 0; // default is 0 (use one maps for every CGx or Gx atom types, respectively)
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
 		// ----------------------------------
@@ -286,7 +283,7 @@ int setup(
 		return 1;
 	}
 
-	// Filling the atom types filed of myligand according to the grid types
+	// Filling the atom types field of myligand according to the grid types
 	if (init_liganddata(mypars.ligandfile,
 	                    mypars.flexresfile,
 	                    &myligand_init,
