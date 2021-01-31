@@ -26,15 +26,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // -------------------------------------------------------
 //
 // -------------------------------------------------------
-uint gpu_rand(
-		__global uint* restrict prng_states
-)
-//The GPU device function generates a random int
-//with a linear congruential generator.
-//Each thread (supposing num_of_runs*pop_size blocks and NUM_OF_THREADS_PER_BLOCK threads per block)
-//has its own state which is stored in the global memory area pointed by
-//prng_states (thread with ID tx in block with ID bx stores its state in prng_states[bx*NUM_OF_THREADS_PER_BLOCK+$
-//The random number generator uses the gcc linear congruential generator constants.
+uint gpu_rand(__global uint* restrict prng_states)
+// The GPU device function generates a random int
+// with a linear congruential generator.
+// Each thread (supposing num_of_runs*pop_size blocks and NUM_OF_THREADS_PER_BLOCK threads per block)
+// has its own state which is stored in the global memory area pointed by
+// prng_states (thread with ID tx in block with ID bx stores its state in prng_states[bx*NUM_OF_THREADS_PER_BLOCK+$
+// The random number generator uses the gcc linear congruential generator constants.
 {
 	uint state;
 
@@ -55,12 +53,10 @@ uint gpu_rand(
 // -------------------------------------------------------
 //
 // -------------------------------------------------------
-float gpu_randf(
-		__global uint* restrict prng_states
-)
-//The GPU device function generates a
-//random float greater than (or equal to) 0 and less than 1.
-//It uses gpu_rand() function.
+float gpu_randf(__global uint* restrict prng_states)
+// The GPU device function generates a
+// random float greater than (or equal to) 0 and less than 1.
+// It uses gpu_rand() function.
 {
 	float state;
 
@@ -91,22 +87,22 @@ void map_angle(__local float* angle)
 //
 // -------------------------------------------------------
 void gpu_perform_elitist_selection(
-					     int    dockpars_pop_size,
-				    __global float* restrict dockpars_energies_current,
-				    __global float* restrict dockpars_energies_next,
-				    __global int*   restrict dockpars_evals_of_new_entities,
-					     int    dockpars_num_of_genes,
-				    __global float* restrict dockpars_conformations_next,
-		       		    __global const float* restrict dockpars_conformations_current,
-				    __local  float* best_energies,
-				    __local  int*   best_IDs,
-				    __local  int*   best_ID
-)
-//The GPU device function performs elitist selection,
-//that is, it looks for the best entity in conformations_current and
-//energies_current of the run that corresponds to the block ID,
-//and copies it to the place of the first entity in
-//conformations_next and energies_next.
+                                            int    dockpars_pop_size,
+                                   __global float* restrict dockpars_energies_current,
+                                   __global float* restrict dockpars_energies_next,
+                                   __global int*   restrict dockpars_evals_of_new_entities,
+                                            int    dockpars_num_of_genes,
+                                   __global float* restrict dockpars_conformations_next,
+                             __global const float* restrict dockpars_conformations_current,
+                                   __local  float* best_energies,
+                                   __local  int*   best_IDs,
+                                   __local  int*   best_ID
+                                  )
+// The GPU device function performs elitist selection,
+// that is, it looks for the best entity in conformations_current and
+// energies_current of the run that corresponds to the block ID,
+// and copies it to the place of the first entity in
+// conformations_next and energies_next.
 {
 	int entity_counter;
 	int gene_counter;
@@ -120,15 +116,15 @@ void gpu_perform_elitist_selection(
 
 	for (entity_counter = NUM_OF_THREADS_PER_BLOCK+tidx;
 	     entity_counter < dockpars_pop_size;
-	     entity_counter+= NUM_OF_THREADS_PER_BLOCK) {
-
-	     if (dockpars_energies_current[get_group_id(0)+entity_counter] < best_energies[tidx]) {
-		best_energies[tidx] = dockpars_energies_current[get_group_id(0)+entity_counter];
-		best_IDs[tidx] = entity_counter;
-	     }
+	     entity_counter+= NUM_OF_THREADS_PER_BLOCK)
+	{
+		if (dockpars_energies_current[get_group_id(0)+entity_counter] < best_energies[tidx]) {
+			best_energies[tidx] = dockpars_energies_current[get_group_id(0)+entity_counter];
+			best_IDs[tidx] = entity_counter;
+		}
 	}
 
-       barrier(CLK_LOCAL_MEM_FENCE);
+	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// This could be implemented with a tree-like structure
 	// which may be slightly faster
@@ -139,12 +135,12 @@ void gpu_perform_elitist_selection(
 
 		for (entity_counter = 1;
 		     entity_counter < NUM_OF_THREADS_PER_BLOCK;
-		     entity_counter++) {
-
-		     if ((best_energies[entity_counter] < best_energy) && (entity_counter < dockpars_pop_size)) {
-			      best_energy = best_energies[entity_counter];
-			      best_ID[0] = best_IDs[entity_counter];
-		     }
+		     entity_counter++)
+		{
+			if ((best_energies[entity_counter] < best_energy) && (entity_counter < dockpars_pop_size)) {
+				best_energy = best_energies[entity_counter];
+				best_ID[0] = best_IDs[entity_counter];
+			}
 		}
 
 		// Setting energy value of new entity
@@ -153,14 +149,14 @@ void gpu_perform_elitist_selection(
 		// Zero (0) evals were performed for entity selected with elitism (since it was copied only)
 		dockpars_evals_of_new_entities[get_group_id(0)] = 0;
 	}
-
 	// "best_id" stores the id of the best entity in the population,
 	// Copying genotype and energy value to the first entity of new population
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	for (gene_counter = tidx;
 	     gene_counter < dockpars_num_of_genes;
-	     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-	     dockpars_conformations_next[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+gene_counter] = dockpars_conformations_current[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0) + GENOTYPE_LENGTH_IN_GLOBMEM*best_ID[0]+gene_counter];
+	     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+	{
+		dockpars_conformations_next[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0)+gene_counter] = dockpars_conformations_current[GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0) + GENOTYPE_LENGTH_IN_GLOBMEM*best_ID[0]+gene_counter];
 	}
 }

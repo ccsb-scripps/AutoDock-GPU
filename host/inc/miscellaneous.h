@@ -39,7 +39,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define PHI 0x9e3779b9
 
 typedef struct
-//Struct which describes a quaternion.
+{
+	int  nr;            // this number starts at 1 and will be used to extend the base atom type nr
+	char deriv_name[4]; // name of derivative atom type (3 chars max + 1 for \0)
+	char base_name[4];  // name of base type
+} deriv_atype;
+
+typedef struct
+{
+	char   A[4];          // name of one interaction atom type (order is arbitrary)
+	char   B[4];          // name of the other interaction atom type
+	int    nr_parameters; // number of parameters (the order is unique)
+	float* parameters;    // parameter array ([0] = r, [1] = eps, [2] = rep. LJ exponent, [3] = attr. LJ exponent)
+} pair_mod;
+
+// Struct which describes a quaternion.
+typedef struct
 {
 	double q;
 	double x;
@@ -47,11 +62,11 @@ typedef struct
 	double z;
 } Quaternion;
 
+// macro that calculates the trilinear interpolation,
+// the first parameter is a 2*2*2 array of the values of the function
+// in the vertices of the cube,
+// and the second one is a 2*2*2 array of the interpolation weights
 #define trilin_interpol(cube, weights) (cube[0][0][0]*weights[0][0][0] +cube[1][0][0]*weights[1][0][0] +cube[0][1][0]*weights[0][1][0] +cube[1][1][0]*weights[1][1][0] +cube[0][0][1]*weights[0][0][1] +cube[1][0][1]*weights[1][0][1] +cube[0][1][1]*weights[0][1][1] +cube[1][1][1]*weights[1][1][1])
-//macro that calculates the trilinear interpolation,
-//the first parameter is a 2*2*2 array of the values of the function
-//in the vertices of the cube,
-//and the second one is a 2*2*2 array of the interpolation weights
 
 int float2fracint(double, int);
 

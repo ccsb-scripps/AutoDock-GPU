@@ -51,11 +51,13 @@ static inline void trim(std::string &s) {
     rtrim(s);
 }
 
-int get_filelist(const int* argc,
-                      char** argv,
-		   FileList& filelist)
-//The function checks if a filelist has been provided according to the proper command line arguments.
-//If it is, it loads the .fld, .pdbqt, and resname files into vectors
+int get_filelist(
+                 const int*      argc,
+                       char**    argv,
+                       FileList& filelist
+                )
+// The function checks if a filelist has been provided according to the proper command line arguments.
+// If it is, it loads the .fld, .pdbqt, and resname files into vectors
 {
 	for (int i=1; i<(*argc)-1; i++)
 	{
@@ -128,42 +130,44 @@ int get_filelist(const int* argc,
 	return 0;
 }
 
-int get_filenames_and_ADcoeffs(const int* argc,
-			       char** argv,
-			       Dockpars* mypars,
-			       const bool multiple_files)
-//The function fills the file name and coeffs fields of mypars parameter
-//according to the proper command line arguments.
+int get_filenames_and_ADcoeffs(
+                               const int*      argc,
+                                     char**    argv,
+                                     Dockpars* mypars,
+                               const bool      multiple_files
+                              )
+// The function fills the file name and coeffs fields of mypars parameter
+// according to the proper command line arguments.
 {
 	int i;
 	int ffile_given, lfile_given;
 	long tempint;
 
-	//AutoDock 4 free energy coefficients
+	// AutoDock 4 free energy coefficients
 	const double coeff_elec_scale_factor = 332.06363;
 
-	//this model assumes the BOUND conformation is the SAME as the UNBOUND, default in AD4.2
+	// this model assumes the BOUND conformation is the SAME as the UNBOUND, default in AD4.2
 	const AD4_free_energy_coeffs coeffs_bound = {0.1662,
 						     0.1209,
 						     coeff_elec_scale_factor*0.1406,
 						     0.1322,
 						     0.2983};
 
-	//this model assumes the unbound conformation is EXTENDED, default if AD4.0
+	// this model assumes the unbound conformation is EXTENDED, default if AD4.0
 	const AD4_free_energy_coeffs coeffs_extended = {0.1560,
 						        0.0974,
 							coeff_elec_scale_factor*0.1465,
 							0.1159,
 							0.2744};
 
-	//this model assumes the unbound conformation is COMPACT
+	// this model assumes the unbound conformation is COMPACT
 	const AD4_free_energy_coeffs coeffs_compact = {0.1641,
 						       0.0531,
 						       coeff_elec_scale_factor*0.1272,
 						       0.0603,
 						       0.2272};
 
-	mypars->coeffs = coeffs_bound;	//default coeffs
+	mypars->coeffs = coeffs_bound; // default coeffs
 	mypars->unbound_model = 0;
 
 	ffile_given = 0;
@@ -172,14 +176,14 @@ int get_filenames_and_ADcoeffs(const int* argc,
 	for (i=1; i<(*argc)-1; i++)
 	{
 		if (!multiple_files){
-			//Argument: grid parameter file name.
+			// Argument: grid parameter file name.
 			if (strcmp("-ffile", argv[i]) == 0)
 			{
 				ffile_given = 1;
 				mypars->fldfile = strdup(argv[i+1]);
 			}
 
-			//Argument: ligand pdbqt file name
+			// Argument: ligand pdbqt file name
 			if (strcmp("-lfile", argv[i]) == 0)
 			{
 				lfile_given = 1;
@@ -187,9 +191,15 @@ int get_filenames_and_ADcoeffs(const int* argc,
 			}
 		}
 
-		//Argument: unbound model to be used.
-		//0 means the bound, 1 means the extended, 2 means the compact ...
-		//model's free energy coefficients will be used during docking.
+		// Argument: flexible residue pdbqt file name
+		if (strcmp("-flexres", argv[i]) == 0)
+		{
+			mypars->flexresfile = strdup(argv[i+1]);
+		}
+
+		// Argument: unbound model to be used.
+		// 0 means the bound, 1 means the extended, 2 means the compact ...
+		// model's free energy coefficients will be used during docking.
 		if (strcmp("-ubmod", argv[i]) == 0)
 		{
 			sscanf(argv[i+1], "%ld", &tempint);
@@ -228,14 +238,16 @@ int get_filenames_and_ADcoeffs(const int* argc,
 	return 0;
 }
 
-void get_commandpars(const int* argc,
-		         char** argv,
-		        double* spacing,
-		      Dockpars* mypars)
-//The function processes the command line arguments given with the argc and argv parameters,
-//and fills the proper fields of mypars according to that. If a parameter was not defined
-//in the command line, the default value will be assigned. The mypars' fields will contain
-//the data in the same format as it is required for writing it to algorithm defined registers.
+void get_commandpars(
+                     const int*      argc,
+                           char**    argv,
+                           double*   spacing,
+                           Dockpars* mypars
+                    )
+// The function processes the command line arguments given with the argc and argv parameters,
+// and fills the proper fields of mypars according to that. If a parameter was not defined
+// in the command line, the default value will be assigned. The mypars' fields will contain
+// the data in the same format as it is required for writing it to algorithm defined registers.
 {
 	int   i;
 	long  tempint;
@@ -243,34 +255,34 @@ void get_commandpars(const int* argc,
 	int   arg_recognized;
 
 	// ------------------------------------------
-	//default values
-	mypars->seed			= time(NULL);   // If no seed supplied, base it on current time
+	// default values
+	mypars->seed			= time(NULL);        // If no seed supplied, base it on current time
 	mypars->num_of_energy_evals	= 2500000;
 	mypars->num_of_generations	= 27000;
 	mypars->nev_provided		= false;
-	mypars->use_heuristics		= false;	// Flag if we want to use Diogo's heuristics
-	mypars->heuristics_max		= 50000000;	// Maximum number of evaluations under the heuristics (50M evaluates to 80% at 12.5M evals calculated by heuristics)
-	mypars->abs_max_dmov		= 6.0/(*spacing); 	// +/-6A
-	mypars->abs_max_dang		= 90; 		// +/- 90°
-	mypars->mutation_rate		= 2; 		// 2%
-	mypars->crossover_rate		= 80;		// 80%
-	mypars->lsearch_rate		= 80;		// 80%
+	mypars->use_heuristics		= false;             // Flag if we want to use Diogo's heuristics
+	mypars->heuristics_max		= 50000000;          // Maximum number of evaluations under the heuristics (50M evaluates to 80% at 12.5M evals calculated by heuristics)
+	mypars->abs_max_dmov		= 6.0/(*spacing);    // +/-6A
+	mypars->abs_max_dang		= 90;                // +/- 90°
+	mypars->mutation_rate		= 2;                 // 2%
+	mypars->crossover_rate		= 80;                // 80%
+	mypars->lsearch_rate		= 80;                // 80%
 	mypars->adam_beta1		= 0.9f;
 	mypars->adam_beta2		= 0.999f;
 	mypars->adam_epsilon		= 1.0e-8f;
 
-	strcpy(mypars->ls_method, "sw");		// "sw": Solis-Wets,
-							// "sd": Steepest-Descent
-							// "fire": FIRE, https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
-							// "ad": ADADELTA, https://arxiv.org/abs/1212.5701
-							// "adam": ADAM (currently only on Cuda)
+	strcpy(mypars->ls_method, "sw");                     // "sw": Solis-Wets,
+	                                                     // "sd": Steepest-Descent
+	                                                     // "fire": FIRE, https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
+	                                                     // "ad": ADADELTA, https://arxiv.org/abs/1212.5701
+	                                                     // "adam": ADAM (currently only on Cuda)
 	mypars->initial_sw_generations  = 0;
 	mypars->smooth			= 0.5f;
-	mypars->tournament_rate		= 60;		// 60%
-	mypars->rho_lower_bound		= 0.01;		// 0.01
-	mypars->base_dmov_mul_sqrt3	= 2.0/(*spacing)*sqrt(3.0);	// 2 A
-	mypars->base_dang_mul_sqrt3	= 75.0*sqrt(3.0);		// 75°
-	mypars->cons_limit		= 4;		// 4
+	mypars->tournament_rate		= 60;                // 60%
+	mypars->rho_lower_bound		= 0.01;              // 0.01
+	mypars->base_dmov_mul_sqrt3	= 2.0/(*spacing)*sqrt(3.0); // 2 A
+	mypars->base_dang_mul_sqrt3	= 75.0*sqrt(3.0);           // 75°
+	mypars->cons_limit		= 4;                 // 4
 	mypars->max_num_of_iters	= 300;
 	mypars->pop_size		= 150;
 	mypars->initpop_gen_or_loadfile	= false;
@@ -279,6 +291,7 @@ void get_commandpars(const int* argc,
 	mypars->autostop		= 0;
 	mypars->as_frequency		= 5;
 	mypars->stopstd			= 0.15;
+	mypars->elec_min_distance	= 0.01;
 	mypars->num_of_runs		= 1;
 	mypars->reflig_en_required	= false;
 
@@ -287,18 +300,18 @@ void get_commandpars(const int* argc,
 	mypars->gen_best		= false;
 	mypars->resname			= strdup("docking");
 	mypars->qasp			= 0.01097f;
-	mypars->rmsd_tolerance 		= 2.0;			//2 Angstroem
-	mypars->xrayligandfile = strdup(mypars->ligandfile);	// By default xray-ligand file is the same as the randomized input ligand
-	mypars->given_xrayligandfile	= false;		// That is, not given (explicitly by the user)
-	mypars->output_xml = true;			// xml output file will be generated
+	mypars->rmsd_tolerance 		= 2.0;               // 2 Angstroem
+	mypars->xrayligandfile = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
+	mypars->given_xrayligandfile	= false;             // That is, not given (explicitly by the user)
+	mypars->output_xml = true;                           // xml output file will be generated
 	// ------------------------------------------
 
-	//overwriting values which were defined as a command line argument
+	// overwriting values which were defined as a command line argument
 	for (i=1; i<(*argc)-1; i+=2)
 	{
 		arg_recognized = 0;
 
-		//Argument: number of energy evaluations. Must be a positive integer.
+		// Argument: number of energy evaluations. Must be a positive integer.
 		if (strcmp("-nev", argv[i]) == 0)
 		{
 			arg_recognized = 1;
@@ -317,7 +330,7 @@ void get_commandpars(const int* argc,
 			sscanf(argv[i+1], "%u", &(mypars->seed));
         }
 
-		//Argument: number of generations. Must be a positive integer.
+		// Argument: number of generations. Must be a positive integer.
 		if (strcmp("-ngen", argv[i]) == 0)
 		{
 			arg_recognized = 1;
@@ -329,7 +342,7 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -ngen argument ignored. Value must be between 0 and 16250000.\n");
 		}
 
-		//Argument: initial sw number of generations. Must be a positive integer.
+		// Argument: initial sw number of generations. Must be a positive integer.
 		if (strcmp("-initswgens", argv[i]) == 0)
 		{
 			arg_recognized = 1;
@@ -342,7 +355,7 @@ void get_commandpars(const int* argc,
 		}
 
 		// ----------------------------------
-		//Argument: Use Heuristics for number of evaluations (can be overwritten with -nev)
+		// Argument: Use Heuristics for number of evaluations (can be overwritten with -nev)
 		if (strcmp("-heuristics", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -355,7 +368,7 @@ void get_commandpars(const int* argc,
 		}
 		// ----------------------------------
 
-		//Argument: initial sw number of generations. Must be a positive integer.
+		// Argument: initial sw number of generations. Must be a positive integer.
 		if (strcmp("-heurmax", argv[i]) == 0)
 		{
 			arg_recognized = 1;
@@ -367,8 +380,8 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -heurmax argument ignored. Value must be between 0 and 16250000.\n");
 		}
 
-		//Argument: maximal delta movement during mutation. Must be an integer between 1 and 16.
-		//N means that the maximal delta movement will be +/- 2^(N-10)*grid spacing angström.
+		// Argument: maximal delta movement during mutation. Must be an integer between 1 and 16.
+		// N means that the maximal delta movement will be +/- 2^(N-10)*grid spacing Angström.
 		if (strcmp("-dmov", argv[i]) == 0)
 		{
 			arg_recognized = 1;
@@ -380,8 +393,8 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -dmov argument ignored. Value must be a float between 0 and 10.\n");
 		}
 
-		//Argument: maximal delta angle during mutation. Must be an integer between 1 and 17.
-		//N means that the maximal delta angle will be +/- 2^(N-8)*180/512 degrees.
+		// Argument: maximal delta angle during mutation. Must be an integer between 1 and 17.
+		// N means that the maximal delta angle will be +/- 2^(N-8)*180/512 degrees.
 		if (strcmp("-dang", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -393,8 +406,8 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -dang argument ignored. Value must be a float between 0 and 180.\n");
 		}
 
-		//Argument: mutation rate. Must be a float between 0 and 100.
-		//Means the rate of mutations (cca) in percent.
+		// Argument: mutation rate. Must be a float between 0 and 100.
+		// Means the rate of mutations (cca) in percent.
 		if (strcmp("-mrat", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -406,8 +419,8 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -mrat argument ignored. Value must be a float between 0 and 100.\n");
 		}
 
-		//Argument: crossover rate. Must be a float between 0 and 100.
-		//Means the rate of crossovers (cca) in percent.
+		// Argument: crossover rate. Must be a float between 0 and 100.
+		// Means the rate of crossovers (cca) in percent.
 		if (strcmp("-crat", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -419,8 +432,8 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -crat argument ignored. Value must be a float between 0 and 100.\n");
 		}
 
-		//Argument: local search rate. Must be a float between 0 and 100.
-		//Means the rate of local search (cca) in percent.
+		// Argument: local search rate. Must be a float between 0 and 100.
+		// Means the rate of local search (cca) in percent.
 		if (strcmp("-lsrat", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -452,7 +465,7 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -smooth argument ignored. Value must be a float between 0 and 0.5.\n");
 		}
 
-		//Argument: local search method:
+		// Argument: local search method:
 		// "sw": Solis-Wets
 		// "sd": Steepest-Descent
 		// "fire": FIRE
@@ -491,8 +504,8 @@ void get_commandpars(const int* argc,
 			free(temp);
 		}
 
-		//Argument: tournament rate. Must be a float between 50 and 100.
-		//Means the probability that the better entity wins the tournament round during selectin
+		// Argument: tournament rate. Must be a float between 50 and 100.
+		// Means the probability that the better entity wins the tournament round during selectin
 		if (strcmp("-trat", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -505,8 +518,8 @@ void get_commandpars(const int* argc,
 		}
 
 
-		//Argument: rho lower bound. Must be a float between 0 and 1.
-		//Means the lower bound of the rho parameter (possible stop condition for local search).
+		// Argument: rho lower bound. Must be a float between 0 and 1.
+		// Means the lower bound of the rho parameter (possible stop condition for local search).
 		if (strcmp("-rholb", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -518,8 +531,8 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -rholb argument ignored. Value must be a float between 0 and 1.\n");
 		}
 
-		//Argument: local search delta movement. Must be a float between 0 and grid spacing*64 A.
-		//Means the spread of unifily distributed delta movement of local search.
+		// Argument: local search delta movement. Must be a float between 0 and grid spacing*64 A.
+		// Means the spread of unifily distributed delta movement of local search.
 		if (strcmp("-lsmov", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -531,8 +544,8 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -lsmov argument ignored. Value must be a float between 0 and %lf.\n", 64*(*spacing));
 		}
 
-		//Argument: local search delta angle. Must be a float between 0 and 103�.
-		//Means the spread of unifily distributed delta angle of local search.
+		// Argument: local search delta angle. Must be a float between 0 and 103°.
+		// Means the spread of unifily distributed delta angle of local search.
 		if (strcmp("-lsang", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -544,8 +557,8 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -lsang argument ignored. Value must be a float between 0 and 103.\n");
 		}
 
-		//Argument: consecutive success/failure limit. Must be an integer between 1 and 255.
-		//Means the number of consecutive successes/failures after which value of rho have to be doubled/halved.
+		// Argument: consecutive success/failure limit. Must be an integer between 1 and 255.
+		// Means the number of consecutive successes/failures after which value of rho have to be doubled/halved.
 		if (strcmp("-cslim", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -557,8 +570,8 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -cslim argument ignored. Value must be an integer between 1 and 255.\n");
 		}
 
-		//Argument: maximal number of iterations for local search. Must be an integer between 1 and 262143.
-		//Means the number of iterations after which the local search algorithm has to terminate.
+		// Argument: maximal number of iterations for local search. Must be an integer between 1 and 262143.
+		// Means the number of iterations after which the local search algorithm has to terminate.
 		if (strcmp("-lsit", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -570,8 +583,8 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -lsit argument ignored. Value must be an integer between 1 and 262143.\n");
 		}
 
-		//Argument: size of population. Must be an integer between 32 and CPU_MAX_POP_SIZE.
-		//Means the size of the population in the genetic algorithm.
+		// Argument: size of population. Must be an integer between 32 and CPU_MAX_POP_SIZE.
+		// Means the size of the population in the genetic algorithm.
 		if (strcmp("-psize", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -583,8 +596,8 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -psize argument ignored. Value must be an integer between 2 and %d.\n", MAX_POPSIZE);
 		}
 
-		//Argument: load initial population from file instead of generating one.
-		//If the value is zero, the initial population will be generated randomly, otherwise it will be loaded from a file.
+		// Argument: load initial population from file instead of generating one.
+		// If the value is zero, the initial population will be generated randomly, otherwise it will be loaded from a file.
 		if (strcmp("-pload", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -596,8 +609,8 @@ void get_commandpars(const int* argc,
 				mypars->initpop_gen_or_loadfile = true;
 		}
 
-		//Argument: number of pdb files to be generated.
-		//The files will include the best docking poses from the final population.
+		// Argument: number of pdb files to be generated.
+		// The files will include the best docking poses from the final population.
 		if (strcmp("-npdb", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -620,7 +633,7 @@ void get_commandpars(const int* argc,
 		// MISSING: char* fldfile
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
-		//Argument: name of grid parameter file.
+		// Argument: name of grid parameter file.
 		if (strcmp("-ffile", argv [i]) == 0)
 			arg_recognized = 1;
 
@@ -628,8 +641,16 @@ void get_commandpars(const int* argc,
 		// MISSING: char* ligandfile
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
-		//Argument: name of ligand pdbqt file
+		// Argument: name of ligand pdbqt file
 		if (strcmp("-lfile", argv [i]) == 0)
+			arg_recognized = 1;
+
+		// ---------------------------------
+		// MISSING: char* flexresfile
+		// UPDATED in : get_filenames_and_ADcoeffs()
+		// ---------------------------------
+		// Argument: name of ligand pdbqt file
+		if (strcmp("-flexres", argv [i]) == 0)
 			arg_recognized = 1;
 
 		// ---------------------------------
@@ -637,11 +658,29 @@ void get_commandpars(const int* argc,
 		// UPDATED in : gen_initpop_and_reflig()
 		// ---------------------------------
 
+		// Argument: derivate atom types
+		// - has already been tested for in
+		//   main.cpp, as it's needed at grid
+		//   creation time not after (now)
+		if (strcmp("-derivtype", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+		}
+
+		// Argument: modify pairwise atom type parameters (LJ only at this point)
+		// - has already been tested for in
+		//   main.cpp, as it's needed at grid
+		//   creation time not after (now)
+		if (strcmp("-modpair", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+		}
+
 		// ---------------------------------
 		// MISSING: devnum
 		// UPDATED in : main
 		// ----------------------------------
-		//Argument: OpenCL/Cuda device number to use
+		// Argument: OpenCL/Cuda device number to use
 		if (strcmp("-devnum", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -649,7 +688,7 @@ void get_commandpars(const int* argc,
 		// ----------------------------------
 
 		// ----------------------------------
-		//Argument: Multiple CG-G0 maps or not
+		// Argument: Multiple CG-G0 maps or not
 		// - has already been tested for in
 		//   main.cpp, as it's needed at grid
 		//   creation time not after (now)
@@ -660,7 +699,7 @@ void get_commandpars(const int* argc,
 		// ----------------------------------
 
 		// ----------------------------------
-		//Argument: Automatic stopping criterion (1) or not (0)
+		// Argument: Automatic stopping criterion (1) or not (0)
 		if (strcmp("-autostop", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -674,7 +713,7 @@ void get_commandpars(const int* argc,
 		// ----------------------------------
 
 		// ----------------------------------
-		//Argument: Test frequency for auto-stopping criterion
+		// Argument: Test frequency for auto-stopping criterion
 		if (strcmp("-asfreq", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -687,8 +726,8 @@ void get_commandpars(const int* argc,
 		// ----------------------------------
 
 		// ----------------------------------
-		//Argument: Stopping criterion standard deviation.. Must be a float between 0.01 and 2.0;
-		//Means the energy standard deviation of the best candidates after which to stop evaluation when autostop is 1..
+		// Argument: Stopping criterion standard deviation.. Must be a float between 0.01 and 2.0;
+		// Means the energy standard deviation of the best candidates after which to stop evaluation when autostop is 1..
 		if (strcmp("-stopstd", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -701,8 +740,23 @@ void get_commandpars(const int* argc,
 		}
 		// ----------------------------------
 
-		//Argument: number of runs. Must be an integer between 1 and 1000.
-		//Means the number of required runs
+		// ----------------------------------
+		// Argument: Minimum electrostatic pair potential distance .. Must be a float between 0.0 and 2.0;
+		// This will cut the electrostatics interaction to the value at that distance below it. (default: 0.01)
+		if (strcmp("-elecmindist", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv [i+1], "%f", &tempfloat);
+
+			if ((tempfloat >= 0.0) && (tempfloat < 2.0))
+				mypars->elec_min_distance = tempfloat;
+			else
+				printf("Warning: value of -elecmindist argument ignored. Value must be a float between 0.0 and 2.0.\n");
+		}
+		// ----------------------------------
+
+		// Argument: number of runs. Must be an integer between 1 and 1000.
+		// Means the number of required runs
 		if (strcmp("-nrun", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -714,8 +768,8 @@ void get_commandpars(const int* argc,
 				printf("Warning: value of -nrun argument ignored. Value must be an integer between 1 and %d.\n", MAX_NUM_OF_RUNS);
 		}
 
-		//Argument: energies of reference ligand required.
-		//If the value is not zero, energy values of the reference ligand is required.
+		// Argument: energies of reference ligand required.
+		// If the value is not zero, energy values of the reference ligand is required.
 		if (strcmp("-rlige", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -731,7 +785,7 @@ void get_commandpars(const int* argc,
 		// MISSING: char unbound_model
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
-		//Argument: unbound model to be used.
+		// Argument: unbound model to be used.
 		if (strcmp("-ubmod", argv [i]) == 0)
 			arg_recognized = 1;
 
@@ -740,8 +794,8 @@ void get_commandpars(const int* argc,
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
 
-		//Argument: handle molecular symmetry during rmsd calculation
-		//If the value is not zero, molecular syymetry will be taken into account during rmsd calculation and clustering.
+		// Argument: handle molecular symmetry during rmsd calculation
+		// If the value is not zero, molecular syymetry will be taken into account during rmsd calculation and clustering.
 		if (strcmp("-hsym", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -753,8 +807,8 @@ void get_commandpars(const int* argc,
 				mypars->handle_symmetry = true;
 		}
 
-		//Argument: generate final population result files.
-		//If the value is zero, result files containing the final populations won't be generatied, otherwise they will.
+		// Argument: generate final population result files.
+		// If the value is zero, result files containing the final populations won't be generatied, otherwise they will.
 		if (strcmp("-gfpop", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -766,8 +820,8 @@ void get_commandpars(const int* argc,
 				mypars->gen_finalpop = true;
 		}
 
-		//Argument: generate best.pdbqt
-		//If the value is zero, best.pdbqt file containing the coordinates of the best result found during all of the runs won't be generated, otherwise it will
+		// Argument: generate best.pdbqt
+		// If the value is zero, best.pdbqt file containing the coordinates of the best result found during all of the runs won't be generated, otherwise it will
 		if (strcmp("-gbest", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -779,7 +833,7 @@ void get_commandpars(const int* argc,
 				mypars->gen_best = true;
 		}
 
-		//Argument: name of result files.
+		// Argument: name of result files.
 		if (strcmp("-resnam", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -787,21 +841,21 @@ void get_commandpars(const int* argc,
 			mypars->resname = strdup(argv [i+1]);
 		}
 
-		//Argument: use modified QASP (from VirtualDrug) instead of original one used by AutoDock
-		//If the value is not zero, the modified parameter will be used.
+		// Argument: use modified QASP (from VirtualDrug) instead of original one used by AutoDock
+		// If the value is not zero, the modified parameter will be used.
 		if (strcmp("-modqp", argv [i]) == 0)
 		{
 			arg_recognized = 1;
 			sscanf(argv [i+1], "%ld", &tempint);
 
 			if (tempint == 0)
-				mypars->qasp = 0.01097f;		//original AutoDock QASP parameter
+				mypars->qasp = 0.01097f; // original AutoDock QASP parameter
 			else
-				mypars->qasp = 0.00679f;		//from VirtualDrug
+				mypars->qasp = 0.00679f; // from VirtualDrug
 		}
 
-		//Argument: rmsd tolerance for clustering.
-		//This will be used during clustering for the tolerance distance.
+		// Argument: rmsd tolerance for clustering.
+		// This will be used during clustering for the tolerance distance.
 		if (strcmp("-rmstol", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -814,8 +868,8 @@ void get_commandpars(const int* argc,
 		}
 
 		// Argument: choose wether to output XML or not
-		//If the value is 1, XML output will still be generated
-		//XML output won't be generated if 0 is specified
+		// If the value is 1, XML output will still be generated
+		// XML output won't be generated if 0 is specified
 		if (strcmp("-xmloutput", argv [i]) == 0)
 		{
 			arg_recognized = 1;
@@ -828,7 +882,7 @@ void get_commandpars(const int* argc,
 		}
 
 		// ----------------------------------
-		//Argument: ligand xray pdbqt file name
+		// Argument: ligand xray pdbqt file name
 		if (strcmp("-xraylfile", argv[i]) == 0)
 		{
 			arg_recognized = 1;
@@ -844,7 +898,7 @@ void get_commandpars(const int* argc,
 			printf("Warning: unknown argument '%s'.\n", argv [i]);
 	}
 
-	//validating some settings
+	// validating some settings
 
 	if (mypars->pop_size < mypars->gen_pdbs)
 	{
@@ -854,22 +908,24 @@ void get_commandpars(const int* argc,
 
 }
 
-void gen_initpop_and_reflig(Dockpars*       mypars,
-			    float*          init_populations,
-			    float*          ref_ori_angles,
-			    Liganddata*     myligand,
-			    const Gridinfo* mygrid)
-//The function generates a random initial population
-//(or alternatively, it reads from an external file according to mypars),
-//and the angles of the reference orientation.
-//The parameters mypars, myligand and mygrid describe the current docking.
-//The pointers init_population and ref_ori_angles have to point to
-//two allocated memory regions with proper size which the function will fill with random values.
-//Each contiguous GENOTYPE_LENGTH_IN_GLOBMEM pieces of floats in init_population corresponds to a genotype,
-//and each contiguous three pieces of floats in ref_ori_angles corresponds to
-//the phi, theta and angle genes of the reference orientation.
-//In addition, as part of reference orientation handling,
-//the function moves myligand to origo and scales it according to grid spacing.
+void gen_initpop_and_reflig(
+                                  Dockpars*   mypars,
+                                  float*      init_populations,
+                                  float*      ref_ori_angles,
+                                  Liganddata* myligand,
+                            const Gridinfo*   mygrid
+                           )
+// The function generates a random initial population
+// (or alternatively, it reads from an external file according to mypars),
+// and the angles of the reference orientation.
+// The parameters mypars, myligand and mygrid describe the current docking.
+// The pointers init_population and ref_ori_angles have to point to
+// two allocated memory regions with proper size which the function will fill with random values.
+// Each contiguous GENOTYPE_LENGTH_IN_GLOBMEM pieces of floats in init_population corresponds to a genotype,
+// and each contiguous three pieces of floats in ref_ori_angles corresponds to
+// the phi, theta and angle genes of the reference orientation.
+// In addition, as part of reference orientation handling,
+// the function moves myligand to origo and scales it according to grid spacing.
 {
 	int entity_id, gene_id;
 	int gen_pop, gen_seeds;
@@ -880,15 +936,15 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 
 	int pop_size = mypars->pop_size;
 
-    float u1, u2, u3; // to generate random quaternion
-    float qw, qx, qy, qz; // random quaternion
-    float x, y, z, s; // convert quaternion to angles
-    float phi, theta, rotangle;
+	float u1, u2, u3; // to generate random quaternion
+	float qw, qx, qy, qz; // random quaternion
+	float x, y, z, s; // convert quaternion to angles
+	float phi, theta, rotangle;
 
-	//initial population
+	// initial population
 	gen_pop = 0;
 
-	//Reading initial population from file if only 1 run was requested
+	// Reading initial population from file if only 1 run was requested
 	if (mypars->initpop_gen_or_loadfile)
 	{
 		if (mypars->num_of_runs != 1)
@@ -910,7 +966,7 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 					for (gene_id=0; gene_id<MAX_NUM_OF_ROTBONDS+6; gene_id++)
 						fscanf(fp, "%f", &(init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id]));
 
-				//reading reference orienation angles from file
+				// reading reference orienation angles from file
 				fscanf(fp, "%f", &(mypars->ref_ori_angles[0]));
 				fscanf(fp, "%f", &(mypars->ref_ori_angles[1]));
 				fscanf(fp, "%f", &(mypars->ref_ori_angles[2]));
@@ -925,7 +981,7 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 	// Local random numbers for thread safety/reproducibility
 	LocalRNG r(mypars->seed);
 
-	//Generating initial population
+	// Generating initial population
 	if (gen_pop == 1)
 	{
 		for (entity_id=0; entity_id<pop_size*mypars->num_of_runs; entity_id++)
@@ -979,7 +1035,7 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 			}
 		}
 
-		//Writing first initial population to initpop.txt
+		// Writing first initial population to initpop.txt
 		fp = fopen("initpop.txt", "w");
 		if (fp == NULL)
 			printf("Warning: can't create initpop.txt.\n");
@@ -989,7 +1045,7 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 				for (gene_id=0; gene_id<MAX_NUM_OF_ROTBONDS+6; gene_id++)
 					fprintf(fp, "%f ", init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id]);
 
-			//writing reference orientation angles to initpop.txt
+			// writing reference orientation angles to initpop.txt
 			fprintf(fp, "%f ", mypars->ref_ori_angles[0]);
 			fprintf(fp, "%f ", mypars->ref_ori_angles[1]);
 			fprintf(fp, "%f ", mypars->ref_ori_angles[2]);
@@ -998,14 +1054,14 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 		}
 	}
 
-	//genotypes should contain x, y and z genes in grid spacing instead of Angstroms
-	//(but was previously generated in Angstroms since fdock does the same)
+	// genotypes should contain x, y and z genes in grid spacing instead of Angstroms
+	// (but was previously generated in Angstroms since fdock does the same)
 
 	for (entity_id=0; entity_id<pop_size*mypars->num_of_runs; entity_id++)
 		for (gene_id=0; gene_id<3; gene_id++)
 			init_populations [entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = init_populations [entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id]/mygrid->spacing;
 
-	//changing initial orientation of reference ligand
+	// changing initial orientation of reference ligand
 	/*for (i=0; i<38; i++)
 		switch (i)
 		{
@@ -1020,9 +1076,9 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 
 	change_conform_f(myligand, init_orientation, 0);*/
 
-	//initial orientation will be calculated during docking,
-	//only the required angles are generated here,
-	//but the angles possibly read from file are ignored
+	// initial orientation will be calculated during docking,
+	// only the required angles are generated here,
+	// but the angles possibly read from file are ignored
 
 	for (i=0; i<mypars->num_of_runs; i++)
 	{
@@ -1058,7 +1114,10 @@ void gen_initpop_and_reflig(Dockpars*       mypars,
 	}
 
 	get_movvec_to_origo(myligand, movvec_to_origo);
-	move_ligand(myligand, movvec_to_origo);
+	double flex_vec[3];
+	for (unsigned int i=0; i<3; i++)
+		flex_vec [i] = -mygrid->origo_real_xyz [i];
+	move_ligand(myligand, movvec_to_origo, flex_vec);
 	scale_ligand(myligand, 1.0/mygrid->spacing);
 	get_moving_and_unit_vectors(myligand);
 

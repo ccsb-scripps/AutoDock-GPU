@@ -32,7 +32,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "profile.hpp"
 
-//#include <math.h>
 #include "processgrid.h"
 #include "miscellaneous.h"
 #include "processligand.h"
@@ -41,16 +40,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "processresult.h"
 
 struct SimulationState{
-	std::vector<float>	cpu_populations;
-	std::vector<float>	cpu_energies;
-	Liganddata       	myligand_reference;
-	std::vector<int>	cpu_evals_of_runs;
-	int                     generation_cnt;
-	std::vector<float>	cpu_ref_ori_angles;
-	float                   sec_per_run;
-	unsigned long           total_evals;
-	double			exec_time;
-	double			idle_time;
+	std::vector<float> cpu_populations;
+	std::vector<float> cpu_energies;
+	Liganddata         myligand_reference;
+	std::vector<int>   cpu_evals_of_runs;
+	int                generation_cnt;
+	std::vector<float> cpu_ref_ori_angles;
+	float              sec_per_run;
+	unsigned long      total_evals;
+	double             exec_time;
+	double             idle_time;
 };
 
 #endif

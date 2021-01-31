@@ -23,9 +23,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
-/* 
-Gradient corrections 
-The corrections for dE/d_phi depend on two variables: rotangle and theta. 
+/*
+Gradient corrections
+The corrections for dE/d_phi depend on two variables: rotangle and theta.
 The correction for dE/d_theta depends on a single variable: rotangle.
 
 These arrays are passed to constant device on device.
@@ -1038,5 +1038,4 @@ These arrays are passed to constant device on device.
          5.99747109e+02,   8.37464943e+02,   1.25098581e+03,
          2.06789498e+03,   4.05302324e+03,   1.12574495e+04,
          1.01130434e+05};
-
 

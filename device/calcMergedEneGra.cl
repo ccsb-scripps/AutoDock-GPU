@@ -23,9 +23,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
-#define TERMBITS 10
-#define MAXTERM ((float)(1 << (31 - TERMBITS - 8))) // 2^(31 - 10 - 8) = 2^13 = 8192
-#define TERMSCALE ((float)(1 << TERMBITS)) // 2^10 = 1024
+#define TERMBITS         10
+#define MAXTERM          ((float)(1 << (31 - TERMBITS - 8))) // 2^(31 - 10 - 8) = 2^13 = 8192
+#define TERMSCALE        ((float)(1 << TERMBITS)) // 2^10 = 1024
 #define ONEOVERTERMSCALE (1.0f / TERMSCALE) // 1 / 1024 = 0.000977
 
 // Enables full floating point gradient calculation.
@@ -44,73 +44,68 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // The latter can be distinguised this way: they are place within lines without indentation.
 
 void gpu_calc_energrad(
-				int    dockpars_rotbondlist_length,
-				int    dockpars_num_of_atoms,
-				int    dockpars_gridsize_x,
-				int    dockpars_gridsize_y,
-				int    dockpars_gridsize_z,
-								    		// g1 = gridsize_x
-				uint   dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
-				uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
-		 __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
-				int    dockpars_num_of_atypes,
-				int    dockpars_num_of_map_atypes,
-				int    dockpars_num_of_intraE_contributors,
-				float  dockpars_grid_spacing,
-				float  dockpars_coeff_elec,
-				float  dockpars_qasp,
-				float  dockpars_coeff_desolv,
-				float  dockpars_smooth,
+                             int    dockpars_rotbondlist_length,
+                             int    dockpars_num_of_atoms,
+                             int    dockpars_true_ligand_atoms,
+                             int    dockpars_gridsize_x,
+                             int    dockpars_gridsize_y,
+                             int    dockpars_gridsize_z,
+                                                                         // g1 = gridsize_x
+                             uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+                             uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+              __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant
+                             int    dockpars_num_of_atypes,
+                             int    dockpars_num_of_map_atypes,
+                             int    dockpars_num_of_intraE_contributors,
+                             float  dockpars_grid_spacing,
+                             float  dockpars_coeff_elec,
+                             float  dockpars_elec_min_distance,
+                             float  dockpars_qasp,
+                             float  dockpars_coeff_desolv,
+                             float  dockpars_smooth,
 
-				// Some OpenCL compilers don't allow declaring 
-				// local variables within non-kernel functions.
-				// These local variables must be declared in a kernel, 
-				// and then passed to non-kernel functions.
-			__local float* genotype,
-			__local float* energy,
-			__local int*   run_id,
+                             // Some OpenCL compilers don't allow declaring
+                             // local variables within non-kernel functions.
+                             // These local variables must be declared in a kernel,
+                             // and then passed to non-kernel functions.
+                     __local float* genotype,
+                     __local float* energy,
+                     __local int*   run_id,
 
-			__local float4* calc_coords,
-			__local float* partial_energies,
+                     __local float4* calc_coords,
+                     __local float* partial_energies,
 #if defined (DEBUG_ENERGY_KERNEL)
-			__local float* partial_interE,
-			__local float* partial_intraE,
+                     __local float* partial_interE,
+                     __local float* partial_intraE,
 #endif
-		     __constant        kernelconstant_interintra* 	kerconst_interintra,
-		     __global const    kernelconstant_intracontrib*  	kerconst_intracontrib,
-		     __constant        kernelconstant_intra*		kerconst_intra,
-		     __constant        kernelconstant_rotlist*   	kerconst_rotlist,
-		     __constant        kernelconstant_conform*		kerconst_conform
-			,
-		     __constant int*   rotbonds_const,
-		 __global const int*   rotbonds_atoms_const,
-		     __constant int*   num_rotating_atoms_per_rotbond_const
-			,
-		 __global const float* angle_const,
-		     __constant float* dependence_on_theta_const,
-		     __constant float* dependence_on_rotangle_const
-		    // Gradient-related arguments
-		    // Calculate gradients (forces) for intermolecular energy
-		    // Derived from autodockdev/maps.py
-		    // "is_enabled_gradient_calc": enables gradient calculation.
-		    // In Genetic-Generation: no need for gradients
-		    // In Gradient-Minimizer: must calculate gradients
-			,
-				int    dockpars_num_of_genes,
+            __constant       kernelconstant_interintra*   kerconst_interintra,
+              __global const kernelconstant_intracontrib* kerconst_intracontrib,
+            __constant       kernelconstant_intra*        kerconst_intra,
+            __constant       kernelconstant_rotlist*      kerconst_rotlist,
+            __constant       kernelconstant_conform*      kerconst_conform,
+
+            __constant       int*   rotbonds_const,
+              __global const int*   rotbonds_atoms_const,
+            __constant int*         num_rotating_atoms_per_rotbond_const,
+
+              __global const float* angle_const,
+            __constant       float* dependence_on_theta_const,
+            __constant       float* dependence_on_rotangle_const,
+                             int    dockpars_num_of_genes,
 #ifdef FLOAT_GRADIENTS
-			__local float*   gradient_x,
-			__local float*   gradient_y,
-			__local float*   gradient_z,
+                     __local float* gradient_x,
+                     __local float* gradient_y,
+                     __local float* gradient_z,
 #else
-			__local int*   gradient_x,
-			__local int*   gradient_y,
-			__local int*   gradient_z,
+                     __local int*   gradient_x,
+                     __local int*   gradient_y,
+                     __local int*   gradient_z,
 #endif
-			__local float* accumulator_x,
-			__local float* accumulator_y,
-			__local float* accumulator_z,
-			__local float* gradient_genotype
-)
+                     __local float* accumulator_x,
+                     __local float* accumulator_y,
+                     __local float* accumulator_z,
+                     __local float* gradient_genotype
+                      )
 {
 	uint tidx = get_local_id(0);
 	partial_energies[tidx] = 0.0f;
@@ -122,12 +117,13 @@ void gpu_calc_energrad(
 	// Initializing gradients (forces) 
 	// Derived from autodockdev/maps.py
 	for (uint atom_id = tidx;
-		  atom_id < MAX_NUM_OF_ATOMS; // makes sure that gradient sum reductions give correct results if dockpars_num_atoms < NUM_OF_THREADS_PER_BLOCK
-		  atom_id+= NUM_OF_THREADS_PER_BLOCK) {
+	          atom_id < MAX_NUM_OF_ATOMS; // makes sure that gradient sum reductions give correct results if dockpars_num_atoms < NUM_OF_THREADS_PER_BLOCK
+	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
+	{
 		// Initialize coordinates
 		calc_coords[atom_id] = (float4)(kerconst_conform->ref_coords_const[3*atom_id],
-						kerconst_conform->ref_coords_const[3*atom_id+1],
-						kerconst_conform->ref_coords_const[3*atom_id+2],0);
+		                                kerconst_conform->ref_coords_const[3*atom_id+1],
+		                                kerconst_conform->ref_coords_const[3*atom_id+2],0);
 		// Integer gradients
 		gradient_x[atom_id] = 0;
 		gradient_y[atom_id] = 0;
@@ -136,8 +132,9 @@ void gpu_calc_energrad(
 
 	// Initializing gradient genotypes
 	for (uint gene_cnt = tidx;
-		  gene_cnt < dockpars_num_of_genes;
-		  gene_cnt+= NUM_OF_THREADS_PER_BLOCK) {
+	          gene_cnt < dockpars_num_of_genes;
+	          gene_cnt+= NUM_OF_THREADS_PER_BLOCK)
+	{
 		gradient_genotype[gene_cnt] = 0.0f;
 	}
 
@@ -176,22 +173,26 @@ void gpu_calc_energrad(
 	          rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
 	{
 		int rotation_list_element = kerconst_rotlist->rotlist_const[rotation_counter];
-
-		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0)	// If not dummy rotation
+		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0) // If not dummy rotation
 		{
 			uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
-
 			// Capturing atom coordinates
 			float4 atom_to_rotate = calc_coords[atom_id];
-
 			// initialize with general rotation values
-			float4 rotation_unitvec = genrot_unitvec;
-			float4 rotation_movingvec = genrot_movingvec;
-
+			float4 rotation_unitvec;
+			float4 rotation_movingvec;
+			if (atom_id < dockpars_true_ligand_atoms){
+				rotation_unitvec = genrot_unitvec;
+				rotation_movingvec = genrot_movingvec;
+			} else{
+				rotation_unitvec.x = 0.0f; rotation_unitvec.y = 0.0f; rotation_unitvec.z = 0.0f;
+				rotation_unitvec.w = 1.0f;
+				rotation_movingvec.x = 0.0f; rotation_movingvec.y = 0.0f; rotation_movingvec.z = 0.0f;
+				rotation_movingvec.w = 0.0f;
+			}
 			if ((rotation_list_element & RLIST_GENROT_MASK) == 0) // If rotating around rotatable bond
 			{
 				uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
-
 				float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
 				float s = native_sin(rotation_angle);
 				rotation_unitvec = (float4)(s*kerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id],
@@ -205,41 +206,39 @@ void gpu_calc_energrad(
 				// is needed only if rotating around rotatable bond
 				atom_to_rotate -= rotation_movingvec;
 			}
-
 			float4 quatrot_left = rotation_unitvec;
 			// Performing rotation
-			if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation,
-										// two rotations should be performed
-										// (multiplying the quaternions)
+			if (((rotation_list_element & RLIST_GENROT_MASK) != 0) && // If general rotation,
+			    (atom_id < dockpars_true_ligand_atoms))               // two rotations should be performed
+			                                                          // (multiplying the quaternions)
 			{
 				// Calculating quatrot_left*ref_orientation_quats_const,
 				// which means that reference orientation rotation is the first
 				uint rid4 = (*run_id)<<2;
 				quatrot_left = quaternion_multiply(quatrot_left,
-								   (float4)(kerconst_conform->ref_orientation_quats_const[rid4+0],
-									    kerconst_conform->ref_orientation_quats_const[rid4+1],
-									    kerconst_conform->ref_orientation_quats_const[rid4+2],
-									    kerconst_conform->ref_orientation_quats_const[rid4+3]));
+				                                   (float4)(kerconst_conform->ref_orientation_quats_const[rid4+0],
+				                                            kerconst_conform->ref_orientation_quats_const[rid4+1],
+				                                            kerconst_conform->ref_orientation_quats_const[rid4+2],
+				                                            kerconst_conform->ref_orientation_quats_const[rid4+3]));
 			}
-
 			// Performing final movement and storing values
 			calc_coords[atom_id] = quaternion_rotate(atom_to_rotate,quatrot_left) + rotation_movingvec;
-
 		} // End if-statement not dummy rotation
-
 		barrier(CLK_LOCAL_MEM_FENCE);
-
 	} // End rotation_counter for-loop
 
 	// ================================================
 	// CALCULATING INTERMOLECULAR GRADIENTS
 	// ================================================
+	float inv_grid_spacing = native_recip(dockpars_grid_spacing);
 	float weights[8];
 	float cube[8];
 	for (uint atom_id = tidx;
 	          atom_id < dockpars_num_of_atoms;
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
+		if (kerconst_interintra->ignore_inter_const[atom_id]>0) // first two atoms of a flex res are to be ignored here
+			continue;
 		float x = calc_coords[atom_id].x;
 		float y = calc_coords[atom_id].y;
 		float z = calc_coords[atom_id].z;
@@ -247,8 +246,8 @@ void gpu_calc_energrad(
 		uint atom_typeid = kerconst_interintra->atom_types_map_const[atom_id];
 
 		if ((x < 0) || (y < 0) || (z < 0) || (x >= dockpars_gridsize_x-1)
-				                  || (y >= dockpars_gridsize_y-1)
-						  || (z >= dockpars_gridsize_z-1)){
+		                                  || (y >= dockpars_gridsize_y-1)
+		                                  || (z >= dockpars_gridsize_z-1)){
 			x -= 0.5f * dockpars_gridsize_x;
 			y -= 0.5f * dockpars_gridsize_y;
 			z -= 0.5f * dockpars_gridsize_z;
@@ -265,13 +264,13 @@ void gpu_calc_energrad(
 			// The idea here is to push the offending
 			// molecule towards the center
 #ifdef FLOAT_GRADIENTS
-			gradient_x[atom_id] += native_divide ( TERMSCALE * 42.0f * x , dockpars_grid_spacing );
-			gradient_y[atom_id] += native_divide ( TERMSCALE * 42.0f * y , dockpars_grid_spacing );
-			gradient_z[atom_id] += native_divide ( TERMSCALE * 42.0f * z , dockpars_grid_spacing );
+			gradient_x[atom_id] += TERMSCALE * 42.0f * x * inv_grid_spacing;
+			gradient_y[atom_id] += TERMSCALE * 42.0f * y * inv_grid_spacing;
+			gradient_z[atom_id] += TERMSCALE * 42.0f * z * inv_grid_spacing;
 #else
-			gradient_x[atom_id] += convert_int_rte( native_divide ( TERMSCALE * 42.0f * x , dockpars_grid_spacing ) );
-			gradient_y[atom_id] += convert_int_rte( native_divide ( TERMSCALE * 42.0f * y , dockpars_grid_spacing ) );
-			gradient_z[atom_id] += convert_int_rte( native_divide ( TERMSCALE * 42.0f * z , dockpars_grid_spacing ) );
+			gradient_x[atom_id] += convert_int_rte( TERMSCALE * 42.0f * x * inv_grid_spacing );
+			gradient_y[atom_id] += convert_int_rte( TERMSCALE * 42.0f * y * inv_grid_spacing );
+			gradient_z[atom_id] += convert_int_rte( TERMSCALE * 42.0f * z * inv_grid_spacing );
 #endif // FLOAT_GRADIENTS
 #else
 			gradient_x[atom_id] += 16777216.0f;
@@ -328,16 +327,15 @@ void gpu_calc_energrad(
 		/*
 		    deltas: (x-x0)/(x1-x0), (y-y0...
 		    vertices: (000, 100, 010, 001, 101, 110, 011, 111)        
-
-			  Z
-			  '
-			  3 - - - - 6
-			 /.        /|
-			4 - - - - 7 |
-			| '       | |
-			| 0 - - - + 2 -- Y
-			'/        |/
-			1 - - - - 5
+		          Z
+		          '
+		          3 - - - - 6
+		         /.        /|
+		        4 - - - - 7 |
+		        | '       | |
+		        | 0 - - - + 2 -- Y
+		        '/        |/
+		        1 - - - - 5
 		       /
 		      X
 		*/
@@ -363,23 +361,14 @@ void gpu_calc_energrad(
 
 		// AT - all in one go with no intermediate variables (following calcs are similar)
 		// Vector in x-direction
-		float gx = native_divide (
-					    omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
-					      dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011])),
-					    dockpars_grid_spacing
-					 );
+		float gx = (omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
+		              dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011]))) * inv_grid_spacing;
 		// Vector in y-direction
-		float gy = native_divide (
-					    omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
-					      dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101])),
-					    dockpars_grid_spacing
-					 );
+		float gy = (omdz * (omdx * (cube [idx_010] - cube [idx_000]) + dx * (cube [idx_110] - cube [idx_100])) +
+		              dz * (omdx * (cube [idx_011] - cube [idx_001]) + dx * (cube [idx_111] - cube [idx_101]))) * inv_grid_spacing;
 		// Vectors in z-direction
-		float gz = native_divide (
-					    omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
-					      dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110])),
-					    dockpars_grid_spacing
-					 );
+		float gz = (omdy * (omdx * (cube [idx_001] - cube [idx_000]) + dx * (cube [idx_101] - cube [idx_100])) +
+		              dy * (omdx * (cube [idx_011] - cube [idx_010]) + dx * (cube [idx_111] - cube [idx_110]))) * inv_grid_spacing;
 		// -------------------------------------------------------------------
 		// Calculating gradients (forces) corresponding to 
 		// "elec" intermolecular energy
@@ -405,7 +394,7 @@ void gpu_calc_energrad(
 		partial_interE[tidx] += q *(cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
 		#endif
 
-		float qg = native_divide(q, dockpars_grid_spacing);
+		float qg = q*inv_grid_spacing;
 		// Vector in x-direction
 		gx += qg * ( omdz * (omdy * (cube [idx_100] - cube [idx_000]) + dy * (cube [idx_110] - cube [idx_010])) +
 		               dz * (omdy * (cube [idx_101] - cube [idx_001]) + dy * (cube [idx_111] - cube [idx_011])));
@@ -480,9 +469,8 @@ void gpu_calc_energrad(
 		float priv_gradient_per_intracontributor= 0.0f;
 
 		// Getting atom IDs
-		uint atom1_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter];
-		uint atom2_id = kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+1];
-		uint hbond = (uint)(kerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1);	// evaluates to 1 in case of H-bond, 0 otherwise
+		uint atom1_id = kerconst_intracontrib->intraE_contributors_const[2*contributor_counter];
+		uint atom2_id = kerconst_intracontrib->intraE_contributors_const[2*contributor_counter+1];
 
 		// Calculating vector components of vector going
 		// from first atom's to second atom's coordinates
@@ -498,8 +486,8 @@ void gpu_calc_energrad(
 		uint atom1_typeid = kerconst_interintra->atom_types_const[atom1_id];
 		uint atom2_typeid = kerconst_interintra->atom_types_const[atom2_id];
 
-		uint atom1_type_vdw_hb = kerconst_intra->atom1_types_reqm_const [atom1_typeid];
-		uint atom2_type_vdw_hb = kerconst_intra->atom2_types_reqm_const [atom2_typeid];
+		uint atom1_type_vdw_hb = kerconst_intra->atom_types_reqm_const [atom1_typeid];
+		uint atom2_type_vdw_hb = kerconst_intra->atom_types_reqm_const [atom2_typeid];
 
 		// ------------------------------------------------
 		// Required only for flexrings
@@ -516,15 +504,15 @@ void gpu_calc_energrad(
 		// ------------------------------------------------
 
 		// Calculating energy contributions
-		// Cuttoff1: internuclear-distance at 8A only for vdw and hbond.
+		// Cuttoff1: internuclear-distance at 8A only for vdw and hbond
 		if (atomic_distance < 8.0f)
 		{
-			// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
-			// reqm: equilibrium internuclear separation 
-			//       (sum of the vdW radii of two like atoms (A)) in the case of vdW
-			// reqm_hbond: equilibrium internuclear separation
-			//  	 (sum of the vdW radii of two like atoms (A)) in the case of hbond 
-			float opt_distance = (kerconst_intra->reqm_const [atom1_type_vdw_hb+ATYPE_NUM*hbond] + kerconst_intra->reqm_const [atom2_type_vdw_hb+ATYPE_NUM*hbond]);
+			uint idx = atom1_typeid * dockpars_num_of_atypes + atom2_typeid;
+			ushort exps = kerconst_intra->VWpars_exp_const[idx];
+			char m=(exps & 0xFF00)>>8;
+			char n=(exps & 0xFF);
+			// Getting optimum pair distance (opt_distance)
+			float opt_distance = kerconst_intra->reqm_AB_const[idx];
 
 			// Getting smoothed distance
 			// smoothed_distance = function(atomic_distance, opt_distance)
@@ -533,14 +521,12 @@ void gpu_calc_energrad(
 				smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
 			} else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
-			uint idx = atom1_typeid * dockpars_num_of_atypes + atom2_typeid;
-			float nvbond = 1.0 - vbond;
-			float A = nvbond * native_divide(kerconst_intra->VWpars_AC_const[idx],native_powr(smoothed_distance,12));
-			float B = nvbond * native_divide(kerconst_intra->VWpars_BD_const[idx],native_powr(smoothed_distance,6+4*hbond));
-			partial_energies[tidx] += A - B;
-			priv_gradient_per_intracontributor += native_divide ((6.0f+4.0f*hbond) * B - 12.0f * A, smoothed_distance);
+			float rmn=native_powr(smoothed_distance,m-n);
+			float rm=native_powr(smoothed_distance,-m);
+			partial_energies[tidx] += (kerconst_intra->VWpars_AC_const[idx]-rmn*kerconst_intra->VWpars_BD_const[idx])*rm;
+			priv_gradient_per_intracontributor += (n*kerconst_intra->VWpars_BD_const[idx]*rmn-m*kerconst_intra->VWpars_AC_const[idx])*rm*native_recip(smoothed_distance);
 			#if defined (DEBUG_ENERGY_KERNEL)
-			partial_intraE[tidx] += A - B;
+			partial_intraE[tidx] += (kerconst_intra->VWpars_AC_const[idx]-rmn*kerconst_intra->VWpars_BD_const[idx])*rm;
 			#endif
 		} // if cuttoff1 - internuclear-distance at 8A
 
@@ -548,6 +534,7 @@ void gpu_calc_energrad(
 		// Cuttoff2: internuclear-distance at 20.48A only for el and sol.
 		if (atomic_distance < 20.48f)
 		{
+			if(atomic_distance<dockpars_elec_min_distance) atomic_distance=dockpars_elec_min_distance;
 			float q1 = kerconst_interintra->atom_charges_const[atom1_id];
 			float q2 = kerconst_interintra->atom_charges_const[atom2_id];
 //			float exp_el = native_exp(DIEL_B_TIMES_H*atomic_distance);
@@ -555,60 +542,67 @@ void gpu_calc_energrad(
 			// Calculating desolvation term
 			// 1/25.92 = 0.038580246913580245
 			float desolv_energy =  ((kerconst_intra->dspars_S_const[atom1_typeid] +
-						 dockpars_qasp*fabs(q1)) * kerconst_intra->dspars_V_const[atom2_typeid] +
-						(kerconst_intra->dspars_S_const[atom2_typeid] +
-						 dockpars_qasp*fabs(q2)) * kerconst_intra->dspars_V_const[atom1_typeid]) *
-						native_divide (
-								dockpars_coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)),
-								(12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2)))
-							      );
-//						dockpars_coeff_desolv*native_exp(-0.03858025f*atomic_distance*atomic_distance);
-						  // Calculating electrostatic term
+			                         dockpars_qasp*fabs(q1)) * kerconst_intra->dspars_V_const[atom2_typeid] +
+			                        (kerconst_intra->dspars_S_const[atom2_typeid] +
+			                         dockpars_qasp*fabs(q2)) * kerconst_intra->dspars_V_const[atom1_typeid]) *
+			                       native_divide (
+			                                      dockpars_coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)),
+			                                      (12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2)))
+			                                     );
+//			                       dockpars_coeff_desolv*native_exp(-0.03858025f*atomic_distance*atomic_distance);
+			// Calculating electrostatic term
 /*			partial_energies[tidx] += native_divide (
-								  dockpars_coeff_elec * q1 * q2,
-								  atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + native_divide(DIEL_K,exp_el))))
-								) +
-						  desolv_energy;*/
+			                                         dockpars_coeff_elec * q1 * q2,
+			                                         atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + native_divide(DIEL_K,exp_el))))
+			                                        ) +
+			                          desolv_energy;*/
+#ifndef DIEL_FIT_ABC
+			float dist_shift=atomic_distance+1.26366f;
+			dist2=dist_shift*dist_shift;
+			float diel = 1.10859f*native_recip(dist2)+0.010358f;
+#else
 			float dist_shift=atomic_distance+1.588f;
 			dist2=dist_shift*dist_shift;
 			float disth_shift=atomic_distance+0.794f;
 			float disth4=disth_shift*disth_shift;
 			disth4*=disth4;
-			float diel = native_divide(1.404f,dist2)+native_divide(0.072f,disth4)+0.00831f;
-			float es_energy = native_divide (
-							  dockpars_coeff_elec * q1 * q2,
-							  atomic_distance
-							);
+			float diel = 1.404f*native_recip(dist2)+0.072f*native_recip(disth4)+0.00831f;
+#endif
+			float es_energy = dockpars_coeff_elec * q1 * q2 * native_recip(atomic_distance);
 			partial_energies[tidx] += diel * es_energy + desolv_energy;
 
 			#if defined (DEBUG_ENERGY_KERNEL)
-/*				partial_intraE[tidx] += native_divide (
-							       dockpars_coeff_elec * q1 * q2,
-							       atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + native_divide(DIEL_K,exp_el))))
-							      ) +
-						desolv_energy;*/
+/*			partial_intraE[tidx] += native_divide (
+			                                       dockpars_coeff_elec * q1 * q2,
+			                                       atomic_distance * (DIEL_A + native_divide(DIEL_B,(1.0f + native_divide(DIEL_K,exp_el))))
+			                                      ) +
+			                        desolv_energy;*/
 			partial_intraE[tidx] += diel * es_energy + desolv_energy;
 			#endif
 
 			// http://www.wolframalpha.com/input/?i=1%2F(x*(A%2B(B%2F(1%2BK*exp(-h*B*x)))))
 /*			float exp_el_DIEL_K = exp_el + DIEL_K;
 			float upper = DIEL_A * exp_el_DIEL_K*exp_el_DIEL_K +
-				      DIEL_B * exp_el * (DIEL_B_TIMES_H_TIMES_K*atomic_distance + exp_el_DIEL_K);
+			              DIEL_B * exp_el * (DIEL_B_TIMES_H_TIMES_K*atomic_distance + exp_el_DIEL_K);
 			float lower = atomic_distance * (DIEL_A * exp_el_DIEL_K + DIEL_B * exp_el);
 			lower *= lower;*/
 
 //			priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * q1 * q2 * native_divide (upper, lower) -
-//								0.0771605f * atomic_distance * desolv_energy;
-			priv_gradient_per_intracontributor +=  -native_divide(es_energy,atomic_distance) * diel - es_energy * (native_divide (2.808f,dist2*dist_shift)+native_divide(0.288f,disth4*disth_shift)) -
-								0.0771605f * atomic_distance * desolv_energy; // 1/3.6^2 = 1/12.96 = 0.0771605
+//			                                       0.0771605f * atomic_distance * desolv_energy;
+			priv_gradient_per_intracontributor +=  -es_energy*native_recip(atomic_distance) * diel
+#ifndef DIEL_FIT_ABC
+			                                       -es_energy * 2.21718f*native_recip(dist2*dist_shift)
+#else
+			                                       -es_energy * (2.808f * native_recip(dist2*dist_shift)+0.288f*native_recip(disth4*disth_shift))
+#endif
+			                                       -0.0771605f * atomic_distance * desolv_energy; // 1/3.6^2 = 1/12.96 = 0.0771605
 		} // if cuttoff2 - internuclear-distance at 20.48A
-
 
 		// Decomposing "priv_gradient_per_intracontributor"
 		// into the contribution of each atom of the pair.
 		// Distances in Angstroms of vector that goes from
 		// "atom1_id"-to-"atom2_id", therefore - subx, - suby, and - subz are used
-		float grad_div_dist = native_divide(-priv_gradient_per_intracontributor,dist);
+		float grad_div_dist = -priv_gradient_per_intracontributor*native_recip(dist);
 #ifdef FLOAT_GRADIENTS
 		float priv_intra_gradient_x = subx * grad_div_dist;
 		float priv_intra_gradient_y = suby * grad_div_dist;
@@ -648,8 +642,9 @@ void gpu_calc_energrad(
 	accumulator_y[tidx] = 0.0f;
 	accumulator_z[tidx] = 0.0f;
 	for (uint atom_cnt = tidx;
-		  atom_cnt < dockpars_num_of_atoms;
-		  atom_cnt+= NUM_OF_THREADS_PER_BLOCK) {
+	          atom_cnt < dockpars_num_of_atoms;
+	          atom_cnt+= NUM_OF_THREADS_PER_BLOCK)
+	{
 #ifdef FLOAT_GRADIENTS
 		accumulator_x[tidx] += gradient_x[atom_cnt];
 		accumulator_y[tidx] += gradient_y[atom_cnt];
@@ -711,8 +706,9 @@ void gpu_calc_energrad(
 	accumulator_y[tidx] = 0.0f;
 	accumulator_z[tidx] = 0.0f;
 	for (uint atom_cnt = tidx;
-		  atom_cnt < dockpars_num_of_atoms;
-		  atom_cnt+= NUM_OF_THREADS_PER_BLOCK) {
+	          atom_cnt < dockpars_true_ligand_atoms;
+	          atom_cnt+= NUM_OF_THREADS_PER_BLOCK)
+	{
 		float4 r = (calc_coords[atom_cnt] - genrot_movingvec) * dockpars_grid_spacing;
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)
 		float4 force;
@@ -770,7 +766,7 @@ void gpu_calc_energrad(
 
 		// Finding the quaternion that performs
 		// the infinitesimal rotation around torque axis
-		float4 quat_torque = torque_rot * native_divide (SIN_HALF_INFINITESIMAL_RADIAN, torque_length);
+		float4 quat_torque = torque_rot * SIN_HALF_INFINITESIMAL_RADIAN * native_recip(torque_length);
 		quat_torque.w = COS_HALF_INFINITESIMAL_RADIAN;
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
@@ -808,9 +804,9 @@ void gpu_calc_energrad(
 		// Derived from autodockdev/motions.py/quaternion_to_oclacube()
 		// In our terms means quaternion_to_oclacube(target_q{w|x|y|z}, theta_larger_than_pi)
 		target_rotangle = 2.0f * fast_acos(target_q.w); // = 2.0f * ang;
-		float sin_ang = native_sqrt(1.0f-target_q.w*target_q.w); // = native_sin(ang);
+		float inv_sin_ang = native_rsqrt(1.0f-target_q.w*target_q.w); // = 1.0/native_sin(ang);
 
-		target_theta = PI_TIMES_2 + is_theta_gt_pi * fast_acos( native_divide ( target_q.z, sin_ang ) );
+		target_theta = PI_TIMES_2 + is_theta_gt_pi * fast_acos( target_q.z * inv_sin_ang );
 		target_phi   = fmod_pi2((atan2( is_theta_gt_pi*target_q.y, is_theta_gt_pi*target_q.x) + PI_TIMES_2));
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
@@ -857,9 +853,9 @@ void gpu_calc_energrad(
 			|                        Y1
 			|
 			|             Y=?
-			|    Y0   
+			|    Y0
 			|_________________________________ angle_const
-			     X0  	X	 X1
+			     X0         X        X1
 		*/
 
 		// Finding the index-position of "grad_delta" in the "angle_const" array
@@ -880,7 +876,7 @@ void gpu_calc_energrad(
 
 		float X0, Y0;
 		float X1, Y1;
-		float dependence_on_theta;  	//Y = dependence_on_theta
+		float dependence_on_theta; //Y = dependence_on_theta
 
 		// Using interpolation on out-of-bounds elements results in hang
 		if ((index_theta <= 0) || (index_theta >= 999))
@@ -901,7 +897,7 @@ void gpu_calc_energrad(
 		#endif
 
 		// Interpolating rotangle values
-		float dependence_on_rotangle; 	//Y = dependence_on_rotangle
+		float dependence_on_rotangle; // Y = dependence_on_rotangle
 		// Using interpolation on previous and/or next elements results in hang
 		// Using interpolation on out-of-bounds elements results in hang
 		if ((index_rotangle <= 0) || (index_rotangle >= 999))
@@ -939,9 +935,9 @@ void gpu_calc_energrad(
 	// ------------------------------------------
 	uint num_torsion_genes = dockpars_num_of_genes-6;
 	for (uint idx = tidx;
-		  idx < num_torsion_genes * dockpars_num_of_atoms;
-		  idx += NUM_OF_THREADS_PER_BLOCK) {
-
+	          idx < num_torsion_genes * dockpars_num_of_atoms;
+	          idx += NUM_OF_THREADS_PER_BLOCK)
+	{
 		uint rotable_atom_cnt = idx / num_torsion_genes;
 		uint rotbond_id = idx - rotable_atom_cnt * num_torsion_genes; // this is a bit cheaper than % (modulo)
 
@@ -985,16 +981,18 @@ void gpu_calc_energrad(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	for (uint gene_cnt = tidx;
-		  gene_cnt < dockpars_num_of_genes;
-		  gene_cnt+= NUM_OF_THREADS_PER_BLOCK) {
+	          gene_cnt < dockpars_num_of_genes;
+	          gene_cnt+= NUM_OF_THREADS_PER_BLOCK)
+	{
 		gradient_genotype[gene_cnt] = ONEOVERTERMSCALE * (float)i_gradient_genotype[gene_cnt];
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	#if defined (CONVERT_INTO_ANGSTROM_RADIAN)
 	for (uint gene_cnt = tidx+3; // Only for gene_cnt > 2 means start gene_cnt at 3
-		  gene_cnt < dockpars_num_of_genes;
-		  gene_cnt+= NUM_OF_THREADS_PER_BLOCK) {
+	          gene_cnt < dockpars_num_of_genes;
+	          gene_cnt+= NUM_OF_THREADS_PER_BLOCK)
+	{
 		gradient_genotype[gene_cnt] *= dockpars_grid_spacing * dockpars_grid_spacing * SCFACTOR_ANGSTROM_RADIAN;
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);

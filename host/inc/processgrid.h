@@ -56,17 +56,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //The second one is the corresponding grid info (parameter of get_gridinfo function).
 //The other parameters are the type index, z, y and x coordinates of the grid point.
 
+// Struct containing all the important information coming from .gpf and .xyz files.
 typedef struct
-//Struct which can contain all the important informations which derives from .gpf and .xyz files.
 {
-
 	char*  grid_file_path = NULL; // Added to store the full path of the grid file
-	char*  receptor_name = NULL;
-	char*  map_base_name = NULL;
-	int    size_xyz [3];
+	char*  receptor_name  = NULL;
+	char*  map_base_name  = NULL;
+	int    size_xyz       [3];
 	double spacing;
-	double size_xyz_angstr [3];
-	char   grid_types [MAX_NUM_OF_ATYPES+2][4]; // The additional two are the electrostatic and the desolvation types
+	double size_xyz_angstr[3];
+	char   grid_types     [MAX_NUM_OF_ATYPES+2][4]; // The additional two are the electrostatic and the desolvation types
 	int    num_of_atypes;
 	int    num_of_map_atypes;
 	double origo_real_xyz [3];
@@ -74,20 +73,26 @@ typedef struct
 
 struct Map
 {
-	std::string atype;
+	std::string        atype;
 	std::vector<float> grid;
-
 	Map(std::string atype) : atype(atype){}
 };
 
-int get_gridinfo(const char*, Gridinfo*);
+int get_gridinfo(
+                 const char*,
+                       Gridinfo*
+                );
 
-int get_gridvalues_f(const Gridinfo* mygrid,
-		     float** fgrids,
-		     bool cgmaps);
+int get_gridvalues_f(
+                     const Gridinfo* mygrid,
+                           float**   fgrids,
+                           bool      cgmaps
+                    );
 
-int get_gridvalues_f(const Gridinfo* mygrid,
-		     float* fgrids,
-		     bool cgmaps);
+int get_gridvalues_f(
+                     const Gridinfo* mygrid,
+                           float*    fgrids,
+                           bool      cgmaps
+                    );
 
 #endif /* PROCESSGRID_H_ */

@@ -32,26 +32,26 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stdlib.h>
 
 class AutoStop{
-	bool first_time;
-	bool autostopped;
-        float threshold;
-        float threshold_used;
-        float thres_stddev;
-        float curr_avg;
-        float curr_std;
-        unsigned int roll_count;
-        float rolling_stddev;
-        unsigned int bestN;
-        const unsigned int Ntop;
-	const unsigned int pop_size;
-	const int num_of_runs;
-	const float stopstd;
-	const unsigned int as_frequency;
-        const unsigned int Ncream;
-        float delta_energy;
-        float overall_best_energy;
-	std::vector<float> rolling;
-	std::vector<float> average_sd2_N;
+	      bool               first_time;
+	      bool               autostopped;
+	      float              threshold;
+	      float              threshold_used;
+	      float              thres_stddev;
+	      float              curr_avg;
+	      float              curr_std;
+	      unsigned int       roll_count;
+	      float              rolling_stddev;
+	      unsigned int       bestN;
+	const unsigned int       Ntop;
+	const unsigned int       pop_size;
+	const int                num_of_runs;
+	const float              stopstd;
+	const unsigned int       as_frequency;
+	const unsigned int       Ncream;
+	      float              delta_energy;
+	      float              overall_best_energy;
+	      std::vector<float> rolling;
+	      std::vector<float> average_sd2_N;
 
 	inline float average(float* average_sd2_N)
 	{
@@ -120,7 +120,12 @@ class AutoStop{
 
 	public:
 
-	AutoStop(int pop_size_in, int num_of_runs_in, float stopstd_in, int as_frequency_in)
+	AutoStop(
+	         int pop_size_in,
+	         int num_of_runs_in,
+	         float stopstd_in,
+	         int as_frequency_in
+	        )
 		: rolling(4*3, 0), // Initialize to zero
 		  average_sd2_N((pop_size_in+1)*3),
 		  num_of_runs(num_of_runs_in),

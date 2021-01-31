@@ -40,9 +40,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 typedef struct
 {
 	Liganddata reslig_realcoord;
-	float 	   interE;
-	float 	   interE_elec;
+	float      interE;
+	float      interflexE;
+	float      interE_elec;
 	float      intraE;
+	float      intraflexE;
 	float      peratom_vdw  [MAX_NUM_OF_ATOMS];
 	float      peratom_elec [MAX_NUM_OF_ATOMS];
 	float      rmsd_from_ref;
@@ -53,73 +55,87 @@ typedef struct
 } Ligandresult;
 
 
-void arrange_result(    float*    final_population,
-		        float*    energies,
-		    const int 	  pop_size);
+void arrange_result(
+                          float* final_population,
+                          float* energies,
+                    const int    pop_size
+                   );
 
-void write_basic_info(            FILE* fp,
-		      const Liganddata* ligand_ref,
-		      const Dockpars*   mypars,
-		      const Gridinfo*   mygrid,
-		      const int*        argc,
-		           char**       argv);
+void write_basic_info(
+                            FILE*       fp,
+                      const Liganddata* ligand_ref,
+                      const Dockpars*   mypars,
+                      const Gridinfo*   mygrid,
+                      const int*        argc,
+                      char**            argv
+                     );
 
-void write_basic_info_dlg(	      FILE* fp,
-			  const Liganddata* ligand_ref,
-			  const Dockpars*   mypars,
-			  const Gridinfo*   mygrid,
-			  const int*        argc,
-			  	char**      argv);
+void write_basic_info_dlg(
+                                FILE*       fp,
+                          const Liganddata* ligand_ref,
+                          const Dockpars*   mypars,
+                          const Gridinfo*   mygrid,
+                          const int*        argc,
+                                char**      argv
+                         );
 
-void make_resfiles(	      float* final_population,
-		   	      float* energies,
-		   const Liganddata* ligand_ref,
-                   const Liganddata* ligand_from_pdb,
-		   const Liganddata* ligand_xray,
-		   const Dockpars*   mypars,
-		   		int  evals_performed,
-                   		int  generations_used,
-                   const Gridinfo*   mygrid,
-                   const float*      grids,
-                   	      float* cpu_ref_ori_angles,
-                   const int* 	     argc,
-		   	      char** argv,
-		   		int  debug,
-		   		int  run_cnt,
-				float& best_energy_of_all,
-		   Ligandresult* best_result);
+void make_resfiles(
+                         float*        final_population,
+                         float*        energies,
+                   const Liganddata*   ligand_ref,
+                   const Liganddata*   ligand_from_pdb,
+                   const Liganddata*   ligand_xray,
+                   const Dockpars*     mypars,
+                         int           evals_performed,
+                         int           generations_used,
+                   const Gridinfo*     mygrid,
+                   const float*        grids,
+                         float*        cpu_ref_ori_angles,
+                   const int*          argc,
+                         char**        argv,
+                         int           debug,
+                         int           run_cnt,
+                         float&        best_energy_of_all,
+                         Ligandresult* best_result
+                  );
 
-void cluster_analysis(     Ligandresult myresults [],
-		                    int num_of_runs,
-		                  char* report_file_name,
-		      const Liganddata* ligand_ref,
-		      const Dockpars* mypars,
-		      const Gridinfo* mygrid,
-		      const int*      argc,
-		            char**    argv,
-		      const double    docking_avg_runtime,
-		      const double    program_runtime);
+void cluster_analysis(
+                            Ligandresult myresults [],
+                            int          num_of_runs,
+                            char*        report_file_name,
+                      const Liganddata*  ligand_ref,
+                      const Dockpars*    mypars,
+                      const Gridinfo*    mygrid,
+                      const int*         argc,
+                            char**       argv,
+                      const double       docking_avg_runtime,
+                      const double       program_runtime
+                     );
 
-void clusanal_gendlg(Ligandresult myresults [],
-		                  int  num_of_runs,
-		     const Liganddata* ligand_ref,
-		     const Dockpars*   mypars,
-                     const Gridinfo*   mygrid,
-		     const int*        argc,
-                               char**  argv,
-                     const double docking_avg_runtime,
-		     unsigned long generations_used,
-		     unsigned long evals_performed,
-		     double exec_time,
-		     double idle_time);
+void clusanal_gendlg(
+                           Ligandresult  myresults [],
+                           int           num_of_runs,
+                     const Liganddata*   ligand_ref,
+                     const Dockpars*     mypars,
+                     const Gridinfo*     mygrid,
+                     const int*          argc,
+                           char**        argv,
+                     const double        docking_avg_runtime,
+                           unsigned long generations_used,
+                           unsigned long evals_performed,
+                           double        exec_time,
+                           double        idle_time
+                    );
 
-void process_result(    const Gridinfo*         mygrid, 
-                        const float*            cpu_floatgrids,
-                        const Dockpars*         mypars,
-                        const Liganddata*       myligand_init,
-                        const Liganddata*       myxrayligand,
-                        const int*              argc,
-                        char**                  argv,
-			SimulationState&        sim_state);
+void process_result(
+                    const Gridinfo*        mygrid,
+                    const float*           cpu_floatgrids,
+                    const Dockpars*        mypars,
+                    const Liganddata*      myligand_init,
+                    const Liganddata*      myxrayligand,
+                    const int*             argc,
+                          char**           argv,
+                          SimulationState& sim_state
+                   );
 
 #endif /* PROCESSRESULT_H_ */

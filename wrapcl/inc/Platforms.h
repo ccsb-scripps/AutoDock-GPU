@@ -26,19 +26,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef PLATFORMS_H
 #define PLATFORMS_H
 
-  //#include <stdio.h>
-  //#include <CL/opencl.h>
-  #include "commonMacros.h"
+#include "commonMacros.h"
 
 /* Get all available platforms
    Inputs:
-       	none
+        none
    Outputs:
-       	platform_id -
-       	platformCount -
+        platform_id -
+        platformCount -
 */
-  int getPlatforms(cl_platform_id** platforms_id,
-                   cl_uint*         platformCount);
+int getPlatforms(
+                 cl_platform_id** platforms_id,
+                 cl_uint*         platformCount
+                );
 
 /* Get all platforms' attributes
    Inputs:
@@ -47,7 +47,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
         platform_id -
         platformCount -
 */
-  int getPlatformAttributes(cl_platform_id* platform_id,
-			    cl_uint         platformCount);
+int getPlatformAttributes(
+                          cl_platform_id* platform_id,
+                          cl_uint         platformCount
+                         );
 
 #endif /* PLATFORMS_H */

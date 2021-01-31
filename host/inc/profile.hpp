@@ -31,28 +31,28 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <cmath>
 
 struct Profile{
-	public:
-	int id;
-	bool adadelta;
-	int n_evals;
-	bool capped;
-	bool autostopped;
-	int nev_at_stop;
-	int num_atoms;
-	int num_rotbonds;
+public:
+	int   id;
+	bool  adadelta;
+	int   n_evals;
+	bool  capped;
+	bool  autostopped;
+	int   nev_at_stop;
+	int   num_atoms;
+	int   num_rotbonds;
 	float exec_time;
 
 	Profile(const int id_in) : id(id_in), capped(false), autostopped(false), exec_time(-1.0f) {}
 
 	void write_to_file(FILE* fp){
 		int success = (exec_time>=0.0f ? 1 : 0);
-                float real_exec_time = (exec_time>=0.0f ? exec_time : 0.0f);
-                fprintf(fp, "\n%d %d %d %d %d %d %d %d %d %.3f", id, adadelta?1:0, n_evals, capped?1:0, autostopped, nev_at_stop, num_atoms, num_rotbonds, success, real_exec_time );
+		float real_exec_time = (exec_time>=0.0f ? exec_time : 0.0f);
+		fprintf(fp, "\n%d %d %d %d %d %d %d %d %d %.3f", id, adadelta?1:0, n_evals, capped?1:0, autostopped, nev_at_stop, num_atoms, num_rotbonds, success, real_exec_time );
 	}
 };
 
 class Profiler{
-	public:
+public:
 	std::vector<Profile> p;
 
 	void write_profiles_to_file(char* filename){
@@ -70,3 +70,4 @@ class Profiler{
 	}
 };
 #endif
+

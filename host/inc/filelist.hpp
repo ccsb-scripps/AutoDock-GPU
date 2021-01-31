@@ -32,16 +32,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <vector>
 
 class FileList{
-
 	public:
 
-	bool used;
-	bool preload_maps;
-	bool maps_are_loaded;
-	bool load_maps_gpu;
-	char* filename;
-	int nfiles;
-	int max_len; // maxium length of strings in arrays below
+	bool                     used;
+	bool                     preload_maps;
+	bool                     maps_are_loaded;
+	bool                     load_maps_gpu;
+	char*                    filename;
+	int                      nfiles;
+	int                      max_len; // maxium length of strings in arrays below
 	std::vector<std::string> resnames;
 	std::vector<std::string> fld_files;
 	std::vector<std::string> ligand_files;

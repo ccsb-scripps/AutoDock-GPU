@@ -31,43 +31,45 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gpu_gen_and_eval_newpops(
-			 int    dockpars_num_of_atoms,
-			 int    dockpars_num_of_atypes,
-			 int    dockpars_num_of_map_atypes,
-			 int    dockpars_num_of_intraE_contributors,
-			 int    dockpars_gridsize_x,
-			 int    dockpars_gridsize_y,
-			 int    dockpars_gridsize_z,
-							    		// g1 = gridsize_x
-  			 uint   dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
-			 uint   dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
-			 float  dockpars_grid_spacing,
-          __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant 
-	                 int    dockpars_rotbondlist_length,
- 			 float  dockpars_coeff_elec,
-			 float  dockpars_coeff_desolv,
-          __global const float* restrict  dockpars_conformations_current,
-          __global       float* restrict  dockpars_energies_current,
-          __global       float* restrict  dockpars_conformations_next,
-          __global       float* restrict  dockpars_energies_next,
-          __global       int*   restrict  dockpars_evals_of_new_entities,
-          __global       uint*  restrict dockpars_prng_states,
-	                 int    dockpars_pop_size,
-	                 int    dockpars_num_of_genes,
-		         float  dockpars_tournament_rate,
-	                 float  dockpars_crossover_rate,
-		         float  dockpars_mutation_rate,
-		         float  dockpars_abs_max_dmov,
-		         float  dockpars_abs_max_dang,
-		         float  dockpars_qasp,
-			 float  dockpars_smooth,
+                               int    dockpars_num_of_atoms,
+                               int    dockpars_true_ligand_atoms,
+                               int    dockpars_num_of_atypes,
+                               int    dockpars_num_of_map_atypes,
+                               int    dockpars_num_of_intraE_contributors,
+                               int    dockpars_gridsize_x,
+                               int    dockpars_gridsize_y,
+                               int    dockpars_gridsize_z,
+                                                                           // g1 = gridsize_x
+                               uint   dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+                               uint   dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+                               float  dockpars_grid_spacing,
+                __global const float* restrict dockpars_fgrids, // This is too large to be allocated in __constant
+                               int    dockpars_rotbondlist_length,
+                               float  dockpars_coeff_elec,
+                               float  dockpars_elec_min_distance,
+                               float  dockpars_coeff_desolv,
+                __global const float* restrict  dockpars_conformations_current,
+                __global       float* restrict  dockpars_energies_current,
+                __global       float* restrict  dockpars_conformations_next,
+                __global       float* restrict  dockpars_energies_next,
+                __global       int*   restrict  dockpars_evals_of_new_entities,
+                __global       uint*  restrict dockpars_prng_states,
+                               int    dockpars_pop_size,
+                               int    dockpars_num_of_genes,
+                               float  dockpars_tournament_rate,
+                               float  dockpars_crossover_rate,
+                               float  dockpars_mutation_rate,
+                               float  dockpars_abs_max_dmov,
+                               float  dockpars_abs_max_dang,
+                               float  dockpars_qasp,
+                               float  dockpars_smooth,
 
-	  __constant     kernelconstant_interintra* 	kerconst_interintra,
-	  __global const kernelconstant_intracontrib*  	kerconst_intracontrib,
-	  __constant     kernelconstant_intra*		kerconst_intra,
-	  __constant     kernelconstant_rotlist*   	kerconst_rotlist,
-	  __constant     kernelconstant_conform*	kerconst_conform
-)
+              __constant       kernelconstant_interintra*   kerconst_interintra,
+                __global const kernelconstant_intracontrib* kerconst_intracontrib,
+              __constant       kernelconstant_intra*        kerconst_intra,
+              __constant       kernelconstant_rotlist*      kerconst_rotlist,
+              __constant       kernelconstant_conform*      kerconst_conform
+                        )
 //The GPU global function
 {
 	// Some OpenCL compilers don't allow declaring 
@@ -83,7 +85,7 @@ gpu_gen_and_eval_newpops(
 	__local float randnums[10];
 	int temp_covr_point;
 	int gene_counter;
-	__local float energy;	//could be shared since only thread 0 will use it
+	__local float energy; // could be shared since only thread 0 will use it
 
 	__local float best_energies[NUM_OF_THREADS_PER_BLOCK];
 	__local int best_IDs[NUM_OF_THREADS_PER_BLOCK];
@@ -100,25 +102,26 @@ gpu_gen_and_eval_newpops(
 	// In this case this compute-unit is responsible for elitist selection
 	if ((get_group_id(0) % dockpars_pop_size) == 0) {
 		gpu_perform_elitist_selection(dockpars_pop_size,
-					      dockpars_energies_current,
-					      dockpars_energies_next,
-					      dockpars_evals_of_new_entities,
-					      dockpars_num_of_genes,
-					      dockpars_conformations_next,
-				              dockpars_conformations_current,
-					      best_energies,
-					      best_IDs,
-					      best_ID);
+		                              dockpars_energies_current,
+		                              dockpars_energies_next,
+		                              dockpars_evals_of_new_entities,
+		                              dockpars_num_of_genes,
+		                              dockpars_conformations_next,
+		                              dockpars_conformations_current,
+		                              best_energies,
+		                              best_IDs,
+		                              best_ID);
 	}
 	else
 	{
-		// Generating the following random numbers: 
+		// Generating the following random numbers:
 		// [0..3] for parent candidates,
 		// [4..5] for binary tournaments, [6] for deciding crossover,
 		// [7..8] for crossover points, [9] for local search
 		for (gene_counter = tidx;
 		     gene_counter < 10;
-		     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
+		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+		{
 			randnums[gene_counter] = gpu_randf(dockpars_prng_states);
 		}
 
@@ -132,8 +135,8 @@ gpu_gen_and_eval_newpops(
 
 		for (gene_counter = tidx;
 		     gene_counter < 4;
-		     gene_counter+= NUM_OF_THREADS_PER_BLOCK) { //it is not ensured that the four candidates will be different...
-
+		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)\
+		{ //it is not ensured that the four candidates will be different...
 			parent_candidates[gene_counter]  = (int) (dockpars_pop_size*randnums[gene_counter]); //using randnums[0..3]
 			candidate_energies[gene_counter] = dockpars_energies_current[run_id*dockpars_pop_size+parent_candidates[gene_counter]];
 		}
@@ -142,8 +145,8 @@ gpu_gen_and_eval_newpops(
 
 		for (gene_counter = tidx;
 		     gene_counter < 2;
-		     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-
+		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+		{
 			// Notice: dockpars_tournament_rate was scaled down to [0,1] in host
 			// to reduce number of operations in device
 			if (candidate_energies[2*gene_counter] < candidate_energies[2*gene_counter+1])
@@ -171,8 +174,8 @@ gpu_gen_and_eval_newpops(
 		{
 			for (gene_counter = tidx;
 			     gene_counter < 2;
-			     gene_counter+= NUM_OF_THREADS_PER_BLOCK) {
-
+			     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
+			{
 				// Using randnum[7..8]
 				covr_point[gene_counter] = (int) ((dockpars_num_of_genes-1)*randnums[7+gene_counter]);
 			}
@@ -204,7 +207,7 @@ gpu_gen_and_eval_newpops(
 				}
 				// Single-point crossover
 				else
-				{									             
+				{
 					if (gene_counter <= covr_point[0])
 						offspring_genotype[gene_counter] = dockpars_conformations_current[(run_id*dockpars_pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM+gene_counter];
 					else
@@ -213,12 +216,11 @@ gpu_gen_and_eval_newpops(
 			}
 
 		}
-		else	//no crossover
+		else // no crossover
 		{
 			event_t ev = async_work_group_copy(offspring_genotype,
-					     		   dockpars_conformations_current+(run_id*dockpars_pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM,
-					                   dockpars_num_of_genes, 0);
-
+			                                   dockpars_conformations_current+(run_id*dockpars_pop_size+parents[0])*GENOTYPE_LENGTH_IN_GLOBMEM,
+			                                   dockpars_num_of_genes, 0);
 			// Asynchronous copy should be finished by here
 			wait_group_events(1, &ev);
 		} // End of crossover
@@ -272,47 +274,46 @@ gpu_gen_and_eval_newpops(
 
 		// =============================================================
 		gpu_calc_energy(dockpars_rotbondlist_length,
-				dockpars_num_of_atoms,
-				dockpars_gridsize_x,
-				dockpars_gridsize_y,
-	                        dockpars_gridsize_z,
-								    	// g1 = gridsize_x
-				dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
-				dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
-				dockpars_fgrids,
-				dockpars_num_of_atypes,
-				dockpars_num_of_map_atypes,
-				dockpars_num_of_intraE_contributors,
-				dockpars_grid_spacing,
-				dockpars_coeff_elec,
-                                dockpars_qasp,
-				dockpars_coeff_desolv,
-				dockpars_smooth,
-
-				offspring_genotype,
-				&energy,
-				&run_id,
-				// Some OpenCL compilers don't allow declaring 
-				// local variables within non-kernel functions.
-				// These local variables must be declared in a kernel, 
-				// and then passed to non-kernel functions.
-				calc_coords,
-//				calc_coords_y,
-//				calc_coords_z,
-				partial_energies,
-				#if defined (DEBUG_ENERGY_KERNEL)
-				partial_interE,
-				partial_intraE,
-				#endif
+		                dockpars_num_of_atoms,
+		                dockpars_true_ligand_atoms,
+		                dockpars_gridsize_x,
+		                dockpars_gridsize_y,
+		                dockpars_gridsize_z,
+		                                                     // g1 = gridsize_x
+		                dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+		                dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+		                dockpars_fgrids,
+		                dockpars_num_of_atypes,
+		                dockpars_num_of_map_atypes,
+		                dockpars_num_of_intraE_contributors,
+		                dockpars_grid_spacing,
+		                dockpars_coeff_elec,
+		                dockpars_elec_min_distance,
+		                dockpars_qasp,
+		                dockpars_coeff_desolv,
+		                dockpars_smooth,
+		                offspring_genotype,
+		                &energy,
+		                &run_id,
+		                // Some OpenCL compilers don't allow declaring
+		                // local variables within non-kernel functions.
+		                // These local variables must be declared in a kernel,
+		                // and then passed to non-kernel functions.
+		                calc_coords,
+		                partial_energies,
+		                #if defined (DEBUG_ENERGY_KERNEL)
+		                partial_interE,
+		                partial_intraE,
+		                #endif
 #if 0
-				false,
+		                false,
 #endif
-			   	kerconst_interintra,
-			   	kerconst_intracontrib,
-			   	kerconst_intra,
-			   	kerconst_rotlist,
-			   	kerconst_conform
-				);
+		                kerconst_interintra,
+		                kerconst_intracontrib,
+		                kerconst_intra,
+		                kerconst_rotlist,
+		                kerconst_conform
+		               );
 		// =============================================================
 
 		if (tidx == 0) {
@@ -326,8 +327,8 @@ gpu_gen_and_eval_newpops(
 
 		// Copying new offspring to next generation
 		event_t ev2 = async_work_group_copy(dockpars_conformations_next + GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0),
-				                    offspring_genotype,
-				                    dockpars_num_of_genes, 0);
+		                                    offspring_genotype,
+		                                    dockpars_num_of_genes, 0);
 
 		// Asynchronous copy should be finished by here
 		wait_group_events(1, &ev2);

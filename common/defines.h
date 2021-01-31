@@ -54,35 +54,35 @@ enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.da
 // Indexes of atomic types used in
 // host/src/processligand.cpp/get_VWpars(),
 // and kernel energy & gradient calculation.
-#define ATYPE_NUM 		28	// 22 (initial) + 2 (CG & G0 for handling flexrings) + W (waters) + CX + NX + OX
+#define ATYPE_NUM                  28 // 22 (initial) + 2 (CG & G0 for handling flexrings) + W (waters) + CX + NX + OX
 
-#define ATYPE_CG_IDX		22
-#define ATYPE_G0_IDX		23
-#define ATYPE_W_IDX		24
-#define ATYPE_CX_IDX		25
-#define ATYPE_NX_IDX		26
-#define ATYPE_OX_IDX		27
+#define ATYPE_CG_IDX               22
+#define ATYPE_G0_IDX               23
+#define ATYPE_W_IDX                24
+#define ATYPE_CX_IDX               25
+#define ATYPE_NX_IDX               26
+#define ATYPE_OX_IDX               27
 
 // Indexes of atomic types used in
 // host/src/processligand.cpp/get_bonds().
 // Added definition to support flexrings.
-#define ATYPE_GETBONDS		20      // + CX [ Nx / Ox already accounted for ]
+#define ATYPE_GETBONDS             20 // + CX [ Nx / Ox already accounted for ]
 
-#define MAX_NUM_OF_ATOMS 	256
-#define MAX_NUM_OF_ATYPES 	14
-#define MAX_NUM_OF_ROTBONDS 	58
-#define MAX_INTRAE_CONTRIBUTORS (MAX_NUM_OF_ATOMS * MAX_NUM_OF_ATOMS)
-#define MAX_NUM_OF_ROTATIONS 	(MAX_NUM_OF_ATOMS * MAX_NUM_OF_ROTBONDS)
-#define MAX_POPSIZE 		2048
-#define MAX_NUM_OF_RUNS 	1000
-#define MAX_NUM_GRIDPOINTS      256
+#define MAX_NUM_OF_ATOMS           256
+#define MAX_NUM_OF_ATYPES          32
+#define MAX_NUM_OF_ROTBONDS        58
+#define MAX_INTRAE_CONTRIBUTORS    (MAX_NUM_OF_ATOMS * MAX_NUM_OF_ATOMS)
+#define MAX_NUM_OF_ROTATIONS       (MAX_NUM_OF_ATOMS * MAX_NUM_OF_ROTBONDS)
+#define MAX_POPSIZE                2048
+#define MAX_NUM_OF_RUNS            1000
+#define MAX_NUM_GRIDPOINTS         256
 
-// Must be bigger than MAX_NUM_OF_ROTBONDS+6
+// Must be larger than or equal to MAX_NUM_OF_ROTBONDS+6
 #define GENOTYPE_LENGTH_IN_GLOBMEM 64
-#define ACTUAL_GENOTYPE_LENGTH	(MAX_NUM_OF_ROTBONDS+6)
+#define ACTUAL_GENOTYPE_LENGTH     (MAX_NUM_OF_ROTBONDS+6)
 
-#define LS_EXP_FACTOR 		2.0f
-#define LS_CONT_FACTOR 		0.5f
+#define LS_EXP_FACTOR              2.0f
+#define LS_CONT_FACTOR             0.5f
 
 // Improvements over Pechan's implementation
 #define MAPPED_COPY
@@ -94,13 +94,10 @@ enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.da
 // Added definition to support flexrings.
 #define G 50
 
-
-
-// TODO: convert this into a program arg
-//#define GRADIENT_ENABLED
-
-
-
+// Use one more coefficient in the fit to the Mehler-Solmajer dielectric in energrad implementation
+// Although this improves the fit (particularly for the gradient), it costs a little bit more and
+// does not return better accuracy overall (default: commented out, don't use)
+// #define DIEL_FIT_ABC
 
 
 #endif /* DEFINES_H_ */

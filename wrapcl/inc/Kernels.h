@@ -26,63 +26,60 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef KERNELS_H
 #define KERNELS_H
 
-  //#include <stdio.h>
-  //#include <CL/opencl.h>
-  #include "commonMacros.h"
+#include "commonMacros.h"
 
+int createKernel(
+                 cl_device_id* device_id,
+                 cl_program*   program,
+                 const char*   kernel_name,
+                 cl_kernel*    kernel
+                );
 
-int createKernel(cl_device_id*   device_id,
-		 cl_program*	 program,
-		 const char*     kernel_name,
-		 cl_kernel*	 kernel);
+int getKernelInfo(cl_kernel kernel);
 
+int getKernelWorkGroupInfo(
+                           cl_kernel    kernel,
+                           cl_device_id device
+                          );
 
-/*
+int setKernelArg(
+                       cl_kernel kernel,
+                       cl_uint   num,
+                       size_t    size,
+                 const void*     ptr
+                );
 
-*/
-  int getKernelInfo(cl_kernel kernel);
+int runKernel1D(
+                cl_command_queue cmd_queue,
+                cl_kernel        kernel,
+                size_t           gxDimSize,
+                size_t           lxDimSize,
+                cl_ulong*        time_start,
+                cl_ulong*        time_stop
+               );
 
-/*
+int runKernel2D(
+                cl_command_queue cmd_queue,
+                cl_kernel        kernel,
+                size_t           gxDimSize,
+                size_t           gyDimSize,
+                size_t           lxDimSize,
+                size_t           lyDimSize,
+                cl_ulong*        time_start,
+                cl_ulong*        time_stop
+               );
 
-*/
-  int getKernelWorkGroupInfo(cl_kernel    kernel,
-                             cl_device_id device);
-
-/*
-
-*/
-  int setKernelArg(cl_kernel   kernel,
-		   cl_uint     num,
-		   size_t      size,
-		   const void* ptr);
-/*
-
-*/
-  int runKernel1D(cl_command_queue cmd_queue,
-		  cl_kernel        kernel,
-		  size_t 	   gxDimSize,
-		  size_t 	   lxDimSize,
-		  cl_ulong* 	   time_start,
-		  cl_ulong* 	   time_stop);
-
-  int runKernel2D(cl_command_queue cmd_queue,
-                  cl_kernel        kernel,
-                  size_t           gxDimSize,
-                  size_t           gyDimSize,
-                  size_t           lxDimSize,
-                  size_t           lyDimSize,
-                  cl_ulong*        time_start,
-                  cl_ulong*        time_stop);
-
-  int runKernel3D(cl_command_queue cmd_queue,
-                  cl_kernel        kernel,
-                  size_t           gxDimSize,
-                  size_t           gyDimSize,
-                  size_t           gzDimSize,
-                  size_t           lxDimSize,
-                  size_t           lyDimSize,
-                  size_t           lzDimSize,
-                  cl_ulong*        time_start,
-                  cl_ulong*        time_stop);
+int runKernel3D(
+                cl_command_queue cmd_queue,
+                cl_kernel        kernel,
+                size_t           gxDimSize,
+                size_t           gyDimSize,
+                size_t           gzDimSize,
+                size_t           lxDimSize,
+                size_t           lyDimSize,
+                size_t           lzDimSize,
+                cl_ulong*        time_start,
+                cl_ulong*        time_stop
+               );
 
 #endif /* KERNELS_H */
