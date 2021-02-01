@@ -202,7 +202,10 @@ void write_basic_info_dlg(
 	}
 	fprintf(fp, "Grid fld file:                             %s\n\n", mypars->fldfile);
 
-	fprintf(fp, "Random seed:                               %u\n", mypars->seed);
+	fprintf(fp, "Random seed:                               %u", mypars->seed[0]);
+	if(mypars->seed[1]>0) fprintf(fp,", %u",mypars->seed[1]);
+	if(mypars->seed[2]>0) fprintf(fp,", %u",mypars->seed[2]);
+	fprintf(fp, "\n");
 	fprintf(fp, "Number of runs:                            %lu\n", mypars->num_of_runs);
 	fprintf(fp, "Number of energy evaluations:              %ld\n", mypars->num_of_energy_evals);
 	fprintf(fp, "Number of generations:                     %ld\n", mypars->num_of_generations);

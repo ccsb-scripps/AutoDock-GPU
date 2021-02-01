@@ -61,11 +61,10 @@ constexpr AD4_free_energy_coeffs unbound_models[3] = {
                                                       {0.1641,0.0531,ELEC_SCALE_FACTOR*0.1272,0.0603,0.2272}
                                                      };
 
-
 // Struct which contains the docking parameters (partly parameters for fpga)
 typedef struct _Dockpars
 {                                                              // default values
-	unsigned int           seed                            = time(NULL);
+	uint32_t               seed[3]                         = {(uint32_t)time(NULL),(uint32_t)processid(),0};
 	unsigned long          num_of_energy_evals             = 2500000;
 	unsigned long          num_of_generations              = 27000;
 	bool                   nev_provided                    = false;

@@ -23,11 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
-// Output for the -derivtype keyword
-// #define DERIVTYPE_INFO
-// Output for the -modpair keyword
-// #define MODPAIR_INFO
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>

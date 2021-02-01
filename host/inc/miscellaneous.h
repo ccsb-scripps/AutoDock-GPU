@@ -34,6 +34,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <limits>
 #include <cstdint>
 
+#ifdef _WIN32
+#include <processthreadsapi.h>
+inline unsigned int processid() { return GetProcessId(); }
+#else
+#include <unistd.h>
+inline unsigned int processid() { return getpid(); }
+#endif
+
 #define PI 3.14159265359
 
 #define PHI 0x9e3779b9
@@ -118,23 +126,37 @@ class LocalRNG
 	uint32_t Q[4096], i, c; // CMWC4096 variables
 
 public:
-	LocalRNG(uint32_t seed){
-		init(seed);
+	LocalRNG(uint32_t seed[3]){
+		if(!seed[2]){
+			if(!seed[1]){
+				init(seed[0]);
+			} else init(seed[0],seed[1]);
+		} else init(seed[0],seed[1],seed[2]);
 	}
 
 	LocalRNG(){
 #if defined (REPRO)
 		init(8);
 #else
-		init(time(NULL));
+		init(time(NULL),processid());
 #endif
 	}
 
 	void init(uint32_t x)
 	{
+		init(x,x+PHI,x+PHI+PHI);
+	}
+
+	void init(uint32_t x, uint32_t y)
+	{
+		init(x,y,y+PHI);
+	}
+
+	void init(uint32_t x, uint32_t y, uint32_t z)
+	{
 		Q[0]=x;
-		Q[1]=Q[0]+PHI;
-		Q[2]=Q[1]+PHI;
+		Q[1]=y+PHI;
+		Q[2]=z+PHI;
 		for(unsigned int j=3; j<4096; j++) Q[j]=Q[j-3] ^ Q[j-2] ^ PHI ^ j;
 		i=4095;
 		c=362436;

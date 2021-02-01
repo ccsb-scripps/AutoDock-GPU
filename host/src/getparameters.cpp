@@ -73,10 +73,10 @@ int dpf_token(const char* token)
 	      {"intnbp_coeffs",      DPF_INTNBP_COEFFS,     true},  /* internal pair energy coefficients */
 	      {"intnbp_r_eps",       DPF_INTNBP_REQM_EPS,   true},  /* internal pair energy coefficients */
 	      {"runs",               DPF_RUNS,              true},  /* number of runs */
-	      {"ga_run",             DPF_GALS,              true},  /* number of runs */
-	      {"gals_run",           DPF_GALS,              true},  /* number of runs */
+	      {"ga_run",             DPF_GALS,              true},  /* run a number of runs */
+	      {"gals_run",           DPF_GALS,              true},  /* run a number of runs */
 	      {"outlev",             DPF_OUTLEV,            false}, /* output level */
-	      {"rmstol",             DPF_RMSTOL,            false}, /* cluster tolerance */
+	      {"rmstol",             DPF_RMSTOL,            true},  /* RMSD cluster tolerance */
 	      {"extnrg",             DPF_EXTNRG,            false}, /* external grid energy */
 	      {"intelec",            DPF_INTELEC,           true},  /* calculate ES energy (needs not be "off") */
 	      {"smooth",             DPF_SMOOTH,            true},  /* smoothing range */
@@ -111,8 +111,8 @@ int dpf_token(const char* token)
 	      {"dsolvmap",           DPF_DESOLVMAP,         false}, /* desolvation grid map (we use fld file basename) */
 	      {"unbound_model",      DPF_UNBOUND_MODEL,     true}   /* unbound model (bound|extended|compact) */
 	                            };
-	
-	if ((token[0]=='\n') || (token[0]=='\0'))
+
+	if (token[0]=='\0')
 		return DPF_BLANK_LINE;
 	if (token[0]=='#')
 		return DPF_COMMENT;
@@ -162,20 +162,285 @@ int preparse_dpf(
 			printf("\nError: Could not open dpf file %s. Check path and permissions.\n",dpf_filename);
 			return 1;
 		}
+		mypars->elec_min_distance = 0.5; // default for AD4
 		std::string line;
-		char tempstr[256];
+		char tempstr[256], argstr[256];
+		int tempint, i, len;
+		float tempfloat;
 		int line_count = 0;
+		int ltype_nr = 0;
+		int mtype_nr = 0;
+		char ltypes[MAX_NUM_OF_ATYPES][4];
+		char* typestr;
+		memset(ltypes,0,4*MAX_NUM_OF_ATYPES*sizeof(char));
+		unsigned int idx;
+		pair_mod* curr_pair;
+		float paramA, paramB;
+		int m, n;
+		char typeA[4], typeB[4];
 		while(std::getline(file, line)) {
 			line_count++;
 			trim(line); // Remove leading and trailing whitespace
+			tempstr[0]='\0';
 			sscanf(line.c_str(),"%255s",tempstr);
 			int token_id = dpf_token(tempstr);
 			switch(token_id){
+				case DPF_MOVE: // movable ligand file name
+						sscanf(line.c_str(),"%*s %255s",argstr);
+						if(mypars->ligandfile) free(mypars->ligandfile);
+						mypars->ligandfile = strdup(argstr);
+						break;
+				case DPF_FLEXRES: // flexibe residue file name
+						sscanf(line.c_str(),"%*s %255s",argstr);
+						if(mypars->flexresfile) free(mypars->flexresfile);
+						mypars->flexresfile = strdup(argstr);
+						break;
+				case DPF_FLD: // grid data file name
+						sscanf(line.c_str(),"%*s %255s",argstr);
+						// Add the .fld file
+						if(mypars->fldfile) free(mypars->fldfile);
+						mypars->fldfile = strdup(argstr); // this allows using the dpf to set up all parameters but the ligand
+						break;
+				case DPF_LIGAND_TYPES: // ligand types used
+						len=-1;
+						for(i=strlen(tempstr); i<line.size(); i++){
+							if(isspace(line[i])){ // whitespace
+								len=-1;
+							} else{ // not whitespace aka an atom type
+								if(len<0){ // new type starts
+									len=i;
+									ltype_nr++;
+								}
+								if(i-len<3){
+									ltypes[ltype_nr-1][i-len] = line[i];
+								} else{
+									printf("\nError: Atom types are limited to 3 characters in <%s> parameter at %s:%u.\n",tempstr,dpf_filename,line_count);
+									return 1;
+								}
+							}
+						}
+						break;
+				case DPF_MAP: // grid map specifier
+						sscanf(line.c_str(),"%*s %255s",argstr);
+						argstr[strlen(argstr)-4] = '\0'; // get rid of .map extension
+						typestr=strchr(argstr+strlen(argstr)-4,'.')+1; // 4 chars for atom type
+						if(mtype_nr>=ltype_nr){
+							printf("\nError: More map files specified than atom types at %s:%u (ligand types need to be specified before maps).\n",tempstr,dpf_filename,line_count);
+							return 1;
+						}
+						if(strcmp(typestr,ltypes[mtype_nr])){ // derived type
+							if(mypars->nr_deriv_atypes==0){ // get the derived atom types started
+								mypars->deriv_atypes=(deriv_atype*)malloc(sizeof(deriv_atype));
+								if(mypars->deriv_atypes==NULL){
+									printf("Error: Cannot allocate memory for derivative type.\n");
+									return 1;
+								}
+							}
+							if(!add_deriv_atype(mypars,ltypes[mtype_nr],strlen(ltypes[mtype_nr]))){
+								printf("Error: Derivative (ligand type %s) names can only be upto 3 characters long.\n",ltypes[mtype_nr]);
+								return 1;
+							}
+							idx = mypars->nr_deriv_atypes-1;
+							strcpy(mypars->deriv_atypes[idx].base_name,typestr);
+#ifdef DERIVTYPE_INFO
+							printf("%i: %s=%s\n",mypars->deriv_atypes[idx].nr,mypars->deriv_atypes[idx].deriv_name,mypars->deriv_atypes[idx].base_name);
+#endif
+						}
+						mtype_nr++;
+						break;
+				case DPF_INTNBP_COEFFS: // internal pair energy coefficients
+				case DPF_INTNBP_REQM_EPS: // internal pair energy coefficients
+						if(sscanf(line.c_str(), "%*s %f %f %d %d %3s %3s", &paramA, &paramB, &m, &n, typeA, typeB)<6){
+							printf("Error: Syntax error for <%s>, 6 values are required at %s:%u.\n",tempstr,dpf_filename,line_count);
+							return 1;
+						}
+						if(m==n){
+							printf("Error: Syntax error for <%s>, exponents need to be different at %s:%u.\n",tempstr,dpf_filename,line_count);
+							return 1;
+						}
+						if(token_id==DPF_INTNBP_COEFFS){
+							tempfloat = pow(paramB/paramA*n/m,m-n); // reqm
+							paramA = paramB*float(m-n)/(pow(tempfloat,n)*m); // epsAB
+							paramB = tempfloat; // rAB
+						}
+						// parameters are sorted out, now add to modpairs
+						mypars->nr_mod_atype_pairs++;
+						if(mypars->nr_mod_atype_pairs==1)
+							mypars->mod_atype_pairs=(pair_mod*)malloc(sizeof(pair_mod));
+						else
+							mypars->mod_atype_pairs=(pair_mod*)realloc(mypars->mod_atype_pairs, mypars->nr_mod_atype_pairs*sizeof(pair_mod));
+						if(mypars->mod_atype_pairs==NULL){
+							printf("Error: Cannot allocate memory for <%s> pair energy modification.\n at %s:%u.\n",tempstr,dpf_filename,line_count);
+							return 1;
+						}
+						curr_pair=&mypars->mod_atype_pairs[mypars->nr_mod_atype_pairs-1];
+						strcpy(curr_pair->A,typeA);
+						strcpy(curr_pair->B,typeB);
+						curr_pair->nr_parameters=4;
+						curr_pair->parameters=(float*)malloc(curr_pair->nr_parameters*sizeof(float));
+						if(curr_pair->parameters==NULL){
+							printf("Error: Cannot allocate memory for <%s> pair energy modification.\n at %s:%u.\n",tempstr,dpf_filename,line_count);
+							return 1;
+						}
+						curr_pair->parameters[0]=paramA;
+						curr_pair->parameters[1]=paramB;
+						curr_pair->parameters[2]=m;
+						curr_pair->parameters[3]=n;
+#ifdef MODPAIR_INFO
+						printf("%i: %s:%s",mypars->nr_mod_atype_pairs,curr_pair->A,curr_pair->B);
+						for(idx=0; idx<curr_pair->nr_parameters; idx++)
+							printf(",%f",curr_pair->parameters[idx]);
+						printf("\n");
+#endif
+						break;
+				case DPF_TRAN0: // translate                     (needs to be "random")
+				case DPF_AXISANGLE0: // rotation axisangle       (needs to be "random")
+				case DPF_QUATERNION0: // quaternion (of rotation, needs to be "random")
+				case DPF_QUAT0: // quaternion       (of rotation, needs to be "random")
+				case DPF_DIHE0: // number of dihedrals           (needs to be "random")
+						sscanf(line.c_str(),"%*s %255s",argstr);
+						if(stricmp(argstr,"random")){
+							printf("\nError: Currently only \"random\" is supported as <%s> parameter at %s:%u.\n",tempstr,dpf_filename,line_count);
+							return 1;
+						}
+						break;
+				case DPF_RUNS: // set number of runs
+				case DPF_GALS: // actually run a search
+						sscanf(line.c_str(),"%*s %ld",&tempint);
+						if ((tempint >= 1) && (tempint <= MAX_NUM_OF_RUNS))
+							mypars->num_of_runs = (int) tempint;
+						else
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and %d.\n",tempstr,dpf_filename,line_count,MAX_NUM_OF_RUNS);
+						if(token_id!=DPF_RUNS){
+							// Add the parameter block
+							filelist.mypars.push_back(*mypars);
+							// Add the fld file to use
+							filelist.fld_files.push_back(mypars->fldfile);
+							// If more than one unique protein, cant do map preloading yet
+							if (filelist.fld_files.size()>1){
+								filelist.preload_maps=false;
+							}
+							// Add the ligand to filelist
+							filelist.ligand_files.push_back(mypars->ligandfile);
+							if (filelist.fld_files.size()==0){
+								printf("\nError: No map file on record yet. Please specify a map file before the first ligand (%s).\n",argstr);
+								return 1;
+							}
+							if (filelist.ligand_files.size()>filelist.fld_files.size()){
+								// If this ligand doesnt have a protein preceding it, use the previous protein
+								filelist.fld_files.push_back(filelist.fld_files[filelist.fld_files.size()-1]);
+							}
+						}
+						break;
+				case DPF_INTELEC: // calculate ES energy (needs not be "off")
+						sscanf(line.c_str(),"%*s %255s",&argstr);
+						if(stricmp(argstr,"off")==0){
+							printf("\nError: \"Off\" is not supported as <%s> parameter at %s:%u.\n",tempstr,dpf_filename,line_count);
+							return 1;
+						}
+						break;
+				case DPF_SMOOTH: // smoothing range
+						sscanf(line.c_str(),"%*s %f",&tempfloat);
+						// smooth is measured in Angstrom
+						if ((tempfloat >= 0.0f) && (tempfloat <= 0.5f))
+							mypars->smooth = tempfloat;
+						else
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 0.5.\n",tempstr,dpf_filename,line_count);
+						break;
+				case DPF_SEED: // random number seed
+						m=0; n=0; i=0;
+						if(sscanf(line.c_str(),"%*s %ld %ld",&m, &n, &i)>0){ // one or more numbers
+							mypars->seed[0]=m; mypars->seed[1]=n; mypars->seed[2]=i;
+						} else
+							printf("Warning: Only numerical values currently supported for <%s> at %s:%u.\n",tempstr,dpf_filename,line_count);
+						break;
+				case DPF_RMSTOL: // RMSD clustering tolerance
+						sscanf(line.c_str(),"%*s %f",&tempfloat);
+						if (tempfloat > 0.0)
+							mypars->rmsd_tolerance = tempfloat;
+						else
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be greater than 0.\n",tempstr,dpf_filename,line_count);
+						break;
+				case GA_pop_size: // population size
+						sscanf(line.c_str(),"%*s %ld",&tempint);
+						if ((tempint >= 2) && (tempint <= MAX_POPSIZE))
+							mypars->pop_size = (unsigned long) (tempint);
+						else
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 2 and %d.\n",tempstr,dpf_filename,line_count,MAX_POPSIZE);
+						break;
+				case GA_num_generations: // number of generations
+						sscanf(line.c_str(),"%*s %ld",&tempint);
+						if ((tempint > 0) && (tempint < 16250000))
+							mypars->num_of_generations = (unsigned long) tempint;
+						else
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be between 0 and 16250000.\n",tempstr,dpf_filename,line_count);
+						break;
+				case GA_num_evals: // number of evals
+						sscanf(line.c_str(),"%*s %ld",&tempint);
+						if ((tempint > 0) && (tempint < 260000000)){
+							mypars->num_of_energy_evals = (unsigned long) tempint;
+							mypars->nev_provided = true;
+						} else
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be between 0 and 260000000.\n",tempstr,dpf_filename,line_count);
+						break;
+				case GA_mutation_rate: // mutation rate
+						sscanf(line.c_str(),"%*s %f",&tempfloat);
+						tempfloat*=100.0;
+						if ((tempfloat >= 0.0) && (tempfloat < 100.0))
+							mypars->mutation_rate = tempfloat;
+						else
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 1.\n",tempstr,dpf_filename,line_count);
+						break;
+				case GA_crossover_rate: // crossover rate
+						sscanf(line.c_str(),"%*s %f",&tempfloat);
+						tempfloat*=100.0;
+						if ((tempfloat >= 0.0) && (tempfloat <= 100.0))
+							mypars->crossover_rate = tempfloat;
+						else
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 1.\n",tempstr,dpf_filename,line_count);
+						break;
+				case SW_max_its: // local search iterations
+						sscanf(line.c_str(),"%*s %ld",&tempint);
+						if ((tempint > 0) && (tempint < 262144))
+							mypars->max_num_of_iters = (unsigned long) tempint;
+						else
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and 262143.\n",tempstr,dpf_filename,line_count);
+						break;
+				case SW_max_succ: // cons. success limit
+				case SW_max_fail: // cons. failure limit
+						sscanf(line.c_str(),"%*s %ld",&tempint);
+						if ((tempint > 0) && (tempint < 256))
+							mypars->cons_limit = (unsigned long) (tempint);
+						else
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and 255.\n",tempstr,dpf_filename,line_count);
+						break;
+				case SW_lb_rho: // lower bound of rho
+						sscanf(line.c_str(),"%*s %f",&tempfloat);
+						if ((tempfloat >= 0.0) && (tempfloat < 1.0))
+							mypars->rho_lower_bound = tempfloat;
+						else
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 1.\n",tempstr,dpf_filename,line_count);
+						break;
+				case DPF_UNBOUND_MODEL: // unbound model (bound|extended|compact)
+						sscanf(line.c_str(),"%*s %255s",&argstr);
+						if(stricmp(argstr,"bound")==0){
+							mypars->unbound_model = 0;
+							mypars->coeffs = unbound_models[mypars->unbound_model];
+						} else if(stricmp(argstr,"extended")==0){
+							mypars->unbound_model = 1;
+							mypars->coeffs = unbound_models[mypars->unbound_model];
+						} else if(stricmp(argstr,"compact")==0){
+							mypars->unbound_model = 2;
+							mypars->coeffs = unbound_models[mypars->unbound_model];
+						} else{
+							printf("Error: Unsupported value for <%s> at %s:%u. Value must be a float between 0 and 1.\n",tempstr,dpf_filename,line_count);
+						}
+						break;
 				case DPF_UNKNOWN: // error condition
 						printf("\nError: Unknown or unsupported dpf token <%s> at %s:%u.\n",tempstr,dpf_filename,line_count);
 						return 1;
 				default: // not yet implemented
-					printf("<%s> has not yet been implemented.\n",tempstr);
+						printf("<%s> has not yet been implemented.\n",tempstr);
 				case DPF_BLANK_LINE: // nothing to do here
 				case DPF_COMMENT:
 				case DPF_NULL:
@@ -183,6 +448,8 @@ int preparse_dpf(
 			}
 		}
 	}
+	filelist.nfiles = filelist.ligand_files.size();
+	if(filelist.nfiles>0) filelist.used = true;
 	return 0;
 }
 
@@ -290,8 +557,8 @@ int get_filenames_and_ADcoeffs(
 	int ffile_given, lfile_given;
 	long tempint;
 
-	ffile_given = 0;
-	lfile_given = 0;
+	ffile_given = (mypars->fldfile!=NULL);
+	lfile_given = (mypars->ligandfile!=NULL);
 
 	for (i=1; i<(*argc)-1; i++)
 	{
@@ -399,11 +666,12 @@ void get_commandpars(
 				printf("Warning: value of -nev argument ignored. Value must be between 0 and 260000000.\n");
 		}
 
-        if (strcmp("-seed", argv[i]) == 0)
-        {
+		if (strcmp("-seed", argv[i]) == 0)
+		{
 			arg_recognized = 1;
-			sscanf(argv[i+1], "%u", &(mypars->seed));
-        }
+			mypars->seed[0] = 0; mypars->seed[1] = 0; mypars->seed[2] = 0;
+			tempint = sscanf(argv[i+1], "%u,%u,%u", &(mypars->seed[0]), &(mypars->seed[1]), &(mypars->seed[2]));
+		}
 
 		// Argument: number of generations. Must be a positive integer.
 		if (strcmp("-ngen", argv[i]) == 0)
@@ -702,6 +970,13 @@ void get_commandpars(
 		// ---------------------------------
 		// Argument: name of file containing file list
 		if (strcmp("-filelist", argv [i]) == 0)
+			arg_recognized = 1;
+
+		// ---------------------------------
+		// UPDATED in : preparse_dpf()
+		// ---------------------------------
+		// Argument: name of file containing file list
+		if (strcmp("-import_dpf", argv [i]) == 0)
 			arg_recognized = 1;
 
 		// ---------------------------------
