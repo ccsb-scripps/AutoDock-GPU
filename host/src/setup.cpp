@@ -369,18 +369,17 @@ int setup(
 	//------------------------------------------------------------
 	// Capturing algorithm parameters (command line args)
 	//------------------------------------------------------------
+	char* orig_resn = mypars.resname;
 	get_commandpars(&argc, argv, &(mygrid.spacing), &mypars);
 
-	if (i_file<filelist.resnames.size()){ // Overwrite resname with specified filename if specified in file list
-		if(mypars.resname) free(mypars.resname);
-		mypars.resname = (char*)malloc((filelist.max_len+1)*sizeof(char));
-		strcpy(mypars.resname, filelist.resnames[i_file].c_str());
-	} else if (filelist.used) { // otherwise add the index to existing name distinguish the files if multiple
+	// command-line specified resname with more than one file
+	if ((orig_resn!=mypars.resname) && (filelist.nfiles>1)){ // add an index to existing name distinguish the files
 		char* tmp = strdup(mypars.resname);
-		char* nrtmp = strdup(std::to_string(i_file).c_str());
+		char* nrtmp = strdup(std::to_string(i_file+1).c_str());
 		if(mypars.resname) free(mypars.resname);
-		mypars.resname = (char*)malloc((strlen(tmp)+strlen(nrtmp)+1)*sizeof(char));
+		mypars.resname = (char*)malloc((strlen(tmp)+strlen(nrtmp)+2)*sizeof(char));
 		strcpy(mypars.resname, tmp);
+		strcat(mypars.resname,"_");
 		strcat(mypars.resname, nrtmp);
 		free(tmp);
 		free(nrtmp);

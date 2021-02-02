@@ -313,8 +313,6 @@ int preparse_dpf(
 						else
 							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and %d.\n",tempstr,dpf_filename,line_count,MAX_NUM_OF_RUNS);
 						if(token_id!=DPF_RUNS){
-							// Add the parameter block
-							filelist.mypars.push_back(*mypars);
 							// Add the fld file to use
 							if (!mypars->fldfile){
 								printf("\nError: No map file on record yet. Please specify a map file before the first ligand.\n");
@@ -329,12 +327,15 @@ int preparse_dpf(
 							filelist.ligand_files.push_back(mypars->ligandfile);
 							// Default resname is filelist basename
 							if(mypars->resname) free(mypars->resname);
-							if(strlen(mypars->ligandfile)>6){ // .pdbqt = 6 chars
-								i=strlen(mypars->ligandfile)-6;
-								mypars->resname = (char*)malloc(i*sizeof(char));
-								strncpy(mypars->resname,mypars->ligandfile,i); // Default is ligand file basename
+							len=strlen(mypars->ligandfile)-6; // .pdbqt = 6 chars
+							if(len>0){
+								mypars->resname = (char*)malloc((len+1)*sizeof(char));
+								strncpy(mypars->resname,mypars->ligandfile,len); // Default is ligand file basename
+								mypars->resname[len]='\0';
 							} else mypars->resname = strdup("docking"); // Fallback to old default
 							filelist.resnames.push_back(mypars->resname);
+							// Add the parameter block now that resname is set
+							filelist.mypars.push_back(*mypars);
 						}
 						break;
 				case DPF_INTELEC: // calculate ES energy (needs not be "off")
@@ -487,7 +488,6 @@ int get_filelist(
 
 	if (filelist.filename){ // true when -filelist specifies a filename
 	                        // filelist.used may be true when dpf file is specified as it uses the filelist to store runs
-		filelist.preload_maps = true; // By default, preload maps if filelist used
 		std::ifstream file(filelist.filename);
 		if(file.fail()){
 			printf("\nError: Could not open filelist %s. Check path and permissions.\n",filelist.filename);
@@ -545,10 +545,18 @@ int get_filelist(
 			if(filelist.resnames.size()-initial_res_count>0){ // make sure correct number of resnames were specified when they were specified
 				printf("\nError: Inconsistent number of resnames (%lu) compared to ligands (%lu)!\n",filelist.resnames.size(),filelist.ligand_files.size());
 			} else{ // otherwise add default resname (ligand basename)
-				for(unsigned int i=filelist.resnames.size()-1; i<filelist.ligand_files.size(); i++)
+				for(unsigned int i=filelist.resnames.size(); i<filelist.ligand_files.size(); i++)
 					filelist.resnames.push_back(filelist.ligand_files[i].substr(0,filelist.ligand_files[i].size()-6));
 			}
 			return 1;
+		}
+		for(unsigned int i=initial_res_count; i<filelist.ligand_files.size(); i++){
+			if(filelist.mypars[i].fldfile) free(filelist.mypars[i].fldfile);
+			filelist.mypars[i].fldfile = strdup(filelist.fld_files[i].c_str());
+			if(filelist.mypars[i].ligandfile) free(filelist.mypars[i].ligandfile);
+			filelist.mypars[i].ligandfile = strdup(filelist.ligand_files[i].c_str());
+			if(filelist.mypars[i].resname) free(filelist.mypars[i].resname);
+			filelist.mypars[i].resname = strdup(filelist.resnames[i].c_str());
 		}
 	}
 
@@ -656,12 +664,14 @@ void get_commandpars(
 	mypars->abs_max_dmov        = 6.0/(*spacing);             // +/-6A
 	mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);   // 2 A
 	mypars->xrayligandfile      = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
-	if(mypars->resname) free(mypars->resname);
-	if(strlen(mypars->ligandfile)>6){ // .pdbqt = 6 chars
-		i=strlen(mypars->ligandfile)-6;
-		mypars->resname = (char*)malloc(i*sizeof(char));
-		strncpy(mypars->resname,mypars->ligandfile,i);    // Default is ligand file basename
-	} else mypars->resname      = strdup("docking");          // Fallback to old default
+	if(!mypars->resname){ // only need to set if it's not set yet
+		if(strlen(mypars->ligandfile)>6){ // .pdbqt = 6 chars
+			i=strlen(mypars->ligandfile)-6;
+			mypars->resname = (char*)malloc((i+1)*sizeof(char));
+			strncpy(mypars->resname,mypars->ligandfile,i);    // Default is ligand file basename
+			mypars->resname[i]='\0';
+		} else mypars->resname = strdup("docking");               // Fallback to old default
+	}
 	// ------------------------------------------
 
 	// overwriting values which were defined as a command line argument

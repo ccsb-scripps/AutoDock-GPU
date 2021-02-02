@@ -49,7 +49,7 @@ class FileList{
 	std::vector<Dockpars>    mypars;
 
 	// Default to unused, with 1 file
-	FileList() : used( false ), nfiles( 1 ), preload_maps( false ), maps_are_loaded( false ), load_maps_gpu( false ), filename( NULL ), max_len ( 0 ) {}
+	FileList() : used( false ), nfiles( 1 ), preload_maps( true ), maps_are_loaded( false ), load_maps_gpu( false ), filename( NULL ), max_len ( 0 ) {}
 	~FileList(){ if(filename) free(filename); }
 };
 
