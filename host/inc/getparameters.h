@@ -114,7 +114,7 @@ typedef struct _Dockpars
 	bool                   handle_symmetry                 = true;
 	bool                   gen_finalpop                    = false;
 	bool                   gen_best                        = false;
-	char*                  resname                         = NULL; // by default will be "docking", dynamically created
+	char*                  resname                         = NULL; // by default will be ligand file basename
 	float                  qasp                            = 0.01097f;
 	float                  rmsd_tolerance                  = 2.0; // 2 Angstroem
 	float                  adam_beta1                      = 0.9f;

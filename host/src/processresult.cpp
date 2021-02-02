@@ -414,10 +414,10 @@ void make_resfiles(
 		fprintf(fp, "     STATE OF FINAL POPULATION     \n");
 		fprintf(fp, "===================================\n\n");
 
-		fprintf(fp, " Entity |      dx [A]      |      dy [A]      |      dz [A]      |     phi []      |    theta []     | alpha_genrot [] |");
+		fprintf(fp, " Entity |      dx [A]      |      dy [A]      |      dz [A]      |      phi []      |     theta []     |  alpha_genrot [] |");
 		for (i=0; i<ligand_from_pdb->num_of_rotbonds; i++)
-			fprintf(fp, " alpha_rotb%2d [] |", i);
-		fprintf(fp, " intramolecular energy | intermolecular energy | total energy calculated by CPU / calculated by GPU / difference | RMSD [A] | \n");
+			fprintf(fp, "  alpha_rotb%2d [] |", i);
+		fprintf(fp, " intramolecular energy | intermolecular energy |     total energy calculated by CPU / calculated by GPU / difference    | RMSD [A] | \n");
 
 		fprintf(fp, "--------+------------------+------------------+------------------+------------------+------------------+------------------+");
 		for (i=0; i<ligand_from_pdb->num_of_rotbonds; i++)

@@ -178,6 +178,7 @@ int preparse_dpf(
 		float paramA, paramB;
 		int m, n;
 		char typeA[4], typeB[4];
+		filelist.max_len = 256;
 		while(std::getline(file, line)) {
 			line_count++;
 			trim(line); // Remove leading and trailing whitespace
@@ -315,6 +316,10 @@ int preparse_dpf(
 							// Add the parameter block
 							filelist.mypars.push_back(*mypars);
 							// Add the fld file to use
+							if (!mypars->fldfile){
+								printf("\nError: No map file on record yet. Please specify a map file before the first ligand.\n");
+								return 1;
+							}
 							filelist.fld_files.push_back(mypars->fldfile);
 							// If more than one unique protein, cant do map preloading yet
 							if (filelist.fld_files.size()>1){
@@ -322,14 +327,14 @@ int preparse_dpf(
 							}
 							// Add the ligand to filelist
 							filelist.ligand_files.push_back(mypars->ligandfile);
-							if (filelist.fld_files.size()==0){
-								printf("\nError: No map file on record yet. Please specify a map file before the first ligand (%s).\n",argstr);
-								return 1;
-							}
-							if (filelist.ligand_files.size()>filelist.fld_files.size()){
-								// If this ligand doesnt have a protein preceding it, use the previous protein
-								filelist.fld_files.push_back(filelist.fld_files[filelist.fld_files.size()-1]);
-							}
+							// Default resname is filelist basename
+							if(mypars->resname) free(mypars->resname);
+							if(strlen(mypars->ligandfile)>6){ // .pdbqt = 6 chars
+								i=strlen(mypars->ligandfile)-6;
+								mypars->resname = (char*)malloc(i*sizeof(char));
+								strncpy(mypars->resname,mypars->ligandfile,i); // Default is ligand file basename
+							} else mypars->resname = strdup("docking"); // Fallback to old default
+							filelist.resnames.push_back(mypars->resname);
 						}
 						break;
 				case DPF_INTELEC: // calculate ES energy (needs not be "off")
@@ -490,10 +495,11 @@ int get_filelist(
 		}
 		std::string line;
 		bool prev_line_was_fld=false;
-		filelist.max_len = 0;
+		unsigned int initial_res_count = filelist.resnames.size();
+		int len;
 		while(std::getline(file, line)) {
 			trim(line); // Remove leading and trailing whitespace
-			int len = line.size();
+			len = line.size();
 			if(len>filelist.max_len) filelist.max_len = len;
 			if (len>=4 && line.compare(len-4,4,".fld") == 0){
 				if (prev_line_was_fld){ // Overwrite the previous fld file if two in a row
@@ -535,8 +541,13 @@ int get_filelist(
 			printf("\nError: No ligands, through lines ending with the .pdbqt suffix, have been specified.\n");
 			return 1;
 		}
-		if ((filelist.ligand_files.size() != filelist.resnames.size()) && (filelist.resnames.size()>0)){
-			printf("\nError: Inconsistent number of resnames (%lu) compared to ligands (%lu)!\n",filelist.resnames.size(),filelist.ligand_files.size());
+		if (filelist.ligand_files.size() != filelist.resnames.size()){
+			if(filelist.resnames.size()-initial_res_count>0){ // make sure correct number of resnames were specified when they were specified
+				printf("\nError: Inconsistent number of resnames (%lu) compared to ligands (%lu)!\n",filelist.resnames.size(),filelist.ligand_files.size());
+			} else{ // otherwise add default resname (ligand basename)
+				for(unsigned int i=filelist.resnames.size()-1; i<filelist.ligand_files.size(); i++)
+					filelist.resnames.push_back(filelist.ligand_files[i].substr(0,filelist.ligand_files[i].size()-6));
+			}
 			return 1;
 		}
 	}
@@ -645,7 +656,12 @@ void get_commandpars(
 	mypars->abs_max_dmov        = 6.0/(*spacing);             // +/-6A
 	mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);   // 2 A
 	mypars->xrayligandfile      = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
-	mypars->resname             = strdup("docking");          // Default dynamically created name
+	if(mypars->resname) free(mypars->resname);
+	if(strlen(mypars->ligandfile)>6){ // .pdbqt = 6 chars
+		i=strlen(mypars->ligandfile)-6;
+		mypars->resname = (char*)malloc(i*sizeof(char));
+		strncpy(mypars->resname,mypars->ligandfile,i);    // Default is ligand file basename
+	} else mypars->resname      = strdup("docking");          // Fallback to old default
 	// ------------------------------------------
 
 	// overwriting values which were defined as a command line argument
@@ -1158,7 +1174,7 @@ void get_commandpars(
 		}
 
 		// Argument: generate final population result files.
-		// If the value is zero, result files containing the final populations won't be generatied, otherwise they will.
+		// If the value is zero, result files containing the final populations won't be generated, otherwise they will.
 		if (strcmp("-gfpop", argv [i]) == 0)
 		{
 			arg_recognized = 1;
