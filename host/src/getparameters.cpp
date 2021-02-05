@@ -181,7 +181,7 @@ int preparse_dpf(
 		int m, n;
 		char typeA[4], typeB[4];
 		filelist.max_len = 256;
-		bool found;
+		bool new_device = false; // indicate if current mypars has a new device requested
 		while(std::getline(file, line)) {
 			line_count++;
 			trim(line); // Remove leading and trailing whitespace
@@ -344,6 +344,7 @@ int preparse_dpf(
 								mypars->resname[len]='\0';
 							} else mypars->resname = strdup("docking"); // Fallback to old default
 							filelist.resnames.push_back(mypars->resname);
+							if(new_device) mypars->devices_requested++;
 							// Before pushing parameters and grids back make sure
 							// the filename pointers are unique
 							if(filelist.mypars.size()>0){ // mypars and mygrids have same size
@@ -484,14 +485,12 @@ int preparse_dpf(
 							}
 							// count GPUs in case we set a different one
 							if(strcmp(tempstr,"-devnum")==0){
-								found=false;
-								for(i=0; (i<filelist.mypars.size())&&!found; i++){
+								new_device=false;
+								for(i=0; (i<filelist.mypars.size())&&!new_device; i++){
 									if(mypars->devnum==filelist.mypars[i].devnum){
-										found=true;
+										new_device=true;
 									}
 								}
-								if(!found && (filelist.mypars.size()>0))
-									mypars->devices_requested++;
 							}
 						}
 						break;
