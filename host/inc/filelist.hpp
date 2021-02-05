@@ -40,7 +40,6 @@ class FileList{
 	bool                     used;
 	bool                     preload_maps;
 	bool                     maps_are_loaded;
-	bool                     load_maps_gpu;
 	char*                    filename;
 	int                      nfiles;
 	int                      max_len; // maximum length of strings in arrays below
@@ -49,9 +48,10 @@ class FileList{
 	std::vector<std::string> ligand_files;
 	std::vector<Dockpars>    mypars;
 	std::vector<Gridinfo>    mygrids;
+	std::vector<bool>        load_maps_gpu; // indicate which device needs to still load maps from cpu
 
 	// Default to unused, with 1 file
-	FileList() : used( false ), nfiles( 1 ), preload_maps( true ), maps_are_loaded( false ), load_maps_gpu( false ), filename( NULL ), max_len ( 0 ) {}
+	FileList() : used( false ), nfiles( 1 ), preload_maps( true ), maps_are_loaded( false ), filename( NULL ), max_len ( 0 ) {}
 	~FileList(){ if(filename) free(filename); }
 };
 

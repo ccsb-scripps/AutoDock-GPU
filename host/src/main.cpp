@@ -131,6 +131,8 @@ int main(int argc, char* argv[])
 #ifndef USE_PIPELINE
 	if(nr_devices>1) printf("Info: Parallelization over multiple GPUs is only available if OVERLAP=ON is specified when AD-GPU is build.\n");
 #endif
+	for(unsigned int i=0; i<nr_devices; i++)
+		filelist.load_maps_gpu.push_back(true);
 	
 	// Objects that are arguments of docking_with_gpu
 	GpuData cData[nr_devices];
@@ -186,7 +188,7 @@ int main(int argc, char* argv[])
 #endif
 		for(int i_job=0; i_job<n_files; i_job++){
 			// Setup the next file in the queue
-			printf ("(Thread %d is setting up Job %d)\n",t_id,i_job); fflush(stdout);
+			printf ("(Thread %d is setting up Job #%d)\n",t_id,i_job+1); fflush(stdout);
 			if(filelist.used){
 				mypars = filelist.mypars[i_job];
 				mygrid = filelist.mygrids[i_job];
@@ -209,7 +211,7 @@ int main(int argc, char* argv[])
 			if (setup(all_maps, mygrid, floatgrids, mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv) != 0) {
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
 				// Keep in setup stage rather than moving to launch stage so a different job will be set up
-				printf("\n\nError in setup of Job #%d:\n", i_job);
+				printf("\n\nError in setup of Job #%d:\n", i_job+1);
 				if (filelist.used){
 					printf("(   Field file: %s )\n",  filelist.fld_files[i_job].c_str());
 					printf("(   Ligand file: %s )\n", filelist.ligand_files[i_job].c_str()); fflush(stdout);
@@ -222,12 +224,12 @@ int main(int argc, char* argv[])
 				#pragma omp critical
 #endif
 				{
-					if(filelist.preload_maps && filelist.load_maps_gpu){
+					if(filelist.preload_maps && filelist.load_maps_gpu[dev_nr]){
 						int size_of_one_map = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
 						for (int t=0; t < all_maps.size(); t++){
 							copy_map_to_gpu(tData[dev_nr],all_maps,t,size_of_one_map);
 						}
-						filelist.load_maps_gpu=false;
+						filelist.load_maps_gpu[dev_nr]=false;
 					}
 				}
 #ifdef USE_PIPELINE
@@ -243,7 +245,7 @@ int main(int argc, char* argv[])
 			#pragma omp critical
 #endif
 			{
-				printf("\nRunning Job #%d:\n", i_job);
+				printf("\nRunning Job #%d:\n", i_job+1);
 				if (filelist.used){
 					printf("   Fields from: %s\n",  filelist.fld_files[i_job].c_str());
 				 	printf("   Ligands from: %s\n", filelist.ligand_files[i_job].c_str()); fflush(stdout);
@@ -261,7 +263,7 @@ int main(int argc, char* argv[])
 			if (error_in_docking!=0){
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
 				// Set back to setup stage rather than moving to processing stage so a different job will be set up
-				printf("\n\nError in docking_with_gpu, stopped Job %d.\n",i_job);
+				printf("\n\nError in docking_with_gpu, stopped Job #%d.\n",i_job+1);
 				err[i_job] = 1;
 				continue;
 			} else { // Successful run
@@ -270,7 +272,7 @@ int main(int argc, char* argv[])
 				#pragma omp atomic update
 #endif
 				total_exec_time+=sim_state.exec_time;
-				printf("\nJob #%d took %.3f sec after waiting %.3f sec for setup\n", i_job, sim_state.exec_time, sim_state.idle_time);
+				printf("\nJob #%d took %.3f sec after waiting %.3f sec for setup\n", i_job+1, sim_state.exec_time, sim_state.idle_time);
 				if (get_profiles && filelist.used){
 					// Detailed timing information to .timing
 					profiler.p[i_job].exec_time = sim_state.exec_time;
@@ -279,7 +281,7 @@ int main(int argc, char* argv[])
 			}
 
 			// Post-processing
-			printf ("\n(Thread %d is processing Job %d)\n",t_id,i_job); fflush(stdout);
+			printf ("\n(Thread %d is processing Job #%d)\n",t_id,i_job+1); fflush(stdout);
 			start_timer(processing_timer);
 			process_result(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), &argc,argv, sim_state);
 #ifdef USE_PIPELINE

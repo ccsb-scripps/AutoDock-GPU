@@ -311,7 +311,6 @@ int setup(
 						got_error = true;
 					}
 					filelist.maps_are_loaded = true;
-					filelist.load_maps_gpu = true; // first thread seeing this will copy to GPU
 				}
 			}
 			// Return must be outside pragma
