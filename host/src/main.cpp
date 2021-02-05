@@ -219,11 +219,16 @@ int main(int argc, char* argv[])
 				err[i_job] = 1;
 				continue;
 			} else { // Successful setup
+#ifdef USE_PIPELINE
+				#pragma omp atomic update
+#endif
+				total_setup_time+=seconds_since(setup_timer); // can't count waiting to enter the critical section -AT
 				// Copy preloaded maps to GPU
 #ifdef USE_PIPELINE
 				#pragma omp critical
 #endif
 				{
+					start_timer(setup_timer);
 					if(filelist.preload_maps && filelist.load_maps_gpu[dev_nr]){
 						int size_of_one_map = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
 						for (int t=0; t < all_maps.size(); t++){
@@ -231,11 +236,8 @@ int main(int argc, char* argv[])
 						}
 						filelist.load_maps_gpu[dev_nr]=false;
 					}
+					total_setup_time+=seconds_since(setup_timer);
 				}
-#ifdef USE_PIPELINE
-				#pragma omp atomic update
-#endif
-				total_setup_time+=seconds_since(setup_timer);
 			}
 
 			// Starting Docking
@@ -317,6 +319,7 @@ int main(int argc, char* argv[])
 	// Total time measurement
 	printf("\nRun time of entire job set (%d file%s): %.3f sec", n_files, n_files>1?"s":"", seconds_since(time_start));
 #ifdef USE_PIPELINE
+	printf("\n%.3f %.3f %.3f\n",total_setup_time,total_processing_time,total_exec_time);
 	printf("\nSavings from multithreading: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
 	//if (filelist.preload_maps) printf("\nSavings from receptor reuse: %.3f sec * avg_maps_used/n_maps",receptor_reuse_time*n_files);
 	printf("\nIdle time of execution thread: %.3f sec",seconds_since(time_start) - total_exec_time);
