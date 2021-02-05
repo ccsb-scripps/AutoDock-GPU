@@ -30,6 +30,8 @@ int get_gridinfo(
                        Gridinfo* mygrid
                 )
 {
+	if(mygrid->info_read) return 0; // already succesfully read this grid's information
+
 	FILE*  fp;
 	char   tempstr [256];
 	int    gpoints_even[3];
@@ -145,6 +147,7 @@ int get_gridinfo(
 	mygrid->origo_real_xyz[2] = center[2] - (((double) gpoints_even[2])*0.5*(mygrid->spacing));
 
 	fclose(fp);
+	mygrid->info_read = true;
 
 	return 0;
 }

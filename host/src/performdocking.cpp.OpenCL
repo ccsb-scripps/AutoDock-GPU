@@ -128,6 +128,7 @@ void setup_gpu_for_docking(
                            GpuTempData& tData
                           )
 {
+	if(cData.devnum<-1) return; // device already setup
 // =======================================================================
 // OpenCL Host Setup
 // =======================================================================
@@ -231,6 +232,8 @@ void setup_gpu_for_docking(
 	char* device_name = (char*) malloc(dev_name_size);
 	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, dev_name_size, device_name, NULL);
 	printf("OpenCL device:                           %s\n",device_name);
+	cData.devnum=-2;
+
 	free(device_name);
 
 	// Create context from first platform
@@ -239,7 +242,7 @@ void setup_gpu_for_docking(
 	// Create command queue for first device
 	if (createCommandQueue(tData.context,device_id,&tData.command_queue) != 0) exit(-1);
 
-	// Create program from source 
+	// Create program from source
 #ifdef _WIN32
 	if (ImportSource(filename, name_k1, &device_id, tData.context, options_program, &tData.kernel1) != 0) exit(-1);
 	if (ImportSource(filename, name_k2, &device_id, tData.context, options_program, &tData.kernel2) != 0) exit(-1);

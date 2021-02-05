@@ -69,6 +69,7 @@ typedef struct _Gridinfo
 	int    num_of_atypes;
 	int    num_of_map_atypes;
 	double origo_real_xyz [3];
+	bool   info_read      = false; // so we don't have to continue reading the same information over and over again
 } Gridinfo;
 
 struct Map

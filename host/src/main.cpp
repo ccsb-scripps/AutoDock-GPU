@@ -87,10 +87,11 @@ int main(int argc, char* argv[])
 	// File list setup if -filelist option is on
 	FileList filelist;
 	Dockpars initial_pars;
-	if (preparse_dpf(&argc, argv, &initial_pars, filelist) != 0)
+	Gridinfo initial_grid;
+	if (preparse_dpf(&argc, argv, &initial_pars, &initial_grid, filelist) != 0)
 		return 1;
 	int n_files;
-	if (get_filelist(&argc, argv, &initial_pars, filelist) != 0)
+	if (get_filelist(&argc, argv, &initial_pars, &initial_grid, filelist) != 0)
 		return 1;
 	if (filelist.used){
 		n_files = filelist.nfiles;
@@ -98,15 +99,14 @@ int main(int argc, char* argv[])
 	} else {
 		n_files = 1;
 	}
+	int pl_gridsize = preload_gridsize(filelist);
 
 	// Setup master map set (one for now, nthreads-1 for general case)
 	std::vector<Map> all_maps;
 
-	// Objects that are arguments of docking_with_gpu
-	GpuData cData;
-	GpuTempData tData;
 
-	cData.devnum=-1;
+	int devnum=-1;
+	int nr_devices=initial_pars.devices_requested;
 	// Get device number to run on
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
@@ -115,13 +115,27 @@ int main(int argc, char* argv[])
 			unsigned int tempint;
 			sscanf(argv [i+1], "%u", &tempint);
 			if ((tempint >= 1) && (tempint <= 65536))
-				cData.devnum = (unsigned long) tempint-1;
+				devnum = (unsigned long) tempint-1;
 			else
 				printf("Warning: value of -devnum argument ignored. Value must be an integer between 1 and 65536.\n");
 			break;
 		}
 	}
-	cData.preload_gridsize = preload_gridsize(filelist);
+	if(devnum>=0){ // user-specified argument on command line has precedence
+		if(initial_pars.devices_requested>1)
+			printf("Using (single GPU) -devnum specified as command line option.\n");
+		nr_devices=1;
+	} else devnum=initial_pars.devnum;
+
+	if(nr_devices<1) nr_devices=1;
+#ifndef USE_PIPELINE
+	if(nr_devices>1) printf("Info: Parallelization over multiple GPUs is only available if OVERLAP=ON is specified when AD-GPU is build.\n");
+#endif
+	
+	// Objects that are arguments of docking_with_gpu
+	GpuData cData[nr_devices];
+	GpuTempData tData[nr_devices];
+	
 	// Set up run profiles for timing
 	bool get_profiles = true; // hard-coded switch to use ALS's job profiler
 	Profiler profiler;
@@ -136,7 +150,12 @@ int main(int argc, char* argv[])
 	// Print version info
 	printf("AutoDock-GPU version: %s\n", VERSION);
 
-	setup_gpu_for_docking(cData,tData);
+	if(nr_devices==1){
+		cData[0].devnum = devnum;
+		cData[0].preload_gridsize = pl_gridsize;
+		setup_gpu_for_docking(cData[0],tData[0]);
+	}
+
 	total_setup_time+=seconds_since(time_start);
 
 #ifdef USE_PIPELINE
@@ -150,12 +169,13 @@ int main(int argc, char* argv[])
 	{
 		int t_id = 0;
 #endif
-		Dockpars   mypars = initial_pars;
+		Dockpars   mypars;// = initial_pars;
 		Liganddata myligand_init;
-		Gridinfo   mygrid;
+		Gridinfo   mygrid;// = initial_grid;
 		Liganddata myxrayligand;
 		std::vector<float> floatgrids;
 		SimulationState sim_state;
+		int dev_nr = 0;
 #ifndef _WIN32
 	        timeval setup_timer, exec_timer, processing_timer;
 #else
@@ -167,8 +187,24 @@ int main(int argc, char* argv[])
 		for(int i_job=0; i_job<n_files; i_job++){
 			// Setup the next file in the queue
 			printf ("(Thread %d is setting up Job %d)\n",t_id,i_job); fflush(stdout);
+			if(filelist.used){
+				mypars = filelist.mypars[i_job];
+				mygrid = filelist.mygrids[i_job];
+			}
+#ifdef USE_PIPELINE
+			#pragma omp critical
+#endif
+			{
+				if(nr_devices>1){
+					dev_nr = mypars.devices_requested-1;
+					if(cData[dev_nr].devnum>-2){
+						cData[dev_nr].devnum = mypars.devnum;
+						cData[dev_nr].preload_gridsize = pl_gridsize;
+						setup_gpu_for_docking(cData[dev_nr],tData[dev_nr]);
+					}
+				}
+			}
 			start_timer(setup_timer);
-			if(filelist.used) mypars = filelist.mypars[i_job];
 			// Load files, read inputs, prepare arrays for docking stage
 			if (setup(all_maps, mygrid, floatgrids, mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv) != 0) {
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
@@ -186,10 +222,11 @@ int main(int argc, char* argv[])
 				#pragma omp critical
 #endif
 				{
-					if(filelist.preload_maps && filelist.load_maps_gpu){
+					if(filelist.used && filelist.preload_maps && filelist.load_maps_gpu){
 						int size_of_one_map = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
-						for (int t=0; t < all_maps.size(); t++)
-							copy_map_to_gpu(tData,all_maps,t,size_of_one_map);
+						for (int t=0; t < all_maps.size(); t++){
+							copy_map_to_gpu(tData[dev_nr],all_maps,t,size_of_one_map);
+						}
 						filelist.load_maps_gpu=false;
 					}
 				}
@@ -215,7 +252,7 @@ int main(int argc, char* argv[])
 				sim_state.idle_time = seconds_since(idle_timer);
 				start_timer(exec_timer);
 				// Dock
-				error_in_docking = docking_with_gpu(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), profiler.p[(get_profiles ? i_job : 0)], &argc, argv, sim_state, cData, tData, filelist.preload_maps);
+				error_in_docking = docking_with_gpu(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), profiler.p[(get_profiles ? i_job : 0)], &argc, argv, sim_state, cData[dev_nr], tData[dev_nr], filelist.preload_maps);
 				// End exec timer, start idling timer
 				sim_state.exec_time = seconds_since(exec_timer);
 				start_timer(idle_timer);
@@ -287,7 +324,8 @@ int main(int argc, char* argv[])
 #endif
 #endif
 
-	finish_gpu_from_docking(cData,tData);
+	for(unsigned int i=0; i<nr_devices; i++)
+		finish_gpu_from_docking(cData[i],tData[i]);
 
 	// Alert user to ligands that failed to complete
 	int n_errors=0;

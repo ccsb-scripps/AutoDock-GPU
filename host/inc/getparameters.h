@@ -64,6 +64,8 @@ constexpr AD4_free_energy_coeffs unbound_models[3] = {
 // Struct which contains the docking parameters (partly parameters for fpga)
 typedef struct _Dockpars
 {                                                              // default values
+	int                    devnum                          = -1;
+	int                    devices_requested               = 1; // this is AD-GPU ...
 	uint32_t               seed[3]                         = {(uint32_t)time(NULL),(uint32_t)processid(),0};
 	unsigned long          num_of_energy_evals             = 2500000;
 	unsigned long          num_of_generations              = 27000;
@@ -81,7 +83,6 @@ typedef struct _Dockpars
 	deriv_atype*           deriv_atypes                    = NULL; // or even: -derivtype C1,C2,C3=C/S4=S/H5=HD
 	int                    nr_mod_atype_pairs              = 0;    // this is to support: -modpair C1:S4,1.60,1.200,13,7
 	pair_mod*              mod_atype_pairs                 = NULL; // or even: -modpair C1:S4,1.60,1.200,13,7/C1:C3,1.20 0.025
-	unsigned long          num_of_ls;
 	char                   ls_method[LS_METHOD_STRING_LEN] = "sw"; // "sw": Solis-Wets,
 	                                                               // "sd": Steepest-Descent
 	                                                               // "fire": FIRE, https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
@@ -100,6 +101,7 @@ typedef struct _Dockpars
 	char*                  ligandfile                      = NULL;
 	char*                  flexresfile                     = NULL;
 	char*                  xrayligandfile                  = NULL;  // by default will be ligand file name
+	char*                  resname                         = NULL; // by default will be ligand file basename
 	bool                   given_xrayligandfile            = false; // That is, not given (explicitly by the user)
 	float                  ref_ori_angles [3];             // is generated in gen_initpop_and_reflig(...)
 	bool                   autostop                        = 0;
@@ -114,7 +116,6 @@ typedef struct _Dockpars
 	bool                   handle_symmetry                 = true;
 	bool                   gen_finalpop                    = false;
 	bool                   gen_best                        = false;
-	char*                  resname                         = NULL; // by default will be ligand file basename
 	float                  qasp                            = 0.01097f;
 	float                  rmsd_tolerance                  = 2.0; // 2 Angstroem
 	float                  adam_beta1                      = 0.9f;
@@ -154,6 +155,7 @@ int preparse_dpf(
                  const int*      argc,
                        char**    argv,
                        Dockpars* mypars,
+                       Gridinfo* mygrid,
                        FileList& filelist
                 );
 
@@ -161,6 +163,7 @@ int get_filelist(
                  const int*      argc,
                        char**    argv,
                        Dockpars* mypars,
+                       Gridinfo* mygrid,
                        FileList& filelist
                 );
 
@@ -171,12 +174,13 @@ int get_filenames_and_ADcoeffs(
                                const bool
                               );
 
-void get_commandpars(
-                     const int*,
-                           char**,
-                           double*,
-                           Dockpars*
-                    );
+int get_commandpars(
+                    const int*,
+                          char**,
+                          double*,
+                          Dockpars*,
+                    const bool late_call = true
+                   );
 
 void gen_initpop_and_reflig(
                                   Dockpars*   mypars,

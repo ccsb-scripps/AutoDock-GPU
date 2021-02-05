@@ -134,6 +134,7 @@ int preparse_dpf(
                  const int*      argc,
                        char**    argv,
                        Dockpars* mypars,
+                       Gridinfo* mygrid,
                        FileList& filelist
                 )
 // This function checks if a dpf file is used and, if runs are specified, map and ligand information
@@ -165,6 +166,7 @@ int preparse_dpf(
 		mypars->elec_min_distance = 0.5; // default for AD4
 		std::string line;
 		char tempstr[256], argstr[256];
+		char* args[2];
 		int tempint, i, len;
 		float tempfloat;
 		int line_count = 0;
@@ -179,6 +181,7 @@ int preparse_dpf(
 		int m, n;
 		char typeA[4], typeB[4];
 		filelist.max_len = 256;
+		bool found;
 		while(std::getline(file, line)) {
 			line_count++;
 			trim(line); // Remove leading and trailing whitespace
@@ -201,6 +204,13 @@ int preparse_dpf(
 						// Add the .fld file
 						if(mypars->fldfile) free(mypars->fldfile);
 						mypars->fldfile = strdup(argstr); // this allows using the dpf to set up all parameters but the ligand
+						// Filling mygrid according to the specified fld file
+						mygrid->info_read = false;
+						if (get_gridinfo(mypars->fldfile, mygrid) != 0)
+						{
+							printf("\nError: get_gridinfo failed with fld file specified with <%s> parameter at %s:%u.\n",tempstr,dpf_filename,line_count);
+							return 1;
+						}
 						break;
 				case DPF_LIGAND_TYPES: // ligand types used
 						len=-1;
@@ -334,8 +344,29 @@ int preparse_dpf(
 								mypars->resname[len]='\0';
 							} else mypars->resname = strdup("docking"); // Fallback to old default
 							filelist.resnames.push_back(mypars->resname);
+							// Before pushing parameters and grids back make sure
+							// the filename pointers are unique
+							if(filelist.mypars.size()>0){ // mypars and mygrids have same size
+								if((filelist.mypars.back().flexresfile) &&
+								   (filelist.mypars.back().flexresfile==mypars->flexresfile))
+									mypars->flexresfile=strdup(mypars->flexresfile);
+								if((filelist.mypars.back().xrayligandfile) &&
+								   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
+									mypars->xrayligandfile=strdup(mypars->xrayligandfile);
+								if((filelist.mygrids.back().grid_file_path) &&
+								   (filelist.mygrids.back().grid_file_path==mygrid->grid_file_path))
+									mygrid->grid_file_path=strdup(mygrid->grid_file_path);
+								if((filelist.mygrids.back().receptor_name) &&
+								   (filelist.mygrids.back().receptor_name==mygrid->receptor_name))
+									mygrid->receptor_name=strdup(mygrid->receptor_name);
+								if((filelist.mygrids.back().map_base_name) &&
+								   (filelist.mygrids.back().map_base_name==mygrid->map_base_name))
+									mygrid->map_base_name=strdup(mygrid->map_base_name);
+							}
 							// Add the parameter block now that resname is set
 							filelist.mypars.push_back(*mypars);
+							// Also add the grid
+							filelist.mygrids.push_back(*mygrid);
 						}
 						break;
 				case DPF_INTELEC: // calculate ES energy (needs not be "off")
@@ -439,16 +470,37 @@ int preparse_dpf(
 							mypars->unbound_model = 2;
 							mypars->coeffs = unbound_models[mypars->unbound_model];
 						} else{
-							printf("Error: Unsupported value for <%s> at %s:%u. Value must be a float between 0 and 1.\n",tempstr,dpf_filename,line_count);
+							printf("Error: Unsupported value for <%s> at %s:%u. Value must be one of (bound|extend|compact).\n",tempstr,dpf_filename,line_count);
+						}
+						break;
+				case DPF_COMMENT: // we use comments to allow specifying AD-GPU command lines
+						sscanf(line.c_str(),"%*s %255s %255s",&tempstr,&argstr);
+						if(tempstr[0]=='-'){ // potential command line argument
+							i=2; // one command line argument to be parsed
+							args[0]=tempstr;
+							args[1]=argstr;
+							if(get_commandpars(&i,args,&(mygrid->spacing),mypars,false)<2){
+								printf("Warning: Command line option '%s' at %s:%u is not supported inside a dpf file.\n",tempstr,dpf_filename,line_count);
+							}
+							// count GPUs in case we set a different one
+							if(strcmp(tempstr,"-devnum")==0){
+								found=false;
+								for(i=0; (i<filelist.mypars.size())&&!found; i++){
+									if(mypars->devnum==filelist.mypars[i].devnum){
+										found=true;
+									}
+								}
+								if(!found && (filelist.mypars.size()>0))
+									mypars->devices_requested++;
+							}
 						}
 						break;
 				case DPF_UNKNOWN: // error condition
 						printf("\nError: Unknown or unsupported dpf token <%s> at %s:%u.\n",tempstr,dpf_filename,line_count);
 						return 1;
-				default: // not yet implemented
+				default: // means there's a keyword detected that's not yet implemented here
 						printf("<%s> has not yet been implemented.\n",tempstr);
 				case DPF_BLANK_LINE: // nothing to do here
-				case DPF_COMMENT:
 				case DPF_NULL:
 						break;
 			}
@@ -463,6 +515,7 @@ int get_filelist(
                  const int*      argc,
                        char**    argv,
                        Dockpars* mypars,
+                       Gridinfo* mygrid,
                        FileList& filelist
                 )
 // The function checks if a filelist has been provided according to the proper command line arguments.
@@ -515,14 +568,47 @@ int get_filelist(
 						filelist.preload_maps=false;
 					}
 				}
+				// Filling mygrid according to the specified fld file
+				mygrid->info_read = false;
+				if (get_gridinfo(filelist.fld_files[filelist.fld_files.size()-1].c_str(), mygrid) != 0)
+				{
+					printf("\nError: get_gridinfo failed with fld file specified in filelist.\n");
+					return 1;
+				}
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
 				// Add the .pdbqt
 				filelist.ligand_files.push_back(line);
+				// Before pushing parameters and grids back make sure
+				// the filename pointers are unique
+				if(filelist.mypars.size()>0){ // mypars and mygrids have same size
+					if((filelist.mypars.back().flexresfile) &&
+					   (filelist.mypars.back().flexresfile==mypars->flexresfile))
+						mypars->flexresfile=strdup(mypars->flexresfile);
+					if((filelist.mypars.back().xrayligandfile) &&
+					   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
+						mypars->xrayligandfile=strdup(mypars->xrayligandfile);
+					if((filelist.mygrids.back().grid_file_path) &&
+					   (filelist.mygrids.back().grid_file_path==mygrid->grid_file_path))
+						mygrid->grid_file_path=strdup(mygrid->grid_file_path);
+					if((filelist.mygrids.back().receptor_name) &&
+					   (filelist.mygrids.back().receptor_name==mygrid->receptor_name))
+						mygrid->receptor_name=strdup(mygrid->receptor_name);
+					if((filelist.mygrids.back().map_base_name) &&
+					   (filelist.mygrids.back().map_base_name==mygrid->map_base_name))
+						mygrid->map_base_name=strdup(mygrid->map_base_name);
+				}
 				// Add the parameter block
 				filelist.mypars.push_back(*mypars);
+				// Add the grid info
+				filelist.mygrids.push_back(*mygrid);
 				if (filelist.fld_files.size()==0){
-					printf("\nError: No map file on record yet. Please specify a .fld file before the first ligand (%s).\n",line.c_str());
-					return 1;
+					if(mygrid->info_read){ // already read a map file in with dpf import
+						printf("\nUsing map file from dpf import.\n");
+						filelist.fld_files.push_back(mypars->fldfile);
+					} else{
+						printf("\nError: No map file on record yet. Please specify a .fld file before the first ligand (%s).\n",line.c_str());
+						return 1;
+					}
 				}
 				if (filelist.ligand_files.size()>filelist.fld_files.size()){
 					// If this ligand doesnt have a protein preceding it, use the previous protein
@@ -643,12 +729,13 @@ int get_filenames_and_ADcoeffs(
 	return 0;
 }
 
-void get_commandpars(
-                     const int*      argc,
-                           char**    argv,
-                           double*   spacing,
-                           Dockpars* mypars
-                    )
+int get_commandpars(
+                    const int*      argc,
+                          char**    argv,
+                          double*   spacing,
+                          Dockpars* mypars,
+                    const bool      late_call
+                   )
 // The function processes the command line arguments given with the argc and argv parameters,
 // and fills the proper fields of mypars according to that. If a parameter was not defined
 // in the command line, the default value will be assigned. The mypars' fields will contain
@@ -657,22 +744,24 @@ void get_commandpars(
 	int   i;
 	long  tempint;
 	float tempfloat;
-	int   arg_recognized;
-
-	// ------------------------------------------
-	// default values
-	mypars->abs_max_dmov        = 6.0/(*spacing);             // +/-6A
-	mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);   // 2 A
-	mypars->xrayligandfile      = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
-	if(!mypars->resname){ // only need to set if it's not set yet
-		if(strlen(mypars->ligandfile)>6){ // .pdbqt = 6 chars
-			i=strlen(mypars->ligandfile)-6;
-			mypars->resname = (char*)malloc((i+1)*sizeof(char));
-			strncpy(mypars->resname,mypars->ligandfile,i);    // Default is ligand file basename
-			mypars->resname[i]='\0';
-		} else mypars->resname = strdup("docking");               // Fallback to old default
+	int   arg_recognized = 0;
+	int   arg_set = 1;
+	if(late_call){
+		// ------------------------------------------
+		// default values
+		mypars->abs_max_dmov        = 6.0/(*spacing);             // +/-6A
+		mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);   // 2 A
+		mypars->xrayligandfile      = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
+		if(!mypars->resname){ // only need to set if it's not set yet
+			if(strlen(mypars->ligandfile)>6){ // .pdbqt = 6 chars
+				i=strlen(mypars->ligandfile)-6;
+				mypars->resname = (char*)malloc((i+1)*sizeof(char));
+				strncpy(mypars->resname,mypars->ligandfile,i);    // Default is ligand file basename
+				mypars->resname[i]='\0';
+			} else mypars->resname = strdup("docking");               // Fallback to old default
+		}
+		// ------------------------------------------
 	}
-	// ------------------------------------------
 
 	// overwriting values which were defined as a command line argument
 	for (i=1; i<(*argc)-1; i+=2)
@@ -816,10 +905,6 @@ void get_commandpars(
 			else
 				printf("Warning: value of -lrat argument ignored. Value must be a float between 0 and 100.\n");
 		}
-
-		// ---------------------------------
-		// MISSING: unsigned long num_of_ls
-		// ---------------------------------
 
 		// Smoothed pairwise potentials
 		if (strcmp("-smooth", argv [i]) == 0)
@@ -1010,29 +1095,30 @@ void get_commandpars(
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
 		// Argument: name of grid parameter file.
-		if (strcmp("-ffile", argv [i]) == 0)
+		if (strcmp("-ffile", argv [i]) == 0){
 			arg_recognized = 1;
+			arg_set = 0;
+		}
 
 		// ---------------------------------
 		// MISSING: char* ligandfile
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
 		// Argument: name of ligand pdbqt file
-		if (strcmp("-lfile", argv [i]) == 0)
+		if (strcmp("-lfile", argv [i]) == 0){
 			arg_recognized = 1;
+			arg_set = 0;
+		}
 
 		// ---------------------------------
 		// MISSING: char* flexresfile
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
 		// Argument: name of ligand pdbqt file
-		if (strcmp("-flexres", argv [i]) == 0)
+		if (strcmp("-flexres", argv [i]) == 0){
 			arg_recognized = 1;
-
-		// ---------------------------------
-		// MISSING: float ref_ori_angles [3]
-		// UPDATED in : gen_initpop_and_reflig()
-		// ---------------------------------
+			arg_set = 0;
+		}
 
 		// Argument: derivate atom types
 		// - has already been tested for in
@@ -1060,6 +1146,14 @@ void get_commandpars(
 		if (strcmp("-devnum", argv [i]) == 0)
 		{
 			arg_recognized = 1;
+			arg_set = 0;
+			if(!late_call){
+				arg_set = 1;
+				sscanf(argv [i+1], "%u", &tempint);
+				if ((tempint >= 1) && (tempint <= 65536)){
+					mypars->devnum = (unsigned long) tempint-1;
+				} else printf("Warning: value of -devnum argument ignored. Value must be an integer between 1 and 65536.\n");
+			}
 		}
 		// ----------------------------------
 
@@ -1162,13 +1256,10 @@ void get_commandpars(
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
 		// Argument: unbound model to be used.
-		if (strcmp("-ubmod", argv [i]) == 0)
+		if (strcmp("-ubmod", argv [i]) == 0){
 			arg_recognized = 1;
-
-		// ---------------------------------
-		// MISSING: AD4_free_energy_coeffs coeffs
-		// UPDATED in : get_filenames_and_ADcoeffs()
-		// ---------------------------------
+			arg_set = 0;
+		}
 
 		// Argument: handle molecular symmetry during rmsd calculation
 		// If the value is not zero, molecular syymetry will be taken into account during rmsd calculation and clustering.
@@ -1270,8 +1361,9 @@ void get_commandpars(
 		// ----------------------------------
 
 
-		if (arg_recognized != 1)
-			printf("Warning: unknown argument '%s'.\n", argv [i]);
+		if (arg_recognized != 1){
+			printf("Warning: ignoring unknown argument '%s'.\n", argv [i]);
+		}
 	}
 
 	// validating some settings
@@ -1281,7 +1373,8 @@ void get_commandpars(
 		printf("Warning: value of -npdb argument ignored. Value cannot be greater than the population size.\n");
 		mypars->gen_pdbs = 1;
 	}
-
+	
+	return arg_recognized + arg_set<<1;
 }
 
 void gen_initpop_and_reflig(

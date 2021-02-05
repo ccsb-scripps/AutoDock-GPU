@@ -110,6 +110,7 @@ void setup_gpu_for_docking(
                            GpuTempData& tData
                           )
 {
+	if(cData.devnum<-1) return; // device already setup
 	auto const t0 = std::chrono::steady_clock::now();
 
 	// Initialize CUDA
@@ -131,6 +132,7 @@ void setup_gpu_for_docking(
 		status = cudaFree(NULL); // Trick driver into creating context on current device
 	else
 		status = cudaSetDevice(cData.devnum);
+	cData.devnum=-2;
 	status = cudaDeviceSetLimit(cudaLimitPrintfFifoSize, 200000000ull);
 	RTERROR(status, "cudaDeviceSetLimit failed");
 

@@ -36,19 +36,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 int preload_gridsize(FileList& filelist)
 {
 	if(!filelist.used) return 0;
-	Gridinfo mygrid;
 	int gridsize=0;
 	for(unsigned int i_file=0; i_file<filelist.fld_files.size(); i_file++){
 		// Filling mygrid according to the gpf file
-		if (get_gridinfo(filelist.fld_files[i_file].c_str(), &mygrid) != 0)
+		if (get_gridinfo(filelist.fld_files[i_file].c_str(), &filelist.mygrids[i_file]) != 0)
 			{printf("\n\nError in get_gridinfo, stopped job."); return 1;}
-		int curr_size = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
+		int curr_size = 4*filelist.mygrids[i_file].size_xyz[0]*filelist.mygrids[i_file].size_xyz[1]*filelist.mygrids[i_file].size_xyz[2];
 		if(curr_size>gridsize)
 			gridsize=curr_size;
 	}
-	if(mygrid.grid_file_path) free(mygrid.grid_file_path);
-	if(mygrid.receptor_name) free(mygrid.receptor_name);
-	if(mygrid.map_base_name) free(mygrid.map_base_name);
 	return gridsize;
 }
 
@@ -65,17 +61,6 @@ int setup(
           char*               argv[]
          )
 {
-	//------------------------------------------------------------
-	// Capturing names of grid parameter file and ligand pdbqt file
-	//------------------------------------------------------------
-
-	if(filelist.used){
-		if(mypars.fldfile) free(mypars.fldfile);
-		if(mypars.ligandfile) free(mypars.ligandfile);
-		mypars.fldfile = strdup(filelist.fld_files[i_file].c_str());
-		mypars.ligandfile = strdup(filelist.ligand_files[i_file].c_str());
-	}
-
 	// Filling the filename and coeffs fields of mypars according to command line arguments
 	if (get_filenames_and_ADcoeffs(&argc, argv, &mypars, filelist.used) != 0)
 		{printf("\n\nError in get_filenames_and_ADcoeffs, stopped job."); return 1;}
@@ -271,7 +256,7 @@ int setup(
 	// Processing receptor and ligand files
 	//------------------------------------------------------------
 
-	// Filling mygrid according to the gpf file
+	// Filling mygrid according to the fld file
 	if (get_gridinfo(mypars.fldfile, &mygrid) != 0)
 	{
 		printf("\n\nError in get_gridinfo, stopped job.");

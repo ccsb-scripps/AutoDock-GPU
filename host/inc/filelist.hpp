@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stdlib.h>
 #include <string>
 #include <vector>
+#include "processgrid.h"
 
 typedef struct _Dockpars Dockpars;
 
@@ -47,6 +48,7 @@ class FileList{
 	std::vector<std::string> fld_files;
 	std::vector<std::string> ligand_files;
 	std::vector<Dockpars>    mypars;
+	std::vector<Gridinfo>    mygrids;
 
 	// Default to unused, with 1 file
 	FileList() : used( false ), nfiles( 1 ), preload_maps( true ), maps_are_loaded( false ), load_maps_gpu( false ), filename( NULL ), max_len ( 0 ) {}
