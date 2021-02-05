@@ -236,7 +236,7 @@ int preparse_dpf(
 						argstr[strlen(argstr)-4] = '\0'; // get rid of .map extension
 						typestr=strchr(argstr+strlen(argstr)-4,'.')+1; // 4 chars for atom type
 						if(mtype_nr>=ltype_nr){
-							printf("\nError: More map files specified than atom types at %s:%u (ligand types need to be specified before maps).\n",tempstr,dpf_filename,line_count);
+							printf("\nError: More map files specified than atom types at %s:%u (ligand types need to be specified before maps).\n",dpf_filename,line_count);
 							return 1;
 						}
 						if(strcmp(typestr,ltypes[mtype_nr])){ // derived type
@@ -317,7 +317,7 @@ int preparse_dpf(
 						break;
 				case DPF_RUNS: // set number of runs
 				case DPF_GALS: // actually run a search
-						sscanf(line.c_str(),"%*s %ld",&tempint);
+						sscanf(line.c_str(),"%*s %d",&tempint);
 						if ((tempint >= 1) && (tempint <= MAX_NUM_OF_RUNS))
 							mypars->num_of_runs = (int) tempint;
 						else
@@ -370,7 +370,7 @@ int preparse_dpf(
 						}
 						break;
 				case DPF_INTELEC: // calculate ES energy (needs not be "off")
-						sscanf(line.c_str(),"%*s %255s",&argstr);
+						sscanf(line.c_str(),"%*s %255s",argstr);
 						if(stricmp(argstr,"off")==0){
 							printf("\nError: \"Off\" is not supported as <%s> parameter at %s:%u.\n",tempstr,dpf_filename,line_count);
 							return 1;
@@ -386,7 +386,7 @@ int preparse_dpf(
 						break;
 				case DPF_SEED: // random number seed
 						m=0; n=0; i=0;
-						if(sscanf(line.c_str(),"%*s %ld %ld",&m, &n, &i)>0){ // one or more numbers
+						if(sscanf(line.c_str(),"%*s %d %d %d",&m, &n, &i)>0){ // one or more numbers
 							mypars->seed[0]=m; mypars->seed[1]=n; mypars->seed[2]=i;
 						} else
 							printf("Warning: Only numerical values currently supported for <%s> at %s:%u.\n",tempstr,dpf_filename,line_count);
@@ -399,21 +399,21 @@ int preparse_dpf(
 							printf("Warning: value of <%s> at %s:%u ignored. Value must be greater than 0.\n",tempstr,dpf_filename,line_count);
 						break;
 				case GA_pop_size: // population size
-						sscanf(line.c_str(),"%*s %ld",&tempint);
+						sscanf(line.c_str(),"%*s %d",&tempint);
 						if ((tempint >= 2) && (tempint <= MAX_POPSIZE))
 							mypars->pop_size = (unsigned long) (tempint);
 						else
 							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 2 and %d.\n",tempstr,dpf_filename,line_count,MAX_POPSIZE);
 						break;
 				case GA_num_generations: // number of generations
-						sscanf(line.c_str(),"%*s %ld",&tempint);
+						sscanf(line.c_str(),"%*s %d",&tempint);
 						if ((tempint > 0) && (tempint < 16250000))
 							mypars->num_of_generations = (unsigned long) tempint;
 						else
 							printf("Warning: value of <%s> at %s:%u ignored. Value must be between 0 and 16250000.\n",tempstr,dpf_filename,line_count);
 						break;
 				case GA_num_evals: // number of evals
-						sscanf(line.c_str(),"%*s %ld",&tempint);
+						sscanf(line.c_str(),"%*s %d",&tempint);
 						if ((tempint > 0) && (tempint < 260000000)){
 							mypars->num_of_energy_evals = (unsigned long) tempint;
 							mypars->nev_provided = true;
@@ -437,7 +437,7 @@ int preparse_dpf(
 							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 1.\n",tempstr,dpf_filename,line_count);
 						break;
 				case SW_max_its: // local search iterations
-						sscanf(line.c_str(),"%*s %ld",&tempint);
+						sscanf(line.c_str(),"%*s %d",&tempint);
 						if ((tempint > 0) && (tempint < 262144))
 							mypars->max_num_of_iters = (unsigned long) tempint;
 						else
@@ -445,7 +445,7 @@ int preparse_dpf(
 						break;
 				case SW_max_succ: // cons. success limit
 				case SW_max_fail: // cons. failure limit
-						sscanf(line.c_str(),"%*s %ld",&tempint);
+						sscanf(line.c_str(),"%*s %d",&tempint);
 						if ((tempint > 0) && (tempint < 256))
 							mypars->cons_limit = (unsigned long) (tempint);
 						else
@@ -459,7 +459,7 @@ int preparse_dpf(
 							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 1.\n",tempstr,dpf_filename,line_count);
 						break;
 				case DPF_UNBOUND_MODEL: // unbound model (bound|extended|compact)
-						sscanf(line.c_str(),"%*s %255s",&argstr);
+						sscanf(line.c_str(),"%*s %255s",argstr);
 						if(stricmp(argstr,"bound")==0){
 							mypars->unbound_model = 0;
 							mypars->coeffs = unbound_models[mypars->unbound_model];
@@ -474,7 +474,7 @@ int preparse_dpf(
 						}
 						break;
 				case DPF_COMMENT: // we use comments to allow specifying AD-GPU command lines
-						sscanf(line.c_str(),"%*s %255s %255s",&tempstr,&argstr);
+						sscanf(line.c_str(),"%*s %255s %255s",tempstr,argstr);
 						if(tempstr[0]=='-'){ // potential command line argument
 							i=2; // one command line argument to be parsed
 							args[0]=tempstr;
@@ -645,6 +645,7 @@ int get_filelist(
 			filelist.mypars[i].resname = strdup(filelist.resnames[i].c_str());
 		}
 	}
+	filelist.preload_maps&=filelist.used;
 
 	return 0;
 }
@@ -742,7 +743,7 @@ int get_commandpars(
 // the data in the same format as it is required for writing it to algorithm defined registers.
 {
 	int   i;
-	long  tempint;
+	int   tempint;
 	float tempfloat;
 	int   arg_recognized = 0;
 	int   arg_set = 1;
@@ -772,7 +773,7 @@ int get_commandpars(
 		if (strcmp("-nev", argv[i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv[i+1], "%ld", &tempint);
+			sscanf(argv[i+1], "%d", &tempint);
 
 			if ((tempint > 0) && (tempint < 260000000)){
 				mypars->num_of_energy_evals = (unsigned long) tempint;
@@ -792,7 +793,7 @@ int get_commandpars(
 		if (strcmp("-ngen", argv[i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv[i+1], "%ld", &tempint);
+			sscanf(argv[i+1], "%d", &tempint);
 
 			if ((tempint > 0) && (tempint < 16250000))
 				mypars->num_of_generations = (unsigned long) tempint;
@@ -804,7 +805,7 @@ int get_commandpars(
 		if (strcmp("-initswgens", argv[i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv[i+1], "%ld", &tempint);
+			sscanf(argv[i+1], "%d", &tempint);
 
 			if ((tempint >= 0) && (tempint <= 16250000))
 				mypars->initial_sw_generations = (unsigned long) tempint;
@@ -817,7 +818,7 @@ int get_commandpars(
 		if (strcmp("-heuristics", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 
 			if (tempint == 0)
 				mypars->use_heuristics = false;
@@ -830,7 +831,7 @@ int get_commandpars(
 		if (strcmp("-heurmax", argv[i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv[i+1], "%ld", &tempint);
+			sscanf(argv[i+1], "%d", &tempint);
 
 			if ((tempint > 0) && (tempint < 16250000))
 				mypars->heuristics_max = (unsigned long) tempint;
@@ -1016,7 +1017,7 @@ int get_commandpars(
 		if (strcmp("-cslim", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 
 			if ((tempint > 0) && (tempint < 256))
 				mypars->cons_limit = (unsigned long) (tempint);
@@ -1029,7 +1030,7 @@ int get_commandpars(
 		if (strcmp("-lsit", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 
 			if ((tempint > 0) && (tempint < 262144))
 				mypars->max_num_of_iters = (unsigned long) tempint;
@@ -1042,7 +1043,7 @@ int get_commandpars(
 		if (strcmp("-psize", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 
 			if ((tempint >= 2) && (tempint <= MAX_POPSIZE))
 				mypars->pop_size = (unsigned long) (tempint);
@@ -1055,7 +1056,7 @@ int get_commandpars(
 		if (strcmp("-pload", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 
 			if (tempint == 0)
 				mypars->initpop_gen_or_loadfile = false;
@@ -1068,7 +1069,7 @@ int get_commandpars(
 		if (strcmp("-npdb", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 
 			if ((tempint < 0) || (tempint > MAX_POPSIZE))
 				printf("Warning: value of -npdb argument ignored. Value must be an integer between 0 and %d.\n", MAX_POPSIZE);
@@ -1149,7 +1150,7 @@ int get_commandpars(
 			arg_set = 0;
 			if(!late_call){
 				arg_set = 1;
-				sscanf(argv [i+1], "%u", &tempint);
+				sscanf(argv [i+1], "%d", &tempint);
 				if ((tempint >= 1) && (tempint <= 65536)){
 					mypars->devnum = (unsigned long) tempint-1;
 				} else printf("Warning: value of -devnum argument ignored. Value must be an integer between 1 and 65536.\n");
@@ -1173,7 +1174,7 @@ int get_commandpars(
 		if (strcmp("-autostop", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 
 			if (tempint == 0)
 				mypars->autostop = 0;
@@ -1187,7 +1188,7 @@ int get_commandpars(
 		if (strcmp("-asfreq", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 			if ((tempint >= 1) && (tempint <= 100))
 				mypars->as_frequency = (unsigned int) tempint;
 			else
@@ -1230,7 +1231,7 @@ int get_commandpars(
 		if (strcmp("-nrun", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 
 			if ((tempint >= 1) && (tempint <= MAX_NUM_OF_RUNS))
 				mypars->num_of_runs = (int) tempint;
@@ -1243,7 +1244,7 @@ int get_commandpars(
 		if (strcmp("-rlige", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 
 			if (tempint == 0)
 				mypars->reflig_en_required = false;
@@ -1266,7 +1267,7 @@ int get_commandpars(
 		if (strcmp("-hsym", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 
 			if (tempint == 0)
 				mypars->handle_symmetry = false;
@@ -1279,7 +1280,7 @@ int get_commandpars(
 		if (strcmp("-gfpop", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 
 			if (tempint == 0)
 				mypars->gen_finalpop = false;
@@ -1292,7 +1293,7 @@ int get_commandpars(
 		if (strcmp("-gbest", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 
 			if (tempint == 0)
 				mypars->gen_best = false;
@@ -1313,7 +1314,7 @@ int get_commandpars(
 		if (strcmp("-modqp", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 
 			if (tempint == 0)
 				mypars->qasp = 0.01097f; // original AutoDock QASP parameter
@@ -1340,7 +1341,7 @@ int get_commandpars(
 		if (strcmp("-xmloutput", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%ld", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 			
 			if (tempint == 0)
 				mypars->output_xml = false;
@@ -1374,7 +1375,7 @@ int get_commandpars(
 		mypars->gen_pdbs = 1;
 	}
 	
-	return arg_recognized + arg_set<<1;
+	return arg_recognized + (arg_set<<1);
 }
 
 void gen_initpop_and_reflig(

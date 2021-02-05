@@ -655,15 +655,15 @@ parameters argc and argv:
 			// Kernel3
 			kernel3_gxsize = blocksPerGridForEachLSEntity;
 			kernel3_lxsize = threadsPerBlock;
-  			#ifdef DOCK_DEBUG
-	  		printf("%-25s %10s %8u %10s %4u\n", "K_LS_SOLISWETS", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
-  			#endif
+			#ifdef DOCK_DEBUG
+			printf("%-25s %10s %8u %10s %4u\n", "K_LS_SOLISWETS", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
+			#endif
 			// End of Kernel3
 		}
 		if (strcmp(mypars->ls_method, "sd") == 0) {
 			// Kernel5
-  			kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity;
-  			kernel5_lxsize = threadsPerBlock;
+			kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity;
+			kernel5_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_SDESCENT", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
 			#endif
@@ -671,8 +671,8 @@ parameters argc and argv:
 		}
 		if (strcmp(mypars->ls_method, "fire") == 0) {
 			// Kernel6
-  			kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity;
-  			kernel6_lxsize = threadsPerBlock;
+			kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity;
+			kernel6_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_FIRE", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
 			#endif

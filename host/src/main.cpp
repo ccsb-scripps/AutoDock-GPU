@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
 		if (strcmp("-devnum", argv [i]) == 0)
 		{
 			unsigned int tempint;
-			sscanf(argv [i+1], "%u", &tempint);
+			sscanf(argv [i+1], "%d", &tempint);
 			if ((tempint >= 1) && (tempint <= 65536))
 				devnum = (unsigned long) tempint-1;
 			else
@@ -169,9 +169,9 @@ int main(int argc, char* argv[])
 	{
 		int t_id = 0;
 #endif
-		Dockpars   mypars;// = initial_pars;
+		Dockpars   mypars = initial_pars;
 		Liganddata myligand_init;
-		Gridinfo   mygrid;// = initial_grid;
+		Gridinfo   mygrid = initial_grid;
 		Liganddata myxrayligand;
 		std::vector<float> floatgrids;
 		SimulationState sim_state;
@@ -222,7 +222,7 @@ int main(int argc, char* argv[])
 				#pragma omp critical
 #endif
 				{
-					if(filelist.used && filelist.preload_maps && filelist.load_maps_gpu){
+					if(filelist.preload_maps && filelist.load_maps_gpu){
 						int size_of_one_map = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
 						for (int t=0; t < all_maps.size(); t++){
 							copy_map_to_gpu(tData[dev_nr],all_maps,t,size_of_one_map);

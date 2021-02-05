@@ -567,7 +567,7 @@ parameters argc and argv:
 
 	if(!floatgrids_preloaded)
 		memcopyBufferObjectToDevice(tData.command_queue,tData.pMem_fgrids,          false, cpu_floatgrids,                     size_floatgrids);
- 	memcopyBufferObjectToDevice(tData.command_queue,mem_dockpars_conformations_current, false, cpu_init_populations,               size_populations);
+	memcopyBufferObjectToDevice(tData.command_queue,mem_dockpars_conformations_current, false, cpu_init_populations,               size_populations);
 	memcopyBufferObjectToDevice(tData.command_queue,mem_gpu_evals_of_runs,              false, sim_state.cpu_evals_of_runs.data(), size_evals_of_runs);
 	memcopyBufferObjectToDevice(tData.command_queue,mem_dockpars_prng_states,           false, cpu_prng_seeds,                     size_prng_seeds);
 
