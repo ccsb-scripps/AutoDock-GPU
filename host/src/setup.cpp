@@ -490,7 +490,7 @@ int load_all_maps(
 			strcat(tempstr, "/");
 			strcat(tempstr, mygrid->receptor_name);
 			strcat(tempstr, ".");
-			strcat(tempstr, mygrid->grid_types[t]);
+			strcat(tempstr, all_maps[t].atype.c_str());
 			strcat(tempstr, ".map");
 			fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
 		}
