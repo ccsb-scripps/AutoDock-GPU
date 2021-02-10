@@ -71,7 +71,7 @@ typedef struct _Dockpars
 	unsigned long          num_of_generations              = 27000;
 	bool                   nev_provided                    = false;
 	bool                   use_heuristics                  = false; // Flag if we want to use Diogo's heuristics
-	unsigned long          heuristics_max                  = 50000000; // Maximum number of evaluations under the heuristics (50M evaluates to 80% at 12.5M evals calculated by heuristics)
+	unsigned long          heuristics_max                  = 12000000; // Maximum number of evaluations under the heuristics (12M max evaluates to 80% of 3M evals calculated by heuristics -> 2.4M)
 	float                  abs_max_dmov;                   // depends on grid spacing
 	float                  abs_max_dang                    = 90; // +/- 90°
 	float                  mutation_rate                   = 2;  // 2%

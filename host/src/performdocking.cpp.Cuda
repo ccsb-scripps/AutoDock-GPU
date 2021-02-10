@@ -537,20 +537,24 @@ parameters argc and argv:
 		//blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
 	}
 
-	// Adjust ls_method and num_of_energy_evals based on heuristics
+	unsigned long min_as_evals = 0; // no minimum w/o heuristics
 	if(mypars->use_heuristics){
 		printf("Using heuristics: ");
 		char newmethod[LS_METHOD_STRING_LEN];
 		unsigned long heur_evals;
 		unsigned long nev=mypars->num_of_energy_evals;
-		if(myligand_init->num_of_rotbonds<8){ // use Solis-Wets
+		if(myligand_init->num_of_rotbonds<4){ // use Solis-Wets
 			strcpy(newmethod,"sw");
 //			heur_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 3.5));
 			heur_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 4.0));
 		} else{ // use ADAdelta
 			strcpy(newmethod,"ad");
-			heur_evals = (unsigned long)ceil(1000 * pow(2.0,0.4 * myligand_init->num_of_rotbonds + 7.0));
+//			heur_evals = (unsigned long)ceil(1000 * pow(2.0,0.4 * myligand_init->num_of_rotbonds + 7.0));
+//			heur_evals = (unsigned long)ceil(1000 * pow(2.0,0.5 * myligand_init->num_of_rotbonds + 6.0));
+			heur_evals = (unsigned long)ceil(64000 * pow(2.0, (0.5 - 0.2 * myligand_init->num_of_rotbonds/(20.0f + myligand_init->num_of_rotbonds)) * myligand_init->num_of_rotbonds));
 		}
+		if(heur_evals<500000) heur_evals=500000;
+		heur_evals *= 50.0f/mypars->num_of_runs;
 		strcpy(mypars->ls_method,newmethod);
 		// e*hm/(hm+e) = 0.95*e => hm/(hm+e) = 0.95
 		// => 0.95*hm + 0.95*e = hm => 0.95*e = 0.05 * hm
@@ -562,6 +566,21 @@ parameters argc and argv:
 			printf("Overriding heuristics, setting number of evaluations to -nev = %lu instead.\n",nev);
 			mypars->num_of_energy_evals = nev;
 			profile.capped = true;
+		}
+		float cap_fraction = (float)mypars->num_of_energy_evals/heur_evals;
+		float a = 27.0/26.0; // 10% at cap_fraction of 50%
+//		float a = 12.0/11.0; // 20% at cap_fraction of 50%
+		float min_frac = a/(1+cap_fraction*cap_fraction*(a/(a-1.0f)-1.0f))+1.0f-a;
+		min_as_evals = (unsigned long)ceil(mypars->num_of_energy_evals*min_frac)*mypars->num_of_runs;
+		if(cap_fraction<0.5f){
+			printf("Warning: The set number of evals is %.2f%% of the uncapped heuristics estimate of %lu evals.\n",cap_fraction*100.0f,heur_evals);
+			printf("         This means this docking may not be able to converge. Increasing ");
+			if (mypars->nev_provided && (mypars->num_of_energy_evals>nev))
+				printf("-nev");
+			else
+				printf("-heurmax");
+			printf(" may improve\n         convergence but will also increase runtime.\n");
+			if(mypars->autostop) printf("         AutoStop will not stop before %.2f%% (%lu) of the set number of evaluations.\n",min_frac*100.0f,min_as_evals/mypars->num_of_runs);
 		}
 	}
 	
@@ -759,7 +778,8 @@ parameters argc and argv:
 				status = cudaMemcpy(sim_state.cpu_energies.data(), pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
 				RTERROR(status, "cudaMemcpy: couldn't downloaded pMem_energies_current");
 				if (autostop.check_if_satisfactory(generation_cnt, sim_state.cpu_energies.data(), total_evals))
-					break; // Exit loop
+					if (total_evals>min_as_evals)
+						break; // Exit loop when all conditions are satisfied
 			}
 		}
 		else

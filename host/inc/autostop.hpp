@@ -40,7 +40,6 @@ class AutoStop{
 	      float              curr_avg;
 	      float              curr_std;
 	      unsigned int       roll_count;
-	      float              rolling_stddev;
 	      unsigned int       bestN;
 	const unsigned int       Ntop;
 	const unsigned int       pop_size;
@@ -126,7 +125,7 @@ class AutoStop{
 	         float stopstd_in,
 	         int as_frequency_in
 	        )
-		: rolling(4*3, 0), // Initialize to zero
+		: rolling(4*4, 0), // Initialize to zero
 		  average_sd2_N((pop_size_in+1)*3),
 		  num_of_runs(num_of_runs_in),
 		  pop_size(pop_size_in),
@@ -184,16 +183,22 @@ class AutoStop{
 		}
 		printf("%11u | %12lu |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/num_of_runs,threshold_used,curr_avg,curr_std,bestN,overall_best_energy);
 		fflush(stdout);
-		rolling[3*roll_count] = curr_avg * bestN;
-		rolling[3*roll_count+1] = (curr_std*curr_std + curr_avg*curr_avg)*bestN;
-		rolling[3*roll_count+2] = bestN;
+		rolling[4*roll_count] = curr_avg * bestN;
+		rolling[4*roll_count+1] = (curr_std*curr_std + curr_avg*curr_avg)*bestN;
+		rolling[4*roll_count+2] = bestN;
+		rolling[4*roll_count+3] = overall_best_energy;
 		roll_count = (roll_count + 1) % 4;
-		average_sd2_N[0] = rolling[0] + rolling[3] + rolling[6] + rolling[9];
-		average_sd2_N[1] = rolling[1] + rolling[4] + rolling[7] + rolling[10];
-		average_sd2_N[2] = rolling[2] + rolling[5] + rolling[8] + rolling[11];
+		average_sd2_N[0] = rolling[0] + rolling[4] + rolling[8] + rolling[12];
+		average_sd2_N[1] = rolling[1] + rolling[5] + rolling[9] + rolling[13];
+		average_sd2_N[2] = rolling[2] + rolling[6] + rolling[10] + rolling[14];
+		float best_avg = rolling[3] + rolling[7] + rolling[11] + rolling[15];
+		best_avg /= 4;
+		float best_var = rolling[3]*rolling[3] + rolling[7]*rolling[7] + rolling[11]*rolling[11] + rolling[15]*rolling[15];
+		best_var /= 4;
+		best_var -= best_avg*best_avg;
 
-		// Finish when the std.dev. of the last 4 rounds is below 0.1 kcal/mol
-		if((stddev(&average_sd2_N[0])<stopstd) && (generation_cnt>=4*as_frequency))
+		// Finish when the std.dev. of the last 4 rounds is below -stopstd kcal/mol and are at (essentially) the same best energy
+		if((stddev(&average_sd2_N[0])<stopstd) && (generation_cnt>=4*as_frequency) && (best_var<=0.00002f))
 			autostopped = true;
 
 		return autostopped;

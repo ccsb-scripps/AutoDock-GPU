@@ -826,16 +826,16 @@ int get_commandpars(
 		}
 		// ----------------------------------
 
-		// Argument: initial sw number of generations. Must be a positive integer.
+		// Argument: Upper limit for heuristics that's reached asymptotically
 		if (strcmp("-heurmax", argv[i]) == 0)
 		{
 			arg_recognized = 1;
 			sscanf(argv[i+1], "%d", &tempint);
 
-			if ((tempint > 0) && (tempint < 16250000))
+			if ((tempint > 0) && (tempint <= 1625000000))
 				mypars->heuristics_max = (unsigned long) tempint;
 			else
-				printf("Warning: value of -heurmax argument ignored. Value must be between 0 and 16250000.\n");
+				printf("Warning: value of -heurmax argument ignored. Value must be between 1 and 1625000000.\n");
 		}
 
 		// Argument: maximal delta movement during mutation. Must be an integer between 1 and 16.
