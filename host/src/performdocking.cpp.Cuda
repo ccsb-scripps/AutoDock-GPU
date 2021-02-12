@@ -23,6 +23,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
+// If defined, will set the maximum Cuda printf FIFO buffer to 8 GB (default: commented out)
+// This is not needed unless debugging Cuda kernels via printf statements
+// #define SET_CUDA_PRINTF_BUFFER
+
 #include <chrono>
 #include <vector>
 
@@ -133,9 +137,10 @@ void setup_gpu_for_docking(
 	else
 		status = cudaSetDevice(cData.devnum);
 	cData.devnum=-2;
+#ifdef SET_CUDA_PRINTF_BUFFER
 	status = cudaDeviceSetLimit(cudaLimitPrintfFifoSize, 200000000ull);
 	RTERROR(status, "cudaDeviceSetLimit failed");
-
+#endif
 	auto const t1 = std::chrono::steady_clock::now();
 	printf("\nCUDA Setup time %fs\n", elapsed_seconds(t0 ,t1));
 	size_t sz_interintra_const      = MAX_NUM_OF_ATOMS*sizeof(float) +
