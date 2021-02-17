@@ -544,29 +544,29 @@ parameters argc and argv:
 
 	unsigned long min_as_evals = 0; // no minimum w/o heuristics
 	if(mypars->use_heuristics){
-		printf("Using heuristics: ");
-		char newmethod[LS_METHOD_STRING_LEN];
 		unsigned long heur_evals;
 		unsigned long nev=mypars->num_of_energy_evals;
-		if(myligand_init->num_of_rotbonds<4){ // use Solis-Wets
-			strcpy(newmethod,"sw");
+		if(strcmp(mypars->ls_method,"sw")==0){
 //			heur_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 3.5));
 			heur_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 4.0));
-		} else{ // use ADAdelta
-			strcpy(newmethod,"ad");
+		} else{
+			if(strcmp(mypars->ls_method,"ad")==0){
 //			heur_evals = (unsigned long)ceil(1000 * pow(2.0,0.4 * myligand_init->num_of_rotbonds + 7.0));
 //			heur_evals = (unsigned long)ceil(1000 * pow(2.0,0.5 * myligand_init->num_of_rotbonds + 6.0));
 			heur_evals = (unsigned long)ceil(64000 * pow(2.0, (0.5 - 0.2 * myligand_init->num_of_rotbonds/(20.0f + myligand_init->num_of_rotbonds)) * myligand_init->num_of_rotbonds));
+			} else{
+				printf("\nError: LS method \"%s\" is not supported by heuristics.\n       Please choose Solis-Wets (sw), Adadelta (ad),\n       or switch off the heuristics.\n",mypars->ls_method);
+				exit(-1);
+			}
 		}
 		if(heur_evals<500000) heur_evals=500000;
 		heur_evals *= 50.0f/mypars->num_of_runs;
-		strcpy(mypars->ls_method,newmethod);
 		// e*hm/(hm+e) = 0.95*e => hm/(hm+e) = 0.95
 		// => 0.95*hm + 0.95*e = hm => 0.95*e = 0.05 * hm
 		// => e = 1/19*hm
 		// at hm = 50 M => e0 = 2.63 M where e becomes less than 95% (about 11 torsions)
 		mypars->num_of_energy_evals = (unsigned long)ceil(heur_evals*(float)mypars->heuristics_max/(mypars->heuristics_max+heur_evals));
-		printf("-lsmet %s -nev %lu\n",newmethod,mypars->num_of_energy_evals);
+		printf("Using heuristics: (capped) number of evaluations set to %lu\n",mypars->num_of_energy_evals);
 		if (mypars->nev_provided && (mypars->num_of_energy_evals>nev)){
 			printf("Overriding heuristics, setting number of evaluations to -nev = %lu instead.\n",nev);
 			mypars->num_of_energy_evals = nev;
