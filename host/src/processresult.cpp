@@ -381,7 +381,8 @@ void make_resfiles(
 
 		// copying best result to output parameter
 		if (i == 0) // assuming this is the best one (final_population is arranged), however, the
-		{           // arrangement was made according to the unaccurate values calculated by FPGA
+		{           // arrangement was made according to the inaccurate values calculated by FPGA
+			memcpy(best_result->genotype, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, ACTUAL_GENOTYPE_LENGTH*sizeof(float));
 			best_result->interE = accurate_interE [i];
 			best_result->interflexE = accurate_interflexE [i];
 			best_result->intraE = accurate_intraE [i];
@@ -607,10 +608,11 @@ void clusanal_gendlg(
                            double        exec_time,
                            double        idle_time
                     )
-// The function performs ranked cluster analisys similar to that of AutoDock and creates a file with report_file_name name, the result
+// The function performs ranked cluster analysis similar to that of AutoDock and creates a file with report_file_name name, the result
 // will be written to it.
 {
 	int i, j, atom_cnt;
+	int root_atom = 0;
 	Ligandresult temp_ligres;
 	int num_of_clusters;
 	int current_clust_center;
@@ -761,6 +763,8 @@ void clusanal_gendlg(
 				else
 					if (strncmp("ROOT", tempstr, 4) == 0)
 					{
+						if(l==0) // only use ligand root
+							root_atom = atom_cnt;
 						fprintf(fp, "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n");
 						fprintf(fp, "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n");
 						fprintf(fp, "DOCKED: %s", tempstr);
@@ -935,6 +939,49 @@ void clusanal_gendlg(
 		fp_xml = fopen(xml_file_name, "w");
 
 		fprintf(fp_xml, "<?xml version=\"1.0\" ?>\n");
+		fprintf(fp_xml, "<autodock_gpu>\n");
+		fprintf(fp_xml, "\t<version>%s</version>\n",VERSION);
+		if((*argc)>1){
+			fprintf(fp_xml, "\t<arguments>");
+			for(i=1; i<(*argc); i++)
+				fprintf(fp_xml, "%s%s", (i>1)?" ":"", argv[i]);
+			fprintf(fp_xml, "</arguments>\n");
+		}
+		fprintf(fp_xml, "\t<ls_method>%s</ls_method>\n",mypars->ls_method);
+		fprintf(fp_xml, "\t<autostop>%s</autostop>\n",mypars->autostop ? "yes" : "no");
+		fprintf(fp_xml, "\t<heuristics>%s</heuristics>\n",mypars->use_heuristics ? "yes" : "no");
+		fprintf(fp_xml, "\t<run_requested>%d</run_requested>\n",mypars->num_of_runs);
+		fprintf(fp_xml, "\t<runs>\n");
+		double phi, theta;
+		for(j=0; j<num_of_runs; j++){
+			fprintf(fp_xml, "\t\t<run id=\"%d\">\n",(myresults [j]).run_number);
+			fprintf(fp_xml, "\t\t\t<seed>");
+			if(!mypars->seed[2]){
+				if(!mypars->seed[1]){
+					fprintf(fp_xml,"%d", mypars->seed[0]);
+				} else fprintf(fp_xml,"%d %d", mypars->seed[0], mypars->seed[1]);
+			} else fprintf(fp_xml,"%d %d %d", mypars->seed[0], mypars->seed[1], mypars->seed[2]);
+			fprintf(fp_xml, "</seed>\n");
+			if(mypars->dpffile)
+				fprintf(fp_xml, "\t\t\t<dpf>%s</dpf>\n",mypars->dpffile);
+			fprintf(fp_xml, "\t\t\t<free_NRG_binding>   %.2f</free_NRG_binding>\n", myresults[j].interE + myresults[j].interflexE + torsional_energy);
+			fprintf(fp_xml, "\t\t\t<final_intermol_NRG> %.2f</final_intermol_NRG>\n", myresults[j].interE + myresults[j].interflexE);
+			fprintf(fp_xml, "\t\t\t<internal_ligand_NRG>%.2f</internal_ligand_NRG>\n", myresults[j].intraE + myresults[j].intraflexE);
+			fprintf(fp_xml, "\t\t\t<torsonial_free_NRG> %.2f</torsonial_free_NRG>\n", torsional_energy);
+			fprintf(fp_xml, "\t\t\t<move>%s</move>\n", mypars->ligandfile);
+			fprintf(fp_xml, "\t\t\t<tran0>%.6f %.6f %.6f</tran0>\n", myresults[j].genotype[0]*mygrid->spacing, myresults[j].genotype[1]*mygrid->spacing, myresults[j].genotype[2]*mygrid->spacing);
+			phi = myresults[j].genotype[3]/180.0*PI;
+			theta = myresults[j].genotype[4]/180.0*PI;
+			fprintf(fp_xml, "\t\t\t<axisangle0>%.8f %.8f %.8f %.6f</axisangle0>\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[j].genotype[5]);
+			fprintf(fp_xml, "\t\t\t<ndihe>%d</ndihe>\n", myresults[j].reslig_realcoord.num_of_rotbonds);
+			fprintf(fp_xml, "\t\t\t<dihe0>");
+			for(i=0; i<myresults[j].reslig_realcoord.num_of_rotbonds; i++)
+				fprintf(fp_xml, "%s%.6f", (i>0)?" ":"", myresults[j].genotype[6+i]);
+			fprintf(fp_xml, "\n\t\t\t</dihe0>\n");
+			fprintf(fp_xml, "\t\t</run>\n");
+		}
+		fprintf(fp_xml, "\t</runs>\n");
+		fprintf(fp_xml, "</autodock_gpu>\n");
 		fprintf(fp_xml, "<result>\n");
 
 		fprintf(fp_xml, "\t<clustering_histogram>\n");
@@ -951,8 +998,8 @@ void clusanal_gendlg(
 			for (j=0; j<num_of_runs; j++)
 				if (myresults [j].clus_id == i+1)
 				{
-	            	fprintf(fp_xml, "\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
-	            			(myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number, myresults[j].interE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
+					fprintf(fp_xml, "\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
+					                     (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number, myresults[j].interE + myresults[j].interflexE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
 				}
 		}
 		fprintf(fp_xml, "\t</rmsd_table>\n");

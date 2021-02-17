@@ -97,6 +97,7 @@ typedef struct _Dockpars
 	unsigned long          pop_size                        = 150;
 	bool                   initpop_gen_or_loadfile         = false;
 	int                    gen_pdbs                        = 0;
+	char*                  dpffile                         = NULL;
 	char*                  fldfile                         = NULL;
 	char*                  ligandfile                      = NULL;
 	char*                  flexresfile                     = NULL;

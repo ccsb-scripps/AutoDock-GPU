@@ -141,26 +141,25 @@ int preparse_dpf(
 // is stored in the filelist; flexres information and which location in the dpf parameters are in each
 // run is stored separately to allow logical parsing with the correct parameters initialized per run
 {
-	char* dpf_filename = NULL;
 	bool output_multiple_warning = true;
 	for (int i=1; i<(*argc)-1; i++)
 	{
 		// Argument: dpf file name.
 		if (strcmp("-import_dpf", argv[i]) == 0){
-			if(dpf_filename){
-				free(dpf_filename);
+			if(mypars->dpffile){
+				free(mypars->dpffile);
 				if(output_multiple_warning){
 					printf("Warning: Multiple -import_dpf arguments, only the last one will be used.");
 					output_multiple_warning = false;
 				}
 			}
-			dpf_filename = strdup(argv[i+1]);
+			mypars->dpffile = strdup(argv[i+1]);
 		}
 	}
-	if (dpf_filename){
-		std::ifstream file(dpf_filename);
+	if (mypars->dpffile){
+		std::ifstream file(mypars->dpffile);
 		if(file.fail()){
-			printf("\nError: Could not open dpf file %s. Check path and permissions.\n",dpf_filename);
+			printf("\nError: Could not open dpf file %s. Check path and permissions.\n",mypars->dpffile);
 			return 1;
 		}
 		mypars->elec_min_distance = 0.5; // default for AD4
@@ -208,7 +207,7 @@ int preparse_dpf(
 						mygrid->info_read = false;
 						if (get_gridinfo(mypars->fldfile, mygrid) != 0)
 						{
-							printf("\nError: get_gridinfo failed with fld file specified with <%s> parameter at %s:%u.\n",tempstr,dpf_filename,line_count);
+							printf("\nError: get_gridinfo failed with fld file specified with <%s> parameter at %s:%u.\n",tempstr,mypars->dpffile,line_count);
 							return 1;
 						}
 						break;
@@ -225,7 +224,7 @@ int preparse_dpf(
 								if(i-len<3){
 									ltypes[ltype_nr-1][i-len] = line[i];
 								} else{
-									printf("\nError: Atom types are limited to 3 characters in <%s> parameter at %s:%u.\n",tempstr,dpf_filename,line_count);
+									printf("\nError: Atom types are limited to 3 characters in <%s> parameter at %s:%u.\n",tempstr,mypars->dpffile,line_count);
 									return 1;
 								}
 							}
@@ -236,7 +235,7 @@ int preparse_dpf(
 						argstr[strlen(argstr)-4] = '\0'; // get rid of .map extension
 						typestr=strchr(argstr+strlen(argstr)-4,'.')+1; // 4 chars for atom type
 						if(mtype_nr>=ltype_nr){
-							printf("\nError: More map files specified than atom types at %s:%u (ligand types need to be specified before maps).\n",dpf_filename,line_count);
+							printf("\nError: More map files specified than atom types at %s:%u (ligand types need to be specified before maps).\n",mypars->dpffile,line_count);
 							return 1;
 						}
 						if(strcmp(typestr,ltypes[mtype_nr])){ // derived type
@@ -262,11 +261,11 @@ int preparse_dpf(
 				case DPF_INTNBP_COEFFS: // internal pair energy coefficients
 				case DPF_INTNBP_REQM_EPS: // internal pair energy coefficients
 						if(sscanf(line.c_str(), "%*s %f %f %d %d %3s %3s", &paramA, &paramB, &m, &n, typeA, typeB)<6){
-							printf("Error: Syntax error for <%s>, 6 values are required at %s:%u.\n",tempstr,dpf_filename,line_count);
+							printf("Error: Syntax error for <%s>, 6 values are required at %s:%u.\n",tempstr,mypars->dpffile,line_count);
 							return 1;
 						}
 						if(m==n){
-							printf("Error: Syntax error for <%s>, exponents need to be different at %s:%u.\n",tempstr,dpf_filename,line_count);
+							printf("Error: Syntax error for <%s>, exponents need to be different at %s:%u.\n",tempstr,mypars->dpffile,line_count);
 							return 1;
 						}
 						if(token_id==DPF_INTNBP_COEFFS){
@@ -281,7 +280,7 @@ int preparse_dpf(
 						else
 							mypars->mod_atype_pairs=(pair_mod*)realloc(mypars->mod_atype_pairs, mypars->nr_mod_atype_pairs*sizeof(pair_mod));
 						if(mypars->mod_atype_pairs==NULL){
-							printf("Error: Cannot allocate memory for <%s> pair energy modification.\n at %s:%u.\n",tempstr,dpf_filename,line_count);
+							printf("Error: Cannot allocate memory for <%s> pair energy modification.\n at %s:%u.\n",tempstr,mypars->dpffile,line_count);
 							return 1;
 						}
 						curr_pair=&mypars->mod_atype_pairs[mypars->nr_mod_atype_pairs-1];
@@ -290,7 +289,7 @@ int preparse_dpf(
 						curr_pair->nr_parameters=4;
 						curr_pair->parameters=(float*)malloc(curr_pair->nr_parameters*sizeof(float));
 						if(curr_pair->parameters==NULL){
-							printf("Error: Cannot allocate memory for <%s> pair energy modification.\n at %s:%u.\n",tempstr,dpf_filename,line_count);
+							printf("Error: Cannot allocate memory for <%s> pair energy modification.\n at %s:%u.\n",tempstr,mypars->dpffile,line_count);
 							return 1;
 						}
 						curr_pair->parameters[0]=paramA;
@@ -311,7 +310,7 @@ int preparse_dpf(
 				case DPF_DIHE0: // number of dihedrals           (needs to be "random")
 						sscanf(line.c_str(),"%*s %255s",argstr);
 						if(stricmp(argstr,"random")){
-							printf("\nError: Currently only \"random\" is supported as <%s> parameter at %s:%u.\n",tempstr,dpf_filename,line_count);
+							printf("\nError: Currently only \"random\" is supported as <%s> parameter at %s:%u.\n",tempstr,mypars->dpffile,line_count);
 							return 1;
 						}
 						break;
@@ -321,7 +320,7 @@ int preparse_dpf(
 						if ((tempint >= 1) && (tempint <= MAX_NUM_OF_RUNS))
 							mypars->num_of_runs = (int) tempint;
 						else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and %d.\n",tempstr,dpf_filename,line_count,MAX_NUM_OF_RUNS);
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and %d.\n",tempstr,mypars->dpffile,line_count,MAX_NUM_OF_RUNS);
 						if(token_id!=DPF_RUNS){
 							// Add the fld file to use
 							if (!mypars->fldfile){
@@ -373,7 +372,7 @@ int preparse_dpf(
 				case DPF_INTELEC: // calculate ES energy (needs not be "off")
 						sscanf(line.c_str(),"%*s %255s",argstr);
 						if(stricmp(argstr,"off")==0){
-							printf("\nError: \"Off\" is not supported as <%s> parameter at %s:%u.\n",tempstr,dpf_filename,line_count);
+							printf("\nError: \"Off\" is not supported as <%s> parameter at %s:%u.\n",tempstr,mypars->dpffile,line_count);
 							return 1;
 						}
 						break;
@@ -383,35 +382,35 @@ int preparse_dpf(
 						if ((tempfloat >= 0.0f) && (tempfloat <= 0.5f))
 							mypars->smooth = tempfloat;
 						else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 0.5.\n",tempstr,dpf_filename,line_count);
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 0.5.\n",tempstr,mypars->dpffile,line_count);
 						break;
 				case DPF_SEED: // random number seed
 						m=0; n=0; i=0;
 						if(sscanf(line.c_str(),"%*s %d %d %d",&m, &n, &i)>0){ // one or more numbers
 							mypars->seed[0]=m; mypars->seed[1]=n; mypars->seed[2]=i;
 						} else
-							printf("Warning: Only numerical values currently supported for <%s> at %s:%u.\n",tempstr,dpf_filename,line_count);
+							printf("Warning: Only numerical values currently supported for <%s> at %s:%u.\n",tempstr,mypars->dpffile,line_count);
 						break;
 				case DPF_RMSTOL: // RMSD clustering tolerance
 						sscanf(line.c_str(),"%*s %f",&tempfloat);
 						if (tempfloat > 0.0)
 							mypars->rmsd_tolerance = tempfloat;
 						else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be greater than 0.\n",tempstr,dpf_filename,line_count);
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be greater than 0.\n",tempstr,mypars->dpffile,line_count);
 						break;
 				case GA_pop_size: // population size
 						sscanf(line.c_str(),"%*s %d",&tempint);
 						if ((tempint >= 2) && (tempint <= MAX_POPSIZE))
 							mypars->pop_size = (unsigned long) (tempint);
 						else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 2 and %d.\n",tempstr,dpf_filename,line_count,MAX_POPSIZE);
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 2 and %d.\n",tempstr,mypars->dpffile,line_count,MAX_POPSIZE);
 						break;
 				case GA_num_generations: // number of generations
 						sscanf(line.c_str(),"%*s %d",&tempint);
 						if ((tempint > 0) && (tempint < 16250000))
 							mypars->num_of_generations = (unsigned long) tempint;
 						else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be between 0 and 16250000.\n",tempstr,dpf_filename,line_count);
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be between 0 and 16250000.\n",tempstr,mypars->dpffile,line_count);
 						break;
 				case GA_num_evals: // number of evals
 						sscanf(line.c_str(),"%*s %d",&tempint);
@@ -419,7 +418,7 @@ int preparse_dpf(
 							mypars->num_of_energy_evals = (unsigned long) tempint;
 							mypars->nev_provided = true;
 						} else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be between 0 and 260000000.\n",tempstr,dpf_filename,line_count);
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be between 0 and 260000000.\n",tempstr,mypars->dpffile,line_count);
 						break;
 				case GA_mutation_rate: // mutation rate
 						sscanf(line.c_str(),"%*s %f",&tempfloat);
@@ -427,7 +426,7 @@ int preparse_dpf(
 						if ((tempfloat >= 0.0) && (tempfloat < 100.0))
 							mypars->mutation_rate = tempfloat;
 						else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 1.\n",tempstr,dpf_filename,line_count);
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 1.\n",tempstr,mypars->dpffile,line_count);
 						break;
 				case GA_crossover_rate: // crossover rate
 						sscanf(line.c_str(),"%*s %f",&tempfloat);
@@ -435,14 +434,14 @@ int preparse_dpf(
 						if ((tempfloat >= 0.0) && (tempfloat <= 100.0))
 							mypars->crossover_rate = tempfloat;
 						else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 1.\n",tempstr,dpf_filename,line_count);
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 1.\n",tempstr,mypars->dpffile,line_count);
 						break;
 				case SW_max_its: // local search iterations
 						sscanf(line.c_str(),"%*s %d",&tempint);
 						if ((tempint > 0) && (tempint < 262144))
 							mypars->max_num_of_iters = (unsigned long) tempint;
 						else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and 262143.\n",tempstr,dpf_filename,line_count);
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and 262143.\n",tempstr,mypars->dpffile,line_count);
 						break;
 				case SW_max_succ: // cons. success limit
 				case SW_max_fail: // cons. failure limit
@@ -450,14 +449,14 @@ int preparse_dpf(
 						if ((tempint > 0) && (tempint < 256))
 							mypars->cons_limit = (unsigned long) (tempint);
 						else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and 255.\n",tempstr,dpf_filename,line_count);
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and 255.\n",tempstr,mypars->dpffile,line_count);
 						break;
 				case SW_lb_rho: // lower bound of rho
 						sscanf(line.c_str(),"%*s %f",&tempfloat);
 						if ((tempfloat >= 0.0) && (tempfloat < 1.0))
 							mypars->rho_lower_bound = tempfloat;
 						else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 1.\n",tempstr,dpf_filename,line_count);
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be a float between 0 and 1.\n",tempstr,mypars->dpffile,line_count);
 						break;
 				case DPF_UNBOUND_MODEL: // unbound model (bound|extended|compact)
 						sscanf(line.c_str(),"%*s %255s",argstr);
@@ -471,7 +470,7 @@ int preparse_dpf(
 							mypars->unbound_model = 2;
 							mypars->coeffs = unbound_models[mypars->unbound_model];
 						} else{
-							printf("Error: Unsupported value for <%s> at %s:%u. Value must be one of (bound|extend|compact).\n",tempstr,dpf_filename,line_count);
+							printf("Error: Unsupported value for <%s> at %s:%u. Value must be one of (bound|extend|compact).\n",tempstr,mypars->dpffile,line_count);
 						}
 						break;
 				case DPF_COMMENT: // we use comments to allow specifying AD-GPU command lines
@@ -481,7 +480,7 @@ int preparse_dpf(
 							args[0]=tempstr;
 							args[1]=argstr;
 							if(get_commandpars(&i,args,&(mygrid->spacing),mypars,false)<2){
-								printf("Warning: Command line option '%s' at %s:%u is not supported inside a dpf file.\n",tempstr,dpf_filename,line_count);
+								printf("Warning: Command line option '%s' at %s:%u is not supported inside a dpf file.\n",tempstr,mypars->dpffile,line_count);
 							}
 							// count GPUs in case we set a different one
 							if(strcmp(tempstr,"-devnum")==0){
@@ -495,7 +494,7 @@ int preparse_dpf(
 						}
 						break;
 				case DPF_UNKNOWN: // error condition
-						printf("\nError: Unknown or unsupported dpf token <%s> at %s:%u.\n",tempstr,dpf_filename,line_count);
+						printf("\nError: Unknown or unsupported dpf token <%s> at %s:%u.\n",tempstr,mypars->dpffile,line_count);
 						return 1;
 				default: // means there's a keyword detected that's not yet implemented here
 						printf("<%s> has not yet been implemented.\n",tempstr);
