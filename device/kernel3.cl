@@ -76,9 +76,9 @@ __constant       kernelconstant_conform*      kerconst_conform
 // it is always tested according to the ls probability, and if it not to be
 // subjected to local search, the entity with ID num_of_lsentities is selected instead of the first one (with ID 0).
 {
-	// Some OpenCL compilers don't allow declaring 
+	// Some OpenCL compilers don't allow declaring
 	// local variables within non-kernel functions.
-	// These local variables must be declared in a kernel, 
+	// These local variables must be declared in a kernel,
 	// and then passed to non-kernel functions.
 	__local float genotype_candidate[ACTUAL_GENOTYPE_LENGTH];
 	__local float genotype_deviate  [ACTUAL_GENOTYPE_LENGTH];
@@ -149,7 +149,6 @@ __constant       kernelconstant_conform*      kerconst_conform
 
 	// Asynchronous copy should be finished by here
 	wait_group_events(1, &ev);
-
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 #ifdef SWAT3
@@ -304,41 +303,41 @@ __constant       kernelconstant_conform*      kerconst_conform
 			                 dockpars_gridsize_x,
 			                 dockpars_gridsize_y,
 			                 dockpars_gridsize_z,
-			                 		    	// g1 = gridsize_x
-			                dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
-			                dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
-			                dockpars_fgrids,
-			                dockpars_num_of_atypes,
-			                dockpars_num_of_map_atypes,
-			                dockpars_num_of_intraE_contributors,
-			                dockpars_grid_spacing,
-			                dockpars_coeff_elec,
-			                dockpars_elec_min_distance,
-			                dockpars_qasp,
-			                dockpars_coeff_desolv,
-			                dockpars_smooth,
-			                genotype_candidate,
-			                &candidate_energy,
-			                &run_id,
-			                // Some OpenCL compilers don't allow declaring
-			                // local variables within non-kernel functions.
-			                // These local variables must be declared in a kernel,
-			                // and then passed to non-kernel functions.
-			                calc_coords,
-			                partial_energies,
-			                #if defined (DEBUG_ENERGY_KERNEL)
-			                partial_interE,
-			                partial_intraE,
-			                #endif
+			                                                      // g1 = gridsize_x
+			                 dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+			                 dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+			                 dockpars_fgrids,
+			                 dockpars_num_of_atypes,
+			                 dockpars_num_of_map_atypes,
+			                 dockpars_num_of_intraE_contributors,
+			                 dockpars_grid_spacing,
+			                 dockpars_coeff_elec,
+			                 dockpars_elec_min_distance,
+			                 dockpars_qasp,
+			                 dockpars_coeff_desolv,
+			                 dockpars_smooth,
+			                 genotype_candidate,
+			                 &candidate_energy,
+			                 &run_id,
+			                 // Some OpenCL compilers don't allow declaring
+			                 // local variables within non-kernel functions.
+			                 // These local variables must be declared in a kernel,
+			                 // and then passed to non-kernel functions.
+			                 calc_coords,
+			                 partial_energies,
+			                 #if defined (DEBUG_ENERGY_KERNEL)
+			                 partial_interE,
+			                 partial_intraE,
+			                 #endif
 #if 0
-			                false,
+			                 false,
 #endif
-			                kerconst_interintra,
-			                kerconst_intracontrib,
-			                kerconst_intra,
-			                kerconst_rotlist,
-			                kerconst_conform
-			              );
+			                 kerconst_interintra,
+			                 kerconst_intracontrib,
+			                 kerconst_intra,
+			                 kerconst_rotlist,
+			                 kerconst_conform
+			               );
 			// =================================================================
 
 			if (tidx == 0) {
@@ -418,18 +417,15 @@ __constant       kernelconstant_conform*      kerconst_conform
 	}
 
 	// Mapping torsion angles
-	for (gene_counter = tidx;
+	for (gene_counter = tidx+3;
 	     gene_counter < dockpars_num_of_genes;
 	     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 	{
-		if (gene_counter >= 3) {
-			map_angle(&(offspring_genotype[gene_counter]));
-		}
+		map_angle(&(offspring_genotype[gene_counter]));
 	}
 
 	// Updating old offspring in population
 	barrier(CLK_LOCAL_MEM_FENCE);
-
 	event_t ev2 = async_work_group_copy(dockpars_conformations_next+(run_id*dockpars_pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM,
 	                                    offspring_genotype,
 	                                    dockpars_num_of_genes,0);

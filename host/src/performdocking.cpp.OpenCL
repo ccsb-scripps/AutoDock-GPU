@@ -128,6 +128,7 @@ void setup_gpu_for_docking(
                            GpuTempData& tData
                           )
 {
+	if(cData.devnum<-1) return; // device already setup
 // =======================================================================
 // OpenCL Host Setup
 // =======================================================================
@@ -231,6 +232,8 @@ void setup_gpu_for_docking(
 	char* device_name = (char*) malloc(dev_name_size);
 	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, dev_name_size, device_name, NULL);
 	printf("OpenCL device:                           %s\n",device_name);
+	cData.devnum=-2;
+
 	free(device_name);
 
 	// Create context from first platform
@@ -239,7 +242,7 @@ void setup_gpu_for_docking(
 	// Create command queue for first device
 	if (createCommandQueue(tData.context,device_id,&tData.command_queue) != 0) exit(-1);
 
-	// Create program from source 
+	// Create program from source
 #ifdef _WIN32
 	if (ImportSource(filename, name_k1, &device_id, tData.context, options_program, &tData.kernel1) != 0) exit(-1);
 	if (ImportSource(filename, name_k2, &device_id, tData.context, options_program, &tData.kernel2) != 0) exit(-1);
@@ -564,7 +567,7 @@ parameters argc and argv:
 
 	if(!floatgrids_preloaded)
 		memcopyBufferObjectToDevice(tData.command_queue,tData.pMem_fgrids,          false, cpu_floatgrids,                     size_floatgrids);
- 	memcopyBufferObjectToDevice(tData.command_queue,mem_dockpars_conformations_current, false, cpu_init_populations,               size_populations);
+	memcopyBufferObjectToDevice(tData.command_queue,mem_dockpars_conformations_current, false, cpu_init_populations,               size_populations);
 	memcopyBufferObjectToDevice(tData.command_queue,mem_gpu_evals_of_runs,              false, sim_state.cpu_evals_of_runs.data(), size_evals_of_runs);
 	memcopyBufferObjectToDevice(tData.command_queue,mem_dockpars_prng_states,           false, cpu_prng_seeds,                     size_prng_seeds);
 
@@ -622,30 +625,50 @@ parameters argc and argv:
 		//blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
 	}
 	
+	unsigned long min_as_evals = 0; // no minimum w/o heuristics
 	if(mypars->use_heuristics){
-		printf("Using heuristics: ");
-		char newmethod[LS_METHOD_STRING_LEN];
 		unsigned long heur_evals;
 		unsigned long nev=mypars->num_of_energy_evals;
-		if(myligand_init->num_of_rotbonds<8){ // use Solis-Wets
-			strcpy(newmethod,"sw");
+		if(strcmp(mypars->ls_method,"sw")==0){
 //			heur_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 3.5));
 			heur_evals = (unsigned long)ceil(1000 * pow(2.0,1.3 * myligand_init->num_of_rotbonds + 4.0));
-		} else{ // use ADAdelta
-			strcpy(newmethod,"ad");
-			heur_evals = (unsigned long)ceil(1000 * pow(2.0,0.4 * myligand_init->num_of_rotbonds + 7.0));
+		} else{
+			if(strcmp(mypars->ls_method,"ad")==0){
+//			heur_evals = (unsigned long)ceil(1000 * pow(2.0,0.4 * myligand_init->num_of_rotbonds + 7.0));
+//			heur_evals = (unsigned long)ceil(1000 * pow(2.0,0.5 * myligand_init->num_of_rotbonds + 6.0));
+			heur_evals = (unsigned long)ceil(64000 * pow(2.0, (0.5 - 0.2 * myligand_init->num_of_rotbonds/(20.0f + myligand_init->num_of_rotbonds)) * myligand_init->num_of_rotbonds));
+			} else{
+				printf("\nError: LS method \"%s\" is not supported by heuristics.\n       Please choose Solis-Wets (sw), Adadelta (ad),\n       or switch off the heuristics.\n",mypars->ls_method);
+				exit(-1);
+			}
 		}
-		strcpy(mypars->ls_method,newmethod);
+		if(heur_evals<500000) heur_evals=500000;
+		heur_evals *= 50.0f/mypars->num_of_runs;
 		// e*hm/(hm+e) = 0.95*e => hm/(hm+e) = 0.95
 		// => 0.95*hm + 0.95*e = hm => 0.95*e = 0.05 * hm
 		// => e = 1/19*hm
 		// at hm = 50 M => e0 = 2.63 M where e becomes less than 95% (about 11 torsions)
 		mypars->num_of_energy_evals = (unsigned long)ceil(heur_evals*(float)mypars->heuristics_max/(mypars->heuristics_max+heur_evals));
-		printf("-lsmet %s -nev %u\n",newmethod,mypars->num_of_energy_evals);
+		printf("Using heuristics: (capped) number of evaluations set to %lu\n",mypars->num_of_energy_evals);
 		if (mypars->nev_provided && (mypars->num_of_energy_evals>nev)){
-			printf("Overriding heuristics, setting number of evaluations to -nev = %u instead.\n",nev);
+			printf("Overriding heuristics, setting number of evaluations to -nev = %lu instead.\n",nev);
 			mypars->num_of_energy_evals = nev;
 			profile.capped = true;
+		}
+		float cap_fraction = (float)mypars->num_of_energy_evals/heur_evals;
+		float a = 27.0/26.0; // 10% at cap_fraction of 50%
+//		float a = 12.0/11.0; // 20% at cap_fraction of 50%
+		float min_frac = a/(1+cap_fraction*cap_fraction*(a/(a-1.0f)-1.0f))+1.0f-a;
+		min_as_evals = (unsigned long)ceil(mypars->num_of_energy_evals*min_frac)*mypars->num_of_runs;
+		if(cap_fraction<0.5f){
+			printf("Warning: The set number of evals is %.2f%% of the uncapped heuristics estimate of %lu evals.\n",cap_fraction*100.0f,heur_evals);
+			printf("         This means this docking may not be able to converge. Increasing ");
+			if (mypars->nev_provided && (mypars->num_of_energy_evals>nev))
+				printf("-nev");
+			else
+				printf("-heurmax");
+			printf(" may improve\n         convergence but will also increase runtime.\n");
+			if(mypars->autostop) printf("         AutoStop will not stop before %.2f%% (%lu) of the set number of evaluations.\n",min_frac*100.0f,min_as_evals/mypars->num_of_runs);
 		}
 	}
 	
@@ -1062,7 +1085,8 @@ parameters argc and argv:
 				else
 					memcopyBufferObjectFromDevice(tData.command_queue,sim_state.cpu_energies.data(),mem_dockpars_energies_next,size_energies);
 				if (autostop.check_if_satisfactory(generation_cnt, sim_state.cpu_energies.data(), total_evals))
-					break; // Exit loop
+					if (total_evals>min_as_evals)
+						break; // Exit loop when all conditions are satisfied
 			}
 		}
 		else

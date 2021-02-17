@@ -99,5 +99,10 @@ enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.da
 // does not return better accuracy overall (default: commented out, don't use)
 // #define DIEL_FIT_ABC
 
+// Output for the -derivtype keyword
+// #define DERIVTYPE_INFO
+
+// Output for the -modpair keyword
+// #define MODPAIR_INFO
 
 #endif /* DEFINES_H_ */

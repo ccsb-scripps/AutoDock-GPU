@@ -39,6 +39,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 typedef struct
 {
+	float      genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
 	Liganddata reslig_realcoord;
 	float      interE;
 	float      interflexE;

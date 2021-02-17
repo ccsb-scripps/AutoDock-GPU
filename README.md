@@ -92,7 +92,7 @@ By default the output log file is written in the current working folder. Example
 | -crat       | Crossover rate                                        | 80 (%)           |
 | -lsrat      | Local-search rate                                     | 80 (%)           |
 | -trat       | Tournament (selection) rate                           | 60 (%)           |
-| -resnam     | Name for docking output log                           | _"docking"_      |
+| -resnam     | Name for docking output log                           | ligand basename  |
 | -hsym       | Handle symmetry in RMSD calc.                         | 1                |
 | -devnum     | OpenCL/Cuda device number (counting starts at 1)      | 1                |
 | -cgmaps     | Use individual maps for CG-G0 instead of the same one | 0 (use same map) |

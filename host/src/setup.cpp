@@ -23,11 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
-// Output for the -derivtype keyword
-// #define DERIVTYPE_INFO
-// Output for the -modpair keyword
-// #define MODPAIR_INFO
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -41,19 +36,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 int preload_gridsize(FileList& filelist)
 {
 	if(!filelist.used) return 0;
-	Gridinfo mygrid;
 	int gridsize=0;
 	for(unsigned int i_file=0; i_file<filelist.fld_files.size(); i_file++){
 		// Filling mygrid according to the gpf file
-		if (get_gridinfo(filelist.fld_files[i_file].c_str(), &mygrid) != 0)
+		if (get_gridinfo(filelist.fld_files[i_file].c_str(), &filelist.mygrids[i_file]) != 0)
 			{printf("\n\nError in get_gridinfo, stopped job."); return 1;}
-		int curr_size = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
+		int curr_size = 4*filelist.mygrids[i_file].size_xyz[0]*filelist.mygrids[i_file].size_xyz[1]*filelist.mygrids[i_file].size_xyz[2];
 		if(curr_size>gridsize)
 			gridsize=curr_size;
 	}
-	if(mygrid.grid_file_path) free(mygrid.grid_file_path);
-	if(mygrid.receptor_name) free(mygrid.receptor_name);
-	if(mygrid.map_base_name) free(mygrid.map_base_name);
 	return gridsize;
 }
 
@@ -70,15 +61,6 @@ int setup(
           char*               argv[]
          )
 {
-	//------------------------------------------------------------
-	// Capturing names of grid parameter file and ligand pdbqt file
-	//------------------------------------------------------------
-
-	if(filelist.used){
-		strcpy(mypars.fldfile, filelist.fld_files[i_file].c_str());
-		strcpy(mypars.ligandfile, filelist.ligand_files[i_file].c_str());
-	}
-
 	// Filling the filename and coeffs fields of mypars according to command line arguments
 	if (get_filenames_and_ADcoeffs(&argc, argv, &mypars, filelist.used) != 0)
 		{printf("\n\nError in get_filenames_and_ADcoeffs, stopped job."); return 1;}
@@ -88,11 +70,6 @@ int setup(
 	// for derived atom types, and modified atom type pairs
 	// since they will be needed at ligand and grid creation
 	//------------------------------------------------------------
-	mypars.nr_deriv_atypes		= 0;    // this is to support: -derivtype C1,C2,C3=C
-	mypars.deriv_atypes		= NULL; // or even: -derivtype C1,C2,C3=C/S4=S/H5=HD
-	mypars.nr_mod_atype_pairs	= 0;    // this is to support: -modpair C1:S4,1.60,1.200,13,7
-	mypars.mod_atype_pairs		= NULL; // or even: -modpair C1:S4,1.60,1.200,13,7/C1:C3,1.20 0.025
-	mypars.cgmaps = 0; // default is 0 (use one maps for every CGx or Gx atom types, respectively)
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
 		// ----------------------------------
@@ -279,14 +256,14 @@ int setup(
 	// Processing receptor and ligand files
 	//------------------------------------------------------------
 
-	// Filling mygrid according to the gpf file
+	// Filling mygrid according to the fld file
 	if (get_gridinfo(mypars.fldfile, &mygrid) != 0)
 	{
 		printf("\n\nError in get_gridinfo, stopped job.");
 		return 1;
 	}
 
-	// Filling the atom types filed of myligand according to the grid types
+	// Filling the atom types field of myligand according to the grid types
 	if (init_liganddata(mypars.ligandfile,
 	                    mypars.flexresfile,
 	                    &myligand_init,
@@ -334,7 +311,6 @@ int setup(
 						got_error = true;
 					}
 					filelist.maps_are_loaded = true;
-					filelist.load_maps_gpu = true; // first thread seeing this will copy to GPU
 				}
 			}
 			// Return must be outside pragma
@@ -377,18 +353,17 @@ int setup(
 	//------------------------------------------------------------
 	// Capturing algorithm parameters (command line args)
 	//------------------------------------------------------------
+	char* orig_resn = mypars.resname;
 	get_commandpars(&argc, argv, &(mygrid.spacing), &mypars);
 
-	if (filelist.resnames.size()>0){ // Overwrite resname with specified filename if specified in file list
-		free(mypars.resname);
-		mypars.resname = (char*)malloc((filelist.max_len+1)*sizeof(char));
-		strcpy(mypars.resname, filelist.resnames[i_file].c_str());
-	} else if (filelist.used) { // otherwise add the index to existing name distinguish the files if multiple
+	// command-line specified resname with more than one file
+	if ((orig_resn!=mypars.resname) && (filelist.nfiles>1)){ // add an index to existing name distinguish the files
 		char* tmp = strdup(mypars.resname);
-		char* nrtmp = strdup(std::to_string(i_file).c_str());
-		free(mypars.resname);
-		mypars.resname = (char*)malloc((strlen(tmp)+strlen(nrtmp)+1)*sizeof(char));
+		char* nrtmp = strdup(std::to_string(i_file+1).c_str());
+		if(mypars.resname) free(mypars.resname);
+		mypars.resname = (char*)malloc((strlen(tmp)+strlen(nrtmp)+2)*sizeof(char));
 		strcpy(mypars.resname, tmp);
+		strcat(mypars.resname,"_");
 		strcat(mypars.resname, nrtmp);
 		free(tmp);
 		free(nrtmp);
@@ -515,7 +490,7 @@ int load_all_maps(
 			strcat(tempstr, "/");
 			strcat(tempstr, mygrid->receptor_name);
 			strcat(tempstr, ".");
-			strcat(tempstr, mygrid->grid_types[t]);
+			strcat(tempstr, all_maps[t].atype.c_str());
 			strcat(tempstr, ".map");
 			fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
 		}

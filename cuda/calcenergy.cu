@@ -356,7 +356,7 @@ __device__ void gpu_calc_energy(
 	// are independent from each other, -> NO BARRIER NEEDED
 	// but require different operations,
 	// thus, they can be executed only sequentially on the GPU.
-	float delta_distance = 0.5f * cData.dockpars.smooth; 
+	float delta_distance = 0.5f * cData.dockpars.smooth;
 	float smoothed_distance;
 
 	// ================================================

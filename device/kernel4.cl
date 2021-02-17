@@ -70,7 +70,7 @@ gpu_gen_and_eval_newpops(
               __constant       kernelconstant_rotlist*      kerconst_rotlist,
               __constant       kernelconstant_conform*      kerconst_conform
                         )
-//The GPU global function
+// The GPU global function
 {
 	// Some OpenCL compilers don't allow declaring 
 	// local variables within non-kernel functions.
@@ -150,7 +150,7 @@ gpu_gen_and_eval_newpops(
 			// Notice: dockpars_tournament_rate was scaled down to [0,1] in host
 			// to reduce number of operations in device
 			if (candidate_energies[2*gene_counter] < candidate_energies[2*gene_counter+1])
-				if (/*100.0f**/randnums[4+gene_counter] < dockpars_tournament_rate) {		//using randnum[4..5]
+				if (/*100.0f**/randnums[4+gene_counter] < dockpars_tournament_rate) { //using randnum[4..5]
 					parents[gene_counter] = parent_candidates[2*gene_counter];
 				}
 				else {
@@ -170,7 +170,7 @@ gpu_gen_and_eval_newpops(
 
 		// Notice: dockpars_crossover_rate was scaled down to [0,1] in host
 		// to reduce number of operations in device
-		if (/*100.0f**/randnums[6] < dockpars_crossover_rate)	// Using randnums[6]
+		if (/*100.0f**/randnums[6] < dockpars_crossover_rate) // Using randnums[6]
 		{
 			for (gene_counter = tidx;
 			     gene_counter < 2;

@@ -78,6 +78,9 @@ typedef enum
 // Sticking to array boundaries
 #define stick_to_bounds(x,a,b) x + (x <= a)*(a-x) + (x >= b)*(b-x)
 
+// e^2/4pie0 in kcal/mol
+#define ELEC_SCALE_FACTOR        332.06363
+
 // Constants for dielelectric term of the
 // electrostatic component of the intramolecular energy/gradient
 #define DIEL_A                   -8.5525f
