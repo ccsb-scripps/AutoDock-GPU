@@ -68,22 +68,22 @@ typedef struct _Dockpars
 	int                    devices_requested               = 1; // this is AD-GPU ...
 	uint32_t               seed[3]                         = {(uint32_t)time(NULL),(uint32_t)processid(),0};
 	unsigned long          num_of_energy_evals             = 2500000;
-	unsigned long          num_of_generations              = 27000;
+	unsigned long          num_of_generations              = 42000;
 	bool                   nev_provided                    = false;
-	bool                   use_heuristics                  = false; // Flag if we want to use Diogo's heuristics
+	bool                   use_heuristics                  = true; // Flag if we want to use Diogo's heuristics
 	unsigned long          heuristics_max                  = 12000000; // Maximum number of evaluations under the heuristics (12M max evaluates to 80% of 3M evals calculated by heuristics -> 2.4M)
 	float                  abs_max_dmov;                   // depends on grid spacing
 	float                  abs_max_dang                    = 90; // +/- 90°
 	float                  mutation_rate                   = 2;  // 2%
 	float                  crossover_rate                  = 80; // 80%
 	float                  tournament_rate                 = 60; // 60%
-	float                  lsearch_rate                    = 80; // 80%
+	float                  lsearch_rate                    = 100; // 1000%
 	float                  smooth                          = 0.5f;
 	int                    nr_deriv_atypes                 = 0;    // this is to support: -derivtype C1,C2,C3=C
 	deriv_atype*           deriv_atypes                    = NULL; // or even: -derivtype C1,C2,C3=C/S4=S/H5=HD
 	int                    nr_mod_atype_pairs              = 0;    // this is to support: -modpair C1:S4,1.60,1.200,13,7
 	pair_mod*              mod_atype_pairs                 = NULL; // or even: -modpair C1:S4,1.60,1.200,13,7/C1:C3,1.20 0.025
-	char                   ls_method[LS_METHOD_STRING_LEN] = "sw"; // "sw": Solis-Wets,
+	char                   ls_method[LS_METHOD_STRING_LEN] = "ad"; // "sw": Solis-Wets,
 	                                                               // "sd": Steepest-Descent
 	                                                               // "fire": FIRE, https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
 	                                                               // "ad": ADADELTA, https://arxiv.org/abs/1212.5701
@@ -105,7 +105,7 @@ typedef struct _Dockpars
 	char*                  resname                         = NULL; // by default will be ligand file basename
 	bool                   given_xrayligandfile            = false; // That is, not given (explicitly by the user)
 	float                  ref_ori_angles [3];             // is generated in gen_initpop_and_reflig(...)
-	bool                   autostop                        = 0;
+	bool                   autostop                        = true;
 	unsigned int           as_frequency                    = 5;
 	float                  stopstd                         = 0.15;
 	bool                   cgmaps                          = false; // default is false (use a single map for every CGx or Gx atom type)

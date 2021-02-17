@@ -954,6 +954,7 @@ int get_commandpars(
 				printf("Error: Value of -lsmet must be a valid string: \"sw\", \"sd\", \"fire\", \"ad\", or \"adam\".\n");
 				exit(-1);
 			}
+			
 			free(temp);
 		}
 
