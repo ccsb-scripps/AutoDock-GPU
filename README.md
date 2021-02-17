@@ -105,13 +105,13 @@ By default the output log file is written in the current working folder. Example
 
 Autostop is ON by default since v1.4. The collective distribution of scores among all LGA populations
 is tested for convergence every `<asfreq>` generations, and docking is stopped if the top-scored poses
-exhibit a small variance.
-The `-heuristics` option sets the number of evaluations at a generously large number. It is a function
+exhibit a small variance. This avoids wasting computation after the best docking solutions have been found.
+The heuristics set the number of evaluations at a generously large number. They are a function
 of the number of rotatable bonds. It prevents unreasonably long dockings in cases where autostop fails
-to detect converged.
-In our experience `-heuristics 1` and `-autostop 1` provide sufficient evaluations for accurately and
-reproducibly search the energy landscape of the scoring function. For molecules with 15 or more
-rotatable bonds it may be advisable to increase `-heurmax`.
+to detect convergence.
+In our experience `-heuristics 1` and `-autostop 1` allow sufficient score evaluations for searching
+the energy landscape accurately. For molecules with many rotatable bonds (e.g. about 15 or more)
+it may be advisable to increase `-heurmax`.
 
 When the heuristics is used and `-nev <max evals>` is provided as a command line argument it provides the (hard) upper # of evals limit to the value the heuristics suggests. Conversely, `-heurmax` is the rolling-off type asymptotic limit to the heuristic's # of evals formula and should only be changed with caution.
 The batch file is a text file containing the parameters to -ffile, -lfile, and -resnam each on an individual line. It is possible to only use one line to specify the Protein grid map file which means it will be used for all ligands. Here is an example:
