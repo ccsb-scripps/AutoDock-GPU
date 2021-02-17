@@ -109,7 +109,7 @@ typedef struct _Dockpars
 	unsigned int           as_frequency                    = 5;
 	float                  stopstd                         = 0.15;
 	bool                   cgmaps                          = false; // default is false (use a single map for every CGx or Gx atom type)
-	unsigned long          num_of_runs                     = 1;
+	unsigned long          num_of_runs                     = 20;
 	bool                   reflig_en_required              = false;
 	int                    unbound_model                   = 0;                 // bound same as unbound, the coefficients
 	AD4_free_energy_coeffs coeffs                          = unbound_models[0]; // are also set in get_filenames_and_ADcoeffs()
