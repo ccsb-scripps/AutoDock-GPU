@@ -17,7 +17,7 @@ See [more relevant papers](https://github.com/ccsb-scripps/AutoDock-GPU/wiki/Pub
 
 # Features
 
-* Besides the legacy Solis-Wets local search method, AutoDock-GPU adds newly implemented local-search methods based on gradients of the scoring function. One of these methods, ADADELTA, has proven to increase significantly the docking quality in terms of RMSDs and scores.
+* Gradient-based local search methods (e.g. ADADELTA), as well as an improved version of Solis-Wets from AutoDock 4.
 * It targets platforms based on GPU as well as multicore CPU accelerators.
 * Observed speedups of up to 4x (quad-core CPU) and 56x (GPU) over the original serial AutoDock 4.2 (Solis-Wets) on CPU. The Cuda version is currently even faster than the OpenCL version.
 * A batched ligand pipeline to run virtual screenings on the same receptor (both OpenCL and Cuda)
@@ -73,8 +73,7 @@ After successful compilation, the host binary **autodock_&lt;type&gt;_&lt;N&gt;w
 ```zsh
 ./bin/autodock_gpu_64wi \
 -ffile ./input/1stp/derived/1stp_protein.maps.fld \
--lfile ./input/1stp/derived/1stp_ligand.pdbqt \
--nrun 10
+-lfile ./input/1stp/derived/1stp_ligand.pdbqt
 ```
 By default the output log file is written in the current working folder. Examples of output logs can be found under [examples/output](examples/output/).
 
@@ -82,27 +81,37 @@ By default the output log file is written in the current working folder. Example
 
 | Argument    | Description                                           | Default value    |
 |:------------|:------------------------------------------------------|-----------------:|
-| -nrun       | # LGA runs                                            | 1                |
+| -nrun       | # LGA runs                                            | 20               |
 | -nev        | # Score evaluations (max.) per LGA run                | 2500000          |
-| -ngen       | # Generations (max.) per LGA run                      | 27000            |
-| -lsmet      | Local-search method                                   | sw (Solis-Wets)  |
+| -ngen       | # Generations (max.) per LGA run                      | 42000            |
+| -lsmet      | Local-search method                                   | ad (ADADELTA)    |
 | -lsit       | # Local-search iterations (max.)                      | 300              |
 | -psize      | Population size                                       | 150              |
-| -mrat       | Mutation rate                                         | 2 (%)            |
-| -crat       | Crossover rate                                        | 80 (%)           |
-| -lsrat      | Local-search rate                                     | 80 (%)           |
-| -trat       | Tournament (selection) rate                           | 60 (%)           |
+| -mrat       | Mutation rate                                         | 2   (%)          |
+| -crat       | Crossover rate                                        | 80  (%)          |
+| -lsrat      | Local-search rate                                     | 100 (%)          |
+| -trat       | Tournament (selection) rate                           | 60  (%)          |
 | -resnam     | Name for docking output log                           | ligand basename  |
-| -hsym       | Handle symmetry in RMSD calc.                         | 1                |
+| -hsym       | Handle symmetry in RMSD calc.                         | 1 (yes)          |
 | -devnum     | OpenCL/Cuda device number (counting starts at 1)      | 1                |
 | -cgmaps     | Use individual maps for CG-G0 instead of the same one | 0 (use same map) |
-| -heuristics | Ligand-based automatic search method and # evals      | 0                |
-| -heurmax    | Asymptotic heuristics # evals limit (smooth limit)    | 50000000         |
-| -autostop   | Automatic stopping criterion based on convergence     | 0                |
+| -heuristics | Ligand-based automatic search method and # evals      | 1 (yes)          |
+| -heurmax    | Asymptotic heuristics # evals limit (smooth limit)    | 12000000         |
+| -autostop   | Automatic stopping criterion based on convergence     | 1 (yes)          |
 | -asfreq     | Autostop testing frequency (in # of generations)      | 5                |
-| -initswgens | Initial # generations of Solis-Wets instead of -lsmet | 0                |
+| -initswgens | Initial # generations of Solis-Wets instead of -lsmet | 0 (no)           |
 | -filelist   | Batch file                                            | no default       |
 | -xmloutput  | Specify if xml output format is wanted                | 1 (yes)          |
+
+Autostop is ON by default since v1.4. The collective distribution of scores among all LGA populations
+is tested for convergence every `<asfreq>` generations, and docking is stopped if the top-scored poses
+exhibit a small variance. This avoids wasting computation after the best docking solutions have been found.
+The heuristics set the number of evaluations at a generously large number. They are a function
+of the number of rotatable bonds. It prevents unreasonably long dockings in cases where autostop fails
+to detect convergence.
+In our experience `-heuristics 1` and `-autostop 1` allow sufficient score evaluations for searching
+the energy landscape accurately. For molecules with many rotatable bonds (e.g. about 15 or more)
+it may be advisable to increase `-heurmax`.
 
 When the heuristics is used and `-nev <max evals>` is provided as a command line argument it provides the (hard) upper # of evals limit to the value the heuristics suggests. Conversely, `-heurmax` is the rolling-off type asymptotic limit to the heuristic's # of evals formula and should only be changed with caution.
 The batch file is a text file containing the parameters to -ffile, -lfile, and -resnam each on an individual line. It is possible to only use one line to specify the Protein grid map file which means it will be used for all ligands. Here is an example:
