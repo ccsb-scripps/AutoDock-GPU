@@ -414,11 +414,11 @@ int preparse_dpf(
 						break;
 				case GA_num_evals: // number of evals
 						sscanf(line.c_str(),"%*s %d",&tempint);
-						if ((tempint > 0) && (tempint < 260000000)){
+						if ((tempint > 0) && (tempint < (1<<31))){
 							mypars->num_of_energy_evals = (unsigned long) tempint;
 							mypars->nev_provided = true;
 						} else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be between 0 and 260000000.\n",tempstr,mypars->dpffile,line_count);
+							printf("Warning: value of <%s> at %s:%u ignored. Value must be between 0 and 2^31-1.\n",tempstr,mypars->dpffile,line_count);
 						break;
 				case GA_mutation_rate: // mutation rate
 						sscanf(line.c_str(),"%*s %f",&tempfloat);
@@ -773,11 +773,11 @@ int get_commandpars(
 			arg_recognized = 1;
 			sscanf(argv[i+1], "%d", &tempint);
 
-			if ((tempint > 0) && (tempint < 260000000)){
+			if ((tempint > 0) && (tempint < (1<<31))){
 				mypars->num_of_energy_evals = (unsigned long) tempint;
 				mypars->nev_provided = true;
 			} else
-				printf("Warning: value of -nev argument ignored. Value must be between 0 and 260000000.\n");
+				printf("Warning: value of -nev argument ignored. Value must be between 0 and 2^31-1.\n");
 		}
 
 		if (strcmp("-seed", argv[i]) == 0)
