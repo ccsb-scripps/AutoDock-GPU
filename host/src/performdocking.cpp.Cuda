@@ -136,6 +136,16 @@ void setup_gpu_for_docking(
 		status = cudaFree(NULL); // Trick driver into creating context on current device
 	else
 		status = cudaSetDevice(cData.devnum);
+	// Now that we have a device, gather some information
+	size_t freemem, totalmem;
+	cudaDeviceProp props;
+	RTERROR(cudaGetDevice(&(cData.devnum)),"cudaGetDevice failed");
+	RTERROR(cudaGetDeviceProperties(&props,cData.devnum),"cudaGetDeviceProperties failed");
+	printf("Cuda device:                              %s",props.name);
+	if(gpuCount>1) printf(" (#%d / %d)",cData.devnum+1,gpuCount);
+	printf("\n");
+	RTERROR(cudaMemGetInfo(&freemem,&totalmem), "cudaGetMemInfo failed");
+	printf("Available memory on device:               %llu MB (total: %llu MB)\n",(freemem>>20),(totalmem>>20));
 	cData.devnum=-2;
 #ifdef SET_CUDA_PRINTF_BUFFER
 	status = cudaDeviceSetLimit(cudaLimitPrintfFifoSize, 200000000ull);
