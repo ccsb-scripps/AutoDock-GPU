@@ -231,7 +231,9 @@ void setup_gpu_for_docking(
 	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, 0, NULL, &dev_name_size);
 	char* device_name = (char*) malloc(dev_name_size);
 	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, dev_name_size, device_name, NULL);
-	printf("OpenCL device:                           %s\n",device_name);
+	printf("OpenCL device:                           %s",device_name);
+	if(deviceCount>1) printf(" (#%d / %d)",cData.devnum+1,deviceCount);
+	printf("\n");
 	cData.devnum=-2;
 
 	free(device_name);
