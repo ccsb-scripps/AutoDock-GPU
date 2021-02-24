@@ -79,7 +79,7 @@ typedef enum
 #define stick_to_bounds(x,a,b) x + (x <= a)*(a-x) + (x >= b)*(b-x)
 
 // e^2/4pie0 in kcal/mol
-#define ELEC_SCALE_FACTOR        332.06363
+#define ELEC_SCALE_FACTOR        332.06363f
 
 // Constants for dielelectric term of the
 // electrostatic component of the intramolecular energy/gradient
@@ -104,7 +104,7 @@ typedef enum
 // Gradient-related defines
 // -------------------------------------------
 
-#define INFINITESIMAL_RADIAN            1E-3
+#define INFINITESIMAL_RADIAN            1E-3f
 #define HALF_INFINITESIMAL_RADIAN       (float)(0.5f * INFINITESIMAL_RADIAN)
 #define INV_INFINITESIMAL_RADIAN        (1/INFINITESIMAL_RADIAN)
 #define COS_HALF_INFINITESIMAL_RADIAN   cos(HALF_INFINITESIMAL_RADIAN)

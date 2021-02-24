@@ -252,11 +252,11 @@ gpu_gen_and_eval_newpops_kernel(
 			{
 				// Translation genes
 				if (gene_counter < 3) {
-					offspring_genotype[gene_counter] += cData.dockpars.abs_max_dmov*(2*gpu_randf(cData.pMem_prng_states)-1);
+					offspring_genotype[gene_counter] += cData.dockpars.abs_max_dmov*(2.0f*gpu_randf(cData.pMem_prng_states)-1.0f);
 				}
 				// Orientation and torsion genes
 				else {
-					offspring_genotype[gene_counter] += cData.dockpars.abs_max_dang*(2*gpu_randf(cData.pMem_prng_states)-1);
+					offspring_genotype[gene_counter] += cData.dockpars.abs_max_dang*(2.0f*gpu_randf(cData.pMem_prng_states)-1.0f);
 					map_angle(offspring_genotype[gene_counter]);
 				}
 

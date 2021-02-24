@@ -90,7 +90,7 @@ inline float fmod_pi2(float x)
 	return x-(int)(invpi2*x)*PI_TIMES_2;
 }
 
-#define fast_acos_a  9.78056e-05
+#define fast_acos_a  9.78056e-05f
 #define fast_acos_b -0.00104588f
 #define fast_acos_c  0.00418716f
 #define fast_acos_d -0.00314347f
@@ -205,7 +205,7 @@ void gpu_calc_energy(
 	genrot_movingvec.x = genotype[0];
 	genrot_movingvec.y = genotype[1];
 	genrot_movingvec.z = genotype[2];
-	genrot_movingvec.w = 0.0;
+	genrot_movingvec.w = 0.0f;
 	// Convert orientation genes from sex. to radians
 	float phi         = genotype[3] * DEG_TO_RAD;
 	float theta       = genotype[4] * DEG_TO_RAD;
@@ -262,7 +262,7 @@ void gpu_calc_energy(
 				                            native_cos(rotation_angle));
 				rotation_movingvec = (float4)(kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id],
 				                              kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1],
-				                              kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2],0);
+				                              kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2],0.0f);
 				// Performing additionally the first movement which
 				// is needed only if rotating around rotatable bond
 				atom_to_rotate -= rotation_movingvec;
@@ -323,7 +323,7 @@ void gpu_calc_energy(
 
 		float dx = x - x_low;
 		float omdx = 1.0f - dx;
-		float dy = y - y_low; 
+		float dy = y - y_low;
 		float omdy = 1.0f - dy;
 		float dz = z - z_low;
 		float omdz = 1.0f - dz;

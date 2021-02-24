@@ -194,12 +194,12 @@ gradient_minSD(
 	#if defined (DEBUG_INITIAL_2BRT)
 	if (tidx == 0) {
 		// 2brt
-		genotype[0] = 24.093334;
-		genotype[1] = 24.658667;
-		genotype[2] = 24.210667;
-		genotype[3] = 50.0;
-		genotype[4] = 50.0;
-		genotype[5] = 50.0;
+		genotype[0] = 24.093334f;
+		genotype[1] = 24.658667f;
+		genotype[2] = 24.210667f;
+		genotype[3] = 50.0f;
+		genotype[4] = 50.0f;
+		genotype[5] = 50.0f;
 		genotype[6] = 0.0f;
 		genotype[7] = 0.0f;
 		genotype[8] = 0.0f;
@@ -281,25 +281,25 @@ gradient_minSD(
 
 	#if 0
 	// 7cpa
-	float grid_center_x = 49.836;
-	float grid_center_y = 17.609;
-	float grid_center_z = 36.272;
-	float ligand_center_x = 49.2216976744186;
-	float ligand_center_y = 17.793953488372097;
-	float ligand_center_z = 36.503837209302326;
-	float shoemake_gene_u1 = 0.02;
-	float shoemake_gene_u2 = 0.23;
-	float shoemake_gene_u3 = 0.95;
+	float grid_center_x = 49.836f;
+	float grid_center_y = 17.609f;
+	float grid_center_z = 36.272f;
+	float ligand_center_x = 49.2216976744186f;
+	float ligand_center_y = 17.793953488372097f;
+	float ligand_center_z = 36.503837209302326f;
+	float shoemake_gene_u1 = 0.02f;
+	float shoemake_gene_u2 = 0.23f;
+	float shoemake_gene_u3 = 0.95f;
 	#endif
 
 	#if 0
 	// 3tmn
-	float grid_center_x = 52.340;
-	float grid_center_y = 15.029;
-	float grid_center_z = -2.932;
-	float ligand_center_x = 52.22740741;
-	float ligand_center_y = 15.51751852;
-	float ligand_center_z = -2.40896296;
+	float grid_center_x = 52.340f;
+	float grid_center_y = 15.029f;
+	float grid_center_z = -2.932f;
+	float ligand_center_x = 52.22740741f;
+	float ligand_center_y = 15.51751852f;
+	float ligand_center_z = -2.40896296f;
 	#endif
 
 	// Calculating maximum possible stepsize (alpha)
@@ -324,9 +324,9 @@ gradient_minSD(
 		// xyz_gene_gridspace = gridcenter_gridspace + (input_gene_realspace - gridcenter_realspace)/gridsize
 
 		// 1ac8
-		genotype[0] = 30 + (31.79575  - 31.924) / dockpars_grid_spacing;
-		genotype[1] = 30 + (93.743875 - 93.444) / dockpars_grid_spacing;
-		genotype[2] = 30 + (47.699875 - 47.924) / dockpars_grid_spacing;
+		genotype[0] = 30f + (31.79575f  - 31.924f) / dockpars_grid_spacing;
+		genotype[1] = 30f + (93.743875f - 93.444f) / dockpars_grid_spacing;
+		genotype[2] = 30f + (47.699875f - 47.924f) / dockpars_grid_spacing;
 		genotype[3] = 0.1f;
 		genotype[4] = 0.5f;
 		genotype[5] = 0.9f;
@@ -334,9 +334,9 @@ gradient_minSD(
 
 		#if 0
 		// 3tmn
-		genotype[0] = 30 + (ligand_center_x - grid_center_x) / dockpars_grid_spacing;
-		genotype[1] = 30 + (ligand_center_y - grid_center_y) / dockpars_grid_spacing;
-		genotype[2] = 30 + (ligand_center_z - grid_center_z) / dockpars_grid_spacing;
+		genotype[0] = 30f + (ligand_center_x - grid_center_x) / dockpars_grid_spacing;
+		genotype[1] = 30f + (ligand_center_y - grid_center_y) / dockpars_grid_spacing;
+		genotype[2] = 30f + (ligand_center_z - grid_center_z) / dockpars_grid_spacing;
 		genotype[3] = shoemake_gene_u1;
 		genotype[4] = shoemake_gene_u2;
 		genotype[5] = shoemake_gene_u3;
@@ -359,12 +359,12 @@ gradient_minSD(
 
 		#if 0
 		// 2j5s
-		genotype[0] = 28.464;
-		genotype[1] = 25.792762;
-		genotype[2] = 23.740571;
-		genotype[3] = 50.0;
-		genotype[4] = 50.0;
-		genotype[5] = 50.0;
+		genotype[0] = 28.464f;
+		genotype[1] = 25.792762f;
+		genotype[2] = 23.740571f;
+		genotype[3] = 50.0f;
+		genotype[4] = 50.0f;
+		genotype[5] = 50.0f;
 		genotype[6] = 0.0f;
 		genotype[7] = 0.0f;
 		genotype[8] = 0.0f;
@@ -384,12 +384,12 @@ gradient_minSD(
 
 		#if 0
 		// 2brt
-		genotype[0] = 24.093334;
-		genotype[1] = 24.658667;
-		genotype[2] = 24.210667;
-		genotype[3] = 50.0;
-		genotype[4] = 50.0;
-		genotype[5] = 50.0;
+		genotype[0] = 24.093334f;
+		genotype[1] = 24.658667f;
+		genotype[2] = 24.210667f;
+		genotype[3] = 50.0f;
+		genotype[4] = 50.0f;
+		genotype[5] = 50.0f;
 		genotype[6] = 0.0f;
 		genotype[7] = 0.0f;
 		genotype[8] = 0.0f;

@@ -163,7 +163,7 @@ __constant       kernelconstant_conform*      kerconst_conform
 		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
 #ifdef SWAT3
-			genotype_deviate[gene_counter] = rho * (2*gpu_randf(dockpars_prng_states)-1) * (gpu_randf(dockpars_prng_states) < gene_scale);
+			genotype_deviate[gene_counter] = rho * (2.0f*gpu_randf(dockpars_prng_states)-1.0f) * (gpu_randf(dockpars_prng_states) < gene_scale);
 
 			// Translation genes
 			if (gene_counter < 3) {

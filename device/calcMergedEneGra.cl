@@ -143,7 +143,7 @@ void gpu_calc_energrad(
 	genrot_movingvec.x = genotype[0];
 	genrot_movingvec.y = genotype[1];
 	genrot_movingvec.z = genotype[2];
-	genrot_movingvec.w = 0.0;
+	genrot_movingvec.w = 0.0f;
 
 	// Convert orientation genes from sex. to radians
 	float phi         = genotype[3] * DEG_TO_RAD;
@@ -157,7 +157,7 @@ void gpu_calc_energrad(
 	genrot_unitvec.y = s2*sin_angle*native_sin(phi);
 	genrot_unitvec.z = s2*native_cos(theta);
 	genrot_unitvec.w = native_cos(genrotangle*0.5f);
-	float is_theta_gt_pi = 1.0-2.0*(float)(sin_angle < 0.0f);
+	float is_theta_gt_pi = 1.0f-2.0f*(float)(sin_angle < 0.0f);
 
 	uint g1 = dockpars_gridsize_x;
 	uint g2 = dockpars_gridsize_x_times_y;
@@ -201,7 +201,7 @@ void gpu_calc_energrad(
 							    native_cos(rotation_angle));
 				rotation_movingvec = (float4)(kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id],
 							      kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1],
-							      kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2],0);
+							      kerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2],0.0f);
 				// Performing additionally the first movement which
 				// is needed only if rotating around rotatable bond
 				atom_to_rotate -= rotation_movingvec;
@@ -289,7 +289,7 @@ void gpu_calc_energrad(
 
 		float dx = x - x_low;
 		float omdx = 1.0f - dx;
-		float dy = y - y_low; 
+		float dy = y - y_low;
 		float omdy = 1.0f - dy;
 		float dz = z - z_low;
 		float omdz = 1.0f - dz;
@@ -721,7 +721,7 @@ void gpu_calc_energrad(
 		force.y = ONEOVERTERMSCALE * gradient_y[atom_cnt];
 		force.z = ONEOVERTERMSCALE * gradient_z[atom_cnt];
 #endif
-		force.w = 0.0;
+		force.w = 0.0f;
 		float4 torque_rot = cross(r, force);
 		accumulator_x[tidx] += torque_rot.x;
 		accumulator_y[tidx] += torque_rot.y;
@@ -752,7 +752,7 @@ void gpu_calc_energrad(
 		// Derived from rotation.py/axisangle_to_q()
 		// genes[3:7] = rotation.axisangle_to_q(torque, rad)
 		float torque_length = fast_length(torque_rot);
-		torque_length += (torque_length<1e-20)*1e-20;
+		torque_length += (torque_length<1e-20f)*1e-20f;
 		
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -956,7 +956,7 @@ void gpu_calc_energrad(
 		uint lig_atom_id = rotbonds_atoms_const[MAX_NUM_OF_ATOMS*rotbond_id + rotable_atom_cnt];
 		float4 torque_tor, r, atom_force;
 
-		// Calculating torque on point "A" 
+		// Calculating torque on point "A"
 		// They are converted back to Angstroms here
 		r = (calc_coords[lig_atom_id] - atomRef_coords);
 

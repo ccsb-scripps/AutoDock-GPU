@@ -61,7 +61,7 @@ __device__ inline int64_t ullitolli(uint64_t u)
 	WARPMINIMUMEXCHANGE(tgx, v0, k0, 2) \
 	WARPMINIMUMEXCHANGE(tgx, v0, k0, 4) \
 	WARPMINIMUMEXCHANGE(tgx, v0, k0, 8) \
-	WARPMINIMUMEXCHANGE(tgx, v0, k0, 16)   
+	WARPMINIMUMEXCHANGE(tgx, v0, k0, 16)
 
 #define REDUCEINTEGERSUM(value, pAccumulator) \
 	if (threadIdx.x == 0) \
