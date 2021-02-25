@@ -464,7 +464,7 @@ gradient_minSD(
 		                  dependence_on_rotangle_const,
 		                  // Gradient-related arguments
 		                  dockpars_num_of_genes,
-		                  i_gradient_x, i_gradient_y, i_gradient_z,
+		                  (__local float*)i_gradient_x, (__local float*)i_gradient_y, (__local float*)i_gradient_z,
 		                  f_gradient_x, f_gradient_y, f_gradient_z,
 		                  gradient
 		                 );
