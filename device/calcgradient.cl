@@ -52,7 +52,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // Scaling factor to multiply the gradients of 
 // the genes expressed in degrees (all genes except the first three) 
 // (GRID-SPACING * GRID-SPACING) / (DEG_TO_RAD * DEG_TO_RAD) = 461.644
-#define SCFACTOR_ANGSTROM_RADIAN 1.0/(DEG_TO_RAD * DEG_TO_RAD)
+#define SCFACTOR_ANGSTROM_RADIAN 1.0f/(DEG_TO_RAD * DEG_TO_RAD)
 
 void map_priv_angle(float* angle)
 // The GPU device function maps

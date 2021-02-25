@@ -209,7 +209,7 @@ __device__ void gpu_calc_energrad(
 	// ================================================
 	float weights[8];
 	float cube[8];
-	float inv_grid_spacing=1.0/cData.dockpars.grid_spacing;
+	float inv_grid_spacing=1.0f/cData.dockpars.grid_spacing;
 	for (uint32_t atom_id = threadIdx.x;
 	              atom_id < cData.dockpars.num_of_atoms;
 	              atom_id+= blockDim.x)
