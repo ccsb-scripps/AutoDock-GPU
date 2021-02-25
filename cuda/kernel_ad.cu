@@ -247,7 +247,7 @@ gpu_gradient_minAD_kernel(
 			printf("\n");
 			printf("%-10s %-10.6f \n", "intra: ",  intraE);
 			printf("%-10s %-10.6f \n", "grids: ",  interE);
-			printf("%-10s %-10.6f \n", "Energy: ", intraE + interE));
+			printf("%-10s %-10.6f \n", "Energy: ", intraE + interE);
 			#endif
 
 			#if defined (PRINT_ADADELTA_GENES_AND_GRADS)
