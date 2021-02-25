@@ -759,11 +759,6 @@ void gpu_calc_energrad(
 		printf("%-20s %-10.6f\n", "torque length: ", torque_length);
 		#endif
 
-		/*
-		// Infinitesimal rotation in radians
-		const float infinitesimal_radian = 1E-5;
-		*/
-
 		// Finding the quaternion that performs
 		// the infinitesimal rotation around torque axis
 		float4 quat_torque = torque_rot * SIN_HALF_INFINITESIMAL_RADIAN * native_recip(torque_length);
@@ -819,7 +814,6 @@ void gpu_calc_energrad(
 		// the displacement in shoemake space is not distorted.
 		// The correct amount of displacement in shoemake space is obtained
 		// by multiplying the infinitesimal displacement by shoemake_scaling:
-		//float shoemake_scaling = native_divide(torque_length, INFINITESIMAL_RADIAN/*infinitesimal_radian*/);
 		float orientation_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)

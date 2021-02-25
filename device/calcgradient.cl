@@ -904,14 +904,14 @@ void gpu_calc_gradient(
 		// the infinitesimal rotation around torque axis
 		float4 quat_torque;
 		#if 0
-		quat_torque.w = native_cos(HALF_INFINITESIMAL_RADIAN/*infinitesimal_radian*0.5f*/);
-		quat_torque.x = fast_normalize(torque_rot).x * native_sin(HALF_INFINITESIMAL_RADIAN/*infinitesimal_radian*0.5f*/);
-		quat_torque.y = fast_normalize(torque_rot).y * native_sin(HALF_INFINITESIMAL_RADIAN/*infinitesimal_radian*0.5f*/);
-		quat_torque.z = fast_normalize(torque_rot).z * native_sin(HALF_INFINITESIMAL_RADIAN/*infinitesimal_radian*0.5f*/);
+		quat_torque.w = native_cos(HALF_INFINITESIMAL_RADIAN);
+		quat_torque.x = fast_normalize(torque_rot).x * native_sin(HALF_INFINITESIMAL_RADIAN);
+		quat_torque.y = fast_normalize(torque_rot).y * native_sin(HALF_INFINITESIMAL_RADIAN);
+		quat_torque.z = fast_normalize(torque_rot).z * native_sin(HALF_INFINITESIMAL_RADIAN);
 		#endif
 
 		quat_torque.w = COS_HALF_INFINITESIMAL_RADIAN;
-		quat_torque.x = fast_normalize(torque_rot).x * SIN_HALF_INFINITESIMAL_RADIAN; 
+		quat_torque.x = fast_normalize(torque_rot).x * SIN_HALF_INFINITESIMAL_RADIAN;
 		quat_torque.y = fast_normalize(torque_rot).y * SIN_HALF_INFINITESIMAL_RADIAN;
 		quat_torque.z = fast_normalize(torque_rot).z * SIN_HALF_INFINITESIMAL_RADIAN;
 
@@ -1024,7 +1024,6 @@ void gpu_calc_gradient(
 		// the displacement in shoemake space is not distorted.
 		// The correct amount of displacement in shoemake space is obtained
 		// by multiplying the infinitesimal displacement by shoemake_scaling:
-		//float shoemake_scaling = native_divide(torque_length, INFINITESIMAL_RADIAN/*infinitesimal_radian*/);
 		float orientation_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
