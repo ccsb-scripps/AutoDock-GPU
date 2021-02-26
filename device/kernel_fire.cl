@@ -53,7 +53,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // New parameter
 // Not in original implementation
 // if "dt" becomes smaller than this value, stop optimization
-#define DT_MIN           1e-6
+#define DT_MIN           1e-6f
 
 // Enabling "DEBUG_ENERGY_FIRE" requires
 // manually enabling "DEBUG_ENERGY_KERNEL" in calcenergy.cl
@@ -228,12 +228,12 @@ gradient_minFire(
 	#if defined (DEBUG_FIRE_INITIAL_2BRT)
 	if (tidx == 0) {
 		// 2brt
-		genotype[0]  = 24.093334;
-		genotype[1]  = 24.658667;
-		genotype[2]  = 24.210667;
-		genotype[3]  = 50.0;
-		genotype[4]  = 50.0;
-		genotype[5]  = 50.0;
+		genotype[0]  = 24.093334f;
+		genotype[1]  = 24.658667f;
+		genotype[2]  = 24.210667f;
+		genotype[3]  = 50.0f;
+		genotype[4]  = 50.0f;
+		genotype[5]  = 50.0f;
 		genotype[6]  = 0.0f;
 		genotype[7]  = 0.0f;
 		genotype[8]  = 0.0f;
@@ -354,7 +354,7 @@ gradient_minFire(
 	                  dependence_on_rotangle_const,
 	                  // Gradient-related arguments
 	                  dockpars_num_of_genes,
-	                  i_gradient_x, i_gradient_y, i_gradient_z,
+	                  (__local float*)i_gradient_x, (__local float*)i_gradient_y, (__local float*)i_gradient_z,
 	                  f_gradient_x, f_gradient_y, f_gradient_z,
 	                  gradient
 	                 );

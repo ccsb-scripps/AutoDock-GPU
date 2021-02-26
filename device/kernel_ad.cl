@@ -38,7 +38,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //#define RHO             0.9f
 //#define EPSILON         1e-6
 #define RHO             0.8f
-#define EPSILON         1e-2
+#define EPSILON         1e-2f
 
 // Enabling "DEBUG_ENERGY_ADADELTA" requires
 // manually enabling "DEBUG_ENERGY_KERNEL" in calcenergy.cl
@@ -219,12 +219,12 @@ gradient_minAD(
 #if defined (DEBUG_ADADELTA_INITIAL_2BRT)
 	if (tidx == 0) {
 		// 2brt
-		genotype[0]  = 24.093334;
-		genotype[1]  = 24.658667;
-		genotype[2]  = 24.210667;
-		genotype[3]  = 50.0;
-		genotype[4]  = 50.0;
-		genotype[5]  = 50.0;
+		genotype[0]  = 24.093334f;
+		genotype[1]  = 24.658667f;
+		genotype[2]  = 24.210667f;
+		genotype[3]  = 50.0f;
+		genotype[4]  = 50.0f;
+		genotype[5]  = 50.0f;
 		genotype[6]  = 0.0f;
 		genotype[7]  = 0.0f;
 		genotype[8]  = 0.0f;
@@ -517,7 +517,7 @@ gradient_minAD(
 		}
 		barrier(CLK_LOCAL_MEM_FENCE); // making sure that iteration_cnt is up-to-date
 #ifdef ADADELTA_AUTOSTOP
-	} while ((iteration_cnt < dockpars_max_num_of_iters)  && (rho > 0.01));
+	} while ((iteration_cnt < dockpars_max_num_of_iters)  && (rho > 0.01f));
 #else
 	} while (iteration_cnt < dockpars_max_num_of_iters);
 #endif

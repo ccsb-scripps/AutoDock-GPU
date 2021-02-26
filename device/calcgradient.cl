@@ -52,7 +52,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // Scaling factor to multiply the gradients of 
 // the genes expressed in degrees (all genes except the first three) 
 // (GRID-SPACING * GRID-SPACING) / (DEG_TO_RAD * DEG_TO_RAD) = 461.644
-#define SCFACTOR_ANGSTROM_RADIAN 1.0/(DEG_TO_RAD * DEG_TO_RAD)
+#define SCFACTOR_ANGSTROM_RADIAN 1.0f/(DEG_TO_RAD * DEG_TO_RAD)
 
 void map_priv_angle(float* angle)
 // The GPU device function maps
@@ -162,7 +162,7 @@ void gpu_calc_gradient(
                       )
 {
 	uint tidx = get_local_id(0);
-	// Initializing gradients (forces) 
+	// Initializing gradients (forces)
 	// Derived from autodockdev/maps.py
 	for (uint atom_id = tidx;
 	          atom_id < dockpars_num_of_atoms;
@@ -398,13 +398,13 @@ void gpu_calc_gradient(
 
 			// Calculating interpolation weights
 			float weights[8];
-			weights [idx_000] = (1-dx)*(1-dy)*(1-dz);
-			weights [idx_100] = dx*(1-dy)*(1-dz);
-			weights [idx_010] = (1-dx)*dy*(1-dz);
-			weights [idx_110] = dx*dy*(1-dz);
-			weights [idx_001] = (1-dx)*(1-dy)*dz;
-			weights [idx_101] = dx*(1-dy)*dz;
-			weights [idx_011] = (1-dx)*dy*dz;
+			weights [idx_000] = (1.0f-dx)*(1.0f-dy)*(1.0f-dz);
+			weights [idx_100] = dx*(1.0f-dy)*(1.0f-dz);
+			weights [idx_010] = (1.0f-dx)*dy*(1.0f-dz);
+			weights [idx_110] = dx*dy*(1.0f-dz);
+			weights [idx_001] = (1.0f-dx)*(1.0f-dy)*dz;
+			weights [idx_101] = dx*(1.0f-dy)*dz;
+			weights [idx_011] = (1.0f-dx)*dy*dz;
 			weights [idx_111] = dx*dy*dz;
 
 			// Capturing affinity values
@@ -481,27 +481,27 @@ void gpu_calc_gradient(
 			x52 = cube [idx_110] - cube [idx_010]; // z = 0
 			x43 = cube [idx_101] - cube [idx_001]; // z = 1
 			x76 = cube [idx_111] - cube [idx_011]; // z = 1
-			vx_z0 = (1 - dy) * x10 + dy * x52;     // z = 0
-			vx_z1 = (1 - dy) * x43 + dy * x76;     // z = 1
-			gradient_inter_x[atom_id] += (1 - dz) * vx_z0 + dz * vx_z1;
+			vx_z0 = (1.0f - dy) * x10 + dy * x52;     // z = 0
+			vx_z1 = (1.0f - dy) * x43 + dy * x76;     // z = 1
+			gradient_inter_x[atom_id] += (1.0f - dz) * vx_z0 + dz * vx_z1;
 
 			// Vector in y-direction
 			y20 = cube[idx_010] - cube [idx_000];	// z = 0
 			y51 = cube[idx_110] - cube [idx_100];	// z = 0
 			y63 = cube[idx_011] - cube [idx_001];	// z = 1
 			y74 = cube[idx_111] - cube [idx_101];	// z = 1
-			vy_z0 = (1 - dx) * y20 + dx * y51;	// z = 0
-			vy_z1 = (1 - dx) * y63 + dx * y74;	// z = 1
-			gradient_inter_y[atom_id] += (1 - dz) * vy_z0 + dz * vy_z1;
+			vy_z0 = (1.0f - dx) * y20 + dx * y51;	// z = 0
+			vy_z1 = (1.0f - dx) * y63 + dx * y74;	// z = 1
+			gradient_inter_y[atom_id] += (1.0f - dz) * vy_z0 + dz * vy_z1;
 
 			// Vectors in z-direction
 			z30 = cube [idx_001] - cube [idx_000];	// y = 0
 			z41 = cube [idx_101] - cube [idx_100];	// y = 0
 			z62 = cube [idx_011] - cube [idx_010];	// y = 1 
 			z75 = cube [idx_111] - cube [idx_110];	// y = 1
-			vz_y0 = (1 - dx) * z30 + dx * z41;	// y = 0
-			vz_y1 = (1 - dx) * z62 + dx * z75;	// y = 1
-			gradient_inter_z[atom_id] += (1 - dy) * vz_y0 + dy * vz_y1;
+			vz_y0 = (1.0f - dx) * z30 + dx * z41;	// y = 0
+			vz_y1 = (1.0f - dx) * z62 + dx * z75;	// y = 1
+			gradient_inter_z[atom_id] += (1.0f - dy) * vz_y0 + dy * vz_y1;
 
 			//printf("%-15s %-3u %-10.8f %-10.8f %-10.8f %-10.8f %-10.8f %-10.8f\n", "atom aff", atom_id, vx_z0, vx_z1, vy_z0, vy_z1, vz_y0, vz_y1);
 
@@ -529,27 +529,27 @@ void gpu_calc_gradient(
 			x52 = cube [idx_110] - cube [idx_010]; // z = 0
 			x43 = cube [idx_101] - cube [idx_001]; // z = 1
 			x76 = cube [idx_111] - cube [idx_011]; // z = 1
-			vx_z0 = (1 - dy) * x10 + dy * x52;     // z = 0
-			vx_z1 = (1 - dy) * x43 + dy * x76;     // z = 1
-			gradient_inter_x[atom_id] += q * ((1 - dz) * vx_z0 + dz * vx_z1);
+			vx_z0 = (1.0f - dy) * x10 + dy * x52;     // z = 0
+			vx_z1 = (1.0f - dy) * x43 + dy * x76;     // z = 1
+			gradient_inter_x[atom_id] += q * ((1.0f - dz) * vx_z0 + dz * vx_z1);
 
 			// Vector in y-direction
 			y20 = cube[idx_010] - cube [idx_000];	// z = 0
 			y51 = cube[idx_110] - cube [idx_100];	// z = 0
 			y63 = cube[idx_011] - cube [idx_001];	// z = 1
 			y74 = cube[idx_111] - cube [idx_101];	// z = 1
-			vy_z0 = (1 - dx) * y20 + dx * y51;	// z = 0
-			vy_z1 = (1 - dx) * y63 + dx * y74;	// z = 1
-			gradient_inter_y[atom_id] += q *((1 - dz) * vy_z0 + dz * vy_z1);
+			vy_z0 = (1.0f - dx) * y20 + dx * y51;	// z = 0
+			vy_z1 = (1.0f - dx) * y63 + dx * y74;	// z = 1
+			gradient_inter_y[atom_id] += q *((1.0f - dz) * vy_z0 + dz * vy_z1);
 
 			// Vectors in z-direction
 			z30 = cube [idx_001] - cube [idx_000];	// y = 0
 			z41 = cube [idx_101] - cube [idx_100];	// y = 0
 			z62 = cube [idx_011] - cube [idx_010];	// y = 1 
 			z75 = cube [idx_111] - cube [idx_110];	// y = 1
-			vz_y0 = (1 - dx) * z30 + dx * z41;	// y = 0
-			vz_y1 = (1 - dx) * z62 + dx * z75;	// y = 1
-			gradient_inter_z[atom_id] += q *((1 - dy) * vz_y0 + dy * vz_y1);
+			vz_y0 = (1.0f - dx) * z30 + dx * z41;	// y = 0
+			vz_y1 = (1.0f - dx) * z62 + dx * z75;	// y = 1
+			gradient_inter_z[atom_id] += q *((1.0f - dy) * vz_y0 + dy * vz_y1);
 
 			//printf("%-15s %-3u %-10.8f %-10.8f %-10.8f %-10.8f %-10.8f %-10.8f\n", "elec", atom_id, vx_z0, vx_z1, vy_z0, vy_z1, vz_y0, vz_y1);
 
@@ -577,27 +577,27 @@ void gpu_calc_gradient(
 			x52 = cube [idx_110] - cube [idx_010]; // z = 0
 			x43 = cube [idx_101] - cube [idx_001]; // z = 1
 			x76 = cube [idx_111] - cube [idx_011]; // z = 1
-			vx_z0 = (1 - dy) * x10 + dy * x52;     // z = 0
-			vx_z1 = (1 - dy) * x43 + dy * x76;     // z = 1
-			gradient_inter_x[atom_id] += fabs(q) * ((1 - dz) * vx_z0 + dz * vx_z1);
+			vx_z0 = (1.0f - dy) * x10 + dy * x52;     // z = 0
+			vx_z1 = (1.0f - dy) * x43 + dy * x76;     // z = 1
+			gradient_inter_x[atom_id] += fabs(q) * ((1.0f - dz) * vx_z0 + dz * vx_z1);
 
 			// Vector in y-direction
 			y20 = cube[idx_010] - cube [idx_000];	// z = 0
 			y51 = cube[idx_110] - cube [idx_100];	// z = 0
 			y63 = cube[idx_011] - cube [idx_001];	// z = 1
 			y74 = cube[idx_111] - cube [idx_101];	// z = 1
-			vy_z0 = (1 - dx) * y20 + dx * y51;	// z = 0
-			vy_z1 = (1 - dx) * y63 + dx * y74;	// z = 1
-			gradient_inter_y[atom_id] += fabs(q) *((1 - dz) * vy_z0 + dz * vy_z1);
+			vy_z0 = (1.0f - dx) * y20 + dx * y51;	// z = 0
+			vy_z1 = (1.0f - dx) * y63 + dx * y74;	// z = 1
+			gradient_inter_y[atom_id] += fabs(q) *((1.0f - dz) * vy_z0 + dz * vy_z1);
 
 			// Vectors in z-direction
 			z30 = cube [idx_001] - cube [idx_000];	// y = 0
 			z41 = cube [idx_101] - cube [idx_100];	// y = 0
 			z62 = cube [idx_011] - cube [idx_010];	// y = 1 
 			z75 = cube [idx_111] - cube [idx_110];	// y = 1
-			vz_y0 = (1 - dx) * z30 + dx * z41;	// y = 0
-			vz_y1 = (1 - dx) * z62 + dx * z75;	// y = 1
-			gradient_inter_z[atom_id] += fabs(q) *((1 - dy) * vz_y0 + dy * vz_y1);
+			vz_y0 = (1.0f - dx) * z30 + dx * z41;	// y = 0
+			vz_y1 = (1.0f - dx) * z62 + dx * z75;	// y = 1
+			gradient_inter_z[atom_id] += fabs(q) *((1.0f - dy) * vz_y0 + dy * vz_y1);
 
 			//printf("%-15s %-3u %-10.8f %-10.8f %-10.8f %-10.8f %-10.8f %-10.8f\n", "desol", atom_id, vx_z0, vx_z1, vy_z0, vy_z1, vz_y0, vz_y1);
 			// -------------------------------------------------------------------
@@ -617,7 +617,7 @@ void gpu_calc_gradient(
 	          contributor_counter < dockpars_num_of_intraE_contributors;
 	          contributor_counter+= NUM_OF_THREADS_PER_BLOCK)
 	{
-		// Storing in a private variable 
+		// Storing in a private variable
 		// the gradient contribution of each contributing atomic pair
 		float priv_gradient_per_intracontributor= 0.0f;
 
@@ -904,14 +904,14 @@ void gpu_calc_gradient(
 		// the infinitesimal rotation around torque axis
 		float4 quat_torque;
 		#if 0
-		quat_torque.w = native_cos(HALF_INFINITESIMAL_RADIAN/*infinitesimal_radian*0.5f*/);
-		quat_torque.x = fast_normalize(torque_rot).x * native_sin(HALF_INFINITESIMAL_RADIAN/*infinitesimal_radian*0.5f*/);
-		quat_torque.y = fast_normalize(torque_rot).y * native_sin(HALF_INFINITESIMAL_RADIAN/*infinitesimal_radian*0.5f*/);
-		quat_torque.z = fast_normalize(torque_rot).z * native_sin(HALF_INFINITESIMAL_RADIAN/*infinitesimal_radian*0.5f*/);
+		quat_torque.w = native_cos(HALF_INFINITESIMAL_RADIAN);
+		quat_torque.x = fast_normalize(torque_rot).x * native_sin(HALF_INFINITESIMAL_RADIAN);
+		quat_torque.y = fast_normalize(torque_rot).y * native_sin(HALF_INFINITESIMAL_RADIAN);
+		quat_torque.z = fast_normalize(torque_rot).z * native_sin(HALF_INFINITESIMAL_RADIAN);
 		#endif
 
 		quat_torque.w = COS_HALF_INFINITESIMAL_RADIAN;
-		quat_torque.x = fast_normalize(torque_rot).x * SIN_HALF_INFINITESIMAL_RADIAN; 
+		quat_torque.x = fast_normalize(torque_rot).x * SIN_HALF_INFINITESIMAL_RADIAN;
 		quat_torque.y = fast_normalize(torque_rot).y * SIN_HALF_INFINITESIMAL_RADIAN;
 		quat_torque.z = fast_normalize(torque_rot).z * SIN_HALF_INFINITESIMAL_RADIAN;
 
@@ -965,7 +965,7 @@ void gpu_calc_gradient(
 		
 		float ang;
 		ang = current_rotangle * 0.5f;
-		current_q.w = native_cos(ang); 
+		current_q.w = native_cos(ang);
 		current_q.x = rotaxis_x * native_sin(ang);
 		current_q.y = rotaxis_y * native_sin(ang);
 		current_q.z = rotaxis_z * native_sin(ang);
@@ -1024,7 +1024,6 @@ void gpu_calc_gradient(
 		// the displacement in shoemake space is not distorted.
 		// The correct amount of displacement in shoemake space is obtained
 		// by multiplying the infinitesimal displacement by shoemake_scaling:
-		//float shoemake_scaling = native_divide(torque_length, INFINITESIMAL_RADIAN/*infinitesimal_radian*/);
 		float orientation_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)

@@ -237,7 +237,7 @@ gpu_gradient_minAdam_kernel(
 			printf("\n");
 			printf("%-10s %-10.6f \n", "intra: ",  intraE);
 			printf("%-10s %-10.6f \n", "grids: ",  interE);
-			printf("%-10s %-10.6f \n", "Energy: ", intraE + interE));
+			printf("%-10s %-10.6f \n", "Energy: ", intraE + interE);
 			#endif
 
 			#if defined (PRINT_ADADELTA_GENES_AND_GRADS)
@@ -270,7 +270,7 @@ gpu_gradient_minAdam_kernel(
 		if ((blockIdx.x == 0) && (threadIdx.x == 0))
 		{
 			printf("\n%d %16.8f\n", blockIdx.x);
-			float sum = 0.0;
+			float sum = 0.0f;
 			for (uint32_t i = 0;
 			              i < cData.dockpars.num_of_genes;
 			              i++)

@@ -99,7 +99,7 @@ __device__ void gpu_calc_energrad(
 	genrot_movingvec.x = genotype[0];
 	genrot_movingvec.y = genotype[1];
 	genrot_movingvec.z = genotype[2];
-	genrot_movingvec.w = 0.0;
+	genrot_movingvec.w = 0.0f;
 
 	// Convert orientation genes from sex. to radians
 	float phi         = genotype[3] * DEG_TO_RAD;
@@ -113,7 +113,7 @@ __device__ void gpu_calc_energrad(
 	genrot_unitvec.y = s2*sin_angle*sin(phi);
 	genrot_unitvec.z = s2*cos(theta);
 	genrot_unitvec.w = cos(genrotangle*0.5f);
-	float is_theta_gt_pi = 1.0-2.0*(float)(sin_angle < 0.0f);
+	float is_theta_gt_pi = 1.0f-2.0f*(float)(sin_angle < 0.0f);
 
 	uint32_t  g1 = cData.dockpars.gridsize_x;
 	uint32_t  g2 = cData.dockpars.gridsize_x_times_y;
@@ -209,7 +209,7 @@ __device__ void gpu_calc_energrad(
 	// ================================================
 	float weights[8];
 	float cube[8];
-	float inv_grid_spacing=1.0/cData.dockpars.grid_spacing;
+	float inv_grid_spacing=1.0f/cData.dockpars.grid_spacing;
 	for (uint32_t atom_id = threadIdx.x;
 	              atom_id < cData.dockpars.num_of_atoms;
 	              atom_id+= blockDim.x)
@@ -266,7 +266,7 @@ __device__ void gpu_calc_energrad(
 
 		float dx = x - x_low;
 		float omdx = 1.0f - dx;
-		float dy = y - y_low; 
+		float dy = y - y_low;
 		float omdy = 1.0f - dy;
 		float dz = z - z_low;
 		float omdz = 1.0f - dz;
@@ -713,7 +713,7 @@ __device__ void gpu_calc_energrad(
 		// Derived from rotation.py/axisangle_to_q()
 		// genes[3:7] = rotation.axisangle_to_q(torque, rad)
 		float torque_length = norm3df(torque_rot.x, torque_rot.y, torque_rot.z);
-		torque_length += (torque_length<1e-20)*1e-20;
+		torque_length += (torque_length<1e-20f)*1e-20f;
 		
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -930,7 +930,7 @@ __device__ void gpu_calc_energrad(
 		float4 torque_tor;
 		float3 r, atom_force;
 
-		// Calculating torque on point "A" 
+		// Calculating torque on point "A"
 		// They are converted back to Angstroms here
 		r.x = (calc_coords[lig_atom_id].x - atomRef_coords.x);
 		r.y = (calc_coords[lig_atom_id].y - atomRef_coords.y);
@@ -938,11 +938,11 @@ __device__ void gpu_calc_energrad(
 
 		// Re-using "gradient_inter_*" for total gradient (inter+intra)
 #ifdef FLOAT_GRADIENTS
-		atom_force.x = gradient[lig_atom_id].x; 
+		atom_force.x = gradient[lig_atom_id].x;
 		atom_force.y = gradient[lig_atom_id].y;
 		atom_force.z = gradient[lig_atom_id].z;
 #else
-		atom_force.x = ONEOVERTERMSCALE * gradient[lig_atom_id].x; 
+		atom_force.x = ONEOVERTERMSCALE * gradient[lig_atom_id].x;
 		atom_force.y = ONEOVERTERMSCALE * gradient[lig_atom_id].y;
 		atom_force.z = ONEOVERTERMSCALE * gradient[lig_atom_id].z;
 #endif

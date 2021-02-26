@@ -117,7 +117,7 @@ gpu_perform_LS_kernel(
 		              gene_counter+= blockDim.x)
 		{
 #ifdef SWAT3
-			genotype_deviate[gene_counter] = rho*(2*gpu_randf(cData.pMem_prng_states)-1)*(gpu_randf(cData.pMem_prng_states) < gene_scale);
+			genotype_deviate[gene_counter] = rho*(2.0f*gpu_randf(cData.pMem_prng_states)-1.0f)*(gpu_randf(cData.pMem_prng_states) < gene_scale);
 
 			// Translation genes
 			if (gene_counter < 3) {
@@ -132,7 +132,7 @@ gpu_perform_LS_kernel(
 				}
 			}
 #else
-			genotype_deviate[gene_counter] = rho*(2*gpu_randf(cData.pMem_prng_states)-1)*(gpu_randf(cData.pMem_prng_states)<0.3f);
+			genotype_deviate[gene_counter] = rho*(2.0f*gpu_randf(cData.pMem_prng_states)-1.0f)*(gpu_randf(cData.pMem_prng_states)<0.3f);
 
 			// Translation genes
 			if (gene_counter < 3) {
