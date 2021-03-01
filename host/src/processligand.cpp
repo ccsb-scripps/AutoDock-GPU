@@ -461,7 +461,8 @@ int get_bonds(Liganddata* myligand)
 	                                     0, // "CG"
 	                                     0, // "G0"
 	                                     2, // "W" as oxygen, but irrelevant, all bonds containing W will be disabled
-	                                     0  // "CX"
+	                                     0, // "CX"
+	                                     6, // "SI"
 	                                    };
 
 	double mindist[NUM_ENUM_ATOMTYPES][NUM_ENUM_ATOMTYPES];
@@ -499,6 +500,7 @@ int get_bonds(Liganddata* myligand)
 	strcpy(atom_names[17], "G0");
 	strcpy(atom_names[18], "W"); // used to disable all bonds containing W
 	strcpy(atom_names[19], "CX"); // used to disable all bonds containing W
+	strcpy(atom_names[20], "SI");
 
 #ifdef AD4_BOND_DISTS
 	// Set all the mindist and maxdist elements to the defaults for AutoDock versions 1 - 3...
@@ -714,7 +716,7 @@ int get_VWpars(
 	                           3.50, 3.50, 3.50, 3.20, 3.20,
 	                           3.09, 1.30, 4.20, 4.00, 4.00,
 	                           4.09, 1.98, 1.30, 1.30, 1.48,
-	                           4.33, 4.72,
+	                           4.33, 4.72, 4.10,
 	                           4.00, // CG
 	                           0.00, // G0
 	                           0.00, // W
@@ -729,7 +731,7 @@ int get_VWpars(
 	                          0.160, 0.160, 0.160, 0.200, 0.200,
 	                          0.080, 0.875, 0.200, 0.200, 0.200,
 	                          0.276, 0.550, 0.875, 0.010, 0.550,
-	                          0.389, 0.550,
+	                          0.389, 0.550, 0.200,
 	                          0.150, // CG
 	                          0.000, // G0
 	                          0.000, // W
@@ -744,7 +746,7 @@ int get_VWpars(
 	                                 0.0, 1.9, 1.9, 1.9, 1.9,
 	                                 0.0, 0.0, 0.0, 2.5, 0.0,
 	                                 0.0, 0.0, 0.0, 0.0, 0.0,
-	                                 0.0, 0.0,
+	                                 0.0, 0.0, 0.0,
 	                                 0.0, // CG
 	                                 0.0, // G0
 	                                 0.0, // W
@@ -759,7 +761,7 @@ int get_VWpars(
 	                                0.0, 5.0, 5.0, 5.0, 5.0,         //corresponds to the hydrogen when reading eps_hbond...
 	                                0.0, 0.0, 0.0, 1.0, 0.0,
 	                                0.0, 0.0, 0.0, 0.0, 0.0,
-	                                0.0, 0.0,
+	                                0.0, 0.0, 0.0,
 	                                0.0, // CG
 	                                0.0, // G0
 	                                0.0, // W
@@ -774,7 +776,7 @@ int get_VWpars(
 	                             22.4493, 22.4493, 22.4493, 17.1573, 17.1573,
 	                             15.4480,  1.5600, 38.7924, 33.5103, 33.5103,
 	                             35.8235,  2.7700,  2.1400,  1.8400,  1.7000,
-	                             42.5661, 55.0585,
+	                             42.5661, 55.0585, 35.8235,
 	                             33.5103, // CG
 	                              0.0000, // G0
 	                              0.0000, // W
@@ -789,7 +791,7 @@ int get_VWpars(
 	                             -0.00162, -0.00162, -0.00162, -0.00251, -0.00251,
 	                             -0.00110, -0.00110, -0.00110, -0.00214, -0.00214,
 	                             -0.00110, -0.00110, -0.00110, -0.00110, -0.00110,
-	                             -0.00110, -0.00110,
+	                             -0.00110, -0.00110, -0.0014,
 	                             -0.00143, // CG
 	                              0.00000, // G0
 	                              0.00000, // W
@@ -824,12 +826,13 @@ int get_VWpars(
 	strcpy(atom_names [19], "ZN");
 	strcpy(atom_names [20], "BR");
 	strcpy(atom_names [21], "I");
-	strcpy(atom_names [/*22*/ATYPE_CG_IDX], "CG"); // CG
-	strcpy(atom_names [/*23*/ATYPE_G0_IDX], "G0"); // G0
-	strcpy(atom_names [/*24*/ATYPE_W_IDX], "W"); // W
-	strcpy(atom_names [/*25*/ATYPE_CX_IDX], "CX"); // CX
-	strcpy(atom_names [/*26*/ATYPE_NX_IDX], "NX"); // NX
-	strcpy(atom_names [/*27*/ATYPE_OX_IDX], "OX"); // OX
+	strcpy(atom_names [22], "SI");
+	strcpy(atom_names [/*23*/ATYPE_CG_IDX], "CG"); // CG
+	strcpy(atom_names [/*24*/ATYPE_G0_IDX], "G0"); // G0
+	strcpy(atom_names [/*25*/ATYPE_W_IDX], "W"); // W
+	strcpy(atom_names [/*26*/ATYPE_CX_IDX], "CX"); // CX
+	strcpy(atom_names [/*27*/ATYPE_NX_IDX], "NX"); // NX
+	strcpy(atom_names [/*28*/ATYPE_OX_IDX], "OX"); // OX
 //	for(unsigned int i=0; i<nr_deriv_atypes; i++) // add derivative type names to get proper type ids
 //		strcpy(atom_names[ATYPE_NUM+i],deriv_atypes[i].deriv_name);
 
@@ -876,8 +879,7 @@ int get_VWpars(
 			found_CG_CG_pair = false;
 
 			// Was CG_CG_pair found?
-			// CG atom-type has a idx=22
-			if ((VWid_atype1 == /*22*/ATYPE_CG_IDX) && (VWid_atype2 == /*22*/ATYPE_CG_IDX) &&
+			if ((VWid_atype1 == ATYPE_CG_IDX) && (VWid_atype2 == ATYPE_CG_IDX) &&
 			    (strcmp(myligand->base_atom_types[atom_typeid1]+2,myligand->base_atom_types[atom_typeid2]+2) == 0)) { // make sure to only exclude matching IDs
 				found_CG_CG_pair = true;
 			}

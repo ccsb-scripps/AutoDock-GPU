@@ -54,19 +54,19 @@ enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.da
 // Indexes of atomic types used in
 // host/src/processligand.cpp/get_VWpars(),
 // and kernel energy & gradient calculation.
-#define ATYPE_NUM                  28 // 22 (initial) + 2 (CG & G0 for handling flexrings) + W (waters) + CX + NX + OX
+#define ATYPE_NUM                  29 // 23 (initial) + 2 (CG & G0 for handling flexrings) + W (waters) + CX + NX + OX
 
-#define ATYPE_CG_IDX               22
-#define ATYPE_G0_IDX               23
-#define ATYPE_W_IDX                24
-#define ATYPE_CX_IDX               25
-#define ATYPE_NX_IDX               26
-#define ATYPE_OX_IDX               27
+#define ATYPE_CG_IDX               23
+#define ATYPE_G0_IDX               24
+#define ATYPE_W_IDX                25
+#define ATYPE_CX_IDX               26
+#define ATYPE_NX_IDX               27
+#define ATYPE_OX_IDX               28
 
 // Indexes of atomic types used in
 // host/src/processligand.cpp/get_bonds().
 // Added definition to support flexrings.
-#define ATYPE_GETBONDS             20 // + CX [ Nx / Ox already accounted for ]
+#define ATYPE_GETBONDS             21 // + CX [ Nx / Ox already accounted for ] + Si
 
 #define MAX_NUM_OF_ATOMS           256
 #define MAX_NUM_OF_ATYPES          32
