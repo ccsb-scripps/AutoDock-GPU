@@ -462,7 +462,7 @@ int get_bonds(Liganddata* myligand)
 	                                     0, // "G0"
 	                                     2, // "W" as oxygen, but irrelevant, all bonds containing W will be disabled
 	                                     0, // "CX"
-	                                     6, // "SI"
+	                                     6  // "SI"
 	                                    };
 
 	double mindist[NUM_ENUM_ATOMTYPES][NUM_ENUM_ATOMTYPES];
