@@ -414,7 +414,7 @@ int preparse_dpf(
 						break;
 				case GA_num_evals: // number of evals
 						sscanf(line.c_str(),"%*s %d",&tempint);
-						if ((tempint > 0) && (tempint < (1<<31))){
+						if ((tempint > 0) && (tempint < 0x7FFFFFFF)){
 							mypars->num_of_energy_evals = (unsigned long) tempint;
 							mypars->nev_provided = true;
 						} else
@@ -773,7 +773,7 @@ int get_commandpars(
 			arg_recognized = 1;
 			sscanf(argv[i+1], "%d", &tempint);
 
-			if ((tempint > 0) && (tempint < (1<<31))){
+			if ((tempint > 0) && (tempint < 0x7FFFFFFF)){
 				mypars->num_of_energy_evals = (unsigned long) tempint;
 				mypars->nev_provided = true;
 			} else
