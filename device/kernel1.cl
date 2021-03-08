@@ -78,7 +78,7 @@ gpu_calc_initpop(
 	                                   dockpars_conformations_current + GENOTYPE_LENGTH_IN_GLOBMEM*get_group_id(0),
 	                                   ACTUAL_GENOTYPE_LENGTH, 0);
 
-	uint tidx = get_local_id(0);
+	int tidx = get_local_id(0);
 	// Determining run-ID
 	if (tidx == 0) {
 		run_id = get_group_id(0) / dockpars_pop_size;

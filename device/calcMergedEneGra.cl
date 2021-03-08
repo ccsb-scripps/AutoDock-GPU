@@ -107,7 +107,7 @@ void gpu_calc_energrad(
                      __local float* gradient_genotype
                       )
 {
-	uint tidx = get_local_id(0);
+	int tidx = get_local_id(0);
 	partial_energies[tidx] = 0.0f;
 #if defined (DEBUG_ENERGY_KERNEL)
 	partial_interE[tidx] = 0.0f;
@@ -116,7 +116,7 @@ void gpu_calc_energrad(
 
 	// Initializing gradients (forces) 
 	// Derived from autodockdev/maps.py
-	for (uint atom_id = tidx;
+	for ( int atom_id = tidx;
 	          atom_id < MAX_NUM_OF_ATOMS; // makes sure that gradient sum reductions give correct results if dockpars_num_atoms < NUM_OF_THREADS_PER_BLOCK
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -131,7 +131,7 @@ void gpu_calc_energrad(
 	}
 
 	// Initializing gradient genotypes
-	for (uint gene_cnt = tidx;
+	for ( int gene_cnt = tidx;
 	          gene_cnt < dockpars_num_of_genes;
 	          gene_cnt+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -168,14 +168,14 @@ void gpu_calc_energrad(
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 	// ================================================
-	for (uint rotation_counter = tidx;
+	for ( int rotation_counter = tidx;
 	          rotation_counter < dockpars_rotbondlist_length;
 	          rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
 	{
 		int rotation_list_element = kerconst_rotlist->rotlist_const[rotation_counter];
 		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0) // If not dummy rotation
 		{
-			uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
+			int atom_id = rotation_list_element & RLIST_ATOMID_MASK;
 			// Capturing atom coordinates
 			float4 atom_to_rotate = calc_coords[atom_id];
 			// initialize with general rotation values
@@ -233,7 +233,7 @@ void gpu_calc_energrad(
 	float inv_grid_spacing = native_recip(dockpars_grid_spacing);
 	float weights[8];
 	float cube[8];
-	for (uint atom_id = tidx;
+	for ( int atom_id = tidx;
 	          atom_id < dockpars_num_of_atoms;
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -460,7 +460,7 @@ void gpu_calc_energrad(
 	// ================================================
 	// CALCULATING INTRAMOLECULAR GRADIENTS
 	// ================================================
-	for (uint contributor_counter = tidx;
+	for ( int contributor_counter = tidx;
 	          contributor_counter < dockpars_num_of_intraE_contributors;
 	          contributor_counter+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -641,7 +641,7 @@ void gpu_calc_energrad(
 	accumulator_x[tidx] = 0.0f;
 	accumulator_y[tidx] = 0.0f;
 	accumulator_z[tidx] = 0.0f;
-	for (uint atom_cnt = tidx;
+	for ( int atom_cnt = tidx;
 	          atom_cnt < dockpars_num_of_atoms;
 	          atom_cnt+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -656,7 +656,7 @@ void gpu_calc_energrad(
 #endif
 	}
 	// reduction over partial energies and prepared "gradient_intra_*" values
-	for (uint off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
+	for ( int off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
 	{
 		barrier(CLK_LOCAL_MEM_FENCE);
 		if (tidx < off)
@@ -705,7 +705,7 @@ void gpu_calc_energrad(
 	accumulator_x[tidx] = 0.0f;
 	accumulator_y[tidx] = 0.0f;
 	accumulator_z[tidx] = 0.0f;
-	for (uint atom_cnt = tidx;
+	for ( int atom_cnt = tidx;
 	          atom_cnt < dockpars_true_ligand_atoms;
 	          atom_cnt+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -728,7 +728,7 @@ void gpu_calc_energrad(
 		accumulator_z[tidx] += torque_rot.z;
 	}
 	// do a reduction over the total gradient containing prepared "gradient_intra_*" values
-	for (uint off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
+	for ( int off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
 	{
 		barrier(CLK_LOCAL_MEM_FENCE);
 		if (tidx < off)
@@ -927,13 +927,13 @@ void gpu_calc_energrad(
 	// ------------------------------------------
 	// Obtaining torsion-related gradients
 	// ------------------------------------------
-	uint num_torsion_genes = dockpars_num_of_genes-6;
-	for (uint idx = tidx;
+	int num_torsion_genes = dockpars_num_of_genes-6;
+	for ( int idx = tidx;
 	          idx < num_torsion_genes * dockpars_num_of_atoms;
 	          idx += NUM_OF_THREADS_PER_BLOCK)
 	{
-		uint rotable_atom_cnt = idx / num_torsion_genes;
-		uint rotbond_id = idx - rotable_atom_cnt * num_torsion_genes; // this is a bit cheaper than % (modulo)
+		int rotable_atom_cnt = idx / num_torsion_genes;
+		int rotbond_id = idx - rotable_atom_cnt * num_torsion_genes; // this is a bit cheaper than % (modulo)
 
 		if (rotable_atom_cnt >= num_rotating_atoms_per_rotbond_const[rotbond_id])
 			continue; // Nothing to do
@@ -974,7 +974,7 @@ void gpu_calc_energrad(
 		atomic_add(&i_gradient_genotype[rotbond_id+6], convert_int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * torque_on_axis * DEG_TO_RAD)))); /*(M_PI / 180.0f)*/;
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
-	for (uint gene_cnt = tidx;
+	for ( int gene_cnt = tidx;
 	          gene_cnt < dockpars_num_of_genes;
 	          gene_cnt+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -983,7 +983,7 @@ void gpu_calc_energrad(
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	#if defined (CONVERT_INTO_ANGSTROM_RADIAN)
-	for (uint gene_cnt = tidx+3; // Only for gene_cnt > 2 means start gene_cnt at 3
+	for ( int gene_cnt = tidx+3; // Only for gene_cnt > 2 means start gene_cnt at 3
 	          gene_cnt < dockpars_num_of_genes;
 	          gene_cnt+= NUM_OF_THREADS_PER_BLOCK)
 	{

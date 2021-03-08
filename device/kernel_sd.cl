@@ -109,7 +109,7 @@ gradient_minSD(
 	// Stepsize for the minimizer
 	__local float stepsize;
 
-	uint tidx = get_local_id(0);
+	int tidx = get_local_id(0);
 	if (tidx == 0)
 	{
 		// Choosing a random entity out of the entire population
@@ -476,7 +476,7 @@ gradient_minSD(
 		if (/*(get_group_id(0) == 0) &&*/ (tidx == 0)) {
 		
 			#if defined (PRINT_GENES_AND_GRADS)
-			for(uint i = 0; i < dockpars_num_of_genes; i++) {
+			for(int i = 0; i < dockpars_num_of_genes; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
 					printf("%13s %13s %5s %15s %15s\n", "gene_id", "gene.value", "|", "gene.grad", "(autodockdevpy units)");
@@ -486,7 +486,7 @@ gradient_minSD(
 			#endif
 
 			#if defined (PRINT_ATOMIC_COORDS)
-			for(uint i = 0; i < dockpars_num_of_atoms; i++) {
+			for(int i = 0; i < dockpars_num_of_atoms; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
 					printf("%s\n", "Coordinates calculated by calcgradient.cl");
@@ -517,7 +517,7 @@ gradient_minSD(
 		}
 
 		// Copying torsions genes
-		for(uint i = tidx;
+		for( int i = tidx;
 		         i < dockpars_num_of_genes-6;
 		         i+= NUM_OF_THREADS_PER_BLOCK)
 		{
@@ -527,7 +527,7 @@ gradient_minSD(
 
 		// Calculating maximum absolute torsional gene
 		// https://stackoverflow.com/questions/36465581/opencl-find-max-in-array
-		for (uint i=(dockpars_num_of_genes-6)/2; i>=1; i/=2){
+		for (int i=(dockpars_num_of_genes-6)/2; i>=1; i/=2){
 			if (tidx < i) {
 			// This could be enabled back for details
 			#if 0
@@ -558,7 +558,7 @@ gradient_minSD(
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 		
-		for(uint i = tidx; i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {
+		for(int i = tidx; i < dockpars_num_of_genes; i+= NUM_OF_THREADS_PER_BLOCK) {
 			// Taking step
 			candidate_genotype[i] = genotype[i] - stepsize * gradient[i];
 
@@ -572,7 +572,7 @@ gradient_minSD(
 			if (i == 0) {
 				// This could be enabled back for double checking
 				#if 0
-				for(uint i = 0; i < dockpars_num_of_genes; i++) {
+				for(int i = 0; i < dockpars_num_of_genes; i++) {
 					if (i == 0) {
 						printf("\n%s\n", "----------------------------------------------------------");
 						printf("\n%s\n", "After calculating gradients:");
@@ -657,7 +657,7 @@ gradient_minSD(
 			#endif
 
 			#if defined (PRINT_GENES_AND_GRADS)
-			for(uint i = 0; i < dockpars_num_of_genes; i++) {
+			for(int i = 0; i < dockpars_num_of_genes; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
 					printf("%13s %13s %5s %15s %15s\n", "gene_id", "cand-gene.value"/* "gene.value"*/, "|", "gene.grad", "(autodockdevpy units)");
@@ -667,7 +667,7 @@ gradient_minSD(
 			#endif
 
 			#if defined (PRINT_ATOMIC_COORDS)
-			for(uint i = 0; i < dockpars_num_of_atoms; i++) {
+			for(int i = 0; i < dockpars_num_of_atoms; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
 					printf("%s\n", "Coordinates calculated by calcenergy.cl");
@@ -694,7 +694,7 @@ gradient_minSD(
 
 		// Checking if E(candidate_genotype) < E(genotype)
 		if (candidate_energy < energy){
-			for(uint i = tidx;
+			for( int i = tidx;
 			         i < dockpars_num_of_genes;
 			         i+= NUM_OF_THREADS_PER_BLOCK)
 			{
@@ -751,7 +751,7 @@ gradient_minSD(
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-  	} while ((iteration_cnt < dockpars_max_num_of_iters) && (stepsize > 1E-8));
+	} while ((iteration_cnt < dockpars_max_num_of_iters) && (stepsize > 1E-8f));
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
@@ -769,7 +769,7 @@ gradient_minSD(
 	}
 
 	// Mapping torsion angles
-	for (uint gene_counter = tidx;
+	for ( int gene_counter = tidx;
 	          gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 	{

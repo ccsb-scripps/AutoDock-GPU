@@ -161,12 +161,12 @@ void gpu_calc_gradient(
                     __local float*  gradient_genotype
                       )
 {
-	uint tidx = get_local_id(0);
+	int tidx = get_local_id(0);
 	// Initializing gradients (forces)
 	// Derived from autodockdev/maps.py
-	for (uint atom_id = tidx;
-	          atom_id < dockpars_num_of_atoms;
-	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
+	for (int atom_id = tidx;
+	         atom_id < dockpars_num_of_atoms;
+	         atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
 		// Intermolecular gradients
 		gradient_inter_x[atom_id] = 0.0f;
@@ -179,7 +179,7 @@ void gpu_calc_gradient(
 	}
 
 	// Initializing gradient genotypes
-	for (uint gene_cnt = tidx;
+	for ( int gene_cnt = tidx;
 	          gene_cnt < dockpars_num_of_genes;
 	          gene_cnt+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -205,14 +205,14 @@ void gpu_calc_gradient(
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 	// ================================================
-	for (uint rotation_counter = tidx;
+	for ( int rotation_counter = tidx;
 	          rotation_counter < dockpars_rotbondlist_length;
 	          rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
 	{
 		int rotation_list_element = kerconst_rotlist->rotlist_const[rotation_counter];
 		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0) // If not dummy rotation
 		{
-			uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
+			int atom_id = rotation_list_element & RLIST_ATOMID_MASK;
 			// Capturing atom coordinates
 			float atom_to_rotate[3];
 			if ((rotation_list_element & RLIST_FIRSTROT_MASK) != 0) // If first rotation of this atom
@@ -360,7 +360,7 @@ void gpu_calc_gradient(
 	// ================================================
 	// CALCULATING INTERMOLECULAR GRADIENTS
 	// ================================================
-	for (uint atom_id = tidx;
+	for ( int atom_id = tidx;
 	          atom_id < dockpars_num_of_atoms;
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -613,7 +613,7 @@ void gpu_calc_gradient(
 	// ================================================
 	// CALCULATING INTRAMOLECULAR GRADIENTS
 	// ================================================
-	for (uint contributor_counter = tidx;
+	for ( int contributor_counter = tidx;
 	          contributor_counter < dockpars_num_of_intraE_contributors;
 	          contributor_counter+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -741,7 +741,7 @@ void gpu_calc_gradient(
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
 	// Accumulating inter- and intramolecular gradients
-	for (uint atom_cnt = tidx;
+	for ( int atom_cnt = tidx;
 	          atom_cnt < dockpars_num_of_atoms;
 	          atom_cnt+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -790,7 +790,7 @@ void gpu_calc_gradient(
 	// Obtaining translation-related gradients
 	// ------------------------------------------
 	if (tidx == 0) {
-		for (uint lig_atom_id = 0;
+		for ( int lig_atom_id = 0;
 		          lig_atom_id<dockpars_true_ligand_atoms;
 		          lig_atom_id++)
 		{
@@ -828,7 +828,7 @@ void gpu_calc_gradient(
 	// into local_gradients[i] (with three Shoemake genes)
 	// Derived from autodockdev/motions.py/_get_cube3_gradient()
 	// ------------------------------------------
-	if ((tidx == 1) || (NUM_OF_THREADS_PER_BLOCK<1)) {
+	if ((tidx == 1) | (NUM_OF_THREADS_PER_BLOCK<1)) {
 		float3 torque_rot;
 		torque_rot.x = 0.0f;
 		torque_rot.y = 0.0f;
@@ -851,7 +851,7 @@ void gpu_calc_gradient(
 		// They are converted back to Angstroms here
 		float3 r;
 			
-		for (uint lig_atom_id = 0;
+		for ( int lig_atom_id = 0;
 		          lig_atom_id<dockpars_true_ligand_atoms;
 		          lig_atom_id++)
 		{
@@ -1083,30 +1083,22 @@ void gpu_calc_gradient(
 		// Taking advantage of constant:
 		// Y = [Y0 * (X1 - X) + Y1 * (X - X0)] * inv_angle_delta
 
-		float X0_theta, Y0_theta;
-		float X1_theta, Y1_theta;
-		float X_theta;
+		float X0, Y0;
+		float X1, Y1;
 		float dependence_on_theta; //Y = dependence_on_theta
-		X_theta = current_theta;
 
 		// Using interpolation on out-of-bounds elements results in hang
-		if (index_theta <= 0) {
-			//printf("WARNING: index_theta: %u\n", index_theta);
-			dependence_on_theta = dependence_on_theta_const[0];
-			//printf("%f\n",dependence_on_theta_const[0]);
+		if ((index_theta <= 0) || (index_theta >= 999))
+		{
+			dependence_on_theta = dependence_on_theta_const[stick_to_bounds(index_theta,0,999)];
+		} else
+		{
+			X0 = angle_const[index_theta];
+			X1 = angle_const[index_theta+1];
+			Y0 = dependence_on_theta_const[index_theta];
+			Y1 = dependence_on_theta_const[index_theta+1];
+			dependence_on_theta = (Y0 * (X1-current_theta) + Y1 * (current_theta-X0)) * inv_angle_delta;
 		}
-		else if (index_theta >= 999){
-			//printf("WARNING: index_theta: %u\n", index_theta);
-			dependence_on_theta = dependence_on_theta_const[999];
-			//printf("%f\n",dependence_on_theta_const[999]);
-		}
-		else {
-			X0_theta = angle_const[index_theta];
-			Y0_theta = dependence_on_theta_const[index_theta];
-			X1_theta = angle_const[index_theta+1];
-			Y1_theta = dependence_on_theta_const[index_theta+1];
-		}
-		dependence_on_theta = (Y0_theta * (X1_theta-X_theta) + Y1_theta * (X_theta-X0_theta)) * inv_angle_delta;
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -1114,30 +1106,20 @@ void gpu_calc_gradient(
 		#endif
 
 		// Interpolating rotangle values
-		float X0_rotangle, Y0_rotangle;
-		float X1_rotangle, Y1_rotangle;
-		float X_rotangle;
-		float dependence_on_rotangle; //Y = dependence_on_rotangle
-		X_rotangle = current_rotangle;
-
+		float dependence_on_rotangle; // Y = dependence_on_rotangle
 		// Using interpolation on previous and/or next elements results in hang
-		if (index_rotangle <= 0) {
-			//printf("WARNING: index_rotangle: %u\n", index_rotangle);
-			dependence_on_rotangle = dependence_on_rotangle_const[0];
-			//printf("%f\n",dependence_on_rotangle_const[0]);
+		// Using interpolation on out-of-bounds elements results in hang
+		if ((index_rotangle <= 0) || (index_rotangle >= 999))
+		{
+			dependence_on_rotangle = dependence_on_rotangle_const[stick_to_bounds(index_rotangle,0,999)];
+		} else
+		{
+			X0 = angle_const[index_rotangle];
+			X1 = angle_const[index_rotangle+1];
+			Y0 = dependence_on_rotangle_const[index_rotangle];
+			Y1 = dependence_on_rotangle_const[index_rotangle+1];
+			dependence_on_rotangle = (Y0 * (X1-current_rotangle) + Y1 * (current_rotangle-X0)) * inv_angle_delta;
 		}
-		else if (index_rotangle >= 999){
-			//printf("WARNING: index_rotangle: %u\n", index_rotangle);
-			dependence_on_rotangle = dependence_on_rotangle_const[999];
-			//printf("%f\n",dependence_on_rotangle_const[999]);
-		}
-		else {
-			X0_rotangle = angle_const[index_rotangle];
-			Y0_rotangle = dependence_on_rotangle_const[index_rotangle];
-			X1_rotangle = angle_const[index_rotangle+1];
-			Y1_rotangle = dependence_on_rotangle_const[index_rotangle+1];
-		}
-		dependence_on_rotangle = (Y0_rotangle * (X1_rotangle-X_rotangle) + Y1_rotangle * (X_rotangle-X0_rotangle)) * inv_angle_delta;
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -1161,7 +1143,7 @@ void gpu_calc_gradient(
 	// Obtaining torsion-related gradients
 	// ------------------------------------------
 
-	for (uint rotbond_id = tidx;
+	for ( int rotbond_id = tidx;
 	          rotbond_id < dockpars_num_of_genes-6;
 	          rotbond_id +=NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -1207,7 +1189,7 @@ void gpu_calc_gradient(
 		torque_tor.z = 0.0f;
 		// Iterating over each ligand atom that rotates 
 		// if the bond in question rotates
-		for (uint rotable_atom_cnt = 0;
+		for ( int rotable_atom_cnt = 0;
 		          rotable_atom_cnt<num_rotating_atoms_per_rotbond_const[rotbond_id];
 		          rotable_atom_cnt++)
 		{
@@ -1264,7 +1246,7 @@ void gpu_calc_gradient(
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	#if defined (CONVERT_INTO_ANGSTROM_RADIAN)
-	for (uint gene_cnt = tidx;
+	for ( int gene_cnt = tidx;
 	          gene_cnt < dockpars_num_of_genes;
 	          gene_cnt+= NUM_OF_THREADS_PER_BLOCK)
 	{

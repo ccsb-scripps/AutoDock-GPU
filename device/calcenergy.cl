@@ -190,7 +190,7 @@ void gpu_calc_energy(
 
 	// Initializing gradients (forces) 
 	// Derived from autodockdev/maps.py
-	for (uint atom_id = tidx;
+	for ( int atom_id = tidx;
 	          atom_id < dockpars_num_of_atoms;
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -228,14 +228,14 @@ void gpu_calc_energy(
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
 	// ================================================
-	for (uint rotation_counter = tidx;
+	for ( int rotation_counter = tidx;
 	          rotation_counter < dockpars_rotbondlist_length;
 	          rotation_counter+=NUM_OF_THREADS_PER_BLOCK)
 	{
 		int rotation_list_element = kerconst_rotlist->rotlist_const[rotation_counter];
 		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0) // If not dummy rotation
 		{
-			uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
+			int atom_id = rotation_list_element & RLIST_ATOMID_MASK;
 			// Capturing atom coordinates
 			float4 atom_to_rotate = calc_coords[atom_id];
 			// initialize with general rotation values
@@ -293,7 +293,7 @@ void gpu_calc_energy(
 	// ================================================
 	float weights[8];
 	float cube[8];
-	for (uint atom_id = tidx;
+	for ( int atom_id = tidx;
 	          atom_id < dockpars_num_of_atoms;
 	          atom_id+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -396,7 +396,7 @@ void gpu_calc_energy(
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// reduction to calculate energy
-	for (uint off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
+	for ( int off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
 	{
 		barrier(CLK_LOCAL_MEM_FENCE);
 		if (tidx < off)
@@ -414,12 +414,12 @@ void gpu_calc_energy(
 	// ================================================
 	// CALCULATING INTRAMOLECULAR ENERGY
 	// ================================================
-	for (uint contributor_counter = tidx;
+	for ( int contributor_counter = tidx;
 	          contributor_counter < dockpars_num_of_intraE_contributors;
 	          contributor_counter +=NUM_OF_THREADS_PER_BLOCK)
 #if 0
 if (tidx == 0) {
-	for (uint contributor_counter = 0;
+	for ( int contributor_counter = 0;
 	          contributor_counter < dockpars_num_of_intraE_contributors;
 	          contributor_counter ++)
 #endif
@@ -553,7 +553,7 @@ if (tidx == 0) {
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// reduction to calculate energy
-	for (uint off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
+	for ( int off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
 	{
 		barrier(CLK_LOCAL_MEM_FENCE);
 		if (tidx < off)
