@@ -119,7 +119,7 @@ typedef enum
 
 #define STEP_INCREASE           1.2f
 #define STEP_DECREASE           0.2f
-#define STEP_START              1E3             // Starting step size. This might look gigantic but will cap
+#define STEP_START              1000.0f         // Starting step size. This might look gigantic but will cap
 #define MAX_DEV_TRANSLATION     2.0f            // 2 Angstrom, but must be divided by the gridspacing (store in variable)
 //#define MAX_DEV_ROTATION      0.2f            // Shoemake range [0, 1]
 #define MAX_DEV_ROTATION        0.5f/DEG_TO_RAD // 0.5f RAD
