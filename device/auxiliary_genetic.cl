@@ -107,7 +107,7 @@ void gpu_perform_elitist_selection(
 	int entity_counter;
 	int gene_counter;
 	float best_energy;
-	uint tidx = get_local_id(0);
+	int tidx = get_local_id(0);
 
 	if (tidx < dockpars_pop_size) {
 		best_energies[tidx] = dockpars_energies_current[get_group_id(0)+tidx];

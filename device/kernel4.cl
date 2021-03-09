@@ -98,7 +98,7 @@ gpu_gen_and_eval_newpops(
 	__local float partial_intraE [NUM_OF_THREADS_PER_BLOCK];
 	#endif
 
-	uint tidx = get_local_id(0);
+	int tidx = get_local_id(0);
 	// In this case this compute-unit is responsible for elitist selection
 	if ((get_group_id(0) % dockpars_pop_size) == 0) {
 		gpu_perform_elitist_selection(dockpars_pop_size,

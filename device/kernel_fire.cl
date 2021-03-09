@@ -378,7 +378,7 @@ gradient_minFire(
 	__local float power;
 
 	// Calculating gradient-norm components
-	for (uint gene_counter = tidx;
+	for ( int gene_counter = tidx;
 	          gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -397,7 +397,7 @@ gradient_minFire(
 		inv_gradient_norm = 0.0f;
 		
 		// Summing up squares to continue calculation of "gradient-norm"
-		for (uint i = 0; i < dockpars_num_of_genes; i++) {
+		for (int i = 0; i < dockpars_num_of_genes; i++) {
 			inv_gradient_norm += gradient_tmp [i];
 		}
 		
@@ -409,7 +409,7 @@ gradient_minFire(
 
 	// Starting velocity
 	// This equation was found by trial and error
-	for (uint gene_counter = tidx;
+	for ( int gene_counter = tidx;
 	          gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -421,7 +421,7 @@ gradient_minFire(
 	// may or may not be the last genotype
 	if (tidx == 0) {
 		best_energy = energy;
-		for (uint i = 0; i < dockpars_num_of_genes; i++) {
+		for (int i = 0; i < dockpars_num_of_genes; i++) {
 			best_genotype [i] = genotype [i];
 		}
 	}
@@ -447,7 +447,7 @@ gradient_minFire(
 		#endif
 
 		// Creating new (candidate) genotypes
-		for (uint gene_counter = tidx;
+		for ( int gene_counter = tidx;
 		          gene_counter < dockpars_num_of_genes;
 		          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
@@ -625,7 +625,7 @@ gradient_minFire(
 		// force = -gradient
 		barrier(CLK_LOCAL_MEM_FENCE);
 
-		for (uint gene_counter = tidx;
+		for ( int gene_counter = tidx;
 		          gene_counter < dockpars_num_of_genes;
 		          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
@@ -637,7 +637,7 @@ gradient_minFire(
 		if (tidx == 0) {
 			power = 0.0f;
 			// Summing dot products
-			for (uint i = 0; i < dockpars_num_of_genes; i++) {
+			for (int i = 0; i < dockpars_num_of_genes; i++) {
 				power += power_tmp [i];
 			}
 		}
@@ -662,7 +662,7 @@ gradient_minFire(
 			printf("%-15s %-10u \n\n",   "count_success: " ,  count_success);
 
 			#if defined (PRINT_FIRE_GENES_AND_GRADS)
-			for(uint i = 0; i < dockpars_num_of_genes; i++) {
+			for(int i = 0; i < dockpars_num_of_genes; i++) {
 				if (i == 0) {
 					//printf("\n%s\n", "----------------------------------------------------------");
 					printf("%13s %13s %5s %15s %21s %15s\n", "gene_id", "genotype", "|", "gradient", "(autodockdevpy units)", "velocity");
@@ -670,7 +670,7 @@ gradient_minFire(
 				printf("%13u %13.6f %5s %15.6f %21.6f %15.6f\n", i, genotype[i], "|", gradient[i], (i<3)? (gradient[i]/dockpars_grid_spacing):(gradient[i]*180.0f/PI_FLOAT), velocity[i]);
 			}
 
-			for(uint i = 0; i < dockpars_num_of_genes; i++) {
+			for(int i = 0; i < dockpars_num_of_genes; i++) {
 				if (i == 0) {
 					//printf("\n%s\n", "----------------------------------------------------------");
 					printf("\n");
@@ -681,7 +681,7 @@ gradient_minFire(
 			#endif
 
 			#if defined (PRINT_FIRE_ATOMIC_COORDS)
-			for(uint i = 0; i < dockpars_num_of_atoms; i++) {
+			for(int i = 0; i < dockpars_num_of_atoms; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
 					printf("%s\n", "Coordinates calculated by calcenergy.cl");
@@ -698,7 +698,7 @@ gradient_minFire(
 		// Going uphill (against the gradient)
 		if (power < 0.0f) {
 			// Using same equation as for starting velocity
-			for (uint gene_counter = tidx;
+			for ( int gene_counter = tidx;
 			          gene_counter < dockpars_num_of_genes;
 			          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 			{
@@ -711,7 +711,7 @@ gradient_minFire(
 				inv_gradient_norm = 0.0f;
 
 				// Summing dot products
-				for (uint i = 0; i < dockpars_num_of_genes; i++) {
+				for (int i = 0; i < dockpars_num_of_genes; i++) {
 					inv_gradient_norm += gradient_tmp [i];
 				}
 
@@ -721,7 +721,7 @@ gradient_minFire(
 			}
 			barrier(CLK_LOCAL_MEM_FENCE);
 
-			for (uint gene_counter = tidx;
+			for ( int gene_counter = tidx;
 			          gene_counter < dockpars_num_of_genes;
 			          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 			{
@@ -771,7 +771,7 @@ gradient_minFire(
 
 		// --------------------------------------
 		// Always update: energy, genotype, gradient
-		for (uint gene_counter = tidx;
+		for ( int gene_counter = tidx;
 		          gene_counter < dockpars_num_of_genes;
 		          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
@@ -785,7 +785,7 @@ gradient_minFire(
 
 		// --------------------------------------
 		// Calculating gradient-norm
-		for (uint gene_counter = tidx;
+		for ( int gene_counter = tidx;
 		          gene_counter < dockpars_num_of_genes;
 		          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
@@ -797,7 +797,7 @@ gradient_minFire(
 			inv_gradient_norm = 0.0f;
 
 			// Summing dot products
-			for (uint i = 0; i < dockpars_num_of_genes; i++) {
+			for (int i = 0; i < dockpars_num_of_genes; i++) {
 				inv_gradient_norm += gradient_tmp [i];
 			}
 
@@ -808,7 +808,7 @@ gradient_minFire(
 
 		// --------------------------------------
 		// Calculating velocity-norm
-		for (uint gene_counter = tidx;
+		for ( int gene_counter = tidx;
 		          gene_counter < dockpars_num_of_genes;
 		          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
@@ -820,7 +820,7 @@ gradient_minFire(
 			velocity_norm  = 0.0f;
 
 			// Summing dot products
-			for (uint i = 0; i < dockpars_num_of_genes; i++) {
+			for (int i = 0; i < dockpars_num_of_genes; i++) {
 				velocity_norm += velocity_tmp [i];
 			}
 
@@ -832,7 +832,7 @@ gradient_minFire(
 
 		// --------------------------------------
 		// Calculating velocity
-		for (uint gene_counter = tidx;
+		for ( int gene_counter = tidx;
 		          gene_counter < dockpars_num_of_genes;
 		          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
@@ -857,7 +857,7 @@ gradient_minFire(
 			if (energy <  best_energy) {
 				best_energy = energy;
 
-				for(uint i = 0; i < dockpars_num_of_genes; i++) { 
+				for(int i = 0; i < dockpars_num_of_genes; i++) { 
 					best_genotype[i] = genotype[i];
 				}
 			}
@@ -882,7 +882,7 @@ gradient_minFire(
 	}
 
 	// Mapping torsion angles
-	for (uint gene_counter = tidx;
+	for ( int gene_counter = tidx;
 	          gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 	{

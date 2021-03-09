@@ -36,7 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 // Adadelta parameters (TODO: to be moved to header file?)
 //#define RHO             0.9f
-//#define EPSILON         1e-6
+//#define EPSILON         1e-6f
 #define RHO             0.8f
 #define EPSILON         1e-2f
 
@@ -113,7 +113,7 @@ gradient_minAD(
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
 	// -----------------------------------------------------------------------------
-	uint tidx = get_local_id(0);
+	int tidx = get_local_id(0);
 
 	// Determining entity, and its run, energy, and genotype
 	__local int   entity_id;
@@ -302,7 +302,7 @@ gradient_minAD(
 #endif // DEBUG_ADADELTA_INITIAL_2BRT
 
 	// Initializing vectors
-	for(uint i = tidx;
+	for( int i = tidx;
 	         i < dockpars_num_of_genes;
 	         i+= NUM_OF_THREADS_PER_BLOCK)
 	{
@@ -414,7 +414,7 @@ gradient_minAD(
 			#endif
 
 			#if defined (PRINT_ADADELTA_GENES_AND_GRADS)
-			for(uint i = 0; i < dockpars_num_of_genes; i++) {
+			for(int i = 0; i < dockpars_num_of_genes; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
 					printf("%13s %13s %5s %15s %15s\n", "gene_id", "gene.value", "|", "gene.grad", "(autodockdevpy units)");
@@ -424,7 +424,7 @@ gradient_minAD(
 			#endif
 
 			#if defined (PRINT_ADADELTA_ATOMIC_COORDS)
-			for(uint i = 0; i < dockpars_num_of_atoms; i++) {
+			for(int i = 0; i < dockpars_num_of_atoms; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
 					printf("%s\n", "Coordinates calculated by calcenergy.cl");
@@ -438,7 +438,7 @@ gradient_minAD(
 		barrier(CLK_LOCAL_MEM_FENCE);
 		#endif // DEBUG_ENERGY_ADADELTA
 
-		for(uint i = tidx;
+		for( int i = tidx;
 		         i < dockpars_num_of_genes;
 		         i+= NUM_OF_THREADS_PER_BLOCK)
 		{
@@ -463,7 +463,7 @@ gradient_minAD(
 
 		#if defined (DEBUG_SQDELTA_ADADELTA)
 		if (/*(get_group_id(0) == 0) &&*/ (tidx == 0)) {
-			for(uint i = 0; i < dockpars_num_of_genes; i++) {
+			for(int i = 0; i < dockpars_num_of_genes; i++) {
 				if (i == 0) {
 					printf("\n%s\n", "----------------------------------------------------------");
 					printf("%13s %20s %15s %15s %15s\n", "gene", "sq_grad", "delta", "sq_delta", "new.genotype");
@@ -526,7 +526,7 @@ gradient_minAD(
 	// -----------------------------------------------------------------------------
 
 	// Mapping torsion angles
-	for (uint gene_counter = tidx+3;
+	for ( int gene_counter = tidx+3;
 	          gene_counter < dockpars_num_of_genes;
 	          gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 	{

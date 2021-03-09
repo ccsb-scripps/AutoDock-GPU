@@ -84,9 +84,9 @@ __constant       kernelconstant_conform*      kerconst_conform
 	__local float genotype_deviate  [ACTUAL_GENOTYPE_LENGTH];
 	__local float genotype_bias     [ACTUAL_GENOTYPE_LENGTH];
         __local float rho;
-	__local int   cons_succ;
-	__local int   cons_fail;
-	__local int   iteration_cnt;
+	__local uint  cons_succ;
+	__local uint  cons_fail;
+	__local uint  iteration_cnt;
 	__local float candidate_energy;
 	__local int   evaluation_cnt;
 	int gene_counter;
@@ -104,7 +104,7 @@ __constant       kernelconstant_conform*      kerconst_conform
 	__local float partial_intraE [NUM_OF_THREADS_PER_BLOCK];
 	#endif
 
-	uint tidx = get_local_id(0);
+	int tidx = get_local_id(0);
 	// Determining run ID and entity ID
 	// Initializing offspring genotype
 	if (tidx == 0)

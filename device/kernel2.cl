@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 __kernel void __attribute__ ((reqd_work_group_size(NUM_OF_THREADS_PER_BLOCK,1,1)))
 gpu_sum_evals(
-              uint pop_size,
+              int pop_size,
      __global int* restrict dockpars_evals_of_new_entities,
      __global int* restrict evals_of_runs
              )
@@ -38,7 +38,7 @@ gpu_sum_evals(
 	int entity_counter;
 	__local int partsum_evals[NUM_OF_THREADS_PER_BLOCK];
 
-	uint tidx = get_local_id(0);
+	int tidx = get_local_id(0);
 	partsum_evals[tidx] = 0;
 
 	// calculate partial sums
@@ -49,7 +49,7 @@ gpu_sum_evals(
 		partsum_evals[tidx] += dockpars_evals_of_new_entities[get_group_id(0)*pop_size + entity_counter];
 	}
 	// reduction to calculate energy
-	for (uint off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
+	for (int off=NUM_OF_THREADS_PER_BLOCK>>1; off>0; off >>= 1)
 	{
 		barrier(CLK_LOCAL_MEM_FENCE);
 		if (tidx < off)
