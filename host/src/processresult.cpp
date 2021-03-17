@@ -946,6 +946,13 @@ void clusanal_gendlg(
 				fprintf(fp_xml, "%s%s", (i>1)?" ":"", argv[i]);
 			fprintf(fp_xml, "</arguments>\n");
 		}
+		fprintf(fp_xml, "\t<seed>");
+		if(!mypars->seed[2]){
+			if(!mypars->seed[1]){
+				fprintf(fp_xml,"%d", mypars->seed[0]);
+			} else fprintf(fp_xml,"%d %d", mypars->seed[0], mypars->seed[1]);
+		} else fprintf(fp_xml,"%d %d %d", mypars->seed[0], mypars->seed[1], mypars->seed[2]);
+		fprintf(fp_xml, "</seed>\n");
 		fprintf(fp_xml, "\t<ls_method>%s</ls_method>\n",mypars->ls_method);
 		fprintf(fp_xml, "\t<autostop>%s</autostop>\n",mypars->autostop ? "yes" : "no");
 		fprintf(fp_xml, "\t<heuristics>%s</heuristics>\n",mypars->use_heuristics ? "yes" : "no");
@@ -954,13 +961,6 @@ void clusanal_gendlg(
 		double phi, theta;
 		for(j=0; j<num_of_runs; j++){
 			fprintf(fp_xml, "\t\t<run id=\"%d\">\n",(myresults [j]).run_number);
-			fprintf(fp_xml, "\t\t\t<seed>");
-			if(!mypars->seed[2]){
-				if(!mypars->seed[1]){
-					fprintf(fp_xml,"%d", mypars->seed[0]);
-				} else fprintf(fp_xml,"%d %d", mypars->seed[0], mypars->seed[1]);
-			} else fprintf(fp_xml,"%d %d %d", mypars->seed[0], mypars->seed[1], mypars->seed[2]);
-			fprintf(fp_xml, "</seed>\n");
 			if(mypars->dpffile)
 				fprintf(fp_xml, "\t\t\t<dpf>%s</dpf>\n",mypars->dpffile);
 			fprintf(fp_xml, "\t\t\t<free_NRG_binding>   %.2f</free_NRG_binding>\n", myresults[j].interE + myresults[j].interflexE + torsional_energy);
@@ -980,31 +980,29 @@ void clusanal_gendlg(
 			fprintf(fp_xml, "\t\t</run>\n");
 		}
 		fprintf(fp_xml, "\t</runs>\n");
-		fprintf(fp_xml, "</autodock_gpu>\n");
-		fprintf(fp_xml, "<result>\n");
-
-		fprintf(fp_xml, "\t<clustering_histogram>\n");
+		fprintf(fp_xml, "\t<result>\n");
+		
+		fprintf(fp_xml, "\t\t<clustering_histogram>\n");
 		for (i=0; i<num_of_clusters; i++)
 		{
-			fprintf(fp_xml, "\t\t<cluster cluster_rank=\"%d\" lowest_binding_energy=\"%.2lf\" run=\"%d\" mean_binding_energy=\"%.2lf\" num_in_clus=\"%d\" />\n",
+			fprintf(fp_xml, "\t\t\t<cluster cluster_rank=\"%d\" lowest_binding_energy=\"%.2lf\" run=\"%d\" mean_binding_energy=\"%.2lf\" num_in_clus=\"%d\" />\n",
 					i+1, best_energy[i], best_energy_runid[i], sum_energy[i]/cluster_sizes[i], cluster_sizes [i]);
 		}
-		fprintf(fp_xml, "\t</clustering_histogram>\n");
-
-		fprintf(fp_xml, "\t<rmsd_table>\n");
+		fprintf(fp_xml, "\t\t</clustering_histogram>\n");
+		
+		fprintf(fp_xml, "\t\t<rmsd_table>\n");
 		for (i=0; i<num_of_clusters; i++)
 		{
 			for (j=0; j<num_of_runs; j++)
 				if (myresults [j].clus_id == i+1)
 				{
-					fprintf(fp_xml, "\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
+					fprintf(fp_xml, "\t\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
 					                     (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number, myresults[j].interE + myresults[j].interflexE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
 				}
 		}
-		fprintf(fp_xml, "\t</rmsd_table>\n");
-
-		fprintf(fp_xml, "</result>\n");
-
+		fprintf(fp_xml, "\t\t</rmsd_table>\n");
+		fprintf(fp_xml, "\t</result>\n");
+		fprintf(fp_xml, "</autodock_gpu>\n");
 		fclose(fp_xml);
 		free(xml_file_name);
 	}
