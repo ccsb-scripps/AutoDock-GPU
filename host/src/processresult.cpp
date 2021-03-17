@@ -948,7 +948,10 @@ void clusanal_gendlg(
 		}
 		if(mypars->dpffile)
 			fprintf(fp_xml, "\t<dpf>%s</dpf>\n",mypars->dpffile);
+		fprintf(fp_xml, "\t<grid>%s</grid>\n", mypars->fldfile);
 		fprintf(fp_xml, "\t<ligand>%s</ligand>\n", mypars->ligandfile);
+		if(mypars->flexresfile)
+			fprintf(fp_xml, "\t<flexres>%s</flexres>\n",mypars->flexresfile);
 		fprintf(fp_xml, "\t<seed>");
 		if(!mypars->seed[2]){
 			if(!mypars->seed[1]){
