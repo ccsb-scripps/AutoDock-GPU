@@ -116,10 +116,10 @@ void write_basic_info(
 	fprintf(fp, "Number of pdb files to be generated:       %d\n", mypars->gen_pdbs);
 
 	fprintf(fp, "Initial population:                        ");
-	if (!mypars->initpop_gen_or_loadfile)
+	if (!mypars->load_xml)
 		fprintf(fp, "GENERATE\n");
 	else
-		fprintf(fp, "LOAD FROM FILE (initpop.txt)\n");
+		fprintf(fp, "LOAD FROM FILE (%s)\n",mypars->load_xml);
 
 	fprintf(fp, "\n\nProgram call in command line was:          ");
 	for (i=0; i<*argc; i++)
@@ -297,7 +297,6 @@ void make_resfiles(
                          int           generations_used,
                    const Gridinfo*     mygrid,
                    const float*        grids,
-                         float*        cpu_ref_ori_angles,
                    const int*          argc,
                          char**        argv,
                          int           debug,
@@ -354,7 +353,7 @@ void make_resfiles(
 	{
 		temp_docked = *ligand_ref;
 
-		change_conform_f(&temp_docked, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_ref_ori_angles, debug);
+		change_conform_f(&temp_docked, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, debug);
 		
 		// the map interaction of flex res atoms is stored in accurate_intraflexE[i]
 		accurate_interE[i] = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE[i]);	//calculating the intermolecular energy
@@ -1039,7 +1038,6 @@ void process_result(
 		              sim_state.generation_cnt,
 		              mygrid,
 		              cpu_floatgrids,
-		              sim_state.cpu_ref_ori_angles.data()+3*run_cnt,
 		              argc,
 		              argv,
 		              /*1*/0,

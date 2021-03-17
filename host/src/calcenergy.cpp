@@ -31,7 +31,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 int prepare_const_fields_for_gpu(
                                  Liganddata*                  myligand_reference,
                                  Dockpars*                    mypars,
-                                 float*                       cpu_ref_ori_angles,
                                  kernelconstant_interintra*   KerConst_interintra,
                                  kernelconstant_intracontrib* KerConst_intracontrib,
                                  kernelconstant_intra*        KerConst_intra,
@@ -103,10 +102,6 @@ int prepare_const_fields_for_gpu(
 	float* rotbonds_moving_vectors = new float[3*MAX_NUM_OF_ROTBONDS];
 // rotbonds_unit_vectors:   Stores the coordinates of rotatable bond unit vectors similarly to rotbonds_moving_vectors.
 	float* rotbonds_unit_vectors   = new float[3*MAX_NUM_OF_ROTBONDS];
-// ref_orientation_quats:   Stores the quaternions describing the reference orientations for each run. Element i, i+1, i+2
-//                          and i+3 (where i%4=0) correspond to the quaternion coordinates q, x, y and z of the reference
-//                          orientation for run i, respectively.
-	float* ref_orientation_quats   = new float[4*MAX_NUM_OF_RUNS];
 
 // rot_bonds:               Added for calculating torsion-related gradients.
 //                          Passing list of rotbond-atom ids to the GPU.
@@ -232,42 +227,12 @@ int prepare_const_fields_for_gpu(
 	}
 
 	// rotatable bond vectors
-	for (i=0; i < myligand_reference->num_of_rotbonds; i++)
+	for (i=0; i < myligand_reference->num_of_rotbonds; i++){
 		for (j=0; j<3; j++)
 		{
 			rotbonds_moving_vectors[3*i+j] = myligand_reference->rotbonds_moving_vectors[i][j];
 			rotbonds_unit_vectors[3*i+j] = myligand_reference->rotbonds_unit_vectors[i][j];
 		}
-
-
-	// reference orientation quaternions
-	for (i=0; i<mypars->num_of_runs; i++)
-	{
-		//printf("Pregenerated angles for run %d: %f %f %f\n", i, cpu_ref_ori_angles[3*i], cpu_ref_ori_angles[3*i+1], cpu_ref_ori_angles[3*i+2]);
-
-		phi = cpu_ref_ori_angles[3*i]*DEG_TO_RAD;
-		theta = cpu_ref_ori_angles[3*i+1]*DEG_TO_RAD;
-		genrotangle = cpu_ref_ori_angles[3*i+2]*DEG_TO_RAD;
-
-		ref_orientation_quats[4*i+0] = sinf(genrotangle/2.0f)*sinf(theta)*cosf(phi); // x
-		ref_orientation_quats[4*i+1] = sinf(genrotangle/2.0f)*sinf(theta)*sinf(phi); // y
-		ref_orientation_quats[4*i+2] = sinf(genrotangle/2.0f)*cosf(theta);           // z
-		ref_orientation_quats[4*i+3] = cosf(genrotangle/2.0f);                       // q
-/*
-		// Shoemake genes
-		// autodockdev/motions.py
-
-		float u1, u2, u3;
-		u1 = cpu_ref_ori_angles[3*i];
-		u2 = cpu_ref_ori_angles[3*i+1];
-		u3 = cpu_ref_ori_angles[3*i+2];
-
-		ref_orientation_quats[4*i]   = sqrt(1-u1) * sinf(2*PI*u2); // q
-		ref_orientation_quats[4*i+1] = sqrt(1-u1) * cosf(2*PI*u2); // x
-		ref_orientation_quats[4*i+2] = sqrt(u1)   * sinf(2*PI*u3); // y
-		ref_orientation_quats[4*i+3] = sqrt(u1)   * cosf(2*PI*u3); // z
-*/
-		//printf("Precalculated quaternion for run %d: %f %f %f %f\n", i, ref_orientation_quats[4*i], ref_orientation_quats[4*i+1], ref_orientation_quats[4*i+2], ref_orientation_quats[4*i+3]);
 	}
 
 	// Added for calculating torsion-related gradients.
@@ -351,7 +316,6 @@ int prepare_const_fields_for_gpu(
 	}
 	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst_conform->rotbonds_moving_vectors_const[m]= rotbonds_moving_vectors[m]; }
 	for (m=0;m<3*MAX_NUM_OF_ROTBONDS;m++){ KerConst_conform->rotbonds_unit_vectors_const[m]  = rotbonds_unit_vectors[m]; }
-	for (m=0;m<4*MAX_NUM_OF_RUNS;m++)    { KerConst_conform->ref_orientation_quats_const[m]  = ref_orientation_quats[m]; }
 
 	// Added for calculating torsion-related gradients.
 	// Passing list of rotbond-atoms ids to the GPU.
@@ -375,7 +339,6 @@ int prepare_const_fields_for_gpu(
 	delete[] ref_coords_z;
 	delete[] rotbonds_moving_vectors;
 	delete[] rotbonds_unit_vectors;
-	delete[] ref_orientation_quats;
 	delete[] rotbonds;
 	delete[] rotbonds_atoms;
 	delete[] num_rotating_atoms_per_rotbond;

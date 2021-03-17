@@ -118,7 +118,6 @@ typedef struct
 	float ref_coords_const              [3*MAX_NUM_OF_ATOMS];
 	float rotbonds_moving_vectors_const [3*MAX_NUM_OF_ROTBONDS];
 	float rotbonds_unit_vectors_const   [3*MAX_NUM_OF_ROTBONDS];
-	float ref_orientation_quats_const   [4*MAX_NUM_OF_RUNS];
 } kernelconstant_conform;
 
 typedef struct
@@ -139,7 +138,6 @@ typedef struct
 int prepare_const_fields_for_gpu(
                                  Liganddata*                  myligand_reference,
                                  Dockpars*                    mypars,
-                                 float*                       cpu_ref_ori_angles,
                                  kernelconstant_interintra*   KerConst_interintra,
                                  kernelconstant_intracontrib* KerConst_intracontrib,
                                  kernelconstant_intra*        KerConst_intra,

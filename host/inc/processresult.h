@@ -91,7 +91,6 @@ void make_resfiles(
                          int           generations_used,
                    const Gridinfo*     mygrid,
                    const float*        grids,
-                         float*        cpu_ref_ori_angles,
                    const int*          argc,
                          char**        argv,
                          int           debug,

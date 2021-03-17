@@ -238,7 +238,6 @@ void change_conform_f(
                             Liganddata* myligand,
                       const Gridinfo*   mygrid,
                       const float       genotype_f [],
-                            float*      cpu_ref_ori_angles,
                             int         debug
                      );
 

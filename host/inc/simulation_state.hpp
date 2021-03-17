@@ -45,7 +45,6 @@ struct SimulationState{
 	Liganddata         myligand_reference;
 	std::vector<int>   cpu_evals_of_runs;
 	int                generation_cnt;
-	std::vector<float> cpu_ref_ori_angles;
 	float              sec_per_run;
 	unsigned long      total_evals;
 	double             exec_time;

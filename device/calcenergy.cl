@@ -64,7 +64,6 @@ typedef struct
 	float ref_coords_const             [3*MAX_NUM_OF_ATOMS];
 	float rotbonds_moving_vectors_const[3*MAX_NUM_OF_ROTBONDS];
 	float rotbonds_unit_vectors_const  [3*MAX_NUM_OF_ROTBONDS];
-	float ref_orientation_quats_const  [4*MAX_NUM_OF_RUNS];
 } kernelconstant_conform;
 
 // Magic positive integer exponent power ... -AT
@@ -267,23 +266,8 @@ void gpu_calc_energy(
 				// is needed only if rotating around rotatable bond
 				atom_to_rotate -= rotation_movingvec;
 			}
-			float4 quatrot_left = rotation_unitvec;
-			// Performing rotation
-			if (((rotation_list_element & RLIST_GENROT_MASK) != 0) && // If general rotation,
-			    (atom_id < dockpars_true_ligand_atoms))               // two rotations should be performed
-			                                                          // (multiplying the quaternions)
-			{
-				// Calculating quatrot_left*ref_orientation_quats_const,
-				// which means that reference orientation rotation is the first
-				uint rid4 = 4*(*run_id);
-				quatrot_left = quaternion_multiply(quatrot_left,
-				                                   (float4)(kerconst_conform->ref_orientation_quats_const[rid4+0],
-				                                            kerconst_conform->ref_orientation_quats_const[rid4+1],
-				                                            kerconst_conform->ref_orientation_quats_const[rid4+2],
-				                                            kerconst_conform->ref_orientation_quats_const[rid4+3]));
-			}
-			// Performing final movement and storing values
-			calc_coords[atom_id] = quaternion_rotate(atom_to_rotate,quatrot_left) + rotation_movingvec;
+			// Performing rotation and final movement
+			calc_coords[atom_id] = quaternion_rotate(atom_to_rotate,rotation_unitvec) + rotation_movingvec;
 		} // End if-statement not dummy rotation
 		barrier(CLK_LOCAL_MEM_FENCE);
 	} // End rotation_counter for-loop

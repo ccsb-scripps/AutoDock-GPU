@@ -1050,17 +1050,11 @@ int get_commandpars(
 				printf("Warning: value of -psize argument ignored. Value must be an integer between 2 and %d.\n", MAX_POPSIZE);
 		}
 
-		// Argument: load initial population from file instead of generating one.
-		// If the value is zero, the initial population will be generated randomly, otherwise it will be loaded from a file.
-		if (strcmp("-pload", argv [i]) == 0)
+		// Argument: load initial population from xml file instead of generating one.
+		if (strcmp("-loadxml", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%d", &tempint);
-
-			if (tempint == 0)
-				mypars->initpop_gen_or_loadfile = false;
-			else
-				mypars->initpop_gen_or_loadfile = true;
+			mypars->load_xml = strdup(argv[i+1]);
 		}
 
 		// Argument: number of pdb files to be generated.
@@ -1380,25 +1374,14 @@ int get_commandpars(
 void gen_initpop_and_reflig(
                                   Dockpars*   mypars,
                                   float*      init_populations,
-                                  float*      ref_ori_angles,
                                   Liganddata* myligand,
                             const Gridinfo*   mygrid
                            )
 // The function generates a random initial population
-// (or alternatively, it reads from an external file according to mypars),
-// and the angles of the reference orientation.
-// The parameters mypars, myligand and mygrid describe the current docking.
-// The pointers init_population and ref_ori_angles have to point to
-// two allocated memory regions with proper size which the function will fill with random values.
-// Each contiguous GENOTYPE_LENGTH_IN_GLOBMEM pieces of floats in init_population corresponds to a genotype,
-// and each contiguous three pieces of floats in ref_ori_angles corresponds to
-// the phi, theta and angle genes of the reference orientation.
-// In addition, as part of reference orientation handling,
-// the function moves myligand to origo and scales it according to grid spacing.
+// Each contiguous GENOTYPE_LENGTH_IN_GLOBMEM pieces of floats in init_population corresponds to a genotype
 {
 	int entity_id, gene_id;
-	int gen_pop, gen_seeds;
-	FILE* fp;
+	int gen_seeds;
 	int i;
 	float init_orientation[MAX_NUM_OF_ROTBONDS+6];
 	double movvec_to_origo[3];
@@ -1410,148 +1393,16 @@ void gen_initpop_and_reflig(
 	float x, y, z, s; // convert quaternion to angles
 	float phi, theta, rotangle;
 
-	// initial population
-	gen_pop = 0;
-
-	// Reading initial population from file if only 1 run was requested
-	if (mypars->initpop_gen_or_loadfile)
-	{
-		if (mypars->num_of_runs != 1)
-		{
-			printf("Warning: more than 1 run was requested. New populations will be generated \ninstead of being loaded from initpop.txt\n");
-			gen_pop = 1;
-		}
-		else
-		{
-			fp = fopen("initpop.txt","rb"); // fp = fopen("initpop.txt","r");
-			if (fp == NULL)
-			{
-				printf("Warning: can't find initpop.txt. A new population will be generated.\n");
-				gen_pop = 1;
-			}
-			else
-			{
-				for (entity_id=0; entity_id<pop_size; entity_id++)
-					for (gene_id=0; gene_id<MAX_NUM_OF_ROTBONDS+6; gene_id++)
-						fscanf(fp, "%f", &(init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id]));
-
-				// reading reference orienation angles from file
-				fscanf(fp, "%f", &(mypars->ref_ori_angles[0]));
-				fscanf(fp, "%f", &(mypars->ref_ori_angles[1]));
-				fscanf(fp, "%f", &(mypars->ref_ori_angles[2]));
-
-				fclose(fp);
-			}
-		}
-	}
-	else
-		gen_pop = 1;
-
 	// Local random numbers for thread safety/reproducibility
 	LocalRNG r(mypars->seed);
 
 	// Generating initial population
-	if (gen_pop == 1)
-	{
-		for (entity_id=0; entity_id<pop_size*mypars->num_of_runs; entity_id++)
-		{
-			for (gene_id=0; gene_id<3; gene_id++)
-			{
-				init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = r.random_float()*(mygrid->size_xyz_angstr[gene_id]);
-			}
-			// generate random quaternion
-			u1 = r.random_float();
-			u2 = r.random_float();
-			u3 = r.random_float();
-			qw = sqrt(1.0 - u1) * sin(PI_TIMES_2 * u2);
-			qx = sqrt(1.0 - u1) * cos(PI_TIMES_2 * u2);
-			qy = sqrt(      u1) * sin(PI_TIMES_2 * u3);
-			qz = sqrt(      u1) * cos(PI_TIMES_2 * u3);
-
-			// convert to angle representation
-			rotangle = 2.0 * acos(qw);
-			s = sqrt(1.0 - (qw * qw));
-			if (s < 0.001){ // rotangle too small
-				x = qx;
-				y = qy;
-				z = qz;
-			} else {
-				x = qx / s;
-				y = qy / s;
-				z = qz / s;
-			}
-
-			theta = acos(z);
-			phi = atan2(y, x);
-
-			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = phi / DEG_TO_RAD;
-			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = theta / DEG_TO_RAD;
-			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = rotangle / DEG_TO_RAD;
-
-			//printf("angles = %8.2f, %8.2f, %8.2f\n", phi / DEG_TO_RAD, theta / DEG_TO_RAD, rotangle/DEG_TO_RAD);
-
-			/*
-			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = (float) myrand() * 360.0;
-			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = (float) myrand() * 360.0;
-			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = (float) myrand() * 360.0;
-			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = (float) myrand() * 360;
-			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = (float) myrand() * 180;
-			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = (float) myrand() * 360;
-			*/
-
-			for (gene_id=6; gene_id<MAX_NUM_OF_ROTBONDS+6; gene_id++) {
-				init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = r.random_float()*360;
-			}
-		}
-
-		// Writing first initial population to initpop.txt
-		fp = fopen("initpop.txt", "w");
-		if (fp == NULL)
-			printf("Warning: can't create initpop.txt.\n");
-		else
-		{
-			for (entity_id=0; entity_id<pop_size; entity_id++)
-				for (gene_id=0; gene_id<MAX_NUM_OF_ROTBONDS+6; gene_id++)
-					fprintf(fp, "%f ", init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id]);
-
-			// writing reference orientation angles to initpop.txt
-			fprintf(fp, "%f ", mypars->ref_ori_angles[0]);
-			fprintf(fp, "%f ", mypars->ref_ori_angles[1]);
-			fprintf(fp, "%f ", mypars->ref_ori_angles[2]);
-
-			fclose(fp);
-		}
-	}
-
-	// genotypes should contain x, y and z genes in grid spacing instead of Angstroms
-	// (but was previously generated in Angstroms since fdock does the same)
-
 	for (entity_id=0; entity_id<pop_size*mypars->num_of_runs; entity_id++)
-		for (gene_id=0; gene_id<3; gene_id++)
-			init_populations [entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = init_populations [entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id]/mygrid->spacing;
-
-	// changing initial orientation of reference ligand
-	/*for (i=0; i<38; i++)
-		switch (i)
-		{
-		case 3: init_orientation [i] = mypars->ref_ori_angles [0];
-				break;
-		case 4: init_orientation [i] = mypars->ref_ori_angles [1];
-				break;
-		case 5: init_orientation [i] = mypars->ref_ori_angles [2];
-				break;
-		default: init_orientation [i] = 0;
-		}
-
-	change_conform_f(myligand, init_orientation, 0);*/
-
-	// initial orientation will be calculated during docking,
-	// only the required angles are generated here,
-	// but the angles possibly read from file are ignored
-
-	for (i=0; i<mypars->num_of_runs; i++)
 	{
-		// uniform distr.
+		// randomize location and convert to grid coordinates
+		for (gene_id=0; gene_id<3; gene_id++)
+			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = r.random_float()*(mygrid->size_xyz_angstr[gene_id])/mygrid->spacing;
+		
 		// generate random quaternion
 		u1 = r.random_float();
 		u2 = r.random_float();
@@ -1560,7 +1411,7 @@ void gen_initpop_and_reflig(
 		qx = sqrt(1.0 - u1) * cos(PI_TIMES_2 * u2);
 		qy = sqrt(      u1) * sin(PI_TIMES_2 * u3);
 		qz = sqrt(      u1) * cos(PI_TIMES_2 * u3);
-
+		
 		// convert to angle representation
 		rotangle = 2.0 * acos(qw);
 		s = sqrt(1.0 - (qw * qw));
@@ -1573,15 +1424,17 @@ void gen_initpop_and_reflig(
 			y = qy / s;
 			z = qz / s;
 		}
-
 		theta = acos(z);
 		phi = atan2(y, x);
-
-		ref_ori_angles[3*i]   = phi / DEG_TO_RAD;
-		ref_ori_angles[3*i+1] = theta / DEG_TO_RAD;
-		ref_ori_angles[3*i+2] = rotangle / DEG_TO_RAD;
+		
+		init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+3] = phi / DEG_TO_RAD;
+		init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+4] = theta / DEG_TO_RAD;
+		init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+5] = rotangle / DEG_TO_RAD;
+		for (gene_id=6; gene_id<MAX_NUM_OF_ROTBONDS+6; gene_id++) {
+			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = r.random_float()*360;
+		}
 	}
-
+	
 	get_movvec_to_origo(myligand, movvec_to_origo);
 	double flex_vec[3];
 	for (unsigned int i=0; i<3; i++)
@@ -1589,9 +1442,4 @@ void gen_initpop_and_reflig(
 	move_ligand(myligand, movvec_to_origo, flex_vec);
 	scale_ligand(myligand, 1.0/mygrid->spacing);
 	get_moving_and_unit_vectors(myligand);
-
-	/*
-	printf("ligand: movvec_to_origo: %f %f %f\n", movvec_to_origo[0], movvec_to_origo[1], movvec_to_origo[2]);
-	*/
-
 }
