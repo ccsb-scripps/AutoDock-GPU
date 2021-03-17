@@ -1590,24 +1590,44 @@ void change_conform_f(
                             int         debug
                      )
 // The function changes the conformation of myligand according to
-// the genotype given by the second parameter.
+// the floating point genotype from GPU
+{
+	double genotype [ACTUAL_GENOTYPE_LENGTH];
+	for (unsigned int i=0; i<ACTUAL_GENOTYPE_LENGTH; i++)
+		genotype [i] = genotype_f [i];
+	change_conform(myligand,mygrid,genotype,NULL,debug);
+}
+
+void change_conform(
+                          Liganddata* myligand,
+                    const Gridinfo*   mygrid,
+                    const double      genotype [],
+                    const double      axisangle[4],
+                          int         debug
+                   )
+// The function changes the conformation of myligand according to
+// the genotype and (optionally) the general rotation in axisangle
 {
 	double genrot_movvec [3] = {0, 0, 0};
 	double genrot_unitvec [3];
+	double genrot_angle;
 	double movvec_to_origo [3];
-	double phi, theta;
-	int atom_id, rotbond_id, i;
-	double genotype [ACTUAL_GENOTYPE_LENGTH];
+	int atom_id, rotbond_id;
 
-	for (i=0; i<ACTUAL_GENOTYPE_LENGTH; i++)
-		genotype [i] = genotype_f [i];
-
-	phi = (genotype [3])/180*PI;
-	theta = (genotype [4])/180*PI;
-
-	genrot_unitvec [0] = sin(theta)*cos(phi);
-	genrot_unitvec [1] = sin(theta)*sin(phi);
-	genrot_unitvec [2] = cos(theta);
+	if(!axisangle){
+		double phi = (genotype [3])/180*PI;
+		double theta = (genotype [4])/180*PI;
+		
+		genrot_unitvec [0] = sin(theta)*cos(phi);
+		genrot_unitvec [1] = sin(theta)*sin(phi);
+		genrot_unitvec [2] = cos(theta);
+		genrot_angle = genotype[5];
+	} else{
+		genrot_unitvec [0] = axisangle[0];
+		genrot_unitvec [1] = axisangle[1];
+		genrot_unitvec [2] = axisangle[2];
+		genrot_angle = axisangle[3];
+	}
 
 	get_movvec_to_origo(myligand, movvec_to_origo); // moving ligand to origo
 	move_ligand(myligand, movvec_to_origo);
@@ -1637,7 +1657,7 @@ void change_conform_f(
 			rotate(&(myligand->atom_idxyzq[atom_id][1]),
 			       genrot_movvec,
 			       genrot_unitvec,
-			       &(genotype [5]), debug); // general rotation
+			       &genrot_angle, debug); // general rotation
 		}
 	}
 

@@ -241,6 +241,14 @@ void change_conform_f(
                             int         debug
                      );
 
+void change_conform(
+                          Liganddata* myligand,
+                    const Gridinfo*   mygrid,
+                    const double      genotype [],
+                    const double      axisangle[4],
+                          int         debug
+                   );
+
 float calc_interE_f(
                     const Gridinfo*   mygrid,
                     const Liganddata* myligand,
