@@ -957,17 +957,17 @@ void clusanal_gendlg(
 		fprintf(fp_xml, "\t<autostop>%s</autostop>\n",mypars->autostop ? "yes" : "no");
 		fprintf(fp_xml, "\t<heuristics>%s</heuristics>\n",mypars->use_heuristics ? "yes" : "no");
 		fprintf(fp_xml, "\t<run_requested>%d</run_requested>\n",mypars->num_of_runs);
+		if(mypars->dpffile)
+			fprintf(fp_xml, "\t<dpf>%s</dpf>\n",mypars->dpffile);
+		fprintf(fp_xml, "\t<ligand>%s</ligand>\n", mypars->ligandfile);
 		fprintf(fp_xml, "\t<runs>\n");
 		double phi, theta;
 		for(j=0; j<num_of_runs; j++){
 			fprintf(fp_xml, "\t\t<run id=\"%d\">\n",(myresults [j]).run_number);
-			if(mypars->dpffile)
-				fprintf(fp_xml, "\t\t\t<dpf>%s</dpf>\n",mypars->dpffile);
 			fprintf(fp_xml, "\t\t\t<free_NRG_binding>   %.2f</free_NRG_binding>\n", myresults[j].interE + myresults[j].interflexE + torsional_energy);
 			fprintf(fp_xml, "\t\t\t<final_intermol_NRG> %.2f</final_intermol_NRG>\n", myresults[j].interE + myresults[j].interflexE);
 			fprintf(fp_xml, "\t\t\t<internal_ligand_NRG>%.2f</internal_ligand_NRG>\n", myresults[j].intraE + myresults[j].intraflexE);
 			fprintf(fp_xml, "\t\t\t<torsonial_free_NRG> %.2f</torsonial_free_NRG>\n", torsional_energy);
-			fprintf(fp_xml, "\t\t\t<move>%s</move>\n", mypars->ligandfile);
 			fprintf(fp_xml, "\t\t\t<tran0>%.6f %.6f %.6f</tran0>\n", myresults[j].genotype[0]*mygrid->spacing, myresults[j].genotype[1]*mygrid->spacing, myresults[j].genotype[2]*mygrid->spacing);
 			phi = myresults[j].genotype[3]/180.0*PI;
 			theta = myresults[j].genotype[4]/180.0*PI;
