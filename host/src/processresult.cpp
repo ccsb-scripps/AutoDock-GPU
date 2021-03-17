@@ -946,6 +946,9 @@ void clusanal_gendlg(
 				fprintf(fp_xml, "%s%s", (i>1)?" ":"", argv[i]);
 			fprintf(fp_xml, "</arguments>\n");
 		}
+		if(mypars->dpffile)
+			fprintf(fp_xml, "\t<dpf>%s</dpf>\n",mypars->dpffile);
+		fprintf(fp_xml, "\t<ligand>%s</ligand>\n", mypars->ligandfile);
 		fprintf(fp_xml, "\t<seed>");
 		if(!mypars->seed[2]){
 			if(!mypars->seed[1]){
@@ -957,9 +960,6 @@ void clusanal_gendlg(
 		fprintf(fp_xml, "\t<autostop>%s</autostop>\n",mypars->autostop ? "yes" : "no");
 		fprintf(fp_xml, "\t<heuristics>%s</heuristics>\n",mypars->use_heuristics ? "yes" : "no");
 		fprintf(fp_xml, "\t<run_requested>%d</run_requested>\n",mypars->num_of_runs);
-		if(mypars->dpffile)
-			fprintf(fp_xml, "\t<dpf>%s</dpf>\n",mypars->dpffile);
-		fprintf(fp_xml, "\t<ligand>%s</ligand>\n", mypars->ligandfile);
 		fprintf(fp_xml, "\t<runs>\n");
 		double phi, theta;
 		for(j=0; j<num_of_runs; j++){
