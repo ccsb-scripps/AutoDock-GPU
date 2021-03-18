@@ -363,7 +363,6 @@ __device__ void gpu_calc_energy(
 		// Calculating atomic_distance
 		float dist = sqrt(subx*subx + suby*suby + subz*subz);
 		float atomic_distance = dist * cData.dockpars.grid_spacing;
-		if(atomic_distance<0.01f) atomic_distance=0.01f;
 
 		// Getting type IDs
 		uint32_t atom1_typeid = cData.pKerconst_interintra->atom_types_const[atom1_id];

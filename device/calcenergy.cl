@@ -428,7 +428,6 @@ if (tidx == 0) {
 
 		// Calculating atomic_distance
 		float atomic_distance = native_sqrt(subx*subx + suby*suby + subz*subz)*dockpars_grid_spacing;
-		if(atomic_distance<0.01f) atomic_distance=0.01f;
 
 		// Getting type IDs
 		uint atom1_typeid = kerconst_interintra->atom_types_const[atom1_id];
