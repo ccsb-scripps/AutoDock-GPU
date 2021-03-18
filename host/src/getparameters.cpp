@@ -1371,6 +1371,124 @@ int get_commandpars(
 	return arg_recognized + (arg_set<<1);
 }
 
+std::vector<float> read_xml_genomes(
+                                    char* xml_filename,
+                                    float grid_spacing
+                                   )
+{
+	std::vector<float> result;
+	std::ifstream file(xml_filename);
+	if(file.fail()){
+		printf("\nError: Could not open xml file %s. Check path and permissions.\n", xml_filename);
+		exit(3);
+	}
+	std::string line, items;
+	size_t found, gene_id;
+	size_t count=0;
+	int run_nr=-1;
+	int nrot=1;
+	int error=0;
+	size_t found_genome=0;
+	float *gene, *new_gene, theta, phi;
+	while(std::getline(file, line)) {
+		trim(line); // Remove leading and trailing whitespace
+		if(line.find("<run id=")==0){
+			if(!sscanf(line.c_str(),"<run id=\"%d\">",&run_nr)){
+				error=1;
+				break;
+			};
+			if(found_genome!=0){ // indicates that no </run> is in xml so read items don't reset
+				error=11;
+				break;
+			}
+			result.resize(GENOTYPE_LENGTH_IN_GLOBMEM*(count+1));
+		}
+		if(line.find("</run>")==0){
+			run_nr=-1;
+			nrot=-1;
+			if(found_genome!=3){
+				error=2;
+				break;
+			}
+			found_genome=0;
+			count++;
+		}
+		if(line.find("<ndihe>")==0){
+			if(run_nr>=0){
+				if(!sscanf(line.c_str(),"<ndihe>%d</ndihe>",&nrot)){
+					error=3;
+					break;
+				}
+			} else{
+				error=4;
+				break;
+			}
+		}
+		if(line.find("<tran0>")==0){
+			if(run_nr>=0){
+				gene = &result.data()[count*GENOTYPE_LENGTH_IN_GLOBMEM];
+				found=sscanf(line.c_str(),"<tran0>%f %f %f</tran0>",gene,gene+1,gene+2);
+				if(found!=3){
+					error=5;
+					break;
+				}
+				*gene/=grid_spacing;
+				*(gene+1)/=grid_spacing;
+				*(gene+2)/=grid_spacing;
+				found_genome++;
+			} else{
+				error=6;
+				break;
+			}
+		}
+		if(line.find("<axisangle0>")==0){
+			if(run_nr>=0){
+				gene = &result.data()[count*GENOTYPE_LENGTH_IN_GLOBMEM+3];
+				found=sscanf(line.c_str(),"<axisangle0>%f %f %f %f</axisangle0>",gene,gene+1,gene+2,gene+3);
+				if(found!=4){
+					error=7;
+					break;
+				}
+				theta=atan(sqrt((*gene)*(*gene)+(*(gene+1))*(*(gene+1)))/((*(gene+2))*(*(gene+2))));
+				phi=atan2(*(gene+1),*gene);
+				*gene=phi/DEG_TO_RAD;
+				*(gene+1)=theta/DEG_TO_RAD;
+				*(gene+2)=*(gene+3);
+				found_genome++;
+			} else{
+				error=8;
+				break;
+			}
+		}
+		if(line.find("<dihe0>")==0){
+			if((run_nr>=0) && (nrot>=0)){
+				if(nrot>0){
+					gene = &result.data()[count*GENOTYPE_LENGTH_IN_GLOBMEM+6];
+					items=line.substr(7);
+					for(gene_id=0; gene_id<nrot; gene_id++){
+						found=sscanf(items.c_str(),"%f",gene+gene_id);
+						if(!found){
+							error=9;
+							break;
+						}
+						items=items.substr(items.find(" ")+1);
+					}
+				}
+				found_genome++;
+			} else{
+				error=10;
+				break;
+			}
+		}
+		run_nr++;
+	}
+	if(error){
+		printf("Error: XML file is not in AutoDock-GPU format (error #%d).\n",error);
+		exit(error);
+	}
+	return result;
+}
+
 void gen_initpop_and_reflig(
                                   Dockpars*   mypars,
                                   float*      init_populations,
@@ -1395,9 +1513,25 @@ void gen_initpop_and_reflig(
 
 	// Local random numbers for thread safety/reproducibility
 	LocalRNG r(mypars->seed);
-
+	
 	// Generating initial population
-	for (entity_id=0; entity_id<pop_size*mypars->num_of_runs; entity_id++)
+	unsigned int nr_genomes_loaded=0;
+	if(mypars->load_xml){ // read population data from previously output xml file
+		std::vector<float> genome = read_xml_genomes(mypars->load_xml, mygrid->spacing);
+		nr_genomes_loaded = std::min(genome.size()/GENOTYPE_LENGTH_IN_GLOBMEM, mypars->num_of_runs);
+		if(nr_genomes_loaded < mypars->num_of_runs){
+			printf("Note: XML contains %d genomes but %d runs are requested, randomizing other runs.\n",nr_genomes_loaded, mypars->num_of_runs);
+		}
+		// copy to rest of population
+		float *src;
+		nr_genomes_loaded *= pop_size;
+		for (entity_id=0; entity_id<nr_genomes_loaded; entity_id++){
+			if(entity_id % pop_size == 0) src = &genome.data()[entity_id/pop_size*GENOTYPE_LENGTH_IN_GLOBMEM];
+			memcpy(&init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM],src,sizeof(float)*GENOTYPE_LENGTH_IN_GLOBMEM);
+		}
+	}
+	printf("%d vs %d\n",nr_genomes_loaded,pop_size*mypars->num_of_runs);
+	for (entity_id=nr_genomes_loaded; entity_id<pop_size*mypars->num_of_runs; entity_id++)
 	{
 		// randomize location and convert to grid coordinates
 		for (gene_id=0; gene_id<3; gene_id++)
@@ -1434,7 +1568,6 @@ void gen_initpop_and_reflig(
 			init_populations[entity_id*GENOTYPE_LENGTH_IN_GLOBMEM+gene_id] = r.random_float()*360;
 		}
 	}
-	
 	get_movvec_to_origo(myligand, movvec_to_origo);
 	double flex_vec[3];
 	for (unsigned int i=0; i<3; i++)

@@ -182,6 +182,11 @@ int get_commandpars(
                     const bool late_call = true
                    );
 
+std::vector<float> read_xml_genomes(
+                                    char* xml_filename,
+                                    float grid_spacing
+                                   );
+
 void gen_initpop_and_reflig(
                                   Dockpars*   mypars,
                                   float*      init_populations,
