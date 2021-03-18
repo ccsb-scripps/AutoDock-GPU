@@ -680,9 +680,9 @@ parameters argc and argv:
 
         // Get profile for timing
 	profile.adadelta=(strcmp(mypars->ls_method, "ad")==0);
-        profile.n_evals = mypars->num_of_energy_evals;
-        profile.num_atoms = myligand_reference.num_of_atoms;
-        profile.num_rotbonds = myligand_init->num_of_rotbonds;
+	profile.n_evals = mypars->num_of_energy_evals;
+	profile.num_atoms = myligand_reference.num_of_atoms;
+	profile.num_rotbonds = myligand_init->num_of_rotbonds;
 
 	/*
 	printf("dockpars.num_of_intraE_contributors:%u\n", dockpars.num_of_intraE_contributors);

@@ -184,7 +184,8 @@ int get_commandpars(
 
 std::vector<float> read_xml_genomes(
                                     char* xml_filename,
-                                    float grid_spacing
+                                    float grid_spacing,
+                                    unsigned int &nrot
                                    );
 
 void gen_initpop_and_reflig(
