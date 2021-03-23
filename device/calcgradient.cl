@@ -288,35 +288,6 @@ void gpu_calc_gradient(
 			quatrot_left_y  = sin_angle*rotation_unitvec[1];
 			quatrot_left_z  = sin_angle*rotation_unitvec[2];
 
-			// Performing rotation
-			if (((rotation_list_element & RLIST_GENROT_MASK) != 0) && // If general rotation,
-			    (atom_id < dockpars_true_ligand_atoms))               // two rotations should be performed
-			                                                          // (multiplying the quaternions)
-			{
-				// Calculating quatrot_left*ref_orientation_quats_const,
-				// which means that reference orientation rotation is the first
-				quatrot_temp_q = quatrot_left_q;
-				quatrot_temp_x = quatrot_left_x;
-				quatrot_temp_y = quatrot_left_y;
-				quatrot_temp_z = quatrot_left_z;
-
-				quatrot_left_q = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]-
-				                 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]-
-				                 quatrot_temp_y*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]-
-				                 quatrot_temp_z*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2];
-				quatrot_left_x = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]+
-				                 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]*quatrot_temp_x+
-				                 quatrot_temp_y*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]-
-				                 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]*quatrot_temp_z;
-				quatrot_left_y = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]+
-				                 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]*quatrot_temp_y+
-				                 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]*quatrot_temp_z-
-				                 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2];
-				quatrot_left_z = quatrot_temp_q*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+2]+
-				                 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+3]*quatrot_temp_z+
-				                 quatrot_temp_x*kerconst_conform->ref_orientation_quats_const[4*(*run_id)+1]-
-				                 kerconst_conform->ref_orientation_quats_const[4*(*run_id)+0]*quatrot_temp_y;
-			}
 			quatrot_temp_q = 0 -
 			                 quatrot_left_x*atom_to_rotate [0] -
 			                 quatrot_left_y*atom_to_rotate [1] -

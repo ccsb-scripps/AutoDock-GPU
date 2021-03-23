@@ -95,7 +95,7 @@ typedef struct _Dockpars
 	unsigned long          cons_limit                      = 4;
 	unsigned long          max_num_of_iters                = 300;
 	unsigned long          pop_size                        = 150;
-	bool                   initpop_gen_or_loadfile         = false;
+	char*                  load_xml                        = NULL;
 	int                    gen_pdbs                        = 0;
 	char*                  dpffile                         = NULL;
 	char*                  fldfile                         = NULL;
@@ -104,7 +104,6 @@ typedef struct _Dockpars
 	char*                  xrayligandfile                  = NULL;  // by default will be ligand file name
 	char*                  resname                         = NULL; // by default will be ligand file basename
 	bool                   given_xrayligandfile            = false; // That is, not given (explicitly by the user)
-	float                  ref_ori_angles [3];             // is generated in gen_initpop_and_reflig(...)
 	bool                   autostop                        = true;
 	unsigned int           as_frequency                    = 5;
 	float                  stopstd                         = 0.15;
@@ -183,10 +182,15 @@ int get_commandpars(
                     const bool late_call = true
                    );
 
+std::vector<float> read_xml_genomes(
+                                    char* xml_filename,
+                                    float grid_spacing,
+                                    unsigned int &nrot
+                                   );
+
 void gen_initpop_and_reflig(
                                   Dockpars*   mypars,
                                   float*      init_populations,
-                                  float*      ref_ori_angles,
                                   Liganddata* myligand,
                             const Gridinfo*   mygrid
                            );

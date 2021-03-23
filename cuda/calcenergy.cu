@@ -219,24 +219,8 @@ __device__ void gpu_calc_energy(
 				atom_to_rotate.z -= rotation_movingvec.z;
 			}
 
-			float4 quatrot_left = rotation_unitvec;
-			// Performing rotation
-			if (((rotation_list_element & RLIST_GENROT_MASK) != 0) && // If general rotation,
-			    (atom_id < cData.dockpars.true_ligand_atoms))         // two rotations should be performed
-			                                                          // (multiplying the quaternions)
-			{
-				// Calculating quatrot_left*ref_orientation_quats_const,
-				// which means that reference orientation rotation is the first
-				uint rid4 = 4 * run_id;
-				float4 qt;
-				qt.x = cData.pKerconst_conform->ref_orientation_quats_const[rid4+0];
-				qt.y = cData.pKerconst_conform->ref_orientation_quats_const[rid4+1];
-				qt.z = cData.pKerconst_conform->ref_orientation_quats_const[rid4+2];
-				qt.w = cData.pKerconst_conform->ref_orientation_quats_const[rid4+3];
-				quatrot_left = quaternion_multiply(quatrot_left, qt);
-			}
-			// Performing final movement and storing values
-			float4 qt = quaternion_rotate(atom_to_rotate,quatrot_left);
+			// Performing rotation and final movement
+			float4 qt = quaternion_rotate(atom_to_rotate, rotation_unitvec);
 			calc_coords[atom_id].x = qt.x + rotation_movingvec.x;
 			calc_coords[atom_id].y = qt.y + rotation_movingvec.y;
 			calc_coords[atom_id].z = qt.z + rotation_movingvec.z;
@@ -379,7 +363,6 @@ __device__ void gpu_calc_energy(
 		// Calculating atomic_distance
 		float dist = sqrt(subx*subx + suby*suby + subz*subz);
 		float atomic_distance = dist * cData.dockpars.grid_spacing;
-		if(atomic_distance<0.01f) atomic_distance=0.01f;
 
 		// Getting type IDs
 		uint32_t atom1_typeid = cData.pKerconst_interintra->atom_types_const[atom1_id];

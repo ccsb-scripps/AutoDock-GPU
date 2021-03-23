@@ -1587,43 +1587,47 @@ void change_conform_f(
                             Liganddata* myligand,
                       const Gridinfo*   mygrid,
                       const float       genotype_f [],
-                            float*      cpu_ref_ori_angles,
                             int         debug
                      )
 // The function changes the conformation of myligand according to
-// the genotype given by the second parameter.
+// the floating point genotype from GPU
+{
+	double genotype [ACTUAL_GENOTYPE_LENGTH];
+	for (unsigned int i=0; i<ACTUAL_GENOTYPE_LENGTH; i++)
+		genotype [i] = genotype_f [i];
+	change_conform(myligand,mygrid,genotype,NULL,debug);
+}
+
+void change_conform(
+                          Liganddata* myligand,
+                    const Gridinfo*   mygrid,
+                    const double      genotype [],
+                    const double      axisangle[4],
+                          int         debug
+                   )
+// The function changes the conformation of myligand according to
+// the genotype and (optionally) the general rotation in axisangle
 {
 	double genrot_movvec [3] = {0, 0, 0};
 	double genrot_unitvec [3];
+	double genrot_angle;
 	double movvec_to_origo [3];
-	double phi, theta;
-	int atom_id, rotbond_id, i;
-	double genotype [ACTUAL_GENOTYPE_LENGTH];
-	double refori_unitvec [3];
-	double refori_angle;
+	int atom_id, rotbond_id;
 
-	for (i=0; i<ACTUAL_GENOTYPE_LENGTH; i++)
-		genotype [i] = genotype_f [i];
-
-	phi = (genotype [3])/180*PI;
-	theta = (genotype [4])/180*PI;
-
-	genrot_unitvec [0] = sin(theta)*cos(phi);
-	genrot_unitvec [1] = sin(theta)*sin(phi);
-	genrot_unitvec [2] = cos(theta);
-
-	phi = (cpu_ref_ori_angles [0])/180*PI;
-	theta = (cpu_ref_ori_angles [1])/180*PI;
-
-	refori_unitvec [0] = sin(theta)*cos(phi);
-	refori_unitvec [1] = sin(theta)*sin(phi);
-	refori_unitvec [2] = cos(theta);
-	refori_angle = cpu_ref_ori_angles[2];
-
-// +++++++++++++++++++++++++++++++++++++++
-//printf("cpu_ref_ori_angles [0]: %f, cpu_ref_ori_angles [1]: %f, %f\n",cpu_ref_ori_angles [0],cpu_ref_ori_angles [1],PI);
-//printf("refori_unitvec [0]:%f, refori_unitvec [1]:%f, refori_unitvec [2]:%f\n",refori_unitvec [0],refori_unitvec [1],refori_unitvec [2]);
-// +++++++++++++++++++++++++++++++++++++++
+	if(!axisangle){
+		double phi = (genotype [3])/180*PI;
+		double theta = (genotype [4])/180*PI;
+		
+		genrot_unitvec [0] = sin(theta)*cos(phi);
+		genrot_unitvec [1] = sin(theta)*sin(phi);
+		genrot_unitvec [2] = cos(theta);
+		genrot_angle = genotype[5];
+	} else{
+		genrot_unitvec [0] = axisangle[0];
+		genrot_unitvec [1] = axisangle[1];
+		genrot_unitvec [2] = axisangle[2];
+		genrot_angle = axisangle[3];
+	}
 
 	get_movvec_to_origo(myligand, movvec_to_origo); // moving ligand to origo
 	move_ligand(myligand, movvec_to_origo);
@@ -1650,18 +1654,10 @@ void change_conform_f(
 
 		if (atom_id<myligand->true_ligand_atoms)
 		{
-			if (debug == 1)
-				printf("according to general rotation\n");
-
-			rotate(&(myligand->atom_idxyzq[atom_id][1]),
-			       genrot_movvec,
-			       refori_unitvec,
-			       &refori_angle, debug); // rotating to reference orientation
-
 			rotate(&(myligand->atom_idxyzq[atom_id][1]),
 			       genrot_movvec,
 			       genrot_unitvec,
-			       &(genotype [5]), debug); // general rotation
+			       &genrot_angle, debug); // general rotation
 		}
 	}
 

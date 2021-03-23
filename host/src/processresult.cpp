@@ -116,10 +116,10 @@ void write_basic_info(
 	fprintf(fp, "Number of pdb files to be generated:       %d\n", mypars->gen_pdbs);
 
 	fprintf(fp, "Initial population:                        ");
-	if (!mypars->initpop_gen_or_loadfile)
+	if (!mypars->load_xml)
 		fprintf(fp, "GENERATE\n");
 	else
-		fprintf(fp, "LOAD FROM FILE (initpop.txt)\n");
+		fprintf(fp, "LOAD FROM FILE (%s)\n",mypars->load_xml);
 
 	fprintf(fp, "\n\nProgram call in command line was:          ");
 	for (i=0; i<*argc; i++)
@@ -297,7 +297,6 @@ void make_resfiles(
                          int           generations_used,
                    const Gridinfo*     mygrid,
                    const float*        grids,
-                         float*        cpu_ref_ori_angles,
                    const int*          argc,
                          char**        argv,
                          int           debug,
@@ -354,7 +353,7 @@ void make_resfiles(
 	{
 		temp_docked = *ligand_ref;
 
-		change_conform_f(&temp_docked, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, cpu_ref_ori_angles, debug);
+		change_conform_f(&temp_docked, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, debug);
 		
 		// the map interaction of flex res atoms is stored in accurate_intraflexE[i]
 		accurate_interE[i] = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE[i]);	//calculating the intermolecular energy
@@ -947,6 +946,19 @@ void clusanal_gendlg(
 				fprintf(fp_xml, "%s%s", (i>1)?" ":"", argv[i]);
 			fprintf(fp_xml, "</arguments>\n");
 		}
+		if(mypars->dpffile)
+			fprintf(fp_xml, "\t<dpf>%s</dpf>\n",mypars->dpffile);
+		fprintf(fp_xml, "\t<grid>%s</grid>\n", mypars->fldfile);
+		fprintf(fp_xml, "\t<ligand>%s</ligand>\n", mypars->ligandfile);
+		if(mypars->flexresfile)
+			fprintf(fp_xml, "\t<flexres>%s</flexres>\n",mypars->flexresfile);
+		fprintf(fp_xml, "\t<seed>");
+		if(!mypars->seed[2]){
+			if(!mypars->seed[1]){
+				fprintf(fp_xml,"%d", mypars->seed[0]);
+			} else fprintf(fp_xml,"%d %d", mypars->seed[0], mypars->seed[1]);
+		} else fprintf(fp_xml,"%d %d %d", mypars->seed[0], mypars->seed[1], mypars->seed[2]);
+		fprintf(fp_xml, "</seed>\n");
 		fprintf(fp_xml, "\t<ls_method>%s</ls_method>\n",mypars->ls_method);
 		fprintf(fp_xml, "\t<autostop>%s</autostop>\n",mypars->autostop ? "yes" : "no");
 		fprintf(fp_xml, "\t<heuristics>%s</heuristics>\n",mypars->use_heuristics ? "yes" : "no");
@@ -955,20 +967,10 @@ void clusanal_gendlg(
 		double phi, theta;
 		for(j=0; j<num_of_runs; j++){
 			fprintf(fp_xml, "\t\t<run id=\"%d\">\n",(myresults [j]).run_number);
-			fprintf(fp_xml, "\t\t\t<seed>");
-			if(!mypars->seed[2]){
-				if(!mypars->seed[1]){
-					fprintf(fp_xml,"%d", mypars->seed[0]);
-				} else fprintf(fp_xml,"%d %d", mypars->seed[0], mypars->seed[1]);
-			} else fprintf(fp_xml,"%d %d %d", mypars->seed[0], mypars->seed[1], mypars->seed[2]);
-			fprintf(fp_xml, "</seed>\n");
-			if(mypars->dpffile)
-				fprintf(fp_xml, "\t\t\t<dpf>%s</dpf>\n",mypars->dpffile);
 			fprintf(fp_xml, "\t\t\t<free_NRG_binding>   %.2f</free_NRG_binding>\n", myresults[j].interE + myresults[j].interflexE + torsional_energy);
 			fprintf(fp_xml, "\t\t\t<final_intermol_NRG> %.2f</final_intermol_NRG>\n", myresults[j].interE + myresults[j].interflexE);
 			fprintf(fp_xml, "\t\t\t<internal_ligand_NRG>%.2f</internal_ligand_NRG>\n", myresults[j].intraE + myresults[j].intraflexE);
 			fprintf(fp_xml, "\t\t\t<torsonial_free_NRG> %.2f</torsonial_free_NRG>\n", torsional_energy);
-			fprintf(fp_xml, "\t\t\t<move>%s</move>\n", mypars->ligandfile);
 			fprintf(fp_xml, "\t\t\t<tran0>%.6f %.6f %.6f</tran0>\n", myresults[j].genotype[0]*mygrid->spacing, myresults[j].genotype[1]*mygrid->spacing, myresults[j].genotype[2]*mygrid->spacing);
 			phi = myresults[j].genotype[3]/180.0*PI;
 			theta = myresults[j].genotype[4]/180.0*PI;
@@ -981,31 +983,29 @@ void clusanal_gendlg(
 			fprintf(fp_xml, "\t\t</run>\n");
 		}
 		fprintf(fp_xml, "\t</runs>\n");
-		fprintf(fp_xml, "</autodock_gpu>\n");
-		fprintf(fp_xml, "<result>\n");
-
-		fprintf(fp_xml, "\t<clustering_histogram>\n");
+		fprintf(fp_xml, "\t<result>\n");
+		
+		fprintf(fp_xml, "\t\t<clustering_histogram>\n");
 		for (i=0; i<num_of_clusters; i++)
 		{
-			fprintf(fp_xml, "\t\t<cluster cluster_rank=\"%d\" lowest_binding_energy=\"%.2lf\" run=\"%d\" mean_binding_energy=\"%.2lf\" num_in_clus=\"%d\" />\n",
+			fprintf(fp_xml, "\t\t\t<cluster cluster_rank=\"%d\" lowest_binding_energy=\"%.2lf\" run=\"%d\" mean_binding_energy=\"%.2lf\" num_in_clus=\"%d\" />\n",
 					i+1, best_energy[i], best_energy_runid[i], sum_energy[i]/cluster_sizes[i], cluster_sizes [i]);
 		}
-		fprintf(fp_xml, "\t</clustering_histogram>\n");
-
-		fprintf(fp_xml, "\t<rmsd_table>\n");
+		fprintf(fp_xml, "\t\t</clustering_histogram>\n");
+		
+		fprintf(fp_xml, "\t\t<rmsd_table>\n");
 		for (i=0; i<num_of_clusters; i++)
 		{
 			for (j=0; j<num_of_runs; j++)
 				if (myresults [j].clus_id == i+1)
 				{
-					fprintf(fp_xml, "\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
+					fprintf(fp_xml, "\t\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
 					                     (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number, myresults[j].interE + myresults[j].interflexE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
 				}
 		}
-		fprintf(fp_xml, "\t</rmsd_table>\n");
-
-		fprintf(fp_xml, "</result>\n");
-
+		fprintf(fp_xml, "\t\t</rmsd_table>\n");
+		fprintf(fp_xml, "\t</result>\n");
+		fprintf(fp_xml, "</autodock_gpu>\n");
 		fclose(fp_xml);
 		free(xml_file_name);
 	}
@@ -1039,7 +1039,6 @@ void process_result(
 		              sim_state.generation_cnt,
 		              mygrid,
 		              cpu_floatgrids,
-		              sim_state.cpu_ref_ori_angles.data()+3*run_cnt,
 		              argc,
 		              argv,
 		              /*1*/0,

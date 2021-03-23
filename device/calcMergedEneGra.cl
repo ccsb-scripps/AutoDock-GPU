@@ -206,23 +206,8 @@ void gpu_calc_energrad(
 				// is needed only if rotating around rotatable bond
 				atom_to_rotate -= rotation_movingvec;
 			}
-			float4 quatrot_left = rotation_unitvec;
-			// Performing rotation
-			if (((rotation_list_element & RLIST_GENROT_MASK) != 0) && // If general rotation,
-			    (atom_id < dockpars_true_ligand_atoms))               // two rotations should be performed
-			                                                          // (multiplying the quaternions)
-			{
-				// Calculating quatrot_left*ref_orientation_quats_const,
-				// which means that reference orientation rotation is the first
-				uint rid4 = (*run_id)<<2;
-				quatrot_left = quaternion_multiply(quatrot_left,
-				                                   (float4)(kerconst_conform->ref_orientation_quats_const[rid4+0],
-				                                            kerconst_conform->ref_orientation_quats_const[rid4+1],
-				                                            kerconst_conform->ref_orientation_quats_const[rid4+2],
-				                                            kerconst_conform->ref_orientation_quats_const[rid4+3]));
-			}
-			// Performing final movement and storing values
-			calc_coords[atom_id] = quaternion_rotate(atom_to_rotate,quatrot_left) + rotation_movingvec;
+			// Performing rotation and final movement
+			calc_coords[atom_id] = quaternion_rotate(atom_to_rotate,rotation_unitvec) + rotation_movingvec;
 		} // End if-statement not dummy rotation
 		barrier(CLK_LOCAL_MEM_FENCE);
 	} // End rotation_counter for-loop

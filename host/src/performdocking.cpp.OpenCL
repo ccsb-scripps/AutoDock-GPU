@@ -447,13 +447,10 @@ parameters argc and argv:
 	cpu_init_populations = sim_state.cpu_populations.data();
 	cpu_final_populations = sim_state.cpu_populations.data();
 
-	// allocating memory in CPU for reference orientation angles
-	sim_state.cpu_ref_ori_angles.resize(mypars->num_of_runs*3);
-
 	// generating initial populations and random orientation angles of reference ligand
 	// (ligand will be moved to origo and scaled as well)
 	myligand_reference = *myligand_init;
-	gen_initpop_and_reflig(mypars, cpu_init_populations, sim_state.cpu_ref_ori_angles.data(), &myligand_reference, mygrid);
+	gen_initpop_and_reflig(mypars, cpu_init_populations, &myligand_reference, mygrid);
 
 	// allocating memory in CPU for pseudorandom number generator seeds and
 	// generating them (seed for each thread during GA)
@@ -471,21 +468,6 @@ parameters argc and argv:
 	memset(sim_state.cpu_evals_of_runs.data(), 0, size_evals_of_runs);
 
 	// preparing the constant data fields for the GPU
-	// ----------------------------------------------------------------------
-	// The original function does CUDA calls initializing const Kernel data.
-	// We create a struct to hold those constants
-	// and return them <here> (<here> = where prepare_const_fields_for_gpu() is called),
-	// so we can send them to Kernels from <here>, instead of from calcenergy.cpp as originally.
-	// ----------------------------------------------------------------------
-	// Constant struct
-
-/*
-	kernelconstant KerConst;
-
-	if (prepare_const_fields_for_gpu(&myligand_reference, mypars, cpu_ref_ori_angles, &KerConst) == 1)
-		return 1;
-*/
-
 	kernelconstant_interintra	KerConst_interintra;
 	kernelconstant_intracontrib	KerConst_intracontrib;
 	kernelconstant_intra		KerConst_intra;
@@ -493,7 +475,7 @@ parameters argc and argv:
 	kernelconstant_conform		KerConst_conform;
 	kernelconstant_grads		KerConst_grads;
 
-	if (prepare_const_fields_for_gpu(&myligand_reference, mypars, sim_state.cpu_ref_ori_angles.data(),
+	if (prepare_const_fields_for_gpu(&myligand_reference, mypars,
 	                                 &KerConst_interintra,
 	                                 &KerConst_intracontrib,
 	                                 &KerConst_intra,
@@ -698,9 +680,9 @@ parameters argc and argv:
 
         // Get profile for timing
 	profile.adadelta=(strcmp(mypars->ls_method, "ad")==0);
-        profile.n_evals = mypars->num_of_energy_evals;
-        profile.num_atoms = myligand_reference.num_of_atoms;
-        profile.num_rotbonds = myligand_init->num_of_rotbonds;
+	profile.n_evals = mypars->num_of_energy_evals;
+	profile.num_atoms = myligand_reference.num_of_atoms;
+	profile.num_rotbonds = myligand_init->num_of_rotbonds;
 
 	/*
 	printf("dockpars.num_of_intraE_contributors:%u\n", dockpars.num_of_intraE_contributors);

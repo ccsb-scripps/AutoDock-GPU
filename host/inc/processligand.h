@@ -238,9 +238,16 @@ void change_conform_f(
                             Liganddata* myligand,
                       const Gridinfo*   mygrid,
                       const float       genotype_f [],
-                            float*      cpu_ref_ori_angles,
                             int         debug
                      );
+
+void change_conform(
+                          Liganddata* myligand,
+                    const Gridinfo*   mygrid,
+                    const double      genotype [],
+                    const double      axisangle[4],
+                          int         debug
+                   );
 
 float calc_interE_f(
                     const Gridinfo*   mygrid,
@@ -300,7 +307,7 @@ float calc_intraE_f(
                           float        dcutoff,
                           float        smooth,
                           bool         ignore_desolv,
-                    const float        elec_min_distance, 
+                    const float        elec_min_distance,
                           IntraTables& tables,
                           int          debug,
                           float&       interflexE,
