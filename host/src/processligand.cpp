@@ -1422,7 +1422,7 @@ double calc_rmsd(
 
 	if (myligand_ref->true_ligand_atoms != myligand->true_ligand_atoms)
 	{
-		printf("Warning: RMSD can't be calculated, atom number mismatch!\n");
+		printf("Warning: RMSD can't be calculated, atom number mismatch %d (ref) vs. %d!\n",myligand_ref->true_ligand_atoms,myligand->true_ligand_atoms);
 		return 100000; // returning unreasonable value
 	}
 

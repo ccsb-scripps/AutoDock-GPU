@@ -96,6 +96,7 @@ typedef struct _Dockpars
 	unsigned long          max_num_of_iters                = 300;
 	unsigned long          pop_size                        = 150;
 	char*                  load_xml                        = NULL;
+	bool                   xml2dlg                         = false;
 	int                    gen_pdbs                        = 0;
 	char*                  dpffile                         = NULL;
 	char*                  fldfile                         = NULL;
@@ -181,6 +182,13 @@ int get_commandpars(
                           Dockpars*,
                     const bool late_call = true
                    );
+
+void read_xml_filenames(
+                        char* xml_filename,
+                        char* &grid_filename,
+                        char* &ligand_filename,
+                        char* &flexres_filename
+                       );
 
 std::vector<float> read_xml_genomes(
                                     char* xml_filename,

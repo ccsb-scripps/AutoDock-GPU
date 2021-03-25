@@ -535,6 +535,12 @@ int get_filelist(
 			}
 			filelist.filename = strdup(argv[i+1]);
 		}
+		// Argument: load initial data from xml file and reconstruct dlg, then finish
+		if (strcmp("-xml2dlg", argv [i]) == 0)
+		{
+			mypars->load_xml = strdup(argv[i+1]);
+			mypars->xml2dlg = true;
+		}
 	}
 
 	if (filelist.filename){ // true when -filelist specifies a filename
@@ -660,10 +666,18 @@ int get_filenames_and_ADcoeffs(
 	int i;
 	int ffile_given, lfile_given;
 	long tempint;
-
+	
+	if(mypars->xml2dlg){
+		read_xml_filenames(mypars->load_xml,
+	                           mypars->fldfile,
+	                           mypars->ligandfile,
+	                           mypars->flexresfile);
+	        mypars->pop_size=1;
+	}
+	
 	ffile_given = (mypars->fldfile!=NULL);
 	lfile_given = (mypars->ligandfile!=NULL);
-
+	
 	for (i=1; i<(*argc)-1; i++)
 	{
 		if (!multiple_files){
@@ -752,12 +766,21 @@ int get_commandpars(
 		mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);   // 2 A
 		mypars->xrayligandfile      = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
 		if(!mypars->resname){ // only need to set if it's not set yet
-			if(strlen(mypars->ligandfile)>6){ // .pdbqt = 6 chars
-				i=strlen(mypars->ligandfile)-6;
-				mypars->resname = (char*)malloc((i+1)*sizeof(char));
-				strncpy(mypars->resname,mypars->ligandfile,i);    // Default is ligand file basename
-				mypars->resname[i]='\0';
-			} else mypars->resname = strdup("docking");               // Fallback to old default
+			if(mypars->xml2dlg){
+				if(strlen(mypars->load_xml)>4){ // .xml = 4 chars
+					i=strlen(mypars->load_xml)-4;
+					mypars->resname = (char*)malloc((i+1)*sizeof(char));
+					strncpy(mypars->resname,mypars->load_xml,i);    // Default is ligand file basename
+					mypars->resname[i]='\0';
+				} else mypars->resname = strdup("docking");               // Fallback to old default
+			} else{
+				if(strlen(mypars->ligandfile)>6){ // .pdbqt = 6 chars
+					i=strlen(mypars->ligandfile)-6;
+					mypars->resname = (char*)malloc((i+1)*sizeof(char));
+					strncpy(mypars->resname,mypars->ligandfile,i);    // Default is ligand file basename
+					mypars->resname[i]='\0';
+				} else mypars->resname = strdup("docking");               // Fallback to old default
+			}
 		}
 		// ------------------------------------------
 	}
@@ -1055,6 +1078,12 @@ int get_commandpars(
 		{
 			arg_recognized = 1;
 			mypars->load_xml = strdup(argv[i+1]);
+		}
+
+		// Argument: load initial data from xml file and reconstruct dlg, then finish
+		if (strcmp("-xml2dlg", argv [i]) == 0)
+		{
+			arg_recognized = 1;
 		}
 
 		// Argument: number of pdb files to be generated.
@@ -1369,6 +1398,61 @@ int get_commandpars(
 	}
 	
 	return arg_recognized + (arg_set<<1);
+}
+
+void read_xml_filenames(
+                        char* xml_filename,
+                        char* &grid_filename,
+                        char* &ligand_filename,
+                        char* &flexres_filename
+                       )
+{
+	std::ifstream file(xml_filename);
+	if(file.fail()){
+		printf("\nError: Could not open xml file %s. Check path and permissions.\n", xml_filename);
+		exit(3);
+	}
+	int error=0;
+	bool grid_found=false;
+	bool ligand_found=false;
+	std::string line;
+	char tmpstr[256];
+	size_t line_nr=0;
+	while(std::getline(file, line)) {
+		line_nr++;
+		trim(line); // Remove leading and trailing whitespace
+		if(line.find("<runs>")==0){ // this is where the filename info ends in the xml file -- good time to stop ;-)
+			break;
+		}
+		if(line.find("<grid>")==0){
+			if(!sscanf(line.c_str(),"<grid>%255[^<]/grid>",tmpstr)){
+				error = 1;
+				break;
+			}
+			if(grid_filename==NULL) grid_filename=strdup(tmpstr);
+			grid_found = true;
+		}
+		if(line.find("<ligand>")==0){
+			if(!sscanf(line.c_str(),"<ligand>%255[^<]/ligand>",tmpstr)){
+				error = 2;
+				break;
+			}
+			if(ligand_filename==NULL) ligand_filename=strdup(tmpstr);
+			ligand_found = true;
+		}
+		if(line.find("<flexres>")==0){
+			if(!sscanf(line.c_str(),"<flexres>%255[^<]/flexres>",tmpstr)){
+				error = 3;
+				break;
+			}
+			if(flexres_filename==NULL) flexres_filename=strdup(tmpstr);
+		}
+	}
+	if(!grid_found || !ligand_found) error |= 8;
+	if(error){
+		printf("Error: XML file is not in AutoDock-GPU format (error #%d in line %d).\n",error,line_nr);
+		exit(error);
+	}
 }
 
 std::vector<float> read_xml_genomes(
