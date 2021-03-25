@@ -248,6 +248,7 @@ int main(int argc, char* argv[])
 
 			// Starting Docking or loading results
 			if(mypars.xml2dlg){
+				start_timer(setup_timer);
 				// allocating CPU memory for initial populations
 				mypars.output_xml = false;
 				unsigned int nr_genomes_loaded=0;
@@ -275,6 +276,7 @@ int main(int argc, char* argv[])
 				size_t size_evals_of_runs = mypars.num_of_runs*sizeof(int);
 				sim_state.cpu_evals_of_runs.resize(size_evals_of_runs);
 				memset(sim_state.cpu_evals_of_runs.data(), 0, size_evals_of_runs);
+				total_setup_time+=seconds_since(setup_timer);
 			} else{
 				int error_in_docking;
 				// Critical section to only let one thread access GPU at a time
