@@ -671,7 +671,8 @@ int get_filenames_and_ADcoeffs(
 		read_xml_filenames(mypars->load_xml,
 	                           mypars->fldfile,
 	                           mypars->ligandfile,
-	                           mypars->flexresfile);
+	                           mypars->flexresfile,
+	                           mypars->seed);
 	        mypars->pop_size=1;
 	}
 	
@@ -1404,7 +1405,8 @@ void read_xml_filenames(
                         char* xml_filename,
                         char* &grid_filename,
                         char* &ligand_filename,
-                        char* &flexres_filename
+                        char* &flexres_filename,
+                        uint32_t seed[3]
                        )
 {
 	std::ifstream file(xml_filename);
@@ -1418,6 +1420,7 @@ void read_xml_filenames(
 	std::string line;
 	char tmpstr[256];
 	size_t line_nr=0;
+	seed[0]=0; seed[1]=0; seed[2]=0;
 	while(std::getline(file, line)) {
 		line_nr++;
 		trim(line); // Remove leading and trailing whitespace
@@ -1446,6 +1449,12 @@ void read_xml_filenames(
 				break;
 			}
 			if(flexres_filename==NULL) flexres_filename=strdup(tmpstr);
+		}
+		if(line.find("<seed>")==0){
+			if(!sscanf(line.c_str(),"<seed>%d %d %d</seed>",&seed[0],&seed[1],&seed[2])){
+				error = 4;
+				break;
+			}
 		}
 	}
 	if(!grid_found || !ligand_found) error |= 8;

@@ -207,22 +207,25 @@ void write_basic_info_dlg(
 	if(mypars->seed[2]>0) fprintf(fp,", %u",mypars->seed[2]);
 	fprintf(fp, "\n");
 	fprintf(fp, "Number of runs:                            %lu\n", mypars->num_of_runs);
-	fprintf(fp, "Number of energy evaluations:              %ld\n", mypars->num_of_energy_evals);
-	fprintf(fp, "Number of generations:                     %ld\n", mypars->num_of_generations);
-	fprintf(fp, "Size of population:                        %ld\n", mypars->pop_size);
-	fprintf(fp, "Rate of crossover:                         %lf%%\n", (double) mypars->crossover_rate);
-	fprintf(fp, "Tournament selection probability limit:    %lf%%\n", (double) mypars->tournament_rate);
-	fprintf(fp, "Rate of mutation:                          %lf%%\n", (double) mypars->mutation_rate);
-	fprintf(fp, "Maximal allowed delta movement:            +/- %lfA\n", (double) mypars->abs_max_dmov*mygrid->spacing);
-	fprintf(fp, "Maximal allowed delta angle:               +/- %lf\n\n", (double) mypars->abs_max_dang);
+	
+	if(!mypars->xml2dlg){
+		fprintf(fp, "Number of energy evaluations:              %ld\n", mypars->num_of_energy_evals);
+		fprintf(fp, "Number of generations:                     %ld\n", mypars->num_of_generations);
+		fprintf(fp, "Size of population:                        %ld\n", mypars->pop_size);
+		fprintf(fp, "Rate of crossover:                         %lf%%\n", (double) mypars->crossover_rate);
+		fprintf(fp, "Tournament selection probability limit:    %lf%%\n", (double) mypars->tournament_rate);
+		fprintf(fp, "Rate of mutation:                          %lf%%\n", (double) mypars->mutation_rate);
+		fprintf(fp, "Maximal allowed delta movement:            +/- %lfA\n", (double) mypars->abs_max_dmov*mygrid->spacing);
+		fprintf(fp, "Maximal allowed delta angle:               +/- %lf\n\n", (double) mypars->abs_max_dang);
 
-	fprintf(fp, "Rate of local search:                      %lf%%\n", mypars->lsearch_rate);
+		fprintf(fp, "Rate of local search:                      %lf%%\n", mypars->lsearch_rate);
 
-	fprintf(fp, "Maximal number of local search iterations: %ld\n", mypars->max_num_of_iters);
-	fprintf(fp, "Rho lower bound:                           %lf\n", (double) mypars->rho_lower_bound);
-	fprintf(fp, "Spread of local search delta movement:     %lfA\n", (double) mypars->base_dmov_mul_sqrt3*mygrid->spacing/sqrt(3.0));
-	fprintf(fp, "Spread of local search delta angle:        %lf\n", (double) mypars->base_dang_mul_sqrt3/sqrt(3.0));
-	fprintf(fp, "Limit of consecutive successes/failures:   %ld\n\n", mypars->cons_limit);
+		fprintf(fp, "Maximal number of local search iterations: %ld\n", mypars->max_num_of_iters);
+		fprintf(fp, "Rho lower bound:                           %lf\n", (double) mypars->rho_lower_bound);
+		fprintf(fp, "Spread of local search delta movement:     %lfA\n", (double) mypars->base_dmov_mul_sqrt3*mygrid->spacing/sqrt(3.0));
+		fprintf(fp, "Spread of local search delta angle:        %lf\n", (double) mypars->base_dang_mul_sqrt3/sqrt(3.0));
+		fprintf(fp, "Limit of consecutive successes/failures:   %ld\n\n", mypars->cons_limit);
+	}
 
 		fprintf(fp, "Handle symmetry during clustering:         ");
 	if (mypars->handle_symmetry)
@@ -276,14 +279,16 @@ void write_basic_info_dlg(
 	fprintf(fp, "Number of atom types:                      %d\n", ligand_ref->num_of_atypes);
 	fprintf(fp, "\n\n");
 
-	fprintf(fp, "    DUMMY DATA (only for ADT-compatibility)\n");
-	fprintf(fp, "    ________________________\n\n\n");
-	fprintf(fp, "DPF> outlev 1\n");
-	fprintf(fp, "DPF> ga_run %lu\n", mypars->num_of_runs);
-	fprintf(fp, "DPF> fld %s.maps.fld\n", mygrid->receptor_name);
-	fprintf(fp, "DPF> move %s\n", mypars->ligandfile);
-	if(flexres) fprintf(fp, "DPF> flexres %s\n", mypars->flexresfile);
-	fprintf(fp, "\n\n");
+	if(!mypars->xml2dlg){
+		fprintf(fp, "    DUMMY DATA (only for ADT-compatibility)\n");
+		fprintf(fp, "    ________________________\n\n\n");
+		fprintf(fp, "DPF> outlev 1\n");
+		fprintf(fp, "DPF> ga_run %lu\n", mypars->num_of_runs);
+		fprintf(fp, "DPF> fld %s.maps.fld\n", mygrid->receptor_name);
+		fprintf(fp, "DPF> move %s\n", mypars->ligandfile);
+		if(flexres) fprintf(fp, "DPF> flexres %s\n", mypars->flexresfile);
+		fprintf(fp, "\n\n");
+	}
 }
 
 void make_resfiles(
@@ -647,11 +652,13 @@ void clusanal_gendlg(
 
 	write_basic_info_dlg(fp, ligand_ref, mypars, mygrid, argc, argv);
 
-	fprintf(fp, "           COUNTER STATES           \n");
-	fprintf(fp, "___________________________________\n\n");
-	fprintf(fp, "Number of energy evaluations performed:    %lu\n", evals_performed);
-	fprintf(fp, "Number of generations used:                %lu\n", generations_used);
-	fprintf(fp, "\n\n");
+	if(!mypars->xml2dlg){
+		fprintf(fp, "           COUNTER STATES           \n");
+		fprintf(fp, "___________________________________\n\n");
+		fprintf(fp, "Number of energy evaluations performed:    %lu\n", evals_performed);
+		fprintf(fp, "Number of generations used:                %lu\n", generations_used);
+		fprintf(fp, "\n\n");
+	}
 
 	// writing input pdbqt file
 

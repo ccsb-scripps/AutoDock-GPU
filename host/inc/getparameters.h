@@ -187,7 +187,8 @@ void read_xml_filenames(
                         char* xml_filename,
                         char* &grid_filename,
                         char* &ligand_filename,
-                        char* &flexres_filename
+                        char* &flexres_filename,
+                        uint32_t seed[3]
                        );
 
 std::vector<float> read_xml_genomes(
