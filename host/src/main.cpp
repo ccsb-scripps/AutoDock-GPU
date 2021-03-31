@@ -181,7 +181,7 @@ int main(int argc, char* argv[])
 		SimulationState sim_state;
 		int dev_nr = 0;
 #ifndef _WIN32
-	        timeval setup_timer, exec_timer, processing_timer;
+		timeval setup_timer, exec_timer, processing_timer;
 #else
 		double setup_timer, exec_timer, processing_timer;
 #endif
@@ -245,7 +245,7 @@ int main(int argc, char* argv[])
 					}
 				}
 			}
-
+			
 			// Starting Docking or loading results
 			if(mypars.xml2dlg){
 				start_timer(setup_timer);

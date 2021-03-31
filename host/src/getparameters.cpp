@@ -155,6 +155,12 @@ int preparse_dpf(
 			}
 			mypars->dpffile = strdup(argv[i+1]);
 		}
+		// Argument: load initial data from xml file and reconstruct dlg, then finish
+		if (strcmp("-xml2dlg", argv [i]) == 0)
+		{
+			mypars->load_xml = strdup(argv[i+1]);
+			mypars->xml2dlg = true;
+		}
 	}
 	if (mypars->dpffile){
 		std::ifstream file(mypars->dpffile);
@@ -534,12 +540,6 @@ int get_filelist(
 				}
 			}
 			filelist.filename = strdup(argv[i+1]);
-		}
-		// Argument: load initial data from xml file and reconstruct dlg, then finish
-		if (strcmp("-xml2dlg", argv [i]) == 0)
-		{
-			mypars->load_xml = strdup(argv[i+1]);
-			mypars->xml2dlg = true;
 		}
 	}
 
