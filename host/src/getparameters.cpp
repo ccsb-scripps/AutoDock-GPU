@@ -766,15 +766,15 @@ int get_commandpars(
 		mypars->abs_max_dmov        = 6.0/(*spacing);             // +/-6A
 		mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);   // 2 A
 		mypars->xrayligandfile      = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
-		if(!mypars->resname){ // only need to set if it's not set yet
-			if(mypars->xml2dlg){
-				if(strlen(mypars->load_xml)>4){ // .xml = 4 chars
-					i=strlen(mypars->load_xml)-4;
-					mypars->resname = (char*)malloc((i+1)*sizeof(char));
-					strncpy(mypars->resname,mypars->load_xml,i);    // Default is ligand file basename
-					mypars->resname[i]='\0';
-				} else mypars->resname = strdup("docking");               // Fallback to old default
-			} else{
+		if(mypars->xml2dlg){
+			if(strlen(mypars->load_xml)>4){ // .xml = 4 chars
+				i=strlen(mypars->load_xml)-4;
+				mypars->resname = (char*)malloc((i+1)*sizeof(char));
+				strncpy(mypars->resname,mypars->load_xml,i);    // Default is ligand file basename
+				mypars->resname[i]='\0';
+			} else if(!mypars->resname) mypars->resname = strdup("docking"); // Fallback to old default
+		} else{
+			if(!mypars->resname){ // only need to set if it's not set yet
 				if(strlen(mypars->ligandfile)>6){ // .pdbqt = 6 chars
 					i=strlen(mypars->ligandfile)-6;
 					mypars->resname = (char*)malloc((i+1)*sizeof(char));
