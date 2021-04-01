@@ -70,7 +70,8 @@ enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.da
 
 #define MAX_NUM_OF_ATOMS           256
 #define MAX_NUM_OF_ATYPES          32
-#define MAX_NUM_OF_ROTBONDS        58
+// 57+6 (+1 for eventual angle in axisangle representation) = 63 or 64
+#define MAX_NUM_OF_ROTBONDS        57
 #define MAX_INTRAE_CONTRIBUTORS    (MAX_NUM_OF_ATOMS * MAX_NUM_OF_ATOMS)
 #define MAX_NUM_OF_ROTATIONS       (MAX_NUM_OF_ATOMS * MAX_NUM_OF_ROTBONDS)
 #define MAX_POPSIZE                2048

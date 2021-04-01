@@ -357,8 +357,20 @@ void make_resfiles(
 	for (i=0; i<pop_size; i++)
 	{
 		temp_docked = *ligand_ref;
-
-		change_conform_f(&temp_docked, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, debug);
+		
+		if(mypars->xml2dlg){
+			double axisangle[4];
+			double genotype [ACTUAL_GENOTYPE_LENGTH];
+			for (unsigned int j=0; j<ACTUAL_GENOTYPE_LENGTH; j++)
+				genotype [j] = (final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM)[j];
+			axisangle[0] = genotype[3];
+			axisangle[1] = genotype[4];
+			axisangle[2] = genotype[5];
+			axisangle[3] = (final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM)[GENOTYPE_LENGTH_IN_GLOBMEM-1];
+			change_conform(&temp_docked, mygrid, genotype, axisangle, debug);
+		} else{
+			change_conform_f(&temp_docked, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, debug);
+		}
 		
 		// the map interaction of flex res atoms is stored in accurate_intraflexE[i]
 		accurate_interE[i] = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE[i]);	//calculating the intermolecular energy

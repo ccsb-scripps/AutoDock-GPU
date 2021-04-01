@@ -1467,7 +1467,8 @@ void read_xml_filenames(
 std::vector<float> read_xml_genomes(
                                     char* xml_filename,
                                     float grid_spacing,
-                                    unsigned int &nrot
+                                    unsigned int &nrot,
+                                    bool store_axisangle
                                    )
 {
 	std::vector<float> result;
@@ -1557,11 +1558,13 @@ std::vector<float> read_xml_genomes(
 					error=9;
 					break;
 				}
-				theta=acos(*(gene+2)/sqrt((*gene)*(*gene)+(*(gene+1))*(*(gene+1))+(*(gene+2))*(*(gene+2))));
-				phi=atan2(*(gene+1),*gene);
-				*gene = phi / DEG_TO_RAD;
-				*(gene+1) = theta / DEG_TO_RAD;
-				*(gene+2) = genrot;
+				if(!store_axisangle){
+					theta=acos(*(gene+2)/sqrt((*gene)*(*gene)+(*(gene+1))*(*(gene+1))+(*(gene+2))*(*(gene+2))));
+					phi=atan2(*(gene+1),*gene);
+					*gene = phi / DEG_TO_RAD;
+					*(gene+1) = theta / DEG_TO_RAD;
+					*(gene+2) = genrot;
+				} else result[run_nr*GENOTYPE_LENGTH_IN_GLOBMEM-1] = genrot;
 				found_genome++;
 			} else{
 				error=10;

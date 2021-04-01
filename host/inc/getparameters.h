@@ -194,7 +194,8 @@ void read_xml_filenames(
 std::vector<float> read_xml_genomes(
                                     char* xml_filename,
                                     float grid_spacing,
-                                    unsigned int &nrot
+                                    unsigned int &nrot,
+                                    bool store_axisangle=false
                                    );
 
 void gen_initpop_and_reflig(

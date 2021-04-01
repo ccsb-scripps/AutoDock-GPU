@@ -253,7 +253,7 @@ int main(int argc, char* argv[])
 				mypars.output_xml = false;
 				unsigned int nr_genomes_loaded=0;
 				unsigned int nrot;
-				sim_state.cpu_populations = read_xml_genomes(mypars.load_xml, mygrid.spacing, nrot);
+				sim_state.cpu_populations = read_xml_genomes(mypars.load_xml, mygrid.spacing, nrot, true);
 				if(nrot!=myligand_init.num_of_rotbonds){
 					printf("Error: XML genome contains %d rotatable bonds but current ligand has %d.\n",nrot,myligand_init.num_of_rotbonds);
 					exit(2);
