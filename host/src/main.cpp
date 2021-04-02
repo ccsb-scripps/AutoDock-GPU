@@ -104,7 +104,6 @@ int main(int argc, char* argv[])
 	// Setup master map set (one for now, nthreads-1 for general case)
 	std::vector<Map> all_maps;
 
-	bool xml2dlg = false;
 	int devnum=-1;
 	int nr_devices=initial_pars.devices_requested;
 	// Get device number to run on
@@ -217,8 +216,10 @@ int main(int argc, char* argv[])
 				// Keep in setup stage rather than moving to launch stage so a different job will be set up
 				printf("\n\nError in setup of Job #%d:\n", i_job+1);
 				if (filelist.used){
-					printf("(   Field file: %s )\n",  filelist.fld_files[i_job].c_str());
-					printf("(   Ligand file: %s )\n", filelist.ligand_files[i_job].c_str()); fflush(stdout);
+					printf("(   Grid map file: %s )\n",  mypars.fldfile);
+					printf("(   Ligand file: %s )\n", mypars.ligandfile); fflush(stdout);
+					if(mypars.flexresfile)
+						printf("(   Flexible residue: %s )\n", mypars.flexresfile); fflush(stdout);
 				}
 				err[i_job] = 1;
 				continue;

@@ -142,8 +142,16 @@ int preparse_dpf(
 // run is stored separately to allow logical parsing with the correct parameters initialized per run
 {
 	bool output_multiple_warning = true;
+	std::vector<std::string> xml_files;
+	bool read_more_xml_files = false;
 	for (int i=1; i<(*argc)-1; i++)
 	{
+		// wildcards for -xml2dlg are allowed (or multiple file names)
+		// - if more than one xml file is specified this way, they will end up in xml_files
+		// the test below is to stop reading arguments as filenames when another argument starts with "-"
+		if (read_more_xml_files && (argv[i][0]=='-')){
+			read_more_xml_files = false;
+		} else if (read_more_xml_files) xml_files.push_back(argv[i]); // copy argument into xml_files when read_more_xml_files is true
 		// Argument: dpf file name.
 		if (strcmp("-import_dpf", argv[i]) == 0){
 			if(mypars->dpffile){
@@ -159,6 +167,7 @@ int preparse_dpf(
 		if (strcmp("-xml2dlg", argv [i]) == 0)
 		{
 			mypars->load_xml = strdup(argv[i+1]);
+			read_more_xml_files = true;
 			mypars->xml2dlg = true;
 		}
 	}
@@ -321,58 +330,60 @@ int preparse_dpf(
 						}
 						break;
 				case DPF_RUNS: // set number of runs
-				case DPF_GALS: // actually run a search
-						sscanf(line.c_str(),"%*s %d",&tempint);
-						if ((tempint >= 1) && (tempint <= MAX_NUM_OF_RUNS))
-							mypars->num_of_runs = (int) tempint;
-						else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and %d.\n",tempstr,mypars->dpffile,line_count,MAX_NUM_OF_RUNS);
-						if(token_id!=DPF_RUNS){
-							// Add the fld file to use
-							if (!mypars->fldfile){
-								printf("\nError: No map file on record yet. Please specify a map file before the first ligand.\n");
-								return 1;
+				case DPF_GALS: // actually run a search (only if xml2dlg isn't specified)
+						if(!mypars->xml2dlg){
+							sscanf(line.c_str(),"%*s %d",&tempint);
+							if ((tempint >= 1) && (tempint <= MAX_NUM_OF_RUNS))
+								mypars->num_of_runs = (int) tempint;
+							else
+								printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and %d.\n",tempstr,mypars->dpffile,line_count,MAX_NUM_OF_RUNS);
+							if(token_id!=DPF_RUNS){
+								// Add the fld file to use
+								if (!mypars->fldfile){
+									printf("\nError: No map file on record yet. Please specify a map file before the first ligand.\n");
+									return 1;
+								}
+								filelist.fld_files.push_back(mypars->fldfile);
+								// If more than one unique protein, cant do map preloading yet
+								if (filelist.fld_files.size()>1){
+									filelist.preload_maps=false;
+								}
+								// Add the ligand to filelist
+								filelist.ligand_files.push_back(mypars->ligandfile);
+								// Default resname is filelist basename
+								if(mypars->resname) free(mypars->resname);
+								len=strlen(mypars->ligandfile)-6; // .pdbqt = 6 chars
+								if(len>0){
+									mypars->resname = (char*)malloc((len+1)*sizeof(char));
+									strncpy(mypars->resname,mypars->ligandfile,len); // Default is ligand file basename
+									mypars->resname[len]='\0';
+								} else mypars->resname = strdup("docking"); // Fallback to old default
+								filelist.resnames.push_back(mypars->resname);
+								if(new_device) mypars->devices_requested++;
+								// Before pushing parameters and grids back make sure
+								// the filename pointers are unique
+								if(filelist.mypars.size()>0){ // mypars and mygrids have same size
+									if((filelist.mypars.back().flexresfile) &&
+									   (filelist.mypars.back().flexresfile==mypars->flexresfile))
+										mypars->flexresfile=strdup(mypars->flexresfile);
+									if((filelist.mypars.back().xrayligandfile) &&
+									   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
+										mypars->xrayligandfile=strdup(mypars->xrayligandfile);
+									if((filelist.mygrids.back().grid_file_path) &&
+									   (filelist.mygrids.back().grid_file_path==mygrid->grid_file_path))
+										mygrid->grid_file_path=strdup(mygrid->grid_file_path);
+									if((filelist.mygrids.back().receptor_name) &&
+									   (filelist.mygrids.back().receptor_name==mygrid->receptor_name))
+										mygrid->receptor_name=strdup(mygrid->receptor_name);
+									if((filelist.mygrids.back().map_base_name) &&
+									   (filelist.mygrids.back().map_base_name==mygrid->map_base_name))
+										mygrid->map_base_name=strdup(mygrid->map_base_name);
+								}
+								// Add the parameter block now that resname is set
+								filelist.mypars.push_back(*mypars);
+								// Also add the grid
+								filelist.mygrids.push_back(*mygrid);
 							}
-							filelist.fld_files.push_back(mypars->fldfile);
-							// If more than one unique protein, cant do map preloading yet
-							if (filelist.fld_files.size()>1){
-								filelist.preload_maps=false;
-							}
-							// Add the ligand to filelist
-							filelist.ligand_files.push_back(mypars->ligandfile);
-							// Default resname is filelist basename
-							if(mypars->resname) free(mypars->resname);
-							len=strlen(mypars->ligandfile)-6; // .pdbqt = 6 chars
-							if(len>0){
-								mypars->resname = (char*)malloc((len+1)*sizeof(char));
-								strncpy(mypars->resname,mypars->ligandfile,len); // Default is ligand file basename
-								mypars->resname[len]='\0';
-							} else mypars->resname = strdup("docking"); // Fallback to old default
-							filelist.resnames.push_back(mypars->resname);
-							if(new_device) mypars->devices_requested++;
-							// Before pushing parameters and grids back make sure
-							// the filename pointers are unique
-							if(filelist.mypars.size()>0){ // mypars and mygrids have same size
-								if((filelist.mypars.back().flexresfile) &&
-								   (filelist.mypars.back().flexresfile==mypars->flexresfile))
-									mypars->flexresfile=strdup(mypars->flexresfile);
-								if((filelist.mypars.back().xrayligandfile) &&
-								   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
-									mypars->xrayligandfile=strdup(mypars->xrayligandfile);
-								if((filelist.mygrids.back().grid_file_path) &&
-								   (filelist.mygrids.back().grid_file_path==mygrid->grid_file_path))
-									mygrid->grid_file_path=strdup(mygrid->grid_file_path);
-								if((filelist.mygrids.back().receptor_name) &&
-								   (filelist.mygrids.back().receptor_name==mygrid->receptor_name))
-									mygrid->receptor_name=strdup(mygrid->receptor_name);
-								if((filelist.mygrids.back().map_base_name) &&
-								   (filelist.mygrids.back().map_base_name==mygrid->map_base_name))
-									mygrid->map_base_name=strdup(mygrid->map_base_name);
-							}
-							// Add the parameter block now that resname is set
-							filelist.mypars.push_back(*mypars);
-							// Also add the grid
-							filelist.mygrids.push_back(*mygrid);
 						}
 						break;
 				case DPF_INTELEC: // calculate ES energy (needs not be "off")
@@ -510,7 +521,44 @@ int preparse_dpf(
 			}
 		}
 	}
-	filelist.nfiles = filelist.ligand_files.size();
+	if(xml_files.size()>1){ // use filelist parameter list in case multiple xml files are converted
+		for(unsigned i=0; i<xml_files.size(); i++){
+			// load_xml is the xml file from which the other parameters will be set
+			mypars->load_xml = strdup(xml_files[i].c_str());
+			// make sure to NOT free the previous ones as otherwise the strings of other mypars will be gone too ...
+			char* prev_fld_file=mypars->fldfile;
+			mypars->fldfile=NULL;
+			mypars->ligandfile=NULL;
+			mypars->flexresfile=NULL;
+			read_xml_filenames(mypars->load_xml,
+			                   mypars->fldfile,
+			                   mypars->ligandfile,
+			                   mypars->flexresfile,
+			                   mypars->seed);
+			mypars->pop_size=1;
+			// Filling mygrid according to the specified fld file
+			mygrid->info_read = false;
+			if (get_gridinfo(mypars->fldfile, mygrid) != 0)
+			{
+				printf("\nError: get_gridinfo failed with fld file specified in %s.\n",mypars->fldfile,mypars->load_xml);
+				return 1;
+			}
+			if(strcmp(prev_fld_file,mypars->fldfile) != 0)
+				filelist.fld_files.push_back(mypars->fldfile);
+
+			// If more than one unique protein, cant do map preloading yet
+			if (filelist.fld_files.size()>1){
+				filelist.preload_maps=false;
+			}
+			// Add the ligand filename from in the xml to the filelist
+			filelist.ligand_files.push_back(mypars->ligandfile);
+			filelist.mypars.push_back(*mypars);
+			filelist.mygrids.push_back(*mygrid);
+		}
+		filelist.nfiles = xml_files.size();
+	} else{
+		filelist.nfiles = filelist.ligand_files.size();
+	}
 	if(filelist.nfiles>0) filelist.used = true;
 	return 0;
 }
@@ -525,6 +573,10 @@ int get_filelist(
 // The function checks if a filelist has been provided according to the proper command line arguments.
 // If it is, it loads the .fld, .pdbqt, and resname files into vectors
 {
+	if(mypars->xml2dlg){ // no file list for -xml2dlg (wildcards are allowed in argument)
+		filelist.preload_maps&=filelist.used;
+		return 0;
+	}
 	bool output_multiple_warning = true;
 	for (int i=1; i<(*argc)-1; i++)
 	{
@@ -667,13 +719,13 @@ int get_filenames_and_ADcoeffs(
 	int ffile_given, lfile_given;
 	long tempint;
 	
-	if(mypars->xml2dlg){
+	if(mypars->xml2dlg && !multiple_files){
 		read_xml_filenames(mypars->load_xml,
-	                           mypars->fldfile,
-	                           mypars->ligandfile,
-	                           mypars->flexresfile,
-	                           mypars->seed);
-	        mypars->pop_size=1;
+		                   mypars->fldfile,
+		                   mypars->ligandfile,
+		                   mypars->flexresfile,
+		                   mypars->seed);
+		mypars->pop_size=1;
 	}
 	
 	ffile_given = (mypars->fldfile!=NULL);
@@ -760,6 +812,7 @@ int get_commandpars(
 	float tempfloat;
 	int   arg_recognized = 0;
 	int   arg_set = 1;
+	bool  skip_xml_files = false;
 	if(late_call){
 		// ------------------------------------------
 		// default values
@@ -790,6 +843,13 @@ int get_commandpars(
 	for (i=1; i<(*argc)-1; i+=2)
 	{
 		arg_recognized = 0;
+
+		// wildcards for -xml2dlg are allowed (or multiple file names)
+		// - if more than one xml file is specified this way, they will end up in xml_files
+		// the test below is to stop reading arguments as filenames when another argument starts with "-"
+		if (skip_xml_files && (argv[i][0]=='-')){
+			skip_xml_files = false;
+		} else arg_recognized = 1;
 
 		// Argument: number of energy evaluations. Must be a positive integer.
 		if (strcmp("-nev", argv[i]) == 0)
@@ -1085,6 +1145,7 @@ int get_commandpars(
 		if (strcmp("-xml2dlg", argv [i]) == 0)
 		{
 			arg_recognized = 1;
+			skip_xml_files = true;
 		}
 
 		// Argument: number of pdb files to be generated.

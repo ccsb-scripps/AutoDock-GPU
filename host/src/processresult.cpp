@@ -235,10 +235,12 @@ void write_basic_info_dlg(
 
 	fprintf(fp, "RMSD tolerance:                            %lfA\n\n", mypars->rmsd_tolerance);
 
-	fprintf(fp, "Program call in command line was:          ");
-	for (i=0; i<*argc; i++)
-		fprintf(fp, "%s ", argv [i]);
-	fprintf(fp, "\n\n\n");
+	if(!mypars->xml2dlg){ // This is necessary to avoid excruciatingly long command line outputs with wild cards (like *.xml)
+		fprintf(fp, "Program call in command line was:          ");
+		for (i=0; i<*argc; i++)
+			fprintf(fp, "%s ", argv [i]);
+		fprintf(fp, "\n\n\n");
+	}
 
 	// Writing out receptor parameters
 
