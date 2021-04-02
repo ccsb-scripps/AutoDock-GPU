@@ -287,8 +287,10 @@ int main(int argc, char* argv[])
 				{
 					printf("\nRunning Job #%d:\n", i_job+1);
 					if (filelist.used){
-						printf("   Fields from: %s\n",  filelist.fld_files[i_job].c_str());
-						printf("   Ligands from: %s\n", filelist.ligand_files[i_job].c_str()); fflush(stdout);
+						printf("   Grid map file: %s\n",  mypars.fldfile);
+						printf("   Ligand file: %s\n", mypars.ligandfile); fflush(stdout);
+						if(mypars.flexresfile)
+							printf("   Flexible residue: %s\n", mypars.flexresfile); fflush(stdout);
 					}
 					// End idling timer, start exec timer
 					sim_state.idle_time = seconds_since(idle_timer);
@@ -358,11 +360,10 @@ int main(int argc, char* argv[])
 	// Total time measurement
 	printf("\nRun time of entire job set (%d file%s): %.3f sec", n_files, n_files>1?"s":"", seconds_since(time_start));
 #ifdef USE_PIPELINE
-	printf("\n%.3f %.3f %.3f\n",total_setup_time,total_processing_time,total_exec_time);
 	printf("\nSavings from multithreading: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
 	//if (filelist.preload_maps) printf("\nSavings from receptor reuse: %.3f sec * avg_maps_used/n_maps",receptor_reuse_time*n_files);
 	printf("\nIdle time of execution thread: %.3f sec",seconds_since(time_start) - total_exec_time);
-	if (get_profiles && filelist.used) profiler.write_profiles_to_file(filelist.filename);
+	if (get_profiles && filelist.used && !initial_pars.xml2dlg) profiler.write_profiles_to_file(filelist.filename);
 #else
 	printf("\nProcessing time: %.3f sec",total_processing_time);
 #endif
