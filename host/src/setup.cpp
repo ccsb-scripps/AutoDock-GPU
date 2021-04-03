@@ -72,6 +72,9 @@ int setup(
 	//------------------------------------------------------------
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
+		if (strcmp("-xml2dlg", argv[i]) == 0)
+			i+=mypars.xml_files-1; // skip ahead in case there are multiple entries here
+
 		// ----------------------------------
 		// Argument: Use individual maps for CG-G0 instead of the same one
 		if (strcmp("-cgmaps", argv [i]) == 0)

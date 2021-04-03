@@ -169,6 +169,7 @@ int preparse_dpf(
 			mypars->load_xml = strdup(argv[i+1]);
 			read_more_xml_files = true;
 			mypars->xml2dlg = true;
+			mypars->xml_files = 1;
 		}
 	}
 	if (mypars->dpffile){
@@ -522,6 +523,7 @@ int preparse_dpf(
 		}
 	}
 	if(xml_files.size()>1){ // use filelist parameter list in case multiple xml files are converted
+		mypars->xml_files = xml_files.size();
 		for(unsigned i=0; i<xml_files.size(); i++){
 			// load_xml is the xml file from which the other parameters will be set
 			mypars->load_xml = strdup(xml_files[i].c_str());
@@ -812,7 +814,6 @@ int get_commandpars(
 	float tempfloat;
 	int   arg_recognized = 0;
 	int   arg_set = 1;
-	bool  skip_xml_files = false;
 	if(late_call){
 		// ------------------------------------------
 		// default values
@@ -843,13 +844,6 @@ int get_commandpars(
 	for (i=1; i<(*argc)-1; i+=2)
 	{
 		arg_recognized = 0;
-
-		// wildcards for -xml2dlg are allowed (or multiple file names)
-		// - if more than one xml file is specified this way, they will end up in xml_files
-		// the test below is to stop reading arguments as filenames when another argument starts with "-"
-		if (skip_xml_files && (argv[i][0]=='-')){
-			skip_xml_files = false;
-		} else arg_recognized = 1;
 
 		// Argument: number of energy evaluations. Must be a positive integer.
 		if (strcmp("-nev", argv[i]) == 0)
@@ -1145,7 +1139,19 @@ int get_commandpars(
 		if (strcmp("-xml2dlg", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			skip_xml_files = true;
+			i += mypars->xml_files-1; // skip ahead
+		}
+
+		// Argument: print dlg output to stdout instead of to a file
+		if (strcmp("-dlg2stdout", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv [i+1], "%d", &tempint);
+
+			if (tempint == 0)
+				mypars->dlg2stdout = false;
+			else
+				mypars->dlg2stdout = true;
 		}
 
 		// Argument: number of pdb files to be generated.

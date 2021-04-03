@@ -70,6 +70,9 @@ inline void start_timer(T& time_start)
 
 int main(int argc, char* argv[])
 {
+	// Print version info
+	printf("AutoDock-GPU version: %s\n", VERSION);
+
 	// Timer initializations
 #ifndef _WIN32
 	timeval time_start, idle_timer;
@@ -109,6 +112,8 @@ int main(int argc, char* argv[])
 	// Get device number to run on
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
+		if (strcmp("-xml2dlg", argv[i]) == 0)
+			i+=initial_pars.xml_files-1; // skip ahead in case there are multiple entries here
 		if (strcmp("-devnum", argv [i]) == 0)
 		{
 			unsigned int tempint;
@@ -147,9 +152,6 @@ int main(int argc, char* argv[])
 
 	// Error flag for each ligand
 	std::vector<int> err(n_files,0);
-
-	// Print version info
-	printf("AutoDock-GPU version: %s\n", VERSION);
 
 	if(!initial_pars.xml2dlg){
 		if(nr_devices==1){
@@ -325,6 +327,12 @@ int main(int argc, char* argv[])
 
 			// Post-processing
 			printf ("\n(Thread %d is processing Job #%d)\n",t_id,i_job+1); fflush(stdout);
+#ifdef USE_PIPELINE
+			if(mypars.dlg2stdout && (n_files>1)){
+				printf("\n(Thread %d, Job #%d: Parallel pipeline does not currently support dlg output to stdout, redirecting to file)\n",t_id,i_job+1); fflush(stdout);
+				mypars.dlg2stdout = false;
+			}
+#endif
 			start_timer(processing_timer);
 			process_result(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), &argc,argv, sim_state);
 #ifdef USE_PIPELINE

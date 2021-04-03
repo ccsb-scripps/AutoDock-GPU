@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
+#include <stdio.h>
 #include "processresult.h"
 
 
@@ -653,14 +654,17 @@ void clusanal_gendlg(
 	// first of all, let's calculate the constant torsional free energy term
 	torsional_energy = AD4_coeff_tors * ligand_ref->true_ligand_rotbonds;
 
-	// GENERATING DLG FILE
-
 	int len = strlen(mypars->resname) + 4 + 1;
-	char* report_file_name = (char*)malloc(len*sizeof(char));
-	
-	strcpy(report_file_name, mypars->resname);
-	strcat(report_file_name, ".dlg");
-	fp = fopen(report_file_name, "w");
+	// GENERATING DLG FILE
+	if(mypars->dlg2stdout){
+		fp = stdout;
+	} else{
+		char* report_file_name = (char*)malloc(len*sizeof(char));
+		strcpy(report_file_name, mypars->resname);
+		strcat(report_file_name, ".dlg");
+		fp = fopen(report_file_name, "w");
+		free(report_file_name);
+	}
 
 	// writing basic info
 
@@ -674,13 +678,31 @@ void clusanal_gendlg(
 		fprintf(fp, "\n\n");
 	}
 
+	std::string pdbqt_template;
+	std::vector<unsigned int> atom_data;
+	char lineout [256];
 	// writing input pdbqt file
-
 	fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
 	fp_orig = fopen(mypars->ligandfile, "rb"); // fp_orig = fopen(mypars->ligandfile, "r");
 	while (fgets(tempstr, 255, fp_orig) != NULL) // reading original ligand pdb line by line
 	{
 		fprintf(fp, "INPUT-LIGAND-PDBQT: %s", tempstr);
+		if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
+		{
+			tempstr[30] = '\0';
+			sprintf(lineout, "DOCKED: %s", tempstr, atom_cnt);
+			pdbqt_template += lineout;
+			atom_data.push_back(pdbqt_template.length());
+		} else{
+			if (strncmp("ROOT", tempstr, 4) == 0)
+			{
+				root_atom = atom_cnt;
+				pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
+				pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
+			}
+			sprintf(lineout, "DOCKED: %s", tempstr);
+			pdbqt_template += lineout;
+		}
 	}
 	fprintf(fp, "\n\n");
 	fclose(fp_orig);
@@ -693,6 +715,21 @@ void clusanal_gendlg(
 			while (fgets(tempstr, 255, fp_orig) != NULL) // reading original flexres pdb line by line
 			{
 				fprintf(fp, "INPUT-FLEXRES-PDBQT: %s", tempstr);
+				if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
+				{
+					tempstr[30] = '\0';
+					sprintf(lineout, "DOCKED: %s", tempstr, atom_cnt);
+					pdbqt_template += lineout;
+					atom_data.push_back(pdbqt_template.length());
+				} else{
+					if (strncmp("ROOT", tempstr, 4) == 0)
+					{
+						pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
+						pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
+					}
+					sprintf(lineout, "DOCKED: %s", tempstr);
+					pdbqt_template += lineout;
+				}
 			}
 			fprintf(fp, "\n\n");
 			fclose(fp_orig);
@@ -700,6 +737,7 @@ void clusanal_gendlg(
 	}
 
 	// writing docked conformations
+	std::string curr_model;
 	for (i=0; i<num_of_runs; i++)
 	{
 		fprintf(fp, "    FINAL DOCKED STATE:\n    ________________________\n\n\n");
@@ -757,43 +795,21 @@ void clusanal_gendlg(
 			if ( strlen(mypars->flexresfile)>0 )
 				lnr++;
 		}
-
-		atom_cnt = 0;
-		for (unsigned int l=0; l<lnr; l++)
+		
+		curr_model = pdbqt_template;
+		for(atom_cnt = atom_data.size(); atom_cnt-->0;)
 		{
-			if(l==0)
-				fp_orig = fopen(mypars->ligandfile, "rb");
-			else
-				fp_orig = fopen(mypars->flexresfile, "rb");
-			while (fgets(tempstr, 255, fp_orig) != NULL) // reading original ligand pdb line by line
-			{
-				if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
-				{
-					tempstr[30] = '\0';
-					fprintf(fp, "DOCKED: %s", tempstr);
-					fprintf(fp, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][1]); // x
-					fprintf(fp, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][2]); // y
-					fprintf(fp, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][3]); // z
-					fprintf(fp, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw
-					fprintf(fp, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec
-					fprintf(fp, "    %+6.3lf ", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][4]); // q
-					fprintf(fp, "%-2s\n", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]); // type
-					atom_cnt++;
-				}
-				else
-					if (strncmp("ROOT", tempstr, 4) == 0)
-					{
-						if(l==0) // only use ligand root
-							root_atom = atom_cnt;
-						fprintf(fp, "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n");
-						fprintf(fp, "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n");
-						fprintf(fp, "DOCKED: %s", tempstr);
-					}
-					else
-						fprintf(fp, "DOCKED: %s", tempstr);
-			}
-			fclose(fp_orig);
+			char* line = lineout;
+			line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][1]); // x
+			line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][2]); // y
+			line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][3]); // z
+			line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw
+			line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec
+			line += sprintf(line, "    %+6.3lf ", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][4]); // q
+			line += sprintf(line, "%-2s\n\0", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]); // type
+			curr_model.insert(atom_data[atom_cnt],lineout);
 		}
+		fprintf(fp, "%s", curr_model.c_str());
 		fprintf(fp, "DOCKED: TER\n");
 		fprintf(fp, "DOCKED: ENDMDL\n");
 		fprintf(fp, "________________________________________________________________________________\n\n\n");
@@ -850,7 +866,6 @@ void clusanal_gendlg(
 			(myresults [i]).clus_id = num_of_clusters; // new cluster id
 			(myresults [i]).rmsd_from_cluscent = 0;
 		}
-
 	}
 
 	for (i=1; i<=num_of_clusters; i++) // printing cluster info to file
@@ -914,11 +929,11 @@ void clusanal_gendlg(
 	fprintf(fp, "    RMSD TABLE\n");
 	fprintf(fp, "    __________\n\n\n");
 
-    fprintf(fp, "_____________________________________________________________________\n");
-    fprintf(fp, "     |      |      |           |         |                 |\n");
-    fprintf(fp, "Rank | Sub- | Run  | Binding   | Cluster | Reference       | Grep\n");
-    fprintf(fp, "     | Rank |      | Energy    | RMSD    | RMSD            | Pattern\n");
-    fprintf(fp, "_____|______|______|___________|_________|_________________|___________\n" );
+	fprintf(fp, "_____________________________________________________________________\n");
+	fprintf(fp, "     |      |      |           |         |                 |\n");
+	fprintf(fp, "Rank | Sub- | Run  | Binding   | Cluster | Reference       | Grep\n");
+	fprintf(fp, "     | Rank |      | Energy    | RMSD    | RMSD            | Pattern\n");
+	fprintf(fp, "_____|______|______|___________|_________|_________________|___________\n" );
 
 	for (i=0; i<num_of_clusters; i++) // printing cluster info to file
 	{
@@ -947,8 +962,9 @@ void clusanal_gendlg(
 	fprintf(fp, "\nRun time %.3f sec", exec_time);
 	fprintf(fp, "\nIdle time %.3f sec\n", idle_time);
 
-	fclose(fp);
-	free(report_file_name);
+	if(!mypars->dlg2stdout){
+		fclose(fp);
+	}
 
 	// if xml has to be generated
 	if (mypars->output_xml == true)

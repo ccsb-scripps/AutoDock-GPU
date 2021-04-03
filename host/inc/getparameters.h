@@ -97,6 +97,8 @@ typedef struct _Dockpars
 	unsigned long          pop_size                        = 150;
 	char*                  load_xml                        = NULL;
 	bool                   xml2dlg                         = false;
+	unsigned int           xml_files                       = 0;
+	bool                   dlg2stdout                      = false;
 	int                    gen_pdbs                        = 0;
 	char*                  dpffile                         = NULL;
 	char*                  fldfile                         = NULL;
