@@ -144,7 +144,7 @@ int preparse_dpf(
 	bool output_multiple_warning = true;
 	std::vector<std::string> xml_files;
 	bool read_more_xml_files = false;
-	for (int i=1; i<(*argc)-1; i++)
+	for (int i=1; i<(*argc); i++)
 	{
 		// wildcards for -xml2dlg are allowed (or multiple file names)
 		// - if more than one xml file is specified this way, they will end up in xml_files
