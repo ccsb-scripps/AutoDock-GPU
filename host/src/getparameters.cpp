@@ -545,8 +545,10 @@ int preparse_dpf(
 				printf("\nError: get_gridinfo failed with fld file specified in %s.\n",mypars->fldfile,mypars->load_xml);
 				return 1;
 			}
-			if(strcmp(prev_fld_file,mypars->fldfile) != 0)
-				filelist.fld_files.push_back(mypars->fldfile);
+			if(prev_fld_file){ // unfortunately, some strcmp implementation segfault with NULL as input
+				if(strcmp(prev_fld_file,mypars->fldfile) != 0)
+					filelist.fld_files.push_back(mypars->fldfile);
+			} else filelist.fld_files.push_back(mypars->fldfile);
 
 			// If more than one unique protein, cant do map preloading yet
 			if (filelist.fld_files.size()>1){
