@@ -112,6 +112,7 @@ typedef struct _Dockpars
 	float                  stopstd                         = 0.15;
 	bool                   cgmaps                          = false; // default is false (use a single map for every CGx or Gx atom type)
 	unsigned long          num_of_runs                     = 20;
+	unsigned int           list_nr                         = 0;
 	bool                   reflig_en_required              = false;
 	int                    unbound_model                   = 0;                 // bound same as unbound, the coefficients
 	AD4_free_energy_coeffs coeffs                          = unbound_models[0]; // are also set in get_filenames_and_ADcoeffs()
@@ -187,9 +188,11 @@ int get_commandpars(
 
 void read_xml_filenames(
                         char* xml_filename,
+                        char* &dpf_filename,
                         char* &grid_filename,
                         char* &ligand_filename,
                         char* &flexres_filename,
+                        unsigned int &list_nr,
                         uint32_t seed[3]
                        );
 

@@ -98,10 +98,10 @@ int main(int argc, char* argv[])
 		return 1;
 	if (filelist.used){
 		n_files = filelist.nfiles;
-		printf("Running %d jobs in pipeline mode\n", n_files);
 	} else {
 		n_files = 1;
 	}
+	if(n_files>1) printf("Running %d jobs in pipeline mode\n", n_files);
 	int pl_gridsize = preload_gridsize(filelist);
 
 	// Setup master map set (one for now, nthreads-1 for general case)
@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
 	{
 		int t_id = omp_get_thread_num();
 		#pragma omp master
-		{printf("\nUsing %d OpenMP threads\n", omp_get_num_threads());}
+		{ if(n_files>1) printf("\nUsing %d OpenMP threads\n", std::min(omp_get_num_threads(),n_files)); }
 		#pragma omp barrier
 #else
 	{
@@ -258,7 +258,7 @@ int main(int argc, char* argv[])
 				unsigned int nrot;
 				sim_state.cpu_populations = read_xml_genomes(mypars.load_xml, mygrid.spacing, nrot, true);
 				if(nrot!=myligand_init.num_of_rotbonds){
-					printf("Error: XML genome contains %d rotatable bonds but current ligand has %d.\n",nrot,myligand_init.num_of_rotbonds);
+					printf("\nError: XML genome contains %d rotatable bonds but current ligand has %d.\n",nrot,myligand_init.num_of_rotbonds);
 					exit(2);
 				}
 				double movvec_to_origo[3];
@@ -289,10 +289,10 @@ int main(int argc, char* argv[])
 				{
 					printf("\nRunning Job #%d:\n", i_job+1);
 					if (filelist.used){
-						printf("   Grid map file: %s\n",  mypars.fldfile);
-						printf("   Ligand file: %s\n", mypars.ligandfile); fflush(stdout);
+						printf("    Grid map file: %s\n",  mypars.fldfile);
+						printf("    Ligand file: %s\n", mypars.ligandfile); fflush(stdout);
 						if(mypars.flexresfile)
-							printf("   Flexible residue: %s\n", mypars.flexresfile); fflush(stdout);
+							printf("    Flexible residue: %s\n", mypars.flexresfile); fflush(stdout);
 					}
 					// End idling timer, start exec timer
 					sim_state.idle_time = seconds_since(idle_timer);
@@ -316,7 +316,7 @@ int main(int argc, char* argv[])
 					#pragma omp atomic update
 #endif
 					total_exec_time+=sim_state.exec_time;
-					printf("\nJob #%d took %.3f sec after waiting %.3f sec for setup\n", i_job+1, sim_state.exec_time, sim_state.idle_time);
+					printf("\nJob #%d took %.3f sec after waiting %.3f sec for setup\n\n", i_job+1, sim_state.exec_time, sim_state.idle_time);
 					if (get_profiles && filelist.used){
 						// Detailed timing information to .timing
 						profiler.p[i_job].exec_time = sim_state.exec_time;
@@ -326,7 +326,7 @@ int main(int argc, char* argv[])
 			}
 
 			// Post-processing
-			printf ("\n(Thread %d is processing Job #%d)\n",t_id,i_job+1); fflush(stdout);
+			printf ("(Thread %d is processing Job #%d)\n",t_id,i_job+1); fflush(stdout);
 #ifdef USE_PIPELINE
 			if(mypars.dlg2stdout && (n_files>1)){
 				printf("\n(Thread %d, Job #%d: Parallel pipeline does not currently support dlg output to stdout, redirecting to file)\n",t_id,i_job+1); fflush(stdout);
@@ -368,11 +368,13 @@ int main(int argc, char* argv[])
 	// Total time measurement
 	printf("\nRun time of entire job set (%d file%s): %.3f sec", n_files, n_files>1?"s":"", seconds_since(time_start));
 #ifdef USE_PIPELINE
-	printf("\nSavings from multithreading: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
-	//if (filelist.preload_maps) printf("\nSavings from receptor reuse: %.3f sec * avg_maps_used/n_maps",receptor_reuse_time*n_files);
-	printf("\nIdle time of execution thread: %.3f sec",seconds_since(time_start) - total_exec_time);
-	if (get_profiles && filelist.used && !initial_pars.xml2dlg) // output profile with filelist name or dpf file name (depending on what is available)
-		profiler.write_profiles_to_file((filelist.filename!=NULL) ? filelist.filename : initial_pars.dpffile);
+	if(n_files>1){
+		printf("\nSavings from multithreading: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
+		//if (filelist.preload_maps) printf("\nSavings from receptor reuse: %.3f sec * avg_maps_used/n_maps",receptor_reuse_time*n_files);
+		printf("\nIdle time of execution thread: %.3f sec",seconds_since(time_start) - total_exec_time);
+		if (get_profiles && filelist.used && !initial_pars.xml2dlg) // output profile with filelist name or dpf file name (depending on what is available)
+			profiler.write_profiles_to_file((filelist.filename!=NULL) ? filelist.filename : initial_pars.dpffile);
+	} else printf("\nProcessing time: %.3f sec",total_processing_time);
 #else
 	printf("\nProcessing time: %.3f sec",total_processing_time);
 #endif

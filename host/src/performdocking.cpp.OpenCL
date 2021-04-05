@@ -633,9 +633,9 @@ parameters argc and argv:
 		// => e = 1/19*hm
 		// at hm = 50 M => e0 = 2.63 M where e becomes less than 95% (about 11 torsions)
 		mypars->num_of_energy_evals = (unsigned long)ceil(heur_evals*(float)mypars->heuristics_max/(mypars->heuristics_max+heur_evals));
-		printf("Using heuristics: (capped) number of evaluations set to %lu\n",mypars->num_of_energy_evals);
+		printf("    Using heuristics: (capped) number of evaluations set to %lu\n",mypars->num_of_energy_evals);
 		if (mypars->nev_provided && (mypars->num_of_energy_evals>nev)){
-			printf("Overriding heuristics, setting number of evaluations to -nev = %lu instead.\n",nev);
+			printf("    Overriding heuristics, setting number of evaluations to -nev = %lu instead.\n",nev);
 			mypars->num_of_energy_evals = nev;
 			profile.capped = true;
 		}
@@ -645,14 +645,14 @@ parameters argc and argv:
 		float min_frac = a/(1+cap_fraction*cap_fraction*(a/(a-1.0f)-1.0f))+1.0f-a;
 		min_as_evals = (unsigned long)ceil(mypars->num_of_energy_evals*min_frac)*mypars->num_of_runs;
 		if(cap_fraction<0.5f){
-			printf("Warning: The set number of evals is %.2f%% of the uncapped heuristics estimate of %lu evals.\n",cap_fraction*100.0f,heur_evals);
-			printf("         This means this docking may not be able to converge. Increasing ");
+			printf("    Warning: The set number of evals is %.2f%% of the uncapped heuristics estimate of %lu evals.\n",cap_fraction*100.0f,heur_evals);
+			printf("             This means this docking may not be able to converge. Increasing ");
 			if (mypars->nev_provided && (mypars->num_of_energy_evals>nev))
 				printf("-nev");
 			else
 				printf("-heurmax");
-			printf(" may improve\n         convergence but will also increase runtime.\n");
-			if(mypars->autostop) printf("         AutoStop will not stop before %.2f%% (%lu) of the set number of evaluations.\n",min_frac*100.0f,min_as_evals/mypars->num_of_runs);
+			printf(" may improve\n             convergence but will also increase runtime.\n");
+			if(mypars->autostop) printf("             AutoStop will not stop before %.2f%% (%lu) of the set number of evaluations.\n",min_frac*100.0f,min_as_evals/mypars->num_of_runs);
 		}
 	}
 	
@@ -670,13 +670,13 @@ parameters argc and argv:
 		strcpy(method_chosen,"ADADELTA (ad)");
 	}
 	else{
-		printf("Error: LS method %s is not (yet) supported in the OpenCL version.\n",mypars->ls_method);
+		printf("\nError: LS method %s is not (yet) supported in the OpenCL version.\n",mypars->ls_method);
 		exit(-1);
 	}
-	printf("Local-search chosen method is: %s\n", (dockpars.lsearch_rate == 0.0f)? "GA" : method_chosen);
+	printf("    Local-search chosen method is: %s\n", (dockpars.lsearch_rate == 0.0f)? "GA" : method_chosen);
 
 	if((mypars->initial_sw_generations>0) && (strcmp(mypars->ls_method, "sw") != 0))
-		printf("Using Solis-Wets (sw) for the first %d generations.\n",mypars->initial_sw_generations);
+		printf("    Using Solis-Wets (sw) for the first %d generations.\n",mypars->initial_sw_generations);
 
         // Get profile for timing
 	profile.adadelta=(strcmp(mypars->ls_method, "ad")==0);
@@ -698,7 +698,7 @@ parameters argc and argv:
 #endif
 
 	/*
-	// Addded for printing intracontributor_pairs (autodockdevpy)
+	// Added for printing intracontributor_pairs (autodockdevpy)
 	for (unsigned int intrapair_cnt=0; 
 			  intrapair_cnt<dockpars.num_of_intraE_contributors;
 			  intrapair_cnt++) {
