@@ -323,16 +323,15 @@ void make_resfiles(
 {
 	FILE* fp;
 	int i,j;
-	double entity_rmsds [MAX_POPSIZE];
+	double entity_rmsds;
 	Liganddata temp_docked;
 	int len = strlen(mypars->ligandfile) - 6 + 24 + 10 + 10; // length with added bits for things below (numbers below 11 digits should be a safe enough threshold)
 	char* temp_filename = (char*)malloc((len+1)*sizeof(char)); // +\0 at the end
 	char* name_ext_start;
-	float accurate_interE [MAX_POPSIZE];
-	float accurate_intraflexE [MAX_POPSIZE];
-	float accurate_intraE [MAX_POPSIZE];
-	float accurate_interflexE [MAX_POPSIZE];
-	float temp_genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
+	float accurate_interE;
+	float accurate_intraflexE;
+	float accurate_intraE;
+	float accurate_interflexE;
 
 	int pop_size = mypars->pop_size;
 
@@ -349,6 +348,18 @@ void make_resfiles(
 		fprintf(fp, "Number of energy evaluations performed:    %d\n", evals_performed);
 		fprintf(fp, "Number of generations used:                %d\n", generations_used);
 		fprintf(fp, "\n\n");
+		fprintf(fp, "     STATE OF FINAL POPULATION     \n");
+		fprintf(fp, "===================================\n\n");
+
+		fprintf(fp, " Entity |      dx [A]      |      dy [A]      |      dz [A]      |      phi []      |     theta []     |  alpha_genrot [] |");
+		for (i=0; i<ligand_from_pdb->num_of_rotbonds; i++)
+			fprintf(fp, "  alpha_rotb%2d [] |", i);
+		fprintf(fp, " intramolecular energy | intermolecular energy |     total energy calculated by CPU / calculated by GPU / difference    | RMSD [A] | \n");
+
+		fprintf(fp, "--------+------------------+------------------+------------------+------------------+------------------+------------------+");
+		for (i=0; i<ligand_from_pdb->num_of_rotbonds; i++)
+			fprintf(fp, "------------------+");
+		fprintf(fp, "-----------------------+-----------------------+------------------------------------------------------------------------+----------+ \n");
 	}
 
 	// Writing out state of final population
@@ -375,16 +386,16 @@ void make_resfiles(
 			change_conform_f(&temp_docked, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, debug);
 		}
 		
-		// the map interaction of flex res atoms is stored in accurate_intraflexE[i]
-		accurate_interE[i] = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE[i]);	//calculating the intermolecular energy
+		// the map interaction of flex res atoms is stored in accurate_intraflexE
+		accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE);	//calculating the intermolecular energy
 
 		if (i == 0) // additional calculations for ADT-compatible result file, only in case of best conformation
 			calc_interE_peratom_f(mygrid, &temp_docked, grids, 0.0005, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec, debug);
 
 		scale_ligand(&temp_docked, mygrid->spacing);
 		
-		// the interaction between flex res and ligand is stored in accurate_interflexE[i]
-		accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE[i], mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
+		// the interaction between flex res and ligand is stored in accurate_interflexE
+		accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
 
 		move_ligand(&temp_docked, mygrid->origo_real_xyz, mygrid->origo_real_xyz);	//moving it according to grid location
 
@@ -392,30 +403,30 @@ void make_resfiles(
 //			printf("%i: %lf, %lf, %lf\n", atom_id+1, temp_docked.atom_idxyzq [atom_id][1], temp_docked.atom_idxyzq [atom_id][2], temp_docked.atom_idxyzq [atom_id][3]);
 
 		if (mypars->given_xrayligandfile == true) {
-			entity_rmsds [i] = calc_rmsd(ligand_xray, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original xray file
+			entity_rmsds = calc_rmsd(ligand_xray, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original xray file
 		}
 		else {
-			entity_rmsds [i] = calc_rmsd(ligand_from_pdb, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original pdb file
+			entity_rmsds = calc_rmsd(ligand_from_pdb, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original pdb file
 		}
 
 		// copying best result to output parameter
 		if (i == 0) // assuming this is the best one (final_population is arranged), however, the
 		{           // arrangement was made according to the inaccurate values calculated by FPGA
-			memcpy(best_result->genotype, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, ACTUAL_GENOTYPE_LENGTH*sizeof(float));
-			best_result->interE = accurate_interE [i];
-			best_result->interflexE = accurate_interflexE [i];
-			best_result->intraE = accurate_intraE [i];
-			best_result->intraflexE = accurate_intraflexE [i];
+			best_result->genotype = final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM;
+			best_result->interE = accurate_interE;
+			best_result->interflexE = accurate_interflexE;
+			best_result->intraE = accurate_intraE;
+			best_result->intraflexE = accurate_intraflexE;
 			best_result->reslig_realcoord = temp_docked;
-			best_result->rmsd_from_ref = entity_rmsds [i];
+			best_result->rmsd_from_ref = entity_rmsds;
 			best_result->run_number = run_cnt+1;
 		}
 
 		// generating best.pdbqt
 		if (i == 0)
-			if (best_energy_of_all > accurate_interE [i] + accurate_intraE [i])
+			if (best_energy_of_all > accurate_interE + accurate_intraE)
 			{
-				best_energy_of_all = accurate_interE [i] + accurate_intraE [i];
+				best_energy_of_all = accurate_interE + accurate_intraE;
 
 				if (mypars->gen_best)
 					gen_new_pdbfile(mypars->ligandfile, "best.pdbqt", &temp_docked);
@@ -426,25 +437,7 @@ void make_resfiles(
 			sprintf(name_ext_start, "_docked_run%d_entity%d.pdbqt", run_cnt+1, i+1); //name will be <original pdb filename>_docked_<number starting from 1>.pdb
 			gen_new_pdbfile(mypars->ligandfile, temp_filename, &temp_docked);
 		}
-	}
-
-	if (mypars->gen_finalpop)
-	{
-
-		fprintf(fp, "     STATE OF FINAL POPULATION     \n");
-		fprintf(fp, "===================================\n\n");
-
-		fprintf(fp, " Entity |      dx [A]      |      dy [A]      |      dz [A]      |      phi []      |     theta []     |  alpha_genrot [] |");
-		for (i=0; i<ligand_from_pdb->num_of_rotbonds; i++)
-			fprintf(fp, "  alpha_rotb%2d [] |", i);
-		fprintf(fp, " intramolecular energy | intermolecular energy |     total energy calculated by CPU / calculated by GPU / difference    | RMSD [A] | \n");
-
-		fprintf(fp, "--------+------------------+------------------+------------------+------------------+------------------+------------------+");
-		for (i=0; i<ligand_from_pdb->num_of_rotbonds; i++)
-			fprintf(fp, "------------------+");
-		fprintf(fp, "-----------------------+-----------------------+------------------------------------------------------------------------+----------+ \n");
-
-		for (i=0; i<pop_size; i++)
+		if (mypars->gen_finalpop)
 		{
 			fprintf(fp, "  %3d   |", i+1);
 
@@ -453,16 +446,16 @@ void make_resfiles(
 			for (j=3; j<6+ligand_from_pdb->num_of_rotbonds; j++)
 				fprintf(fp, "    %10.3f    |", final_population [i*GENOTYPE_LENGTH_IN_GLOBMEM+j]);
 
-			fprintf(fp, " %21.3f |", accurate_intraE [i]);
-			fprintf(fp, " %21.3f |", accurate_interE [i]);
-			fprintf(fp, "  %21.3f / %21.3f / %21.3f |", accurate_intraE[i] + accurate_interE[i], energies[i], energies[i] - (accurate_intraE[i] + accurate_interE[i]));
+			fprintf(fp, " %21.3f |", accurate_intraE);
+			fprintf(fp, " %21.3f |", accurate_interE);
+			fprintf(fp, "  %21.3f / %21.3f / %21.3f |", accurate_intraE + accurate_interE, energies[i], energies[i] - (accurate_intraE + accurate_interE));
 
-			fprintf(fp, " %8.3lf | \n", entity_rmsds [i]);
+			fprintf(fp, " %8.3lf | \n", entity_rmsds);
 		}
-
-		fclose(fp);
-
 	}
+
+
+	if (mypars->gen_finalpop) fclose(fp);
 	free(temp_filename);
 }
 
@@ -525,7 +518,6 @@ void cluster_analysis(
 	{
 		current_clust_center = 0;
 		result_clustered = 0;
-
 		for (j=0; j<i; j++) // results with lower id-s are clustered, look for cluster centers
 		{
 			if ((myresults [j]).clus_id > current_clust_center) // it is the center of a new cluster
@@ -541,14 +533,12 @@ void cluster_analysis(
 				}
 			}
 		}
-
 		if (result_clustered != 1) // if no suitable cluster was found, this is the center of a new one
 		{
 			num_of_clusters++;
 			(myresults [i]).clus_id = num_of_clusters; // new cluster id
 			(myresults [i]).rmsd_from_cluscent = 0;
 		}
-
 	}
 
 	for (i=1; i<=num_of_clusters; i++) // printing cluster info to file

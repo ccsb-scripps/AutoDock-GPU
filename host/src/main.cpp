@@ -371,7 +371,8 @@ int main(int argc, char* argv[])
 	printf("\nSavings from multithreading: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
 	//if (filelist.preload_maps) printf("\nSavings from receptor reuse: %.3f sec * avg_maps_used/n_maps",receptor_reuse_time*n_files);
 	printf("\nIdle time of execution thread: %.3f sec",seconds_since(time_start) - total_exec_time);
-	if (get_profiles && filelist.used && !initial_pars.xml2dlg) profiler.write_profiles_to_file(filelist.filename);
+	if (get_profiles && filelist.used && !initial_pars.xml2dlg) // output profile with filelist name or dpf file name (depending on what is available)
+		profiler.write_profiles_to_file((filelist.filename!=NULL) ? filelist.filename : initial_pars.dpffile);
 #else
 	printf("\nProcessing time: %.3f sec",total_processing_time);
 #endif

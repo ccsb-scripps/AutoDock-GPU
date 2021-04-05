@@ -39,7 +39,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 typedef struct
 {
-	float      genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
+	float*     genotype; // a pointer here is sufficient and saves lots of memory copies
 	Liganddata reslig_realcoord;
 	float      interE;
 	float      interflexE;
