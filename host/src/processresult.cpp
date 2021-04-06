@@ -977,7 +977,7 @@ void clusanal_gendlg(
 		if(mypars->dpffile)
 			fprintf(fp_xml, "\t<dpf>%s</dpf>\n",mypars->dpffile);
 		if(mypars->list_nr>1)
-			fprintf(fp_xml, "\t<list_nr>%s</list_nr>\n",mypars->list_nr);
+			fprintf(fp_xml, "\t<list_nr>%u</list_nr>\n",mypars->list_nr);
 		fprintf(fp_xml, "\t<grid>%s</grid>\n", mypars->fldfile);
 		fprintf(fp_xml, "\t<ligand>%s</ligand>\n", mypars->ligandfile);
 		if(mypars->flexresfile)
