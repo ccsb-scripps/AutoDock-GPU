@@ -515,6 +515,7 @@ int preparse_dpf(
 	bool output_multiple_warning = true;
 	std::vector<std::string> xml_files;
 	bool read_more_xml_files = false;
+	int error;
 	for (int i=1; i<(*argc)-1+(read_more_xml_files); i++)
 	{
 		// wildcards for -xml2dlg are allowed (or multiple file names)
@@ -522,7 +523,9 @@ int preparse_dpf(
 		// the test below is to stop reading arguments as filenames when another argument starts with "-"
 		if (read_more_xml_files && (argv[i][0]=='-')){
 			read_more_xml_files = false;
+			if(i>=(*argc)-1) break; // ignore last argument if there is no parameter specified
 		} else if (read_more_xml_files) xml_files.push_back(argv[i]); // copy argument into xml_files when read_more_xml_files is true
+		
 		// Argument: dpf file name.
 		if (strcmp("-import_dpf", argv[i]) == 0){
 			if(mypars->dpffile){
@@ -534,6 +537,7 @@ int preparse_dpf(
 			}
 			mypars->dpffile = strdup(argv[i+1]);
 		}
+		
 		// Argument: load initial data from xml file and reconstruct dlg, then finish
 		if (strcmp("-xml2dlg", argv [i]) == 0)
 		{
@@ -542,9 +546,18 @@ int preparse_dpf(
 			mypars->xml2dlg = true;
 			mypars->xml_files = 1;
 		}
+		
+		// Argument: print dlg output to stdout instead of to a file
+		if (strcmp("-dlg2stdout", argv [i]) == 0)
+		{
+			sscanf(argv [i+1], "%d", &error);
+			if (error == 0)
+				mypars->dlg2stdout = false;
+			else
+				mypars->dlg2stdout = true;
+		}
 	}
 	
-	int error;
 	bool specified_dpf = (mypars->dpffile!=NULL);
 	if(specified_dpf){
 		if(error=parse_dpf(mypars,mygrid,filelist)) return error;
@@ -552,9 +565,19 @@ int preparse_dpf(
 	
 	if(xml_files.size()>0){ // use filelist parameter list in case multiple xml files are converted
 		mypars->xml_files = xml_files.size();
+		if(mypars->xml_files>100){ // output progress bar
+			printf("\nPreparing conversion\n");
+			printf("0%%      20%%       40%%       60%%       80%%     100%%\n");
+			printf("---------+---------+---------+---------+---------+\n");
+		}
 		Dockpars orig_pars;
 		if(!specified_dpf) orig_pars = *mypars;
-		for(unsigned int i=0; i<xml_files.size(); i++){
+		for(unsigned int i=0; i<mypars->xml_files; i++){
+			if(mypars->xml_files>100){
+				if((50*(i+1)) % mypars->xml_files < 50){
+					printf("*"); fflush(stdout);
+				}
+			}
 			// make sure to NOT free the previous ones as otherwise the strings of other mypars will be gone too ...
 			char* prev_fld_file=mypars->fldfile;
 			if(!specified_dpf){
@@ -598,7 +621,8 @@ int preparse_dpf(
 			filelist.mypars.push_back(*mypars);
 			filelist.mygrids.push_back(*mygrid);
 		}
-		filelist.nfiles = xml_files.size();
+		printf("\n\n");
+		filelist.nfiles = mypars->xml_files;
 	} else{
 		filelist.nfiles = filelist.ligand_files.size();
 	}
@@ -1179,12 +1203,6 @@ int get_commandpars(
 		if (strcmp("-dlg2stdout", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			sscanf(argv [i+1], "%d", &tempint);
-
-			if (tempint == 0)
-				mypars->dlg2stdout = false;
-			else
-				mypars->dlg2stdout = true;
 		}
 
 		// Argument: number of pdb files to be generated.

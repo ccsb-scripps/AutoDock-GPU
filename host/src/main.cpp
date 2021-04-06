@@ -72,7 +72,6 @@ int main(int argc, char* argv[])
 {
 	// Print version info
 	printf("AutoDock-GPU version: %s\n", VERSION);
-
 	// Timer initializations
 #ifndef _WIN32
 	timeval time_start, idle_timer;
@@ -93,15 +92,31 @@ int main(int argc, char* argv[])
 	Gridinfo initial_grid;
 	if (preparse_dpf(&argc, argv, &initial_pars, &initial_grid, filelist) != 0)
 		return 1;
-	int n_files;
 	if (get_filelist(&argc, argv, &initial_pars, &initial_grid, filelist) != 0)
 		return 1;
+	
+	int n_files;
 	if (filelist.used){
 		n_files = filelist.nfiles;
 	} else {
 		n_files = 1;
 	}
-	if(n_files>1) printf("Running %d jobs in pipeline mode\n", n_files);
+#ifdef USE_PIPELINE
+	if(n_files>1) printf("Using %d OpenMP threads\n\n", std::min(omp_get_max_threads(),n_files));
+	if(initial_pars.dlg2stdout && (std::min(omp_get_max_threads(),n_files)>1)){
+		printf("Note: Parallel pipeline does not currently support dlg\n");
+		printf("      to stdout, redirecting to respective file output.\n\n"); fflush(stdout);
+		initial_pars.dlg2stdout = false;
+		for(unsigned int i=0; i<n_files; i++) // looks dangerous, but n_files>1 is only possible with the filelist
+			filelist.mypars[i].dlg2stdout = false;
+	}
+#endif
+	if(n_files>1){
+		if(initial_pars.xml2dlg)
+			printf("Converting %d xml files to dlg\n",n_files);
+		else
+			printf("Running %d docking calculations\n", n_files);
+	}
 	int pl_gridsize = preload_gridsize(filelist);
 
 	// Setup master map set (one for now, nthreads-1 for general case)
@@ -162,14 +177,18 @@ int main(int argc, char* argv[])
 	}
 
 	total_setup_time+=seconds_since(time_start);
+	
+	if(initial_pars.xml2dlg && !initial_pars.dlg2stdout){
+		if(n_files>100){ // output progress bar
+			printf("0%%      20%%       40%%       60%%       80%%     100%%\n");
+			printf("---------+---------+---------+---------+---------+\n");
+		}
+	}
 
 #ifdef USE_PIPELINE
 	#pragma omp parallel
 	{
 		int t_id = omp_get_thread_num();
-		#pragma omp master
-		{ if(n_files>1) printf("\nUsing %d OpenMP threads\n", std::min(omp_get_num_threads(),n_files)); }
-		#pragma omp barrier
 #else
 	{
 		int t_id = 0;
@@ -191,12 +210,16 @@ int main(int argc, char* argv[])
 #endif
 		for(int i_job=0; i_job<n_files; i_job++){
 			// Setup the next file in the queue
-			printf ("(Thread %d is setting up Job #%d)\n",t_id,i_job+1); fflush(stdout);
 			if(filelist.used){
 				mypars = filelist.mypars[i_job];
 				mygrid = filelist.mygrids[i_job];
 			}
-			if(!mypars.xml2dlg){
+			if(mypars.xml2dlg){
+				if(!mypars.dlg2stdout && (n_files>100))
+					if((50*(i_job+1)) % n_files < 50)
+						printf("*"); fflush(stdout);
+			} else{
+				printf ("(Thread %d is setting up Job #%d)\n",t_id,i_job+1); fflush(stdout);
 #ifdef USE_PIPELINE
 				#pragma omp critical
 #endif
@@ -326,13 +349,9 @@ int main(int argc, char* argv[])
 			}
 
 			// Post-processing
-			printf ("(Thread %d is processing Job #%d)\n",t_id,i_job+1); fflush(stdout);
-#ifdef USE_PIPELINE
-			if(mypars.dlg2stdout && (n_files>1)){
-				printf("\n(Thread %d, Job #%d: Parallel pipeline does not currently support dlg output to stdout, redirecting to file)\n",t_id,i_job+1); fflush(stdout);
-				mypars.dlg2stdout = false;
+			if(!mypars.xml2dlg){
+				printf ("(Thread %d is processing Job #%d)\n",t_id,i_job+1); fflush(stdout);
 			}
-#endif
 			start_timer(processing_timer);
 			process_result(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), &argc,argv, sim_state);
 #ifdef USE_PIPELINE
@@ -363,7 +382,8 @@ int main(int argc, char* argv[])
 			if(mygrid.map_base_name) free(mygrid.map_base_name);
 		}
 	} // end of parallel section
-
+	if(initial_pars.xml2dlg && !initial_pars.dlg2stdout && (n_files>100)) printf("\n"); // finish progress bar
+	
 #ifndef _WIN32
 	// Total time measurement
 	printf("\nRun time of entire job set (%d file%s): %.3f sec", n_files, n_files>1?"s":"", seconds_since(time_start));

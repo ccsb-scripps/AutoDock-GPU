@@ -182,6 +182,7 @@ void write_basic_info_dlg(
 {
 	int i;
 
+	if(mypars->xml2dlg && mypars->dlg2stdout) fprintf(fp, "\nXML2DLG: %s\n", mypars->load_xml);
 	fprintf(fp, "AutoDock-GPU version: %s\n\n", VERSION);
 
 	fprintf(fp, "**********************************************************\n");
