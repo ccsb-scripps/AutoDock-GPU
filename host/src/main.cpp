@@ -71,7 +71,7 @@ inline void start_timer(T& time_start)
 int main(int argc, char* argv[])
 {
 	// Print version info
-	printf("AutoDock-GPU version: %s\n", VERSION);
+	printf("AutoDock-GPU version: %s\n\n", VERSION);
 	// Timer initializations
 #ifndef _WIN32
 	timeval time_start, idle_timer;
@@ -111,11 +111,14 @@ int main(int argc, char* argv[])
 			filelist.mypars[i].dlg2stdout = false;
 	}
 #endif
-	if(n_files>1){
-		if(initial_pars.xml2dlg)
-			printf("Converting %d xml files to dlg\n",n_files);
-		else
-			printf("Running %d docking calculations\n", n_files);
+	if(initial_pars.xml2dlg){
+		printf("Converting %d xml file",n_files);
+		if(n_files>1) printf("s");
+		printf(" to dlg\n");
+	} else{
+		printf("Running %d docking calculation",n_files);
+		if(n_files>1) printf("s");
+		printf("\n");
 	}
 	int pl_gridsize = preload_gridsize(filelist);
 

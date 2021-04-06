@@ -621,7 +621,7 @@ int preparse_dpf(
 			filelist.mypars.push_back(*mypars);
 			filelist.mygrids.push_back(*mygrid);
 		}
-		printf("\n\n");
+		if(mypars->xml_files>100) printf("\n");
 		filelist.nfiles = mypars->xml_files;
 	} else{
 		filelist.nfiles = filelist.ligand_files.size();
