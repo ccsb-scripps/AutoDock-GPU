@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
+#include <stdio.h>
 #include "processresult.h"
 
 
@@ -181,6 +182,7 @@ void write_basic_info_dlg(
 {
 	int i;
 
+	if(mypars->xml2dlg && mypars->dlg2stdout) fprintf(fp, "\nXML2DLG: %s\n", mypars->load_xml);
 	fprintf(fp, "AutoDock-GPU version: %s\n\n", VERSION);
 
 	fprintf(fp, "**********************************************************\n");
@@ -207,22 +209,25 @@ void write_basic_info_dlg(
 	if(mypars->seed[2]>0) fprintf(fp,", %u",mypars->seed[2]);
 	fprintf(fp, "\n");
 	fprintf(fp, "Number of runs:                            %lu\n", mypars->num_of_runs);
-	fprintf(fp, "Number of energy evaluations:              %ld\n", mypars->num_of_energy_evals);
-	fprintf(fp, "Number of generations:                     %ld\n", mypars->num_of_generations);
-	fprintf(fp, "Size of population:                        %ld\n", mypars->pop_size);
-	fprintf(fp, "Rate of crossover:                         %lf%%\n", (double) mypars->crossover_rate);
-	fprintf(fp, "Tournament selection probability limit:    %lf%%\n", (double) mypars->tournament_rate);
-	fprintf(fp, "Rate of mutation:                          %lf%%\n", (double) mypars->mutation_rate);
-	fprintf(fp, "Maximal allowed delta movement:            +/- %lfA\n", (double) mypars->abs_max_dmov*mygrid->spacing);
-	fprintf(fp, "Maximal allowed delta angle:               +/- %lf\n\n", (double) mypars->abs_max_dang);
+	
+	if(!mypars->xml2dlg){
+		fprintf(fp, "Number of energy evaluations:              %ld\n", mypars->num_of_energy_evals);
+		fprintf(fp, "Number of generations:                     %ld\n", mypars->num_of_generations);
+		fprintf(fp, "Size of population:                        %ld\n", mypars->pop_size);
+		fprintf(fp, "Rate of crossover:                         %lf%%\n", (double) mypars->crossover_rate);
+		fprintf(fp, "Tournament selection probability limit:    %lf%%\n", (double) mypars->tournament_rate);
+		fprintf(fp, "Rate of mutation:                          %lf%%\n", (double) mypars->mutation_rate);
+		fprintf(fp, "Maximal allowed delta movement:            +/- %lfA\n", (double) mypars->abs_max_dmov*mygrid->spacing);
+		fprintf(fp, "Maximal allowed delta angle:               +/- %lf\n\n", (double) mypars->abs_max_dang);
 
-	fprintf(fp, "Rate of local search:                      %lf%%\n", mypars->lsearch_rate);
+		fprintf(fp, "Rate of local search:                      %lf%%\n", mypars->lsearch_rate);
 
-	fprintf(fp, "Maximal number of local search iterations: %ld\n", mypars->max_num_of_iters);
-	fprintf(fp, "Rho lower bound:                           %lf\n", (double) mypars->rho_lower_bound);
-	fprintf(fp, "Spread of local search delta movement:     %lfA\n", (double) mypars->base_dmov_mul_sqrt3*mygrid->spacing/sqrt(3.0));
-	fprintf(fp, "Spread of local search delta angle:        %lf\n", (double) mypars->base_dang_mul_sqrt3/sqrt(3.0));
-	fprintf(fp, "Limit of consecutive successes/failures:   %ld\n\n", mypars->cons_limit);
+		fprintf(fp, "Maximal number of local search iterations: %ld\n", mypars->max_num_of_iters);
+		fprintf(fp, "Rho lower bound:                           %lf\n", (double) mypars->rho_lower_bound);
+		fprintf(fp, "Spread of local search delta movement:     %lfA\n", (double) mypars->base_dmov_mul_sqrt3*mygrid->spacing/sqrt(3.0));
+		fprintf(fp, "Spread of local search delta angle:        %lf\n", (double) mypars->base_dang_mul_sqrt3/sqrt(3.0));
+		fprintf(fp, "Limit of consecutive successes/failures:   %ld\n\n", mypars->cons_limit);
+	}
 
 		fprintf(fp, "Handle symmetry during clustering:         ");
 	if (mypars->handle_symmetry)
@@ -232,10 +237,12 @@ void write_basic_info_dlg(
 
 	fprintf(fp, "RMSD tolerance:                            %lfA\n\n", mypars->rmsd_tolerance);
 
-	fprintf(fp, "Program call in command line was:          ");
-	for (i=0; i<*argc; i++)
-		fprintf(fp, "%s ", argv [i]);
-	fprintf(fp, "\n\n\n");
+	if(!mypars->xml2dlg){ // This is necessary to avoid excruciatingly long command line outputs with wild cards (like *.xml)
+		fprintf(fp, "Program call in command line was:          ");
+		for (i=0; i<*argc; i++)
+			fprintf(fp, "%s ", argv [i]);
+		fprintf(fp, "\n\n\n");
+	}
 
 	// Writing out receptor parameters
 
@@ -276,14 +283,16 @@ void write_basic_info_dlg(
 	fprintf(fp, "Number of atom types:                      %d\n", ligand_ref->num_of_atypes);
 	fprintf(fp, "\n\n");
 
-	fprintf(fp, "    DUMMY DATA (only for ADT-compatibility)\n");
-	fprintf(fp, "    ________________________\n\n\n");
-	fprintf(fp, "DPF> outlev 1\n");
-	fprintf(fp, "DPF> ga_run %lu\n", mypars->num_of_runs);
-	fprintf(fp, "DPF> fld %s.maps.fld\n", mygrid->receptor_name);
-	fprintf(fp, "DPF> move %s\n", mypars->ligandfile);
-	if(flexres) fprintf(fp, "DPF> flexres %s\n", mypars->flexresfile);
-	fprintf(fp, "\n\n");
+	if(!mypars->xml2dlg){
+		fprintf(fp, "    DUMMY DATA (only for ADT-compatibility)\n");
+		fprintf(fp, "    ________________________\n\n\n");
+		fprintf(fp, "DPF> outlev 1\n");
+		fprintf(fp, "DPF> ga_run %lu\n", mypars->num_of_runs);
+		fprintf(fp, "DPF> fld %s.maps.fld\n", mygrid->receptor_name);
+		fprintf(fp, "DPF> move %s\n", mypars->ligandfile);
+		if(flexres) fprintf(fp, "DPF> flexres %s\n", mypars->flexresfile);
+		fprintf(fp, "\n\n");
+	}
 }
 
 void make_resfiles(
@@ -315,16 +324,15 @@ void make_resfiles(
 {
 	FILE* fp;
 	int i,j;
-	double entity_rmsds [MAX_POPSIZE];
+	double entity_rmsds;
 	Liganddata temp_docked;
 	int len = strlen(mypars->ligandfile) - 6 + 24 + 10 + 10; // length with added bits for things below (numbers below 11 digits should be a safe enough threshold)
 	char* temp_filename = (char*)malloc((len+1)*sizeof(char)); // +\0 at the end
 	char* name_ext_start;
-	float accurate_interE [MAX_POPSIZE];
-	float accurate_intraflexE [MAX_POPSIZE];
-	float accurate_intraE [MAX_POPSIZE];
-	float accurate_interflexE [MAX_POPSIZE];
-	float temp_genotype[GENOTYPE_LENGTH_IN_GLOBMEM];
+	float accurate_interE;
+	float accurate_intraflexE;
+	float accurate_intraE;
+	float accurate_interflexE;
 
 	int pop_size = mypars->pop_size;
 
@@ -341,76 +349,6 @@ void make_resfiles(
 		fprintf(fp, "Number of energy evaluations performed:    %d\n", evals_performed);
 		fprintf(fp, "Number of generations used:                %d\n", generations_used);
 		fprintf(fp, "\n\n");
-	}
-
-	// Writing out state of final population
-
-	strcpy(temp_filename, mypars->ligandfile);
-	name_ext_start = temp_filename + strlen(mypars->ligandfile) - 6; // without .pdbqt
-
-	IntraTables tables(ligand_ref, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp);
-	for (i=0; i<pop_size; i++)
-	{
-		temp_docked = *ligand_ref;
-
-		change_conform_f(&temp_docked, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, debug);
-		
-		// the map interaction of flex res atoms is stored in accurate_intraflexE[i]
-		accurate_interE[i] = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE[i]);	//calculating the intermolecular energy
-
-		if (i == 0) // additional calculations for ADT-compatible result file, only in case of best conformation
-			calc_interE_peratom_f(mygrid, &temp_docked, grids, 0.0005, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec, debug);
-
-		scale_ligand(&temp_docked, mygrid->spacing);
-		
-		// the interaction between flex res and ligand is stored in accurate_interflexE[i]
-		accurate_intraE[i] = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE[i], mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
-
-		move_ligand(&temp_docked, mygrid->origo_real_xyz, mygrid->origo_real_xyz);	//moving it according to grid location
-
-//		for (unsigned int atom_id=0; atom_id < temp_docked.num_of_atoms; atom_id++)
-//			printf("%i: %lf, %lf, %lf\n", atom_id+1, temp_docked.atom_idxyzq [atom_id][1], temp_docked.atom_idxyzq [atom_id][2], temp_docked.atom_idxyzq [atom_id][3]);
-
-		if (mypars->given_xrayligandfile == true) {
-			entity_rmsds [i] = calc_rmsd(ligand_xray, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original xray file
-		}
-		else {
-			entity_rmsds [i] = calc_rmsd(ligand_from_pdb, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original pdb file
-		}
-
-		// copying best result to output parameter
-		if (i == 0) // assuming this is the best one (final_population is arranged), however, the
-		{           // arrangement was made according to the inaccurate values calculated by FPGA
-			memcpy(best_result->genotype, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, ACTUAL_GENOTYPE_LENGTH*sizeof(float));
-			best_result->interE = accurate_interE [i];
-			best_result->interflexE = accurate_interflexE [i];
-			best_result->intraE = accurate_intraE [i];
-			best_result->intraflexE = accurate_intraflexE [i];
-			best_result->reslig_realcoord = temp_docked;
-			best_result->rmsd_from_ref = entity_rmsds [i];
-			best_result->run_number = run_cnt+1;
-		}
-
-		// generating best.pdbqt
-		if (i == 0)
-			if (best_energy_of_all > accurate_interE [i] + accurate_intraE [i])
-			{
-				best_energy_of_all = accurate_interE [i] + accurate_intraE [i];
-
-				if (mypars->gen_best)
-					gen_new_pdbfile(mypars->ligandfile, "best.pdbqt", &temp_docked);
-			}
-
-		if (i < mypars->gen_pdbs)											//if it is necessary, making new pdbs for best entities
-		{
-			sprintf(name_ext_start, "_docked_run%d_entity%d.pdbqt", run_cnt+1, i+1);	//name will be <original pdb filename>_docked_<number starting from 1>.pdb
-			gen_new_pdbfile(mypars->ligandfile, temp_filename, &temp_docked);
-		}
-	}
-
-	if (mypars->gen_finalpop)
-	{
-
 		fprintf(fp, "     STATE OF FINAL POPULATION     \n");
 		fprintf(fp, "===================================\n\n");
 
@@ -423,8 +361,84 @@ void make_resfiles(
 		for (i=0; i<ligand_from_pdb->num_of_rotbonds; i++)
 			fprintf(fp, "------------------+");
 		fprintf(fp, "-----------------------+-----------------------+------------------------------------------------------------------------+----------+ \n");
+	}
 
-		for (i=0; i<pop_size; i++)
+	// Writing out state of final population
+
+	strcpy(temp_filename, mypars->ligandfile);
+	name_ext_start = temp_filename + strlen(mypars->ligandfile) - 6; // without .pdbqt
+
+	IntraTables tables(ligand_ref, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp);
+	for (i=0; i<pop_size; i++)
+	{
+		temp_docked = *ligand_ref;
+		
+		if(mypars->xml2dlg){
+			double axisangle[4];
+			double genotype [ACTUAL_GENOTYPE_LENGTH];
+			for (unsigned int j=0; j<ACTUAL_GENOTYPE_LENGTH; j++)
+				genotype [j] = (final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM)[j];
+			axisangle[0] = genotype[3];
+			axisangle[1] = genotype[4];
+			axisangle[2] = genotype[5];
+			axisangle[3] = (final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM)[GENOTYPE_LENGTH_IN_GLOBMEM-1];
+			change_conform(&temp_docked, mygrid, genotype, axisangle, debug);
+		} else{
+			change_conform_f(&temp_docked, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, debug);
+		}
+		
+		// the map interaction of flex res atoms is stored in accurate_intraflexE
+		accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE);	//calculating the intermolecular energy
+
+		if (i == 0) // additional calculations for ADT-compatible result file, only in case of best conformation
+			calc_interE_peratom_f(mygrid, &temp_docked, grids, 0.0005, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec, debug);
+
+		scale_ligand(&temp_docked, mygrid->spacing);
+		
+		// the interaction between flex res and ligand is stored in accurate_interflexE
+		accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
+
+		move_ligand(&temp_docked, mygrid->origo_real_xyz, mygrid->origo_real_xyz);	//moving it according to grid location
+
+//		for (unsigned int atom_id=0; atom_id < temp_docked.num_of_atoms; atom_id++)
+//			printf("%i: %lf, %lf, %lf\n", atom_id+1, temp_docked.atom_idxyzq [atom_id][1], temp_docked.atom_idxyzq [atom_id][2], temp_docked.atom_idxyzq [atom_id][3]);
+
+		if (mypars->given_xrayligandfile == true) {
+			entity_rmsds = calc_rmsd(ligand_xray, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original xray file
+		}
+		else {
+			entity_rmsds = calc_rmsd(ligand_from_pdb, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original pdb file
+		}
+
+		// copying best result to output parameter
+		if (i == 0) // assuming this is the best one (final_population is arranged), however, the
+		{           // arrangement was made according to the inaccurate values calculated by FPGA
+			best_result->genotype = final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM;
+			best_result->interE = accurate_interE;
+			best_result->interflexE = accurate_interflexE;
+			best_result->intraE = accurate_intraE;
+			best_result->intraflexE = accurate_intraflexE;
+			best_result->reslig_realcoord = temp_docked;
+			best_result->rmsd_from_ref = entity_rmsds;
+			best_result->run_number = run_cnt+1;
+		}
+
+		// generating best.pdbqt
+		if (i == 0)
+			if (best_energy_of_all > accurate_interE + accurate_intraE)
+			{
+				best_energy_of_all = accurate_interE + accurate_intraE;
+
+				if (mypars->gen_best)
+					gen_new_pdbfile(mypars->ligandfile, "best.pdbqt", &temp_docked);
+			}
+
+		if (i < mypars->gen_pdbs) //if it is necessary, making new pdbs for best entities
+		{
+			sprintf(name_ext_start, "_docked_run%d_entity%d.pdbqt", run_cnt+1, i+1); //name will be <original pdb filename>_docked_<number starting from 1>.pdb
+			gen_new_pdbfile(mypars->ligandfile, temp_filename, &temp_docked);
+		}
+		if (mypars->gen_finalpop)
 		{
 			fprintf(fp, "  %3d   |", i+1);
 
@@ -433,16 +447,16 @@ void make_resfiles(
 			for (j=3; j<6+ligand_from_pdb->num_of_rotbonds; j++)
 				fprintf(fp, "    %10.3f    |", final_population [i*GENOTYPE_LENGTH_IN_GLOBMEM+j]);
 
-			fprintf(fp, " %21.3f |", accurate_intraE [i]);
-			fprintf(fp, " %21.3f |", accurate_interE [i]);
-			fprintf(fp, "  %21.3f / %21.3f / %21.3f |", accurate_intraE[i] + accurate_interE[i], energies[i], energies[i] - (accurate_intraE[i] + accurate_interE[i]));
+			fprintf(fp, " %21.3f |", accurate_intraE);
+			fprintf(fp, " %21.3f |", accurate_interE);
+			fprintf(fp, "  %21.3f / %21.3f / %21.3f |", accurate_intraE + accurate_interE, energies[i], energies[i] - (accurate_intraE + accurate_interE));
 
-			fprintf(fp, " %8.3lf | \n", entity_rmsds [i]);
+			fprintf(fp, " %8.3lf | \n", entity_rmsds);
 		}
-
-		fclose(fp);
-
 	}
+
+
+	if (mypars->gen_finalpop) fclose(fp);
 	free(temp_filename);
 }
 
@@ -505,7 +519,6 @@ void cluster_analysis(
 	{
 		current_clust_center = 0;
 		result_clustered = 0;
-
 		for (j=0; j<i; j++) // results with lower id-s are clustered, look for cluster centers
 		{
 			if ((myresults [j]).clus_id > current_clust_center) // it is the center of a new cluster
@@ -521,14 +534,12 @@ void cluster_analysis(
 				}
 			}
 		}
-
 		if (result_clustered != 1) // if no suitable cluster was found, this is the center of a new one
 		{
 			num_of_clusters++;
 			(myresults [i]).clus_id = num_of_clusters; // new cluster id
 			(myresults [i]).rmsd_from_cluscent = 0;
 		}
-
 	}
 
 	for (i=1; i<=num_of_clusters; i++) // printing cluster info to file
@@ -634,32 +645,55 @@ void clusanal_gendlg(
 	// first of all, let's calculate the constant torsional free energy term
 	torsional_energy = AD4_coeff_tors * ligand_ref->true_ligand_rotbonds;
 
-	// GENERATING DLG FILE
-
 	int len = strlen(mypars->resname) + 4 + 1;
-	char* report_file_name = (char*)malloc(len*sizeof(char));
-	
-	strcpy(report_file_name, mypars->resname);
-	strcat(report_file_name, ".dlg");
-	fp = fopen(report_file_name, "w");
+	// GENERATING DLG FILE
+	if(mypars->dlg2stdout){
+		fp = stdout;
+	} else{
+		char* report_file_name = (char*)malloc(len*sizeof(char));
+		strcpy(report_file_name, mypars->resname);
+		strcat(report_file_name, ".dlg");
+		fp = fopen(report_file_name, "w");
+		free(report_file_name);
+	}
 
 	// writing basic info
 
 	write_basic_info_dlg(fp, ligand_ref, mypars, mygrid, argc, argv);
 
-	fprintf(fp, "           COUNTER STATES           \n");
-	fprintf(fp, "___________________________________\n\n");
-	fprintf(fp, "Number of energy evaluations performed:    %lu\n", evals_performed);
-	fprintf(fp, "Number of generations used:                %lu\n", generations_used);
-	fprintf(fp, "\n\n");
+	if(!mypars->xml2dlg){
+		fprintf(fp, "           COUNTER STATES           \n");
+		fprintf(fp, "___________________________________\n\n");
+		fprintf(fp, "Number of energy evaluations performed:    %lu\n", evals_performed);
+		fprintf(fp, "Number of generations used:                %lu\n", generations_used);
+		fprintf(fp, "\n\n");
+	}
 
+	std::string pdbqt_template;
+	std::vector<unsigned int> atom_data;
+	char lineout [256];
 	// writing input pdbqt file
-
 	fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
 	fp_orig = fopen(mypars->ligandfile, "rb"); // fp_orig = fopen(mypars->ligandfile, "r");
 	while (fgets(tempstr, 255, fp_orig) != NULL) // reading original ligand pdb line by line
 	{
 		fprintf(fp, "INPUT-LIGAND-PDBQT: %s", tempstr);
+		if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
+		{
+			tempstr[30] = '\0';
+			sprintf(lineout, "DOCKED: %s", tempstr, atom_cnt);
+			pdbqt_template += lineout;
+			atom_data.push_back(pdbqt_template.length());
+		} else{
+			if (strncmp("ROOT", tempstr, 4) == 0)
+			{
+				root_atom = atom_cnt;
+				pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
+				pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
+			}
+			sprintf(lineout, "DOCKED: %s", tempstr);
+			pdbqt_template += lineout;
+		}
 	}
 	fprintf(fp, "\n\n");
 	fclose(fp_orig);
@@ -672,6 +706,21 @@ void clusanal_gendlg(
 			while (fgets(tempstr, 255, fp_orig) != NULL) // reading original flexres pdb line by line
 			{
 				fprintf(fp, "INPUT-FLEXRES-PDBQT: %s", tempstr);
+				if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
+				{
+					tempstr[30] = '\0';
+					sprintf(lineout, "DOCKED: %s", tempstr, atom_cnt);
+					pdbqt_template += lineout;
+					atom_data.push_back(pdbqt_template.length());
+				} else{
+					if (strncmp("ROOT", tempstr, 4) == 0)
+					{
+						pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
+						pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
+					}
+					sprintf(lineout, "DOCKED: %s", tempstr);
+					pdbqt_template += lineout;
+				}
 			}
 			fprintf(fp, "\n\n");
 			fclose(fp_orig);
@@ -679,6 +728,7 @@ void clusanal_gendlg(
 	}
 
 	// writing docked conformations
+	std::string curr_model;
 	for (i=0; i<num_of_runs; i++)
 	{
 		fprintf(fp, "    FINAL DOCKED STATE:\n    ________________________\n\n\n");
@@ -736,43 +786,21 @@ void clusanal_gendlg(
 			if ( strlen(mypars->flexresfile)>0 )
 				lnr++;
 		}
-
-		atom_cnt = 0;
-		for (unsigned int l=0; l<lnr; l++)
+		
+		curr_model = pdbqt_template;
+		for(atom_cnt = atom_data.size(); atom_cnt-->0;)
 		{
-			if(l==0)
-				fp_orig = fopen(mypars->ligandfile, "rb");
-			else
-				fp_orig = fopen(mypars->flexresfile, "rb");
-			while (fgets(tempstr, 255, fp_orig) != NULL) // reading original ligand pdb line by line
-			{
-				if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
-				{
-					tempstr[30] = '\0';
-					fprintf(fp, "DOCKED: %s", tempstr);
-					fprintf(fp, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][1]); // x
-					fprintf(fp, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][2]); // y
-					fprintf(fp, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][3]); // z
-					fprintf(fp, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw
-					fprintf(fp, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec
-					fprintf(fp, "    %+6.3lf ", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][4]); // q
-					fprintf(fp, "%-2s\n", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]); // type
-					atom_cnt++;
-				}
-				else
-					if (strncmp("ROOT", tempstr, 4) == 0)
-					{
-						if(l==0) // only use ligand root
-							root_atom = atom_cnt;
-						fprintf(fp, "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n");
-						fprintf(fp, "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n");
-						fprintf(fp, "DOCKED: %s", tempstr);
-					}
-					else
-						fprintf(fp, "DOCKED: %s", tempstr);
-			}
-			fclose(fp_orig);
+			char* line = lineout;
+			line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][1]); // x
+			line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][2]); // y
+			line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][3]); // z
+			line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw
+			line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec
+			line += sprintf(line, "    %+6.3lf ", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][4]); // q
+			line += sprintf(line, "%-2s\n\0", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]); // type
+			curr_model.insert(atom_data[atom_cnt],lineout);
 		}
+		fprintf(fp, "%s", curr_model.c_str());
 		fprintf(fp, "DOCKED: TER\n");
 		fprintf(fp, "DOCKED: ENDMDL\n");
 		fprintf(fp, "________________________________________________________________________________\n\n\n");
@@ -829,7 +857,6 @@ void clusanal_gendlg(
 			(myresults [i]).clus_id = num_of_clusters; // new cluster id
 			(myresults [i]).rmsd_from_cluscent = 0;
 		}
-
 	}
 
 	for (i=1; i<=num_of_clusters; i++) // printing cluster info to file
@@ -893,11 +920,11 @@ void clusanal_gendlg(
 	fprintf(fp, "    RMSD TABLE\n");
 	fprintf(fp, "    __________\n\n\n");
 
-    fprintf(fp, "_____________________________________________________________________\n");
-    fprintf(fp, "     |      |      |           |         |                 |\n");
-    fprintf(fp, "Rank | Sub- | Run  | Binding   | Cluster | Reference       | Grep\n");
-    fprintf(fp, "     | Rank |      | Energy    | RMSD    | RMSD            | Pattern\n");
-    fprintf(fp, "_____|______|______|___________|_________|_________________|___________\n" );
+	fprintf(fp, "_____________________________________________________________________\n");
+	fprintf(fp, "     |      |      |           |         |                 |\n");
+	fprintf(fp, "Rank | Sub- | Run  | Binding   | Cluster | Reference       | Grep\n");
+	fprintf(fp, "     | Rank |      | Energy    | RMSD    | RMSD            | Pattern\n");
+	fprintf(fp, "_____|______|______|___________|_________|_________________|___________\n" );
 
 	for (i=0; i<num_of_clusters; i++) // printing cluster info to file
 	{
@@ -926,8 +953,9 @@ void clusanal_gendlg(
 	fprintf(fp, "\nRun time %.3f sec", exec_time);
 	fprintf(fp, "\nIdle time %.3f sec\n", idle_time);
 
-	fclose(fp);
-	free(report_file_name);
+	if(!mypars->dlg2stdout){
+		fclose(fp);
+	}
 
 	// if xml has to be generated
 	if (mypars->output_xml == true)
@@ -948,6 +976,8 @@ void clusanal_gendlg(
 		}
 		if(mypars->dpffile)
 			fprintf(fp_xml, "\t<dpf>%s</dpf>\n",mypars->dpffile);
+		if(mypars->list_nr>1)
+			fprintf(fp_xml, "\t<list_nr>%u</list_nr>\n",mypars->list_nr);
 		fprintf(fp_xml, "\t<grid>%s</grid>\n", mypars->fldfile);
 		fprintf(fp_xml, "\t<ligand>%s</ligand>\n", mypars->ligandfile);
 		if(mypars->flexresfile)

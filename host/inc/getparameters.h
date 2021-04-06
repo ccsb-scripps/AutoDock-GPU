@@ -96,6 +96,9 @@ typedef struct _Dockpars
 	unsigned long          max_num_of_iters                = 300;
 	unsigned long          pop_size                        = 150;
 	char*                  load_xml                        = NULL;
+	bool                   xml2dlg                         = false;
+	unsigned int           xml_files                       = 0;
+	bool                   dlg2stdout                      = false;
 	int                    gen_pdbs                        = 0;
 	char*                  dpffile                         = NULL;
 	char*                  fldfile                         = NULL;
@@ -109,6 +112,7 @@ typedef struct _Dockpars
 	float                  stopstd                         = 0.15;
 	bool                   cgmaps                          = false; // default is false (use a single map for every CGx or Gx atom type)
 	unsigned long          num_of_runs                     = 20;
+	unsigned int           list_nr                         = 0;
 	bool                   reflig_en_required              = false;
 	int                    unbound_model                   = 0;                 // bound same as unbound, the coefficients
 	AD4_free_energy_coeffs coeffs                          = unbound_models[0]; // are also set in get_filenames_and_ADcoeffs()
@@ -182,10 +186,21 @@ int get_commandpars(
                     const bool late_call = true
                    );
 
+void read_xml_filenames(
+                        char* xml_filename,
+                        char* &dpf_filename,
+                        char* &grid_filename,
+                        char* &ligand_filename,
+                        char* &flexres_filename,
+                        unsigned int &list_nr,
+                        uint32_t seed[3]
+                       );
+
 std::vector<float> read_xml_genomes(
                                     char* xml_filename,
                                     float grid_spacing,
-                                    unsigned int &nrot
+                                    unsigned int &nrot,
+                                    bool store_axisangle=false
                                    );
 
 void gen_initpop_and_reflig(

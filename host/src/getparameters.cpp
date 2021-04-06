@@ -130,33 +130,14 @@ int dpf_token(const char* token)
 	return DPF_UNKNOWN;
 }
 
-int preparse_dpf(
-                 const int*      argc,
-                       char**    argv,
-                       Dockpars* mypars,
-                       Gridinfo* mygrid,
-                       FileList& filelist
-                )
-// This function checks if a dpf file is used and, if runs are specified, map and ligand information
-// is stored in the filelist; flexres information and which location in the dpf parameters are in each
-// run is stored separately to allow logical parsing with the correct parameters initialized per run
+int parse_dpf(
+              Dockpars* mypars,
+              Gridinfo* mygrid,
+              FileList& filelist
+             )
 {
-	bool output_multiple_warning = true;
-	for (int i=1; i<(*argc)-1; i++)
+	if (mypars->dpffile)
 	{
-		// Argument: dpf file name.
-		if (strcmp("-import_dpf", argv[i]) == 0){
-			if(mypars->dpffile){
-				free(mypars->dpffile);
-				if(output_multiple_warning){
-					printf("Warning: Multiple -import_dpf arguments, only the last one will be used.");
-					output_multiple_warning = false;
-				}
-			}
-			mypars->dpffile = strdup(argv[i+1]);
-		}
-	}
-	if (mypars->dpffile){
 		std::ifstream file(mypars->dpffile);
 		if(file.fail()){
 			printf("\nError: Could not open dpf file %s. Check path and permissions.\n",mypars->dpffile);
@@ -181,6 +162,7 @@ int preparse_dpf(
 		char typeA[4], typeB[4];
 		filelist.max_len = 256;
 		bool new_device = false; // indicate if current mypars has a new device requested
+		unsigned int run_cnt=0;
 		while(std::getline(file, line)) {
 			line_count++;
 			trim(line); // Remove leading and trailing whitespace
@@ -189,26 +171,32 @@ int preparse_dpf(
 			int token_id = dpf_token(tempstr);
 			switch(token_id){
 				case DPF_MOVE: // movable ligand file name
-						sscanf(line.c_str(),"%*s %255s",argstr);
-						if(mypars->ligandfile) free(mypars->ligandfile);
-						mypars->ligandfile = strdup(argstr);
+						if(!mypars->xml2dlg){
+							sscanf(line.c_str(),"%*s %255s",argstr);
+							if(mypars->ligandfile) free(mypars->ligandfile);
+							mypars->ligandfile = strdup(argstr);
+						}
 						break;
 				case DPF_FLEXRES: // flexibe residue file name
-						sscanf(line.c_str(),"%*s %255s",argstr);
-						if(mypars->flexresfile) free(mypars->flexresfile);
-						mypars->flexresfile = strdup(argstr);
+						if(!mypars->xml2dlg){
+							sscanf(line.c_str(),"%*s %255s",argstr);
+							if(mypars->flexresfile) free(mypars->flexresfile);
+							mypars->flexresfile = strdup(argstr);
+						}
 						break;
 				case DPF_FLD: // grid data file name
-						sscanf(line.c_str(),"%*s %255s",argstr);
-						// Add the .fld file
-						if(mypars->fldfile) free(mypars->fldfile);
-						mypars->fldfile = strdup(argstr); // this allows using the dpf to set up all parameters but the ligand
-						// Filling mygrid according to the specified fld file
-						mygrid->info_read = false;
-						if (get_gridinfo(mypars->fldfile, mygrid) != 0)
-						{
-							printf("\nError: get_gridinfo failed with fld file specified with <%s> parameter at %s:%u.\n",tempstr,mypars->dpffile,line_count);
-							return 1;
+						if(!mypars->xml2dlg){
+							sscanf(line.c_str(),"%*s %255s",argstr);
+							// Add the .fld file
+							if(mypars->fldfile) free(mypars->fldfile);
+							mypars->fldfile = strdup(argstr); // this allows using the dpf to set up all parameters but the ligand
+							// Filling mygrid according to the specified fld file
+							mygrid->info_read = false;
+							if (get_gridinfo(mypars->fldfile, mygrid) != 0)
+							{
+								printf("\nError: get_gridinfo failed with fld file specified with <%s> parameter at %s:%u.\n",tempstr,mypars->dpffile,line_count);
+								return 1;
+							}
 						}
 						break;
 				case DPF_LIGAND_TYPES: // ligand types used
@@ -315,58 +303,64 @@ int preparse_dpf(
 						}
 						break;
 				case DPF_RUNS: // set number of runs
-				case DPF_GALS: // actually run a search
-						sscanf(line.c_str(),"%*s %d",&tempint);
-						if ((tempint >= 1) && (tempint <= MAX_NUM_OF_RUNS))
-							mypars->num_of_runs = (int) tempint;
-						else
-							printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and %d.\n",tempstr,mypars->dpffile,line_count,MAX_NUM_OF_RUNS);
-						if(token_id!=DPF_RUNS){
-							// Add the fld file to use
-							if (!mypars->fldfile){
-								printf("\nError: No map file on record yet. Please specify a map file before the first ligand.\n");
-								return 1;
+				case DPF_GALS: // actually run a search (only if xml2dlg isn't specified)
+						if(!mypars->xml2dlg){
+							sscanf(line.c_str(),"%*s %d",&tempint);
+							if ((tempint >= 1) && (tempint <= MAX_NUM_OF_RUNS))
+								mypars->num_of_runs = (int) tempint;
+							else
+								printf("Warning: value of <%s> at %s:%u ignored. Value must be an integer between 1 and %d.\n",tempstr,mypars->dpffile,line_count,MAX_NUM_OF_RUNS);
+							if(token_id!=DPF_RUNS){
+								// Add the fld file to use
+								if (!mypars->fldfile){
+									printf("\nError: No map file on record yet. Please specify a map file before the first ligand.\n");
+									return 1;
+								}
+								filelist.fld_files.push_back(mypars->fldfile);
+								mypars->list_nr++;
+								// If more than one unique protein, cant do map preloading yet
+								if (filelist.fld_files.size()>1){
+									filelist.preload_maps=false;
+								}
+								// Add the ligand to filelist
+								filelist.ligand_files.push_back(mypars->ligandfile);
+								// Default resname is filelist basename
+								if(mypars->resname) free(mypars->resname);
+								len=strlen(mypars->ligandfile)-6; // .pdbqt = 6 chars
+								if(len>0){
+									mypars->resname = (char*)malloc((len+1)*sizeof(char));
+									strncpy(mypars->resname,mypars->ligandfile,len); // Default is ligand file basename
+									mypars->resname[len]='\0';
+								} else mypars->resname = strdup("docking"); // Fallback to old default
+								filelist.resnames.push_back(mypars->resname);
+								if(new_device) mypars->devices_requested++;
+								// Before pushing parameters and grids back make sure
+								// the filename pointers are unique
+								if(filelist.mypars.size()>0){ // mypars and mygrids have same size
+									if((filelist.mypars.back().flexresfile) &&
+									   (filelist.mypars.back().flexresfile==mypars->flexresfile))
+										mypars->flexresfile=strdup(mypars->flexresfile);
+									if((filelist.mypars.back().xrayligandfile) &&
+									   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
+										mypars->xrayligandfile=strdup(mypars->xrayligandfile);
+									if((filelist.mygrids.back().grid_file_path) &&
+									   (filelist.mygrids.back().grid_file_path==mygrid->grid_file_path))
+										mygrid->grid_file_path=strdup(mygrid->grid_file_path);
+									if((filelist.mygrids.back().receptor_name) &&
+									   (filelist.mygrids.back().receptor_name==mygrid->receptor_name))
+										mygrid->receptor_name=strdup(mygrid->receptor_name);
+									if((filelist.mygrids.back().map_base_name) &&
+									   (filelist.mygrids.back().map_base_name==mygrid->map_base_name))
+										mygrid->map_base_name=strdup(mygrid->map_base_name);
+								}
+								// Add the parameter block now that resname is set
+								filelist.mypars.push_back(*mypars);
+								// Also add the grid
+								filelist.mygrids.push_back(*mygrid);
 							}
-							filelist.fld_files.push_back(mypars->fldfile);
-							// If more than one unique protein, cant do map preloading yet
-							if (filelist.fld_files.size()>1){
-								filelist.preload_maps=false;
-							}
-							// Add the ligand to filelist
-							filelist.ligand_files.push_back(mypars->ligandfile);
-							// Default resname is filelist basename
-							if(mypars->resname) free(mypars->resname);
-							len=strlen(mypars->ligandfile)-6; // .pdbqt = 6 chars
-							if(len>0){
-								mypars->resname = (char*)malloc((len+1)*sizeof(char));
-								strncpy(mypars->resname,mypars->ligandfile,len); // Default is ligand file basename
-								mypars->resname[len]='\0';
-							} else mypars->resname = strdup("docking"); // Fallback to old default
-							filelist.resnames.push_back(mypars->resname);
-							if(new_device) mypars->devices_requested++;
-							// Before pushing parameters and grids back make sure
-							// the filename pointers are unique
-							if(filelist.mypars.size()>0){ // mypars and mygrids have same size
-								if((filelist.mypars.back().flexresfile) &&
-								   (filelist.mypars.back().flexresfile==mypars->flexresfile))
-									mypars->flexresfile=strdup(mypars->flexresfile);
-								if((filelist.mypars.back().xrayligandfile) &&
-								   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
-									mypars->xrayligandfile=strdup(mypars->xrayligandfile);
-								if((filelist.mygrids.back().grid_file_path) &&
-								   (filelist.mygrids.back().grid_file_path==mygrid->grid_file_path))
-									mygrid->grid_file_path=strdup(mygrid->grid_file_path);
-								if((filelist.mygrids.back().receptor_name) &&
-								   (filelist.mygrids.back().receptor_name==mygrid->receptor_name))
-									mygrid->receptor_name=strdup(mygrid->receptor_name);
-								if((filelist.mygrids.back().map_base_name) &&
-								   (filelist.mygrids.back().map_base_name==mygrid->map_base_name))
-									mygrid->map_base_name=strdup(mygrid->map_base_name);
-							}
-							// Add the parameter block now that resname is set
-							filelist.mypars.push_back(*mypars);
-							// Also add the grid
-							filelist.mygrids.push_back(*mygrid);
+						} else{
+							if(token_id!=DPF_RUNS) run_cnt++;
+							if((mypars->list_nr>0) && (run_cnt>=mypars->list_nr)) return 0; // finished
 						}
 						break;
 				case DPF_INTELEC: // calculate ES energy (needs not be "off")
@@ -504,7 +498,134 @@ int preparse_dpf(
 			}
 		}
 	}
-	filelist.nfiles = filelist.ligand_files.size();
+	return 0;
+}
+
+int preparse_dpf(
+                 const int*      argc,
+                       char**    argv,
+                       Dockpars* mypars,
+                       Gridinfo* mygrid,
+                       FileList& filelist
+                )
+// This function checks if a dpf file is used and, if runs are specified, map and ligand information
+// is stored in the filelist; flexres information and which location in the dpf parameters are in each
+// run is stored separately to allow logical parsing with the correct parameters initialized per run
+{
+	bool output_multiple_warning = true;
+	std::vector<std::string> xml_files;
+	bool read_more_xml_files = false;
+	int error;
+	for (int i=1; i<(*argc)-1+(read_more_xml_files); i++)
+	{
+		// wildcards for -xml2dlg are allowed (or multiple file names)
+		// - if more than one xml file is specified this way, they will end up in xml_files
+		// the test below is to stop reading arguments as filenames when another argument starts with "-"
+		if (read_more_xml_files && (argv[i][0]=='-')){
+			read_more_xml_files = false;
+			if(i>=(*argc)-1) break; // ignore last argument if there is no parameter specified
+		} else if (read_more_xml_files) xml_files.push_back(argv[i]); // copy argument into xml_files when read_more_xml_files is true
+		
+		// Argument: dpf file name.
+		if (strcmp("-import_dpf", argv[i]) == 0){
+			if(mypars->dpffile){
+				free(mypars->dpffile);
+				if(output_multiple_warning){
+					printf("Warning: Multiple -import_dpf arguments, only the last one will be used.");
+					output_multiple_warning = false;
+				}
+			}
+			mypars->dpffile = strdup(argv[i+1]);
+		}
+		
+		// Argument: load initial data from xml file and reconstruct dlg, then finish
+		if (strcmp("-xml2dlg", argv [i]) == 0)
+		{
+			mypars->load_xml = strdup(argv[i+1]);
+			read_more_xml_files = true;
+			mypars->xml2dlg = true;
+			mypars->xml_files = 1;
+		}
+		
+		// Argument: print dlg output to stdout instead of to a file
+		if (strcmp("-dlg2stdout", argv [i]) == 0)
+		{
+			sscanf(argv [i+1], "%d", &error);
+			if (error == 0)
+				mypars->dlg2stdout = false;
+			else
+				mypars->dlg2stdout = true;
+		}
+	}
+	
+	bool specified_dpf = (mypars->dpffile!=NULL);
+	if(specified_dpf){
+		if(error=parse_dpf(mypars,mygrid,filelist)) return error;
+	}
+	
+	if(xml_files.size()>0){ // use filelist parameter list in case multiple xml files are converted
+		mypars->xml_files = xml_files.size();
+		if(mypars->xml_files>100){ // output progress bar
+			printf("\nPreparing conversion\n");
+			printf("0%%      20%%       40%%       60%%       80%%     100%%\n");
+			printf("---------+---------+---------+---------+---------+\n");
+		}
+		Dockpars orig_pars;
+		if(!specified_dpf) orig_pars = *mypars;
+		for(unsigned int i=0; i<mypars->xml_files; i++){
+			if(mypars->xml_files>100){
+				if((50*(i+1)) % mypars->xml_files < 50){
+					printf("*"); fflush(stdout);
+				}
+			}
+			// make sure to NOT free the previous ones as otherwise the strings of other mypars will be gone too ...
+			char* prev_fld_file=mypars->fldfile;
+			if(!specified_dpf){
+				*mypars = orig_pars;
+				mypars->dpffile=NULL;
+			}
+			mypars->fldfile=NULL;
+			mypars->ligandfile=NULL;
+			mypars->flexresfile=NULL;
+			// load_xml is the xml file from which the other parameters will be set
+			mypars->load_xml = strdup(xml_files[i].c_str());
+			read_xml_filenames(mypars->load_xml,
+			                   mypars->dpffile,
+			                   mypars->fldfile,
+			                   mypars->ligandfile,
+			                   mypars->flexresfile,
+			                   mypars->list_nr,
+			                   mypars->seed);
+			if(!specified_dpf){ // parse dpf file in XML file unless user specified one
+				if(error=parse_dpf(mypars,mygrid,filelist)) return error;
+			}
+			mypars->pop_size=1;
+			// Filling mygrid according to the specified fld file
+			mygrid->info_read = false;
+			if (get_gridinfo(mypars->fldfile, mygrid) != 0)
+			{
+				printf("\nError: get_gridinfo failed with fld file specified in %s.\n",mypars->fldfile,mypars->load_xml);
+				return 1;
+			}
+			if(prev_fld_file){ // unfortunately, some strcmp implementation segfault with NULL as input
+				if(strcmp(prev_fld_file,mypars->fldfile) != 0)
+					filelist.fld_files.push_back(mypars->fldfile);
+			} else filelist.fld_files.push_back(mypars->fldfile);
+
+			// If more than one unique protein, cant do map preloading yet
+			if (filelist.fld_files.size()>1)
+				filelist.preload_maps=false;
+			
+			// Add the ligand filename in the xml to the filelist
+			filelist.ligand_files.push_back(mypars->ligandfile);
+			filelist.mypars.push_back(*mypars);
+			filelist.mygrids.push_back(*mygrid);
+		}
+		if(mypars->xml_files>100) printf("\n");
+		filelist.nfiles = mypars->xml_files;
+	} else{
+		filelist.nfiles = filelist.ligand_files.size();
+	}
 	if(filelist.nfiles>0) filelist.used = true;
 	return 0;
 }
@@ -519,6 +640,10 @@ int get_filelist(
 // The function checks if a filelist has been provided according to the proper command line arguments.
 // If it is, it loads the .fld, .pdbqt, and resname files into vectors
 {
+	if(mypars->xml2dlg){ // no file list for -xml2dlg (wildcards are allowed in argument)
+		filelist.preload_maps&=filelist.used;
+		return 0;
+	}
 	bool output_multiple_warning = true;
 	for (int i=1; i<(*argc)-1; i++)
 	{
@@ -576,6 +701,7 @@ int get_filelist(
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
 				// Add the .pdbqt
 				filelist.ligand_files.push_back(line);
+				mypars->list_nr++;
 				// Before pushing parameters and grids back make sure
 				// the filename pointers are unique
 				if(filelist.mypars.size()>0){ // mypars and mygrids have same size
@@ -660,10 +786,10 @@ int get_filenames_and_ADcoeffs(
 	int i;
 	int ffile_given, lfile_given;
 	long tempint;
-
+	
 	ffile_given = (mypars->fldfile!=NULL);
 	lfile_given = (mypars->ligandfile!=NULL);
-
+	
 	for (i=1; i<(*argc)-1; i++)
 	{
 		if (!multiple_files){
@@ -751,13 +877,22 @@ int get_commandpars(
 		mypars->abs_max_dmov        = 6.0/(*spacing);             // +/-6A
 		mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);   // 2 A
 		mypars->xrayligandfile      = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
-		if(!mypars->resname){ // only need to set if it's not set yet
-			if(strlen(mypars->ligandfile)>6){ // .pdbqt = 6 chars
-				i=strlen(mypars->ligandfile)-6;
+		if(mypars->xml2dlg){
+			if(strlen(mypars->load_xml)>4){ // .xml = 4 chars
+				i=strlen(mypars->load_xml)-4;
 				mypars->resname = (char*)malloc((i+1)*sizeof(char));
-				strncpy(mypars->resname,mypars->ligandfile,i);    // Default is ligand file basename
+				strncpy(mypars->resname,mypars->load_xml,i);    // Default is ligand file basename
 				mypars->resname[i]='\0';
-			} else mypars->resname = strdup("docking");               // Fallback to old default
+			} else if(!mypars->resname) mypars->resname = strdup("docking"); // Fallback to old default
+		} else{
+			if(!mypars->resname){ // only need to set if it's not set yet
+				if(strlen(mypars->ligandfile)>6){ // .pdbqt = 6 chars
+					i=strlen(mypars->ligandfile)-6;
+					mypars->resname = (char*)malloc((i+1)*sizeof(char));
+					strncpy(mypars->resname,mypars->ligandfile,i);    // Default is ligand file basename
+					mypars->resname[i]='\0';
+				} else mypars->resname = strdup("docking");               // Fallback to old default
+			}
 		}
 		// ------------------------------------------
 	}
@@ -1055,6 +1190,19 @@ int get_commandpars(
 		{
 			arg_recognized = 1;
 			mypars->load_xml = strdup(argv[i+1]);
+		}
+
+		// Argument: load initial data from xml file and reconstruct dlg, then finish
+		if (strcmp("-xml2dlg", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			i += mypars->xml_files-1; // skip ahead
+		}
+
+		// Argument: print dlg output to stdout instead of to a file
+		if (strcmp("-dlg2stdout", argv [i]) == 0)
+		{
+			arg_recognized = 1;
 		}
 
 		// Argument: number of pdb files to be generated.
@@ -1371,10 +1519,90 @@ int get_commandpars(
 	return arg_recognized + (arg_set<<1);
 }
 
+void read_xml_filenames(
+                        char* xml_filename,
+                        char* &dpf_filename,
+                        char* &grid_filename,
+                        char* &ligand_filename,
+                        char* &flexres_filename,
+                        unsigned int &list_nr,
+                        uint32_t seed[3]
+                       )
+{
+	std::ifstream file(xml_filename);
+	if(file.fail()){
+		printf("\nError: Could not open xml file %s. Check path and permissions.\n", xml_filename);
+		exit(3);
+	}
+	int error=0;
+	bool grid_found=false;
+	bool ligand_found=false;
+	std::string line;
+	char tmpstr[256];
+	size_t line_nr=0;
+	list_nr=0;
+	seed[0]=0; seed[1]=0; seed[2]=0;
+	while(std::getline(file, line)) {
+		line_nr++;
+		trim(line); // Remove leading and trailing whitespace
+		if(line.find("<runs>")==0){ // this is where the filename info ends in the xml file -- good time to stop ;-)
+			break;
+		}
+		if(line.find("<dpf>")==0){
+			if(!sscanf(line.c_str(),"<dpf>%255[^<]/dpf>",tmpstr)){
+				error = 1;
+				break;
+			}
+			if(dpf_filename==NULL) dpf_filename=strdup(tmpstr);
+		}
+		if(line.find("<grid>")==0){
+			if(!sscanf(line.c_str(),"<grid>%255[^<]/grid>",tmpstr)){
+				error = 1;
+				break;
+			}
+			if(grid_filename==NULL) grid_filename=strdup(tmpstr);
+			grid_found = true;
+		}
+		if(line.find("<ligand>")==0){
+			if(!sscanf(line.c_str(),"<ligand>%255[^<]/ligand>",tmpstr)){
+				error = 2;
+				break;
+			}
+			if(ligand_filename==NULL) ligand_filename=strdup(tmpstr);
+			ligand_found = true;
+		}
+		if(line.find("<flexres>")==0){
+			if(!sscanf(line.c_str(),"<flexres>%255[^<]/flexres>",tmpstr)){
+				error = 3;
+				break;
+			}
+			if(flexres_filename==NULL) flexres_filename=strdup(tmpstr);
+		}
+		if(line.find("<seed>")==0){
+			if(!sscanf(line.c_str(),"<seed>%d %d %d</seed>",&seed[0],&seed[1],&seed[2])){
+				error = 4;
+				break;
+			}
+		}
+		if(line.find("<list_nr>")==0){
+			if(!sscanf(line.c_str(),"<list_nr>%d</list_nr>",&list_nr)){
+				error = 5;
+				break;
+			}
+		}
+	}
+	if(!grid_found || !ligand_found) error |= 16;
+	if(error){
+		printf("Error: XML file is not in AutoDock-GPU format (error #%d in line %d).\n",error,line_nr);
+		exit(error);
+	}
+}
+
 std::vector<float> read_xml_genomes(
                                     char* xml_filename,
                                     float grid_spacing,
-                                    unsigned int &nrot
+                                    unsigned int &nrot,
+                                    bool store_axisangle
                                    )
 {
 	std::vector<float> result;
@@ -1464,11 +1692,13 @@ std::vector<float> read_xml_genomes(
 					error=9;
 					break;
 				}
-				theta=acos(*(gene+2)/sqrt((*gene)*(*gene)+(*(gene+1))*(*(gene+1))+(*(gene+2))*(*(gene+2))));
-				phi=atan2(*(gene+1),*gene);
-				*gene = phi / DEG_TO_RAD;
-				*(gene+1) = theta / DEG_TO_RAD;
-				*(gene+2) = genrot;
+				if(!store_axisangle){
+					theta=acos(*(gene+2)/sqrt((*gene)*(*gene)+(*(gene+1))*(*(gene+1))+(*(gene+2))*(*(gene+2))));
+					phi=atan2(*(gene+1),*gene);
+					*gene = phi / DEG_TO_RAD;
+					*(gene+1) = theta / DEG_TO_RAD;
+					*(gene+2) = genrot;
+				} else result[run_nr*GENOTYPE_LENGTH_IN_GLOBMEM-1] = genrot;
 				found_genome++;
 			} else{
 				error=10;

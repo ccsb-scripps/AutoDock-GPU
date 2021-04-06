@@ -72,6 +72,9 @@ int setup(
 	//------------------------------------------------------------
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
+		if (strcmp("-xml2dlg", argv[i]) == 0)
+			i+=mypars.xml_files-1; // skip ahead in case there are multiple entries here
+
 		// ----------------------------------
 		// Argument: Use individual maps for CG-G0 instead of the same one
 		if (strcmp("-cgmaps", argv [i]) == 0)
@@ -357,16 +360,18 @@ int setup(
 	get_commandpars(&argc, argv, &(mygrid.spacing), &mypars);
 
 	// command-line specified resname with more than one file
-	if ((orig_resn!=mypars.resname) && (filelist.nfiles>1)){ // add an index to existing name distinguish the files
-		char* tmp = strdup(mypars.resname);
-		char* nrtmp = strdup(std::to_string(i_file+1).c_str());
-		if(mypars.resname) free(mypars.resname);
-		mypars.resname = (char*)malloc((strlen(tmp)+strlen(nrtmp)+2)*sizeof(char));
-		strcpy(mypars.resname, tmp);
-		strcat(mypars.resname,"_");
-		strcat(mypars.resname, nrtmp);
-		free(tmp);
-		free(nrtmp);
+	if (!mypars.xml2dlg){ // if the user specified an xml file, that's the one we want to use
+		if ((orig_resn!=mypars.resname) && (filelist.nfiles>1)){ // add an index to existing name distinguish the files
+			char* tmp = strdup(mypars.resname);
+			char* nrtmp = strdup(std::to_string(i_file+1).c_str());
+			if(mypars.resname) free(mypars.resname);
+			mypars.resname = (char*)malloc((strlen(tmp)+strlen(nrtmp)+2)*sizeof(char));
+			strcpy(mypars.resname, tmp);
+			strcat(mypars.resname,"_");
+			strcat(mypars.resname, nrtmp);
+			free(tmp);
+			free(nrtmp);
+		}
 	}
 
 	Gridinfo mydummygrid;

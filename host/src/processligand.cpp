@@ -1422,7 +1422,7 @@ double calc_rmsd(
 
 	if (myligand_ref->true_ligand_atoms != myligand->true_ligand_atoms)
 	{
-		printf("Warning: RMSD can't be calculated, atom number mismatch!\n");
+		printf("Warning: RMSD can't be calculated, atom number mismatch %d (ref) vs. %d!\n",myligand_ref->true_ligand_atoms,myligand->true_ligand_atoms);
 		return 100000; // returning unreasonable value
 	}
 
@@ -2129,10 +2129,10 @@ float calc_intraE_f(
 
 	float vW, el, desolv;
 
-	vW = 0;
-	el = 0;
-	desolv = 0;
-	interflexE = 0;
+	vW = 0.0f;
+	el = 0.0f;
+	desolv = 0.0f;
+	interflexE = 0.0f;
 	
 	if (debug == 1)
 		printf("\n\n\nINTRAMOLECULAR ENERGY CALCULATION\n\n");
@@ -2178,12 +2178,12 @@ float calc_intraE_f(
 					smoothed_distance = dist - delta_distance;
 				}
 
-				distance_id = (int) floor((100*dist) + 0.5) - 1; // +0.5: rounding, -1: r_xx_table [0] corresponds to r=0.01
+				distance_id = (int) floor((100.0f*dist) + 0.5f) - 1; // +0.5: rounding, -1: r_xx_table [0] corresponds to r=0.01
 				if (distance_id < 0) {
 					distance_id = 0;
 				}
 
-				smoothed_distance_id = (int) floor((100*smoothed_distance) + 0.5) - 1; // +0.5: rounding, -1: r_xx_table [0] corresponds to r=0.01
+				smoothed_distance_id = (int) floor((100.0f*smoothed_distance) + 0.5f) - 1; // +0.5: rounding, -1: r_xx_table [0] corresponds to r=0.01
 				if (smoothed_distance_id < 0) {
 					smoothed_distance_id = 0;
 				}
@@ -2210,12 +2210,11 @@ float calc_intraE_f(
 				if (dist < dcutoff) // but only if the distance is less than distance cutoff value
 				{
 					pair_mod* pm = is_mod_pair(myligand->atom_types[type_id1], myligand->atom_types[type_id2], nr_mod_atype_pairs, mod_atype_pairs);
-					if (tables.is_HB [type_id1][type_id2] && !pm)	//H-bond
+					if (tables.is_HB [type_id1][type_id2] && !pm) //H-bond
 					{
 						vdW1 = myligand->VWpars_C [type_id1][type_id2]*tables.r_12_table [smoothed_distance_id];
 						vdW2 = myligand->VWpars_D [type_id1][type_id2]*tables.r_10_table [smoothed_distance_id];
-						if (debug == 1)
-							printf("H-bond interaction = ");
+						if (debug == 1) printf("H-bond interaction = ");
 					}
 					else // normal van der Waals or mod pair
 					{
@@ -2224,9 +2223,9 @@ float calc_intraE_f(
 						if(pm){
 							int m = (myligand->VWpars_exp [type_id1][type_id2] & 0xFF00) >> 8;
 							int n = (myligand->VWpars_exp [type_id1][type_id2] & 0xFF);
-							float dist = 0.01+smoothed_distance_id*0.01;
-							if(m!=12) r_A = 1/powf(dist,m);
-							if(n!=6) r_B = 1/powf(dist,n);
+							float dist = 0.01f + smoothed_distance_id*0.01f;
+							if(m!=12) r_A = powf(dist,-m);
+							if(n!=6) r_B = powf(dist,-n);
 						}
 						vdW1 = myligand->VWpars_A [type_id1][type_id2]*r_A;
 						vdW2 = myligand->VWpars_B [type_id1][type_id2]*r_B;
