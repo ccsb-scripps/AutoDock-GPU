@@ -379,7 +379,7 @@ int main(int argc, char* argv[])
 			// Post-processing
 #ifdef USE_PIPELINE
 			if(!mypars.xml2dlg){
-				printf ("(Thread %d is processing Job #%d)\n",t_id,i_job+1); fflush(stdout);
+				printf ("(Thread %d is processing Job #%d)\n\n",t_id,i_job+1); fflush(stdout);
 			}
 #endif
 			start_timer(processing_timer);
@@ -418,7 +418,7 @@ int main(int argc, char* argv[])
 	
 #ifndef _WIN32
 	// Total time measurement
-	printf("\nRun time of entire job set (%d file%s): %.3f sec", n_files, n_files>1?"s":"", seconds_since(time_start));
+	printf("Run time of entire job set (%d file%s): %.3f sec", n_files, n_files>1?"s":"", seconds_since(time_start));
 #ifdef USE_PIPELINE
 	if(n_files>1){
 		printf("\nSavings from multithreading: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
