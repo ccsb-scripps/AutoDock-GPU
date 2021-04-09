@@ -1744,7 +1744,8 @@ char* analyze_ligand_receptor(
 		for(unsigned int rid=1; rid<=receptor_list[0]; rid++)
 		{
 			ReceptorAtom curr = receptor_atoms[receptor_list[rid]];
-			double dist2 = (curr.x-x)*(curr.x-x)+(curr.x-x)*(curr.y-y)+(curr.z-z)*(curr.z-z);
+			double dist2 = (curr.x-x)*(curr.x-x)+(curr.y-y)*(curr.y-y)+(curr.z-z)*(curr.z-z);
+			dist2 *= mygrid->spacing*mygrid->spacing;
 			if(is_H_bond(myligand->base_atom_types[atomtypeid],curr.atom_type)){ // HB
 				if(dist2 <= 3.7*3.7){
 					sprintf(line, "ANALYSIS: H: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);

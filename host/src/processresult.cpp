@@ -379,10 +379,11 @@ void make_resfiles(
 			double genotype [ACTUAL_GENOTYPE_LENGTH];
 			for (unsigned int j=0; j<ACTUAL_GENOTYPE_LENGTH; j++)
 				genotype [j] = (final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM)[j];
+			genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1] = (final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM)[GENOTYPE_LENGTH_IN_GLOBMEM-1];
 			axisangle[0] = genotype[3];
 			axisangle[1] = genotype[4];
 			axisangle[2] = genotype[5];
-			axisangle[3] = (final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM)[GENOTYPE_LENGTH_IN_GLOBMEM-1];
+			axisangle[3] = genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1];
 			change_conform(&temp_docked, mygrid, genotype, axisangle, debug);
 		} else{
 			change_conform_f(&temp_docked, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, debug);
@@ -745,13 +746,14 @@ void clusanal_gendlg(
 		fprintf(fp, "Run:   %d / %lu\n", i+1, mypars->num_of_runs);
 		fprintf(fp, "Time taken for this run:   %.3lfs\n\n", docking_avg_runtime);
 
-		fprintf(fp, "DOCKED: MODEL        %d\n", i+1);
 		if(mypars->xml2analyze){
 			if(strlen(myresults[i].analysis)>0){
-				fprintf(fp, "%s", myresults[i].analysis);
+				fprintf(fp, "%s\n", myresults[i].analysis);
 				free(myresults[i].analysis);
 			}
 		}
+
+		fprintf(fp, "DOCKED: MODEL        %d\n", i+1);
 		fprintf(fp, "DOCKED: USER    Run = %d\n", i+1);
 		fprintf(fp, "DOCKED: USER\n");
 

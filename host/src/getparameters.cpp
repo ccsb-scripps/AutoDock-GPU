@@ -152,9 +152,14 @@ int parse_dpf(
 		int line_count = 0;
 		int ltype_nr = 0;
 		int mtype_nr = 0;
-		char ltypes[MAX_NUM_OF_ATYPES][4];
+		// use a 4-times longer runway for atom types definable in one dpf
+		// - this is to allow more reactive types and to enable the strategy
+		//   to define all possible atom types for a set of ligands once for
+		//   performance reasons (as they can be read once)
+		// - each ligand is still going to be limited to MAX_NUM_OF_ATYPES
+		char ltypes[4*MAX_NUM_OF_ATYPES][4];
 		char* typestr;
-		memset(ltypes,0,4*MAX_NUM_OF_ATYPES*sizeof(char));
+		memset(ltypes,0,16*MAX_NUM_OF_ATYPES*sizeof(char));
 		unsigned int idx;
 		pair_mod* curr_pair;
 		float paramA, paramB;
@@ -208,15 +213,21 @@ int parse_dpf(
 								if(len<0){ // new type starts
 									len=i;
 									ltype_nr++;
+									if(ltype_nr>4*MAX_NUM_OF_ATYPES){
+										printf("\nError: Too many atoms types (>%d)defined in the <%s> parameter at %s:%u.\n",4*MAX_NUM_OF_ATYPES,tempstr,mypars->dpffile,line_count);
+										return 1;
+									}
 								}
 								if(i-len<3){
 									ltypes[ltype_nr-1][i-len] = line[i];
+									ltypes[ltype_nr-1][i-len+1] = '\0'; // make extra sure we terminate the string
 								} else{
 									printf("\nError: Atom types are limited to 3 characters in <%s> parameter at %s:%u.\n",tempstr,mypars->dpffile,line_count);
 									return 1;
 								}
 							}
 						}
+						mtype_nr=0;
 						break;
 				case DPF_MAP: // grid map specifier
 						sscanf(line.c_str(),"%*s %255s",argstr);
