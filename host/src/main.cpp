@@ -112,9 +112,16 @@ int main(int argc, char* argv[])
 	}
 #endif
 	if(initial_pars.xml2dlg){
-		printf("Converting %d xml file",n_files);
+		if(initial_pars.xml2analyze)
+			printf("Analyzing ");
+		else
+			printf("Converting ");
+		printf("%d xml file",n_files);
 		if(n_files>1) printf("s");
-		printf(" to dlg\n");
+		if(initial_pars.xml2analyze)
+			printf("\n");
+		else
+			printf(" to dlg\n");
 	} else{
 		printf("Running %d docking calculation",n_files);
 		if(n_files>1) printf("s");
@@ -130,8 +137,9 @@ int main(int argc, char* argv[])
 	// Get device number to run on
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
-		if (strcmp("-xml2dlg", argv[i]) == 0)
+		if ((strcmp("-xml2dlg", argv[i]) == 0) || (strcmp("-xml2analyze", argv[i]) == 0))
 			i+=initial_pars.xml_files-1; // skip ahead in case there are multiple entries here
+		
 		if (strcmp("-devnum", argv [i]) == 0)
 		{
 			unsigned int tempint;
@@ -218,6 +226,23 @@ int main(int argc, char* argv[])
 				mygrid = filelist.mygrids[i_job];
 			}
 			if(mypars.xml2dlg){
+				if(mypars.xml2analyze){
+					if(filelist.used){
+						if(filelist.preload_maps){ // use preloaded data for receptor
+							mypars.receptor_atoms    = initial_pars.receptor_atoms;
+							mypars.nr_receptor_atoms = mypars.receptor_atoms.size();
+							mypars.receptor_map      = initial_pars.receptor_map;
+							mypars.receptor_map_list = initial_pars.receptor_map_list;
+						} else{ // .. or load receptor each time if not possible
+							std::string receptor_name=mygrid.grid_file_path;
+							if(strlen(mygrid.grid_file_path)>0) receptor_name+="/";
+							receptor_name += mygrid.receptor_name;
+							receptor_name += ".pdbqt";
+							mypars.receptor_atoms = read_receptor(receptor_name.c_str(),&mygrid,mypars.receptor_map,mypars.receptor_map_list);
+							mypars.nr_receptor_atoms = mypars.receptor_atoms.size();
+						}
+					}
+				}
 				if(!mypars.dlg2stdout && (n_files>100))
 					if((50*(i_job+1)) % n_files < 50)
 						printf("*"); fflush(stdout);
@@ -363,6 +388,7 @@ int main(int argc, char* argv[])
 			total_processing_time+=seconds_since(processing_timer);
 			if(filelist.used){
 				// Clean up memory dynamically allocated to not leak
+				mypars.receptor_atoms.clear();
 				if(mypars.fldfile) free(mypars.fldfile);
 				if(mypars.ligandfile) free(mypars.ligandfile);
 				if(mypars.flexresfile) free(mypars.flexresfile);
@@ -375,6 +401,7 @@ int main(int argc, char* argv[])
 		} // end of for loop
 		if(!filelist.used){
 			// Clean up memory dynamically allocated to not leak
+			mypars.receptor_atoms.clear();
 			if(mypars.fldfile) free(mypars.fldfile);
 			if(mypars.ligandfile) free(mypars.ligandfile);
 			if(mypars.flexresfile) free(mypars.flexresfile);

@@ -53,6 +53,7 @@ typedef struct
 	int        clus_id;
 	int        clus_subrank;
 	int        run_number;
+	char*      analysis;
 } Ligandresult;
 
 

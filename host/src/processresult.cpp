@@ -329,6 +329,7 @@ void make_resfiles(
 	int len = strlen(mypars->ligandfile) - 6 + 24 + 10 + 10; // length with added bits for things below (numbers below 11 digits should be a safe enough threshold)
 	char* temp_filename = (char*)malloc((len+1)*sizeof(char)); // +\0 at the end
 	char* name_ext_start;
+	char* analysis = NULL;
 	float accurate_interE;
 	float accurate_intraflexE;
 	float accurate_intraE;
@@ -390,24 +391,31 @@ void make_resfiles(
 		// the map interaction of flex res atoms is stored in accurate_intraflexE
 		accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE);	//calculating the intermolecular energy
 
+		if (mypars->xml2analyze){
+			analysis = analyze_ligand_receptor(mygrid, &temp_docked, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, debug);
+		}
+
 		if (i == 0) // additional calculations for ADT-compatible result file, only in case of best conformation
 			calc_interE_peratom_f(mygrid, &temp_docked, grids, 0.0005, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec, debug);
 
 		scale_ligand(&temp_docked, mygrid->spacing);
 		
 		// the interaction between flex res and ligand is stored in accurate_interflexE
-		accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
+		if(mypars->xml2analyze)
+			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs, &analysis, mypars->receptor_atoms.data() + mypars->nr_receptor_atoms);
+		else
+			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
 
-		move_ligand(&temp_docked, mygrid->origo_real_xyz, mygrid->origo_real_xyz);	//moving it according to grid location
+		move_ligand(&temp_docked, mygrid->origo_real_xyz, mygrid->origo_real_xyz); //moving it according to grid location
 
 //		for (unsigned int atom_id=0; atom_id < temp_docked.num_of_atoms; atom_id++)
 //			printf("%i: %lf, %lf, %lf\n", atom_id+1, temp_docked.atom_idxyzq [atom_id][1], temp_docked.atom_idxyzq [atom_id][2], temp_docked.atom_idxyzq [atom_id][3]);
 
 		if (mypars->given_xrayligandfile == true) {
-			entity_rmsds = calc_rmsd(ligand_xray, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original xray file
+			entity_rmsds = calc_rmsd(ligand_xray, &temp_docked, mypars->handle_symmetry); //calculating rmds compared to original xray file
 		}
 		else {
-			entity_rmsds = calc_rmsd(ligand_from_pdb, &temp_docked, mypars->handle_symmetry);	//calculating rmds compared to original pdb file
+			entity_rmsds = calc_rmsd(ligand_from_pdb, &temp_docked, mypars->handle_symmetry); //calculating rmds compared to original pdb file
 		}
 
 		// copying best result to output parameter
@@ -421,6 +429,7 @@ void make_resfiles(
 			best_result->reslig_realcoord = temp_docked;
 			best_result->rmsd_from_ref = entity_rmsds;
 			best_result->run_number = run_cnt+1;
+			if(mypars->xml2analyze) best_result->analysis = analysis;
 		}
 
 		// generating best.pdbqt
@@ -737,6 +746,12 @@ void clusanal_gendlg(
 		fprintf(fp, "Time taken for this run:   %.3lfs\n\n", docking_avg_runtime);
 
 		fprintf(fp, "DOCKED: MODEL        %d\n", i+1);
+		if(mypars->xml2analyze){
+			if(strlen(myresults[i].analysis)>0){
+				fprintf(fp, "%s", myresults[i].analysis);
+				free(myresults[i].analysis);
+			}
+		}
 		fprintf(fp, "DOCKED: USER    Run = %d\n", i+1);
 		fprintf(fp, "DOCKED: USER\n");
 

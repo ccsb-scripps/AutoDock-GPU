@@ -1668,6 +1668,100 @@ void change_conform(
 			printf("Moved point (final values) (x,y,z): %lf, %lf, %lf\n", myligand->atom_idxyzq [atom_id][1], myligand->atom_idxyzq [atom_id][2], myligand->atom_idxyzq [atom_id][3]);
 }
 
+char* analyze_ligand_receptor(
+                              const Gridinfo*     mygrid,
+                              const Liganddata*   myligand,
+                              const ReceptorAtom* receptor_atoms,
+                              const unsigned int* receptor_map,
+                              const unsigned int* receptor_map_list,
+                                    float         outofgrid_tolerance,
+                                    int           debug
+                             )
+// The function performs a simple distance based ligand-receptor analysis
+{
+	int atom_cnt;
+	float x, y, z;
+	int atomtypeid;
+	char line[256];
+	std::string result;
+
+	unsigned int g1 = mygrid->size_xyz[0];
+	unsigned int g2 = g1*mygrid->size_xyz[1];
+
+	const unsigned int* receptor_list;
+
+	for (atom_cnt=0; atom_cnt<myligand->true_ligand_atoms; atom_cnt++) // for each atom
+	{
+		if (myligand->ignore_inter[atom_cnt])
+			continue;
+		atomtypeid = myligand->base_type_idx[(int)myligand->atom_idxyzq [atom_cnt][0]];
+		x = myligand->atom_idxyzq [atom_cnt][1];
+		y = myligand->atom_idxyzq [atom_cnt][2];
+		z = myligand->atom_idxyzq [atom_cnt][3];
+
+		if ((x < 0) || (x >= mygrid->size_xyz [0]-1) ||
+		    (y < 0) || (y >= mygrid->size_xyz [1]-1) ||
+		    (z < 0) || (z >= mygrid->size_xyz [2]-1)) // if the atom is outside of the grid
+		{
+			if (debug == 1)
+			{
+				printf("\n\nPartial results for atom with id %d:\n", atom_cnt);
+				printf("Atom out of grid: ");
+				printf("x= %lf, y = %lf, z = %lf\n", x, y, z);
+			}
+
+			if (outofgrid_tolerance != 0) // if tolerance is set, try to place atom back into the grid
+			{
+				if (x < 0)
+					x += outofgrid_tolerance;
+				if (y < 0)
+					y += outofgrid_tolerance;
+				if (z < 0)
+					z += outofgrid_tolerance;
+				if (x >= mygrid->size_xyz [0]-1)
+					x -= outofgrid_tolerance;
+				if (y >= mygrid->size_xyz [1]-1)
+					y -= outofgrid_tolerance;
+				if (z >= mygrid->size_xyz [2]-1)
+					z -= outofgrid_tolerance;
+			}
+
+			if ((x < 0) || (x >= mygrid->size_xyz [0]-1) ||
+			    (y < 0) || (y >= mygrid->size_xyz [1]-1) ||
+			    (z < 0) || (z >= mygrid->size_xyz [2]-1)) // check again if the atom is outside of the grid
+			{
+				continue;
+			}
+
+			if (debug == 1)
+			{
+				printf("\n\nAtom was placed back into the grid according to the tolerance value %f:\n", outofgrid_tolerance);
+				printf("x= %lf, y = %lf, z = %lf\n", x, y, z);
+			}
+		}
+
+		receptor_list = receptor_map_list + receptor_map[(int)floor(x)  + ((int)floor(y))*g1  + ((int)floor(z))*g2];
+		for(unsigned int rid=1; rid<=receptor_list[0]; rid++)
+		{
+			ReceptorAtom curr = receptor_atoms[receptor_list[rid]];
+			double dist2 = (curr.x-x)*(curr.x-x)+(curr.x-x)*(curr.y-y)+(curr.z-z)*(curr.z-z);
+			if(is_H_bond(myligand->base_atom_types[atomtypeid],curr.atom_type)){ // HB
+				if(dist2 <= 3.7*3.7){
+					sprintf(line, "ANALYSIS: H: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
+					result += line;
+				}
+			} else{ // vdW
+				if(dist2 <= 4.2*4.2){
+					sprintf(line, "ANALYSIS: V: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
+					result += line;
+				}
+			}
+		}
+	}
+	return strdup(result.c_str());
+}
+
+
 float calc_interE_f(
                     const Gridinfo*   mygrid,
                     const Liganddata* myligand,
@@ -2102,24 +2196,25 @@ void calc_interE_peratom_f(
 
 // Corrected host "calc_intraE_f" function after smoothing was added
 float calc_intraE_f(
-                    const Liganddata*  myligand,
-                          float        dcutoff,
-                          float        smooth,
-                          bool         ignore_desolv,
-                    const float        elec_min_distance,
-                          IntraTables& tables,
-                          int          debug,
-                          float&       interflexE,
-                          int          nr_mod_atype_pairs,
-                          pair_mod*    mod_atype_pairs
+                    const Liganddata*   myligand,
+                          float         dcutoff,
+                          float         smooth,
+                          bool          ignore_desolv,
+                    const float         elec_min_distance,
+                          IntraTables&  tables,
+                          int           debug,
+                          float&        interflexE,
+                          int           nr_mod_atype_pairs,
+                          pair_mod*     mod_atype_pairs,
+                          char**        analysis,
+                    const ReceptorAtom* flexres_atoms
                    )
 // The function calculates the intramolecular energy of the ligand given by the first parameter,
 // and returns it as a double. The second parameter is the distance cutoff, if the third isn't 0,
 // desolvation energy won't be included by the energy value, the fourth indicates if messages
 // about partial results are required (if debug=1)
 {
-
-	int atom_id1, atom_id2;
+	int atom_id1, atom_id2, atom_cnt;
 	int type_id1, type_id2;
 	float dist;
 	int distance_id;
@@ -2128,6 +2223,12 @@ float calc_intraE_f(
 	float s1, s2, v1, v2;
 
 	float vW, el, desolv;
+	bool analyze = (analysis!=NULL);
+	bool hbond, a_flex, b_flex;
+	int atomtypeid;
+	char line[256];
+	std::string result;
+	if(analyze) result += *analysis;
 
 	vW = 0.0f;
 	el = 0.0f;
@@ -2139,8 +2240,10 @@ float calc_intraE_f(
 
 	for (atom_id1=0; atom_id1<myligand->num_of_atoms-1; atom_id1++) // for each atom pair
 	{
+		a_flex = (atom_id1>=myligand->true_ligand_atoms);
 		for (atom_id2=atom_id1+1; atom_id2<myligand->num_of_atoms; atom_id2++)
 		{
+			b_flex = (atom_id2>=myligand->true_ligand_atoms);
 			if (myligand->intraE_contributors [atom_id1][atom_id2] == 1) // if they have to be included in intramolecular energy calculation
 			{                                                            // the energy contribution has to be calculated
 				dist = distance(&(myligand->atom_idxyzq [atom_id1][1]), &(myligand->atom_idxyzq [atom_id2][1]));
@@ -2206,10 +2309,10 @@ float calc_intraE_f(
 					/*printf("OpenCL host - calc_intraE_f: CG-G0 pair found!\n");*/
 				}
 				// ------------------------------------------------
-
 				if (dist < dcutoff) // but only if the distance is less than distance cutoff value
 				{
 					pair_mod* pm = is_mod_pair(myligand->atom_types[type_id1], myligand->atom_types[type_id2], nr_mod_atype_pairs, mod_atype_pairs);
+					hbond = tables.is_HB [type_id1][type_id2];
 					if (tables.is_HB [type_id1][type_id2] && !pm) //H-bond
 					{
 						vdW1 = myligand->VWpars_C [type_id1][type_id2]*tables.r_12_table [smoothed_distance_id];
@@ -2236,14 +2339,42 @@ float calc_intraE_f(
 								printf("van der Waals interaction = ");
 						}
 					}
-
-					if (((atom_id1<myligand->true_ligand_atoms) && (atom_id2<myligand->true_ligand_atoms)) ||
-					    ((atom_id1>=myligand->true_ligand_atoms) && (atom_id2>=myligand->true_ligand_atoms))) // if both atoms are of either a ligand or a flex res it's intra
-						vW += vdW1 - vdW2;
-					else
+					if ((a_flex + b_flex) & 1){ // if both atoms are of either a ligand or a flex res it's intra
 						interflexE += vdW1 - vdW2;
+						if (analyze){
+							ReceptorAtom curr;
+							if(a_flex){ // a is flexres, b is ligand
+								atomtypeid = myligand->base_type_idx[type_id2];
+								atom_cnt = atom_id2;
+								curr = flexres_atoms[atom_id1-myligand->true_ligand_atoms];
+							} else{ // a is ligand, b is flexres
+								atomtypeid = myligand->base_type_idx[type_id1];
+								atom_cnt = atom_id1;
+								curr = flexres_atoms[atom_id2-myligand->true_ligand_atoms];
+							}
+							if(pm){ // Reactive
+								if(dist <= 2.1){
+									sprintf(line, "ANALYSIS: R: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
+									result += line;
+								}
+							} else{ // HB or vdW
+								if(hbond){
+									if(dist <= 3.7){
+										sprintf(line, "ANALYSIS: H: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
+										result += line;
+									}
+								} else{
+									if(dist <= 4.2){
+										sprintf(line, "ANALYSIS: V: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
+										result += line;
+									}
+								}
+							}
+						}
+					} else{ // both atoms are on either a ligand xor a flex res
+						vW += vdW1 - vdW2;
+					}
 				}
-
 				if (dist < 20.48)
 				{
 					if(dist<elec_min_distance){
@@ -2259,17 +2390,21 @@ float calc_intraE_f(
 						printf(" %lf, electrostatic = %lf, desolv = %lf\n", (vdW1 - vdW2), tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id],
 							   (s1*v2 + s2*v1) * tables.desolv_table [distance_id]);
 
-
-					if (((atom_id1<myligand->true_ligand_atoms) && (atom_id2<myligand->true_ligand_atoms)) ||
-					    ((atom_id1>=myligand->true_ligand_atoms) && (atom_id2>=myligand->true_ligand_atoms))){ // if both atoms are of either a ligand or a flex res it's intra
+					if ((a_flex + b_flex) & 1){ // if both atoms are of either a ligand or a flex res it's intra
+						interflexE += tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id] +
+						              (s1*v2 + s2*v1) * tables.desolv_table [distance_id];
+					} else{
 						el += tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id];
 						desolv += (s1*v2 + s2*v1) * tables.desolv_table [distance_id];
-					} else
-						interflexE += tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id] +
-							      (s1*v2 + s2*v1) * tables.desolv_table [distance_id];
+					}
 				}
 			}
 		}
+	}
+
+	if(analyze){
+		free(*analysis);
+		*analysis = strdup(result.c_str());
 	}
 
 	if (debug == 1)

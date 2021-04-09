@@ -134,6 +134,19 @@ typedef struct
 	double         rotbonds_unit_vectors   [MAX_NUM_OF_ROTBONDS][3];
 } Liganddata;
 
+// structure to store relevant receptor atom data
+// ATOM      1  N   SER A   1      -2.367   4.481 -16.909  1.00  1.00     0.185 N
+typedef struct
+{
+	unsigned int id;           // 1
+	char         name[5];      // "N"
+	char         res_name[4];  // "SER"
+	char         chain_id[2];  // "A"
+	unsigned int res_id;       // 1
+	float        x,y,z;        // -2.367, 4.481, -16.909
+	char         atom_type[4]; // "N"
+} ReceptorAtom;
+
 int init_liganddata(
                     const char*,
                     const char*,
@@ -249,6 +262,16 @@ void change_conform(
                           int         debug
                    );
 
+char* analyze_ligand_receptor(
+                              const Gridinfo*     mygrid,
+                              const Liganddata*   myligand,
+                              const ReceptorAtom* receptor_atoms,
+                              const unsigned int* receptor_map,
+                              const unsigned int* receptor_map_list,
+                                    float         outofgrid_tolerance,
+                                    int           debug
+                             );
+
 float calc_interE_f(
                     const Gridinfo*   mygrid,
                     const Liganddata* myligand,
@@ -303,16 +326,18 @@ struct IntraTables{
 };
 
 float calc_intraE_f(
-                    const Liganddata*  myligand,
-                          float        dcutoff,
-                          float        smooth,
-                          bool         ignore_desolv,
-                    const float        elec_min_distance,
-                          IntraTables& tables,
-                          int          debug,
-                          float&       interflexE,
-                          int          nr_mod_atype_pairs,
-                          pair_mod*    mod_atype_pairs
+                    const Liganddata*   myligand,
+                          float         dcutoff,
+                          float         smooth,
+                          bool          ignore_desolv,
+                    const float         elec_min_distance,
+                          IntraTables&  tables,
+                          int           debug,
+                          float&        interflexE,
+                          int           nr_mod_atype_pairs,
+                          pair_mod*     mod_atype_pairs,
+                          char**        analysis = NULL,
+                    const ReceptorAtom* flexres_atoms = NULL
                    );
 
 int map_to_all_maps(

@@ -72,7 +72,7 @@ int setup(
 	//------------------------------------------------------------
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
-		if (strcmp("-xml2dlg", argv[i]) == 0)
+		if ((strcmp("-xml2dlg", argv[i]) == 0) || (strcmp("-xml2analyze", argv[i]) == 0))
 			i+=mypars.xml_files-1; // skip ahead in case there are multiple entries here
 
 		// ----------------------------------
@@ -292,6 +292,11 @@ int setup(
 	{
 		printf("\n\nError in get_liganddata, stopped job.");
 		return 1;
+	}
+	
+	if (mypars.xml2analyze && (mypars.flexresfile!=NULL)){
+		std::vector<ReceptorAtom> flexresatoms = read_receptor_atoms(mypars.flexresfile);
+		mypars.receptor_atoms.insert(mypars.receptor_atoms.end(), flexresatoms.begin(), flexresatoms.end());
 	}
 
 	// Resize grid

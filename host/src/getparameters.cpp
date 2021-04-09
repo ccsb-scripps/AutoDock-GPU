@@ -541,9 +541,27 @@ int preparse_dpf(
 		// Argument: load initial data from xml file and reconstruct dlg, then finish
 		if (strcmp("-xml2dlg", argv [i]) == 0)
 		{
+			if(mypars->xml2dlg){
+				printf("\nError: Argument -xml2dlg can only be specified once and is mutually exclusive with -xml2analyze.\n");
+				return 1;
+			}
 			mypars->load_xml = strdup(argv[i+1]);
 			read_more_xml_files = true;
 			mypars->xml2dlg = true;
+			mypars->xml_files = 1;
+		}
+		
+		// Argument: similar to xml2dlg but output distance-based pose analysis instead of dlg
+		if (strcmp("-xml2analyze", argv [i]) == 0)
+		{
+			if(mypars->xml2dlg){
+				printf("\nError: Argument -xml2analyze can only be specified once and is mutually exclusive with -xml2analyze.\n");
+				return 1;
+			}
+			mypars->load_xml = strdup(argv[i+1]);
+			read_more_xml_files = true;
+			mypars->xml2dlg = true;
+			mypars->xml2analyze = true;
 			mypars->xml_files = 1;
 		}
 		
@@ -566,7 +584,11 @@ int preparse_dpf(
 	if(xml_files.size()>0){ // use filelist parameter list in case multiple xml files are converted
 		mypars->xml_files = xml_files.size();
 		if(mypars->xml_files>100){ // output progress bar
-			printf("\nPreparing conversion\n");
+			printf("Preparing ");
+			if(mypars->xml2analyze)
+				printf("analysis\n");
+			else
+				printf("conversion\n");
 			printf("0%%      20%%       40%%       60%%       80%%     100%%\n");
 			printf("---------+---------+---------+---------+---------+\n");
 		}
@@ -621,7 +643,15 @@ int preparse_dpf(
 			filelist.mypars.push_back(*mypars);
 			filelist.mygrids.push_back(*mygrid);
 		}
-		if(mypars->xml_files>100) printf("\n");
+		if(mypars->xml_files>100) printf("\n\n");
+		if(mypars->xml2analyze && filelist.preload_maps){
+			std::string receptor_name=mygrid->grid_file_path;
+			if(strlen(mygrid->grid_file_path)>0) receptor_name+="/";
+			receptor_name += mygrid->receptor_name;
+			receptor_name += ".pdbqt";
+			mypars->receptor_atoms = read_receptor(receptor_name.c_str(),mygrid,mypars->receptor_map,mypars->receptor_map_list);
+			mypars->nr_receptor_atoms = mypars->receptor_atoms.size();
+		}
 		filelist.nfiles = mypars->xml_files;
 	} else{
 		filelist.nfiles = filelist.ligand_files.size();
@@ -1199,6 +1229,13 @@ int get_commandpars(
 			i += mypars->xml_files-1; // skip ahead
 		}
 
+		// Argument: load initial data from xml file and do a distance-based analysis
+		if (strcmp("-xml2analyze", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			i += mypars->xml_files-1; // skip ahead
+		}
+
 		// Argument: print dlg output to stdout instead of to a file
 		if (strcmp("-dlg2stdout", argv [i]) == 0)
 		{
@@ -1517,6 +1554,129 @@ int get_commandpars(
 	}
 	
 	return arg_recognized + (arg_set<<1);
+}
+
+typedef struct{
+	unsigned int atom_id;
+	unsigned int grid_id;
+} atom_and_grid_id;
+
+bool compare_aagid(atom_and_grid_id a, atom_and_grid_id b)
+{
+	return (a.grid_id<b.grid_id);
+}
+
+std::vector<ReceptorAtom> read_receptor_atoms(
+                                              const char* receptor_name
+                                             )
+{
+	std::ifstream file(receptor_name);
+	if(file.fail()){
+		printf("Error: Can't open receptor/flex-res file %s.\n", receptor_name);
+		exit(1);
+	}
+	std::string line;
+	char tempstr[256];
+	std::vector<ReceptorAtom> atoms;
+	ReceptorAtom current;
+	while(std::getline(file, line))
+	{
+		sscanf(line.c_str(),"%255s",tempstr);
+		if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
+		{
+			sscanf(&line.c_str()[30], "%f %f %f", &(current.x), &(current.y), &(current.z));
+			sscanf(&line.c_str()[77], "%3s", current.atom_type);
+			line[27]='\0';
+			sscanf(line.c_str(), "%*s %d %4s %3s %1s %d", &(current.id), current.name, current.res_name, current.chain_id, &(current.res_id));
+			atoms.push_back(current);
+		}
+		if(strcmp(tempstr, "TER") == 0) break;
+	}
+//	printf("%d %s %s %s %d %f %f %f %s\n", current.id, current.name, current.res_name, current.chain_id, current.res_id, current.x, current.y, current.z, current.atom_type);
+	return atoms;
+}
+
+std::vector<ReceptorAtom> read_receptor(
+                                        const char* receptor_name,
+                                        Gridinfo* mygrid,
+                                        unsigned int* &in_reach_map,
+                                        unsigned int* &atom_map_list,
+                                        double cutoff
+                                       )
+{
+	std::vector<ReceptorAtom> atoms = read_receptor_atoms(receptor_name);
+	std::vector<ReceptorAtom> atoms_in_reach;
+	cutoff /= mygrid->spacing; // convert cutoff to grid indices
+	cutoff += 0.5*sqrt(3.0); // add distance to center from edge (longest possible distance to center)
+	double cutoff2 = cutoff*cutoff;
+	unsigned int count;
+	unsigned int g1 = mygrid->size_xyz[0];
+	unsigned int g2 = g1*mygrid->size_xyz[1];
+	std::vector<atom_and_grid_id> atom_and_grid_ids;
+	// go over receptor atoms
+	for (unsigned int i=0; i<atoms.size(); i++){
+		// turn atom coordinates into grid coordinates
+		atoms[i].x -= mygrid->origo_real_xyz[0];
+		atoms[i].y -= mygrid->origo_real_xyz[1];
+		atoms[i].z -= mygrid->origo_real_xyz[2];
+		atoms[i].x /= mygrid->spacing;
+		atoms[i].y /= mygrid->spacing;
+		atoms[i].z /= mygrid->spacing;
+		// find grid boxes that are touched by the cutoff around the atom
+		count=0;
+		for(int z=std::max(0,(int)floor(atoms[i].z-cutoff)); z<std::min(mygrid->size_xyz[2]-1,(int)ceil(atoms[i].z+cutoff)); z++)
+			for(int y=std::max(0,(int)floor(atoms[i].y-cutoff)); y<std::min(mygrid->size_xyz[1]-1,(int)ceil(atoms[i].y+cutoff)); y++)
+				for(int x=std::max(0,(int)floor(atoms[i].x-cutoff)); x<std::min(mygrid->size_xyz[0]-1,(int)ceil(atoms[i].x+cutoff)); x++)
+				{
+					// calculate (square) distance from current grid box center to current receptor atom
+					double dist2 = (atoms[i].x-(x+0.5))*(atoms[i].x-(x+0.5))+
+					               (atoms[i].y-(y+0.5))*(atoms[i].y-(y+0.5))+
+					               (atoms[i].z-(z+0.5))*(atoms[i].z-(z+0.5));
+					if(dist2<=cutoff2){ // we're within the cutoff + longest distance to center
+						atom_and_grid_id aagid;
+						aagid.atom_id = atoms_in_reach.size(); aagid.grid_id = x  + y*g1  + z*g2;
+						atom_and_grid_ids.push_back(aagid);
+						count++;
+					}
+				}
+		if(count==0) continue; // atom is not within reach of any grid spaces -- moving on
+		atoms_in_reach.push_back(atoms[i]);
+	}
+	// sort so we can assign index list for atoms_in_reach to grid map
+	std::sort(atom_and_grid_ids.begin(), atom_and_grid_ids.end(), compare_aagid);
+	in_reach_map = (unsigned int*)malloc(sizeof(unsigned int)*
+	                                     (mygrid->size_xyz[0])*
+	                                     (mygrid->size_xyz[1])*
+	                                     (mygrid->size_xyz[2]));
+	memset(in_reach_map,0,sizeof(unsigned int)*
+	                      (mygrid->size_xyz[0])*
+	                      (mygrid->size_xyz[1])*
+	                      (mygrid->size_xyz[2]));
+	unsigned int current_gid=atom_and_grid_ids[0].grid_id;
+	unsigned count_idx=0;
+	in_reach_map[current_gid]=count_idx;
+	count = 0;
+	std::vector<unsigned int> folded_atom_list;
+	folded_atom_list.push_back(0); // placeholder to be filled with the number of atoms
+	unsigned int grid_boxes=1;
+	for(unsigned int i=0; i<atom_and_grid_ids.size(); i++){
+		if(current_gid!=atom_and_grid_ids[i].grid_id){ // new grid box
+			current_gid = atom_and_grid_ids[i].grid_id;
+			folded_atom_list[count_idx] = count; // fill in the current counts
+			count_idx = folded_atom_list.size(); // new idx pointing to counter (start of atom list) for map
+			folded_atom_list.push_back(0); // to be filled out when we know the counts
+			in_reach_map[current_gid]=count_idx;
+			count = 0; // reset counter for this box
+			grid_boxes++;
+		}
+		folded_atom_list.push_back(atom_and_grid_ids[i].atom_id);
+		count++;
+	}
+	folded_atom_list[count_idx] = count; // last one needs to be taken care of
+	atom_map_list = (unsigned int*)malloc(sizeof(unsigned int)*folded_atom_list.size());
+	memcpy(atom_map_list, folded_atom_list.data(), sizeof(unsigned int)*folded_atom_list.size());
+//	printf("total: %d atoms in %d grid boxes\n", folded_atom_list.size(), grid_boxes);
+	return atoms_in_reach;
 }
 
 void read_xml_filenames(
