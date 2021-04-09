@@ -177,7 +177,7 @@ int prepare_const_fields_for_gpu(
 			floatpoi = reqm_AB + i*myligand_reference->num_of_atypes + j;
 			*floatpoi = (float) myligand_reference->reqm_AB[i][j];
 
-			if ((is_H_bond(myligand_reference->base_atom_types[i], myligand_reference->base_atom_types[j]) != 0) &&
+			if (is_H_bond(myligand_reference->base_atom_types[i], myligand_reference->base_atom_types[j]) &&
 			    (!is_mod_pair(myligand_reference->atom_types[i], myligand_reference->atom_types[j], mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs)))
 			{
 				floatpoi = VWpars_AC + i*myligand_reference->num_of_atypes + j;

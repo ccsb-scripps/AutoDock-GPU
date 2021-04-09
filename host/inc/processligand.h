@@ -212,7 +212,12 @@ double calc_rmsd(const Liganddata*, const Liganddata*, const bool);
 
 double calc_ddd_Mehler_Solmajer(double);
 
-int is_H_bond(const char*, const char*);
+bool is_H_acceptor(const char* atype);
+
+bool is_H_bond(
+               const char* atype1,
+               const char* atype2
+              );
 
 void print_ref_lig_energies_f(
                                     Liganddata,

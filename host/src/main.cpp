@@ -247,8 +247,8 @@ int main(int argc, char* argv[])
 					if((50*(i_job+1)) % n_files < 50)
 						printf("*"); fflush(stdout);
 			} else{
-				printf ("(Thread %d is setting up Job #%d)\n",t_id,i_job+1); fflush(stdout);
 #ifdef USE_PIPELINE
+				printf ("(Thread %d is setting up Job #%d)\n",t_id,i_job+1); fflush(stdout);
 				#pragma omp critical
 #endif
 				{
@@ -377,9 +377,11 @@ int main(int argc, char* argv[])
 			}
 
 			// Post-processing
+#ifdef USE_PIPELINE
 			if(!mypars.xml2dlg){
 				printf ("(Thread %d is processing Job #%d)\n",t_id,i_job+1); fflush(stdout);
 			}
+#endif
 			start_timer(processing_timer);
 			process_result(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), &argc,argv, sim_state);
 #ifdef USE_PIPELINE

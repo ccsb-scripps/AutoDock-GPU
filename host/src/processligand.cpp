@@ -901,7 +901,7 @@ int get_VWpars(
 
 			myligand->VWpars_exp  [atom_typeid1][atom_typeid2] = (12 << 8) + 6; // shift first exponent right by 8 bit
 			// calculating van der Waals parameters
-			if (is_H_bond(myligand->base_atom_types [atom_typeid1], myligand->base_atom_types [atom_typeid2]) != 0)
+			if (is_H_bond(myligand->base_atom_types [atom_typeid1], myligand->base_atom_types [atom_typeid2]))
 			{
 				eps12 = AD4_coeff_hb * eps_hbond [VWid_atype1] * eps_hbond [VWid_atype2]; // The hydrogen's eps is 1, doesn't change the value...
 				reqm12 = reqm_hbond [VWid_atype1] + reqm_hbond [VWid_atype2]; // The hydrogen's is 0, doesn't change the value...
@@ -1474,28 +1474,32 @@ double calc_ddd_Mehler_Solmajer(double distance)
     return epsilon;
 }
 
-int is_H_bond(const char* atype1, const char* atype2)
-// Returns 1 if a H-bond can exist between the atoms with atom code atype1 and atype2,
-// otherwise it returns 0.
+bool is_H_acceptor(const char* atype)
 {
-	if  ( // H-bond
-	        (((strcmp(atype1, "HD") == 0) || (strcmp(atype1, "HS") == 0)) && // HD or HS
-	        ( (strcmp(atype2, "NA") == 0) ||
-	          (strcmp(atype2, "NS") == 0) ||
-	          (strcmp(atype2, "OA") == 0) ||
-	          (strcmp(atype2, "OS") == 0) ||
-	          (strcmp(atype2, "SA") == 0) ))                // NA NS OA OS or SA
-	        ||
-	        (((strcmp(atype2, "HD") == 0) || (strcmp(atype2, "HS") == 0)) && // HD or HS
-	        ( (strcmp(atype1, "NA") == 0) ||
-	          (strcmp(atype1, "NS") == 0) ||
-	          (strcmp(atype1, "OA") == 0) ||
-	          (strcmp(atype1, "OS") == 0) ||
-	          (strcmp(atype1, "SA") == 0) ))                // NA NS OA OS or SA
-	        )
-		return 1;
+	return ((strcmp(atype, "NA") == 0) ||
+	        (strcmp(atype, "NS") == 0) ||
+	        (strcmp(atype, "OA") == 0) ||
+	        (strcmp(atype, "OS") == 0) ||
+	        (strcmp(atype, "SA") == 0) ); // NA NS OA OS or SA are all acceptors
+}
+
+bool is_H_bond(
+               const char* atype1,
+               const char* atype2
+              )
+// Returns True if a H-bond can exist between the atoms with atom code atype1 and atype2,
+// otherwise it returns False.
+{
+	if ( // H-bond
+	    (((strcmp(atype1, "HD") == 0) || (strcmp(atype1, "HS") == 0)) && // HD or HS
+	              is_H_acceptor(atype2))
+	    ||
+	    (((strcmp(atype2, "HD") == 0) || (strcmp(atype2, "HS") == 0)) && // HD or HS
+	              is_H_acceptor(atype1))
+	   )
+		return true;
 	else
-		return 0;
+		return false;
 }
 
 void print_ref_lig_energies_f(
