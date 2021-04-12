@@ -589,12 +589,21 @@ int get_bonds(Liganddata* myligand)
 	
 	memset(myligand->bonds,0,MAX_NUM_OF_ATOMS*MAX_NUM_OF_ATOMS*sizeof(char));
 
+	bool is_HD1, is_HD2;
+	memset(myligand->donor,0,MAX_NUM_OF_ATOMS*sizeof(bool));
+	double HD_dists[MAX_NUM_OF_ATOMS];
+	int HD_ids[MAX_NUM_OF_ATOMS];
+	memset(HD_ids,0xFF,MAX_NUM_OF_ATOMS*sizeof(int));
+
 	for (atom_id1=0; atom_id1 < myligand->num_of_atoms-1; atom_id1++)
 	{
 		atom_typeid1 = myligand->atom_idxyzq[atom_id1][0];
+		myligand->acceptor[atom_id1] = is_H_acceptor(myligand->base_atom_types[atom_typeid1]);
+		is_HD1=(strcmp(myligand->base_atom_types[atom_typeid1],"HD")==0);
 		for (atom_id2=atom_id1+1; atom_id2 < myligand->num_of_atoms; atom_id2++)
 		{
 			atom_typeid2 = myligand->atom_idxyzq[atom_id2][0];
+			is_HD2=(strcmp(myligand->base_atom_types[atom_typeid2],"HD")==0);
 			temp_point1[0] = myligand->atom_idxyzq[atom_id1][1];
 			temp_point1[1] = myligand->atom_idxyzq[atom_id1][2];
 			temp_point1[2] = myligand->atom_idxyzq[atom_id1][3];
@@ -654,6 +663,18 @@ int get_bonds(Liganddata* myligand)
 				{
 					myligand->bonds [atom_id1][atom_id2] = 1;
 					myligand->bonds [atom_id2][atom_id1] = 1;
+					if(is_HD1 || is_HD2){ // closest O,N,S is going to be an H-bond donor
+						unsigned int HD_id = is_HD1 ? atom_id1 : atom_id2;
+						unsigned int heavy_id = is_HD1 ? atom_id2 : atom_id1;
+						char heavy=myligand->base_atom_types[is_HD1 ? atom_typeid2 : atom_typeid1][0];
+						if((heavy=='O') || (heavy=='N') || (heavy=='S')){
+							if((HD_ids[HD_id]<0) ||
+							   ((HD_ids[HD_id]>=0) && (temp_dist<HD_dists[HD_id]))){
+								HD_ids[HD_id] = heavy_id;
+								HD_dists[HD_id] = temp_dist;
+							}
+						}
+					}
 				}
 				else if ((atom_nameid1 == CG_nameid) && (atom_nameid2 == CG_nameid) && // two CG atoms
 					 (strcmp(myligand->base_atom_types[atom_typeid1]+2,myligand->base_atom_types[atom_typeid2]+2) == 0)) // and matching numbers
@@ -666,6 +687,12 @@ int get_bonds(Liganddata* myligand)
 					}
 		} // inner for-loop
 	} // outer for-loop
+
+	for(unsigned int i=0; i<myligand->num_of_atoms; i++){
+		if(HD_ids[i]>=0)
+			myligand->donor[i]=true;
+		else if(strcmp(myligand->base_atom_types[(int)(myligand->atom_idxyzq[i][0])],"HD")==0) myligand->donor[i]=true;
+	}
 
 	return 0;
 }
@@ -1750,7 +1777,8 @@ char* analyze_ligand_receptor(
 			ReceptorAtom curr = receptor_atoms[receptor_list[rid]];
 			double dist2 = (curr.x-x)*(curr.x-x)+(curr.y-y)*(curr.y-y)+(curr.z-z)*(curr.z-z);
 			dist2 *= mygrid->spacing*mygrid->spacing;
-			if(is_H_bond(myligand->base_atom_types[atomtypeid],curr.atom_type)){ // HB
+			if((myligand->acceptor[atom_cnt] && curr.donor) ||
+			   (myligand->donor[atom_cnt] && curr.acceptor)){
 				if(dist2 <= 3.7*3.7){
 					sprintf(line, "ANALYSIS: H: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
 					result += line;
@@ -2363,7 +2391,8 @@ float calc_intraE_f(
 									result += line;
 								}
 							} else{ // HB or vdW
-								if(hbond){
+								if((myligand->acceptor[atom_cnt] && curr.donor) ||
+								   (myligand->donor[atom_cnt] && curr.acceptor)){
 									if(dist <= 3.7){
 										sprintf(line, "ANALYSIS: H: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
 										result += line;

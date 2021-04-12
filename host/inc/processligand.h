@@ -132,6 +132,9 @@ typedef struct
 //                                 it is necessary.
 	double         rotbonds_moving_vectors [MAX_NUM_OF_ROTBONDS][3];
 	double         rotbonds_unit_vectors   [MAX_NUM_OF_ROTBONDS][3];
+// acceptor, donor indicates if a given atom is a Hydrogen acceptor or donor
+	bool           acceptor                [MAX_NUM_OF_ATOMS];
+	bool           donor                   [MAX_NUM_OF_ATOMS];
 } Liganddata;
 
 // structure to store relevant receptor atom data
@@ -145,6 +148,8 @@ typedef struct
 	unsigned int res_id;       // 1
 	float        x,y,z;        // -2.367, 4.481, -16.909
 	char         atom_type[4]; // "N"
+	bool         acceptor;
+	bool         donor;
 } ReceptorAtom;
 
 int init_liganddata(

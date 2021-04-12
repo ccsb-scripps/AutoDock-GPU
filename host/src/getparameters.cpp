@@ -1589,6 +1589,7 @@ std::vector<ReceptorAtom> read_receptor_atoms(
 	std::string line;
 	char tempstr[256];
 	std::vector<ReceptorAtom> atoms;
+	std::vector<unsigned int> HD_ids, heavy_ids;
 	ReceptorAtom current;
 	while(std::getline(file, line))
 	{
@@ -1599,9 +1600,36 @@ std::vector<ReceptorAtom> read_receptor_atoms(
 			sscanf(&line.c_str()[77], "%3s", current.atom_type);
 			line[27]='\0';
 			sscanf(line.c_str(), "%*s %d %4s %3s %1s %d", &(current.id), current.name, current.res_name, current.chain_id, &(current.res_id));
+			current.acceptor = is_H_acceptor(current.atom_type);
+			current.donor = false;
+			if(strcmp(current.atom_type,"HD")==0) HD_ids.push_back(atoms.size());
+			char heavy=current.atom_type[0];
+			if((heavy=='O') || (heavy=='N') || (heavy=='S')) heavy_ids.push_back(atoms.size());
 			atoms.push_back(current);
 		}
 		if(strcmp(tempstr, "TER") == 0) break;
+	}
+	ReceptorAtom heavy, HD;
+	for(unsigned int i=0; i<HD_ids.size(); i++){
+		HD=atoms[HD_ids[i]];
+		double mindist2=100.0;
+		int heavy_id=-1;
+		for(unsigned int j=0; j<heavy_ids.size(); j++){
+			heavy=atoms[heavy_ids[j]];
+			double dist2 = (heavy.x-HD.x)*(heavy.x-HD.x)+(heavy.y-HD.y)*(heavy.y-HD.y)+(heavy.z-HD.z)*(heavy.z-HD.z);
+			if(dist2<mindist2){
+				if((heavy.atom_type[0]=='N' && dist2<=1.041*1.041) ||
+				   (heavy.atom_type[0]=='O' && dist2<=1.0289*1.0289) ||
+				   (heavy.atom_type[0]=='S' && dist2<=1.3455*1.3455)){
+					mindist2=dist2;
+					heavy_id=heavy_ids[j];
+				}
+			}
+		}
+		if(heavy_id>=0)
+			atoms[heavy_id].donor=true;
+		else
+			atoms[HD_ids[i]].donor=true;
 	}
 //	printf("%d %s %s %s %d %f %f %f %s\n", current.id, current.name, current.res_name, current.chain_id, current.res_id, current.x, current.y, current.z, current.atom_type);
 	return atoms;
