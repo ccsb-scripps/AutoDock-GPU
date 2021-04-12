@@ -127,6 +127,7 @@ int main(int argc, char* argv[])
 		if(n_files>1) printf("s");
 		printf("\n");
 	}
+	printf("\n");
 	int pl_gridsize = preload_gridsize(filelist);
 
 	// Setup master map set (one for now, nthreads-1 for general case)
@@ -418,7 +419,7 @@ int main(int argc, char* argv[])
 	
 #ifndef _WIN32
 	// Total time measurement
-	printf("\nRun time of entire job set (%d file%s): %.3f sec", n_files, n_files>1?"s":"", seconds_since(time_start));
+	printf("Run time of entire job set (%d file%s): %.3f sec", n_files, n_files>1?"s":"", seconds_since(time_start));
 #ifdef USE_PIPELINE
 	if(n_files>1){
 		printf("\nSavings from multithreading: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
