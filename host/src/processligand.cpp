@@ -1784,7 +1784,7 @@ char* analyze_ligand_receptor(
 					result += line;
 				}
 			} else{ // vdW
-				if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr.atom_type[0]=='H') &&
+				if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr.atom_type[0]!='H') &&
 				   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&
 				   !curr.acceptor && !curr.donor){
 					if(dist2 <= 4.2*4.2){
@@ -2402,7 +2402,7 @@ float calc_intraE_f(
 										result += line;
 									}
 								} else{
-									if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr.atom_type[0]=='H') &&
+									if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr.atom_type[0]!='H') &&
 									   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&
 									   !curr.acceptor && !curr.donor){
 										if(dist <= 4.2){
