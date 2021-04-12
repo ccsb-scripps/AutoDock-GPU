@@ -1784,7 +1784,8 @@ char* analyze_ligand_receptor(
 					result += line;
 				}
 			} else{ // vdW
-				if(!myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&
+				if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr.atom_type[0]=='H') &&
+				   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&
 				   !curr.acceptor && !curr.donor){
 					if(dist2 <= 4.2*4.2){
 						sprintf(line, "ANALYSIS: V: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
@@ -2401,7 +2402,8 @@ float calc_intraE_f(
 										result += line;
 									}
 								} else{
-									if(!myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&
+									if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr.atom_type[0]=='H') &&
+									   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&
 									   !curr.acceptor && !curr.donor){
 										if(dist <= 4.2){
 											sprintf(line, "ANALYSIS: V: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
