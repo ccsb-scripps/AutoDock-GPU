@@ -415,7 +415,7 @@ int main(int argc, char* argv[])
 			if(mygrid.map_base_name) free(mygrid.map_base_name);
 		}
 	} // end of parallel section
-	if(initial_pars.xml2dlg && !initial_pars.dlg2stdout && (n_files>100)) printf("\n"); // finish progress bar
+	if(initial_pars.xml2dlg && !initial_pars.dlg2stdout && (n_files>100)) printf("\n\n"); // finish progress bar
 	
 #ifndef _WIN32
 	// Total time measurement

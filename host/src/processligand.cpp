@@ -1699,27 +1699,28 @@ void change_conform(
 			printf("Moved point (final values) (x,y,z): %lf, %lf, %lf\n", myligand->atom_idxyzq [atom_id][1], myligand->atom_idxyzq [atom_id][2], myligand->atom_idxyzq [atom_id][3]);
 }
 
-char* analyze_ligand_receptor(
-                              const Gridinfo*     mygrid,
-                              const Liganddata*   myligand,
-                              const ReceptorAtom* receptor_atoms,
-                              const unsigned int* receptor_map,
-                              const unsigned int* receptor_map_list,
-                                    float         outofgrid_tolerance,
-                                    int           debug
-                             )
+std::vector<AnalysisData> analyze_ligand_receptor(
+                                                  const Gridinfo*     mygrid,
+                                                  const Liganddata*   myligand,
+                                                  const ReceptorAtom* receptor_atoms,
+                                                  const unsigned int* receptor_map,
+                                                  const unsigned int* receptor_map_list,
+                                                        float         outofgrid_tolerance,
+                                                        int           debug
+                                                 )
 // The function performs a simple distance based ligand-receptor analysis
 {
 	int atom_cnt;
 	float x, y, z;
 	int atomtypeid;
 	char line[256];
-	std::string result;
+	std::vector<AnalysisData> result;
 
 	unsigned int g1 = mygrid->size_xyz[0];
 	unsigned int g2 = g1*mygrid->size_xyz[1];
 
 	const unsigned int* receptor_list;
+	AnalysisData datum;
 
 	for (atom_cnt=0; atom_cnt<myligand->true_ligand_atoms; atom_cnt++) // for each atom
 	{
@@ -1774,28 +1775,42 @@ char* analyze_ligand_receptor(
 		receptor_list = receptor_map_list + receptor_map[(int)floor(x)  + ((int)floor(y))*g1  + ((int)floor(z))*g2];
 		for(unsigned int rid=1; rid<=receptor_list[0]; rid++)
 		{
-			ReceptorAtom curr = receptor_atoms[receptor_list[rid]];
-			double dist2 = (curr.x-x)*(curr.x-x)+(curr.y-y)*(curr.y-y)+(curr.z-z)*(curr.z-z);
+			const ReceptorAtom* curr = &receptor_atoms[receptor_list[rid]];
+			double dist2 = (curr->x-x)*(curr->x-x)+(curr->y-y)*(curr->y-y)+(curr->z-z)*(curr->z-z);
 			dist2 *= mygrid->spacing*mygrid->spacing;
-			if((myligand->acceptor[atom_cnt] && curr.donor) ||
-			   (myligand->donor[atom_cnt] && curr.acceptor)){
+			if((myligand->acceptor[atom_cnt] && curr->donor) ||
+			   (myligand->donor[atom_cnt] && curr->acceptor)){
 				if(dist2 <= 3.7*3.7){
-					sprintf(line, "ANALYSIS: H: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
-					result += line;
+					datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+					datum.lig_id   = atom_cnt;
+					datum.lig_name = myligand->base_atom_types[atomtypeid];
+					datum.rec_id   = curr->id;
+					datum.rec_name = curr->name;
+					datum.residue  = curr->res_name;
+					datum.res_id   = curr->res_id;
+					datum.chain    = curr->chain_id;
+					result.push_back(datum);
 				}
 			} else{ // vdW
-				if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr.atom_type[0]!='H') &&
-				   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&
-				   !curr.acceptor && !curr.donor){
+				if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr->atom_type[0]!='H') && // exclude Hydrogens,
+				   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&                  // non-H-bond capable atoms on ligand
+				   !curr->acceptor && !curr->donor){                                               // ... and receptor
 					if(dist2 <= 4.2*4.2){
-						sprintf(line, "ANALYSIS: V: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
-						result += line;
+						datum.type     = 2; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+						datum.lig_id   = atom_cnt;
+						datum.lig_name = myligand->base_atom_types[atomtypeid];
+						datum.rec_id   = curr->id;
+						datum.rec_name = curr->name;
+						datum.residue  = curr->res_name;
+						datum.res_id   = curr->res_id;
+						datum.chain    = curr->chain_id;
+						result.push_back(datum);
 					}
 				}
 			}
 		}
 	}
-	return strdup(result.c_str());
+	return result;
 }
 
 
@@ -2233,18 +2248,18 @@ void calc_interE_peratom_f(
 
 // Corrected host "calc_intraE_f" function after smoothing was added
 float calc_intraE_f(
-                    const Liganddata*   myligand,
-                          float         dcutoff,
-                          float         smooth,
-                          bool          ignore_desolv,
-                    const float         elec_min_distance,
-                          IntraTables&  tables,
-                          int           debug,
-                          float&        interflexE,
-                          int           nr_mod_atype_pairs,
-                          pair_mod*     mod_atype_pairs,
-                          char**        analysis,
-                    const ReceptorAtom* flexres_atoms
+                    const Liganddata*               myligand,
+                          float                     dcutoff,
+                          float                     smooth,
+                          bool                      ignore_desolv,
+                    const float                     elec_min_distance,
+                          IntraTables&              tables,
+                          int                       debug,
+                          float&                    interflexE,
+                          int                       nr_mod_atype_pairs,
+                          pair_mod*                 mod_atype_pairs,
+                          std::vector<AnalysisData> *analysis,
+                    const ReceptorAtom*             flexres_atoms
                    )
 // The function calculates the intramolecular energy of the ligand given by the first parameter,
 // and returns it as a double. The second parameter is the distance cutoff, if the third isn't 0,
@@ -2263,9 +2278,7 @@ float calc_intraE_f(
 	bool analyze = (analysis!=NULL);
 	bool hbond, a_flex, b_flex;
 	int atomtypeid;
-	char line[256];
-	std::string result;
-	if(analyze) result += *analysis;
+	AnalysisData datum;
 
 	vW = 0.0f;
 	el = 0.0f;
@@ -2379,35 +2392,56 @@ float calc_intraE_f(
 					if ((a_flex + b_flex) & 1){ // if both atoms are of either a ligand or a flex res it's intra
 						interflexE += vdW1 - vdW2;
 						if (analyze){
-							ReceptorAtom curr;
+							const ReceptorAtom* curr;
 							if(a_flex){ // a is flexres, b is ligand
 								atomtypeid = myligand->base_type_idx[type_id2];
 								atom_cnt = atom_id2;
-								curr = flexres_atoms[atom_id1-myligand->true_ligand_atoms];
+								curr = &flexres_atoms[atom_id1-myligand->true_ligand_atoms];
 							} else{ // a is ligand, b is flexres
 								atomtypeid = myligand->base_type_idx[type_id1];
 								atom_cnt = atom_id1;
-								curr = flexres_atoms[atom_id2-myligand->true_ligand_atoms];
+								curr = &flexres_atoms[atom_id2-myligand->true_ligand_atoms];
 							}
 							if(pm){ // Reactive
 								if(dist <= 2.1){
-									sprintf(line, "ANALYSIS: R: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
-									result += line;
+									datum.type     = 0; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+									datum.lig_id   = atom_cnt;
+									datum.lig_name = myligand->base_atom_types[atomtypeid];
+									datum.rec_id   = curr->id;
+									datum.rec_name = curr->name;
+									datum.residue  = curr->res_name;
+									datum.res_id   = curr->res_id;
+									datum.chain    = curr->chain_id;
+									analysis->push_back(datum);
 								}
 							} else{ // HB or vdW
-								if((myligand->acceptor[atom_cnt] && curr.donor) ||
-								   (myligand->donor[atom_cnt] && curr.acceptor)){
+								if((myligand->acceptor[atom_cnt] && curr->donor) ||
+								   (myligand->donor[atom_cnt] && curr->acceptor)){
 									if(dist <= 3.7){
-										sprintf(line, "ANALYSIS: H: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
-										result += line;
+										datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+										datum.lig_id   = atom_cnt;
+										datum.lig_name = myligand->base_atom_types[atomtypeid];
+										datum.rec_id   = curr->id;
+										datum.rec_name = curr->name;
+										datum.residue  = curr->res_name;
+										datum.res_id   = curr->res_id;
+										datum.chain    = curr->chain_id;
+										analysis->push_back(datum);
 									}
 								} else{
-									if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr.atom_type[0]!='H') &&
-									   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&
-									   !curr.acceptor && !curr.donor){
+									if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr->atom_type[0]!='H') && // exclude Hydrogens,
+									   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&                  // non-H-bond capable atoms on ligand,
+									   !curr->acceptor && !curr->donor){                                               // as well as flexres
 										if(dist <= 4.2){
-											sprintf(line, "ANALYSIS: V: %d %s <-> %s:%d (%d %s)\n", atom_cnt+1, myligand->base_atom_types[atomtypeid], curr.res_name, curr.res_id, curr.id, curr.name);
-											result += line;
+											datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+											datum.lig_id   = atom_cnt;
+											datum.lig_name = myligand->base_atom_types[atomtypeid];
+											datum.rec_id   = curr->id;
+											datum.rec_name = curr->name;
+											datum.residue  = curr->res_name;
+											datum.res_id   = curr->res_id;
+											datum.chain    = curr->chain_id;
+											analysis->push_back(datum);
 										}
 									}
 								}
@@ -2442,11 +2476,6 @@ float calc_intraE_f(
 				}
 			}
 		}
-	}
-
-	if(analyze){
-		free(*analysis);
-		*analysis = strdup(result.c_str());
 	}
 
 	if (debug == 1)

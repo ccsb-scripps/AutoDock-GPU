@@ -39,21 +39,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 typedef struct
 {
-	float*     genotype; // a pointer here is sufficient and saves lots of memory copies
-	Liganddata reslig_realcoord;
-	float      interE;
-	float      interflexE;
-	float      interE_elec;
-	float      intraE;
-	float      intraflexE;
-	float      peratom_vdw  [MAX_NUM_OF_ATOMS];
-	float      peratom_elec [MAX_NUM_OF_ATOMS];
-	float      rmsd_from_ref;
-	float      rmsd_from_cluscent;
-	int        clus_id;
-	int        clus_subrank;
-	int        run_number;
-	char*      analysis;
+	float*                    genotype; // a pointer here is sufficient and saves lots of memory copies
+	Liganddata                reslig_realcoord;
+	float                     interE;
+	float                     interflexE;
+	float                     interE_elec;
+	float                     intraE;
+	float                     intraflexE;
+	float                     peratom_vdw  [MAX_NUM_OF_ATOMS];
+	float                     peratom_elec [MAX_NUM_OF_ATOMS];
+	float                     rmsd_from_ref;
+	float                     rmsd_from_cluscent;
+	int                       clus_id;
+	int                       clus_subrank;
+	int                       run_number;
+	std::vector<AnalysisData> analysis;
 } Ligandresult;
 
 

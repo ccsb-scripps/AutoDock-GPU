@@ -329,7 +329,7 @@ void make_resfiles(
 	int len = strlen(mypars->ligandfile) - 6 + 24 + 10 + 10; // length with added bits for things below (numbers below 11 digits should be a safe enough threshold)
 	char* temp_filename = (char*)malloc((len+1)*sizeof(char)); // +\0 at the end
 	char* name_ext_start;
-	char* analysis = NULL;
+	std::vector<AnalysisData> analysis;
 	float accurate_interE;
 	float accurate_intraflexE;
 	float accurate_intraE;
@@ -747,9 +747,62 @@ void clusanal_gendlg(
 		fprintf(fp, "Time taken for this run:   %.3lfs\n\n", docking_avg_runtime);
 
 		if(mypars->xml2analyze){
-			if(strlen(myresults[i].analysis)>0){
-				fprintf(fp, "%s\n", myresults[i].analysis);
-				free(myresults[i].analysis);
+			if(myresults[i].analysis.size()>0){
+				// sort by analysis type
+				AnalysisData temp;
+				for(unsigned int j=0; j<myresults[i].analysis.size(); j++)
+					for(unsigned int k=0; k<myresults[i].analysis.size()-j-1; k++)
+						if(myresults[i].analysis[k].type>myresults[i].analysis[k+1].type){
+							temp = myresults[i].analysis[k];
+							myresults[i].analysis[k]   = myresults[i].analysis[k+1];
+							myresults[i].analysis[k+1] = temp;
+						}
+				fprintf(fp, "ANALYSIS: COUNT %d\n", myresults[i].analysis.size());
+				std::string types    = "TYPE    {";
+				std::string lig_id   = "LIGID   {";
+				std::string ligname  = "LIGNAME {";
+				std::string rec_id   = "RECID   {";
+				std::string rec_name = "RECNAME {";
+				std::string residue  = "RESIDUE {";
+				std::string res_id   = "RESID   {";
+				std::string chain    = "CHAIN   {";
+				char item[8], pad[8];
+				for(unsigned int j=0; j<myresults[i].analysis.size(); j++){
+					if(j>0){
+						types    += ",";
+						lig_id   += ",";
+						ligname  += ",";
+						rec_id   += ",";
+						rec_name += ",";
+						residue  += ",";
+						res_id   += ",";
+						chain    += ",";
+					}
+					switch(myresults[i].analysis[j].type){
+						case 0: types += "   'R'";
+						        break;
+						case 1: types += "   'H'";
+						        break;
+						default:
+						case 2: types += "   'V'";
+						        break;
+					}
+					sprintf(item, "%5d ", myresults[i].analysis[j].lig_id);   lig_id+=item;
+					sprintf(item, "'%s'", myresults[i].analysis[j].lig_name); sprintf(pad, "%6s", item); ligname+=pad;
+					sprintf(item, "%5d ", myresults[i].analysis[j].rec_id);   rec_id+=item;
+					sprintf(item, "'%s'", myresults[i].analysis[j].rec_name); sprintf(pad, "%6s", item); rec_name+=pad;
+					sprintf(item, "'%s'", myresults[i].analysis[j].residue); sprintf(pad, "%6s", item);  residue+=pad;
+					sprintf(item, "%5d ", myresults[i].analysis[j].res_id);   res_id+=item;
+					sprintf(item, "'%s'", myresults[i].analysis[j].chain); sprintf(pad, "%6s", item);    chain+=pad;
+				}
+				fprintf(fp, "ANALYSIS: %s}\n", types.c_str());
+				fprintf(fp, "ANALYSIS: %s}\n", lig_id.c_str());
+				fprintf(fp, "ANALYSIS: %s}\n", ligname.c_str());
+				fprintf(fp, "ANALYSIS: %s}\n", rec_id.c_str());
+				fprintf(fp, "ANALYSIS: %s}\n", rec_name.c_str());
+				fprintf(fp, "ANALYSIS: %s}\n", residue.c_str());
+				fprintf(fp, "ANALYSIS: %s}\n", res_id.c_str());
+				fprintf(fp, "ANALYSIS: %s}\n\n", chain.c_str());
 			}
 		}
 

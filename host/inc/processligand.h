@@ -152,6 +152,18 @@ typedef struct
 	bool         donor;
 } ReceptorAtom;
 
+typedef struct
+{
+	unsigned int type;     // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+	unsigned int lig_id;   // ligand atom id
+	const char*  lig_name; // ligand atom name
+	unsigned int rec_id;   // receptor/flex res atom id
+	const char*  rec_name; // receptor/flex res atom name
+	const char*  residue;  // residue name
+	unsigned int res_id;   // residue id
+	const char*  chain;    // chain id
+} AnalysisData;
+
 int init_liganddata(
                     const char*,
                     const char*,
@@ -272,15 +284,15 @@ void change_conform(
                           int         debug
                    );
 
-char* analyze_ligand_receptor(
-                              const Gridinfo*     mygrid,
-                              const Liganddata*   myligand,
-                              const ReceptorAtom* receptor_atoms,
-                              const unsigned int* receptor_map,
-                              const unsigned int* receptor_map_list,
-                                    float         outofgrid_tolerance,
-                                    int           debug
-                             );
+std::vector<AnalysisData> analyze_ligand_receptor(
+                                                  const Gridinfo*     mygrid,
+                                                  const Liganddata*   myligand,
+                                                  const ReceptorAtom* receptor_atoms,
+                                                  const unsigned int* receptor_map,
+                                                  const unsigned int* receptor_map_list,
+                                                        float         outofgrid_tolerance,
+                                                        int           debug
+                                                 );
 
 float calc_interE_f(
                     const Gridinfo*   mygrid,
@@ -336,18 +348,18 @@ struct IntraTables{
 };
 
 float calc_intraE_f(
-                    const Liganddata*   myligand,
-                          float         dcutoff,
-                          float         smooth,
-                          bool          ignore_desolv,
-                    const float         elec_min_distance,
-                          IntraTables&  tables,
-                          int           debug,
-                          float&        interflexE,
-                          int           nr_mod_atype_pairs,
-                          pair_mod*     mod_atype_pairs,
-                          char**        analysis = NULL,
-                    const ReceptorAtom* flexres_atoms = NULL
+                    const Liganddata*               myligand,
+                          float                     dcutoff,
+                          float                     smooth,
+                          bool                      ignore_desolv,
+                    const float                     elec_min_distance,
+                          IntraTables&              tables,
+                          int                       debug,
+                          float&                    interflexE,
+                          int                       nr_mod_atype_pairs,
+                          pair_mod*                 mod_atype_pairs,
+                          std::vector<AnalysisData> *analysis = NULL,
+                    const ReceptorAtom*             flexres_atoms = NULL
                    );
 
 int map_to_all_maps(

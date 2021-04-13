@@ -1600,7 +1600,9 @@ std::vector<ReceptorAtom> read_receptor_atoms(
 			sscanf(&line.c_str()[77], "%3s", current.atom_type);
 			line[27]='\0';
 			sscanf(line.c_str(), "%*s %d %4s %3s %1s %d", &(current.id), current.name, current.res_name, current.chain_id, &(current.res_id));
+			// assign H-bond acceptors
 			current.acceptor = is_H_acceptor(current.atom_type);
+			// initialize/setup H-bond donors
 			current.donor = false;
 			if(strcmp(current.atom_type,"HD")==0) HD_ids.push_back(atoms.size());
 			char heavy=current.atom_type[0];
@@ -1610,6 +1612,7 @@ std::vector<ReceptorAtom> read_receptor_atoms(
 		if(strcmp(tempstr, "TER") == 0) break;
 	}
 	ReceptorAtom heavy, HD;
+	// assign H-donor heavy atoms
 	for(unsigned int i=0; i<HD_ids.size(); i++){
 		HD=atoms[HD_ids[i]];
 		double mindist2=100.0;
