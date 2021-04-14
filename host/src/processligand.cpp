@@ -53,12 +53,13 @@ int init_liganddata(
 // parameters correspond to each other.
 // If the operation was successful, the function returns 0, if not, it returns 1.
 {
-	FILE* fp;
+	std::ifstream fp;
 	int num_of_atypes, new_type, num_of_base_atypes;
 	char atom_types [MAX_NUM_OF_ATOMS][4];
 	char base_atom_types [MAX_NUM_OF_ATOMS][4];
 	memset(myligand->base_type_idx,0,MAX_NUM_OF_ATOMS*sizeof(int));
 	char tempstr [256];
+	std::string line;
 
 	unsigned int lnr=1;
 	if ( flexresfilename!=NULL) {
@@ -68,13 +69,14 @@ int init_liganddata(
 
 	num_of_atypes = 0;
 	num_of_base_atypes = 0;
+	unsigned int atom_cnt = 0;
 	for (unsigned int l=0; l<lnr; l++)
 	{
 		if(l==0)
-			fp = fopen(ligfilename, "rb"); // fp = fopen(ligfilename, "r");
+			fp.open(ligfilename);
 		else
-			fp = fopen(flexresfilename, "rb"); // fp = fopen(ligfilename, "r");
-		if (fp == NULL)
+			fp.open(flexresfilename);
+		if (fp.fail())
 		{
 			if(l==0)
 				printf("Error: can't open ligand data file %s!\n", ligfilename);
@@ -83,24 +85,20 @@ int init_liganddata(
 			return 1;
 		}
 		// reading the whole ligand pdbqt file
-		while (fscanf(fp, "%255s", tempstr) != EOF)
+		while(std::getline(fp, line))
 		{
+			sscanf(line.c_str(),"%255s",tempstr);
 			if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 			{
 				new_type = 1; // supposing this will be a new atom type
 				if ((strcmp(tempstr, "HETATM") == 0)) // seeking to the first coordinate value
-					fseek(fp, 25, SEEK_CUR);
-				else
-					fseek(fp, 27, SEEK_CUR);
-				fscanf(fp, "%*f"); // skipping fields
-				fscanf(fp, "%*f");
-				fscanf(fp, "%*f");
-				fscanf(fp, "%*s");
-				fscanf(fp, "%*s");
-				fscanf(fp, "%*f");
-				fscanf(fp, "%s", tempstr); // reading atom type
-
+				line[17]='\0';
+				sscanf(&line.c_str()[77], "%3s", tempstr); // reading atom type
 				tempstr[3] = '\0'; //just to be sure strcpy wont fail even if something is wrong with position
+				line[17]='\0';
+				sscanf(&line.c_str()[13], "%4s", myligand->atom_names[atom_cnt]);
+				atom_cnt++;
+
 				// checking if this atom has been already found
 				for (unsigned int i=0; i<num_of_atypes; i++)
 				{
@@ -152,7 +150,7 @@ int init_liganddata(
 		myligand->num_of_atypes = num_of_atypes;
 		mygrid->num_of_atypes   = num_of_base_atypes;
 		mygrid->num_of_map_atypes   = num_of_base_atypes;
-		fclose (fp);
+		fp.close();
 	}
 #if defined(CG_G0_INFO)
 	if (cgmaps)
@@ -1783,7 +1781,7 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 				if(dist2 <= 3.7*3.7){
 					datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 					datum.lig_id   = atom_cnt;
-					datum.lig_name = myligand->base_atom_types[atomtypeid];
+					datum.lig_name = myligand->atom_names[atom_cnt];
 					datum.rec_id   = curr->id;
 					datum.rec_name = curr->name;
 					datum.residue  = curr->res_name;
@@ -1798,7 +1796,7 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 					if(dist2 <= 4.2*4.2){
 						datum.type     = 2; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 						datum.lig_id   = atom_cnt;
-						datum.lig_name = myligand->base_atom_types[atomtypeid];
+						datum.lig_name = myligand->atom_names[atom_cnt];
 						datum.rec_id   = curr->id;
 						datum.rec_name = curr->name;
 						datum.residue  = curr->res_name;
@@ -2406,7 +2404,7 @@ float calc_intraE_f(
 								if(dist <= 2.1){
 									datum.type     = 0; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 									datum.lig_id   = atom_cnt;
-									datum.lig_name = myligand->base_atom_types[atomtypeid];
+									datum.lig_name = myligand->atom_names[atom_cnt];
 									datum.rec_id   = curr->id;
 									datum.rec_name = curr->name;
 									datum.residue  = curr->res_name;
@@ -2420,7 +2418,7 @@ float calc_intraE_f(
 									if(dist <= 3.7){
 										datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 										datum.lig_id   = atom_cnt;
-										datum.lig_name = myligand->base_atom_types[atomtypeid];
+										datum.lig_name = myligand->atom_names[atom_cnt];
 										datum.rec_id   = curr->id;
 										datum.rec_name = curr->name;
 										datum.residue  = curr->res_name;
@@ -2435,7 +2433,7 @@ float calc_intraE_f(
 										if(dist <= 4.2){
 											datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 											datum.lig_id   = atom_cnt;
-											datum.lig_name = myligand->base_atom_types[atomtypeid];
+											datum.lig_name = myligand->atom_names[atom_cnt];
 											datum.rec_id   = curr->id;
 											datum.rec_name = curr->name;
 											datum.residue  = curr->res_name;
