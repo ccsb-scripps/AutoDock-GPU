@@ -392,7 +392,7 @@ void make_resfiles(
 		// the map interaction of flex res atoms is stored in accurate_intraflexE
 		accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE);	//calculating the intermolecular energy
 
-		if (mypars->xml2analyze){
+		if (mypars->contact_analysis){
 			analysis = analyze_ligand_receptor(mygrid, &temp_docked, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, debug, mypars->H_cutoff, mypars->V_cutoff);
 		}
 
@@ -402,7 +402,7 @@ void make_resfiles(
 		scale_ligand(&temp_docked, mygrid->spacing);
 		
 		// the interaction between flex res and ligand is stored in accurate_interflexE
-		if(mypars->xml2analyze)
+		if(mypars->contact_analysis)
 			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs, &analysis, mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
 		else
 			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
@@ -430,7 +430,7 @@ void make_resfiles(
 			best_result->reslig_realcoord = temp_docked;
 			best_result->rmsd_from_ref = entity_rmsds;
 			best_result->run_number = run_cnt+1;
-			if(mypars->xml2analyze) best_result->analysis = analysis;
+			if(mypars->contact_analysis) best_result->analysis = analysis;
 		}
 
 		// generating best.pdbqt
@@ -746,7 +746,7 @@ void clusanal_gendlg(
 		fprintf(fp, "Run:   %d / %lu\n", i+1, mypars->num_of_runs);
 		fprintf(fp, "Time taken for this run:   %.3lfs\n\n", docking_avg_runtime);
 
-		if(mypars->xml2analyze){
+		if(mypars->contact_analysis){
 			if(myresults[i].analysis.size()>0){
 				// sort by analysis type
 				AnalysisData temp;
@@ -1067,6 +1067,66 @@ void clusanal_gendlg(
 		double phi, theta;
 		for(j=0; j<num_of_runs; j++){
 			fprintf(fp_xml, "\t\t<run id=\"%d\">\n",(myresults [j]).run_number);
+			if(mypars->contact_analysis){
+				if(myresults[j].analysis.size()>0){
+					// sort by analysis type
+					AnalysisData temp;
+					for(unsigned int i=0; i<myresults[j].analysis.size(); i++)
+						for(unsigned int k=0; k<myresults[j].analysis.size()-i-1; k++)
+							if(myresults[j].analysis[k].type>myresults[j].analysis[k+1].type){
+								temp = myresults[j].analysis[k];
+								myresults[j].analysis[k]   = myresults[j].analysis[k+1];
+								myresults[j].analysis[k+1] = temp;
+							}
+					fprintf(fp_xml, "\t\t\t<contact_analysis count=\"%d\">\n", myresults[j].analysis.size());
+					std::string types;
+					std::string lig_id;
+					std::string ligname;
+					std::string rec_id;
+					std::string rec_name;
+					std::string residue;
+					std::string res_id;
+					std::string chain;
+					char item[8], pad[8];
+					for(unsigned int i=0; i<myresults[j].analysis.size(); i++){
+						if(i>0){
+							types    += ",";
+							lig_id   += ",";
+							ligname  += ",";
+							rec_id   += ",";
+							rec_name += ",";
+							residue  += ",";
+							res_id   += ",";
+							chain    += ",";
+						}
+						switch(myresults[j].analysis[i].type){
+							case 0: types += "   'R'";
+							        break;
+							case 1: types += "   'H'";
+							        break;
+							default:
+							case 2: types += "   'V'";
+							        break;
+						}
+						sprintf(item, "%5d ", myresults[j].analysis[i].lig_id);   lig_id+=item;
+						sprintf(item, "'%s'", myresults[j].analysis[i].lig_name); sprintf(pad, "%6s", item); ligname+=pad;
+						sprintf(item, "%5d ", myresults[j].analysis[i].rec_id);   rec_id+=item;
+						sprintf(item, "'%s'", myresults[j].analysis[i].rec_name); sprintf(pad, "%6s", item); rec_name+=pad;
+						sprintf(item, "'%s'", myresults[j].analysis[i].residue); sprintf(pad, "%6s", item);  residue+=pad;
+						sprintf(item, "%5d ", myresults[j].analysis[i].res_id);   res_id+=item;
+						sprintf(item, "'%s'", myresults[j].analysis[i].chain); sprintf(pad, "%6s", item);    chain+=pad;
+					}
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_types>  %s</contact_analysis_types>\n", types.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_ligid>  %s</contact_analysis_ligid>\n", lig_id.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_ligname>%s</contact_analysis_ligname>\n", ligname.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_recid>  %s</contact_analysis_recid>\n", rec_id.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_recname>%s</contact_analysis_recname>\n", rec_name.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_residue>%s</contact_analysis_residue>\n", residue.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_resid>  %s</contact_analysis_resid>\n", res_id.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_chain>  %s</contact_analysis_chain>\n", chain.c_str());
+					fprintf(fp_xml, "\t\t\t</contact_analysis>\n");
+				}
+			}
 			fprintf(fp_xml, "\t\t\t<free_NRG_binding>   %.2f</free_NRG_binding>\n", myresults[j].interE + myresults[j].interflexE + torsional_energy);
 			fprintf(fp_xml, "\t\t\t<final_intermol_NRG> %.2f</final_intermol_NRG>\n", myresults[j].interE + myresults[j].interflexE);
 			fprintf(fp_xml, "\t\t\t<internal_ligand_NRG>%.2f</internal_ligand_NRG>\n", myresults[j].intraE + myresults[j].intraflexE);

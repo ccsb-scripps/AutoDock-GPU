@@ -552,28 +552,31 @@ int preparse_dpf(
 		// Argument: load initial data from xml file and reconstruct dlg, then finish
 		if (strcmp("-xml2dlg", argv [i]) == 0)
 		{
-			if(mypars->xml2dlg){
-				printf("\nError: Argument -xml2dlg can only be specified once and is mutually exclusive with -xml2analyze.\n");
-				return 1;
-			}
 			mypars->load_xml = strdup(argv[i+1]);
 			read_more_xml_files = true;
 			mypars->xml2dlg = true;
 			mypars->xml_files = 1;
 		}
 		
-		// Argument: similar to xml2dlg but output distance-based pose analysis instead of dlg
-		if (strcmp("-xml2analyze", argv [i]) == 0)
+		if (strcmp("-contact_analysis", argv[i]) == 0)
 		{
-			if(mypars->xml2dlg){
-				printf("\nError: Argument -xml2analyze can only be specified once and is mutually exclusive with -xml2analyze.\n");
-				return 1;
+			float temp;
+			error = sscanf(argv[i+1], "%f,%f,%f", &temp);
+			if(error==1){
+				sscanf(argv [i+1], "%d", &error);
+				if (error == 0)
+					mypars->contact_analysis = false;
+				else
+					mypars->contact_analysis = true;
+			} else{
+				if(error!=3){
+					printf("\nError: Argument analysis expects either one parameter to enable/disable (i.e. -contact_analysis 1)\n"
+					         "       or three parameters to specify cutoffs (default: -contact_analysis %.1f,%.1f,%.1f)\n", mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
+					return 1;
+				}
+				sscanf(argv[i+1], "%f,%f,%f", &(mypars->R_cutoff), &(mypars->H_cutoff), &(mypars->V_cutoff));
+				mypars->contact_analysis = true;
 			}
-			mypars->load_xml = strdup(argv[i+1]);
-			read_more_xml_files = true;
-			mypars->xml2dlg = true;
-			mypars->xml2analyze = true;
-			mypars->xml_files = 1;
 		}
 		
 		// Argument: print dlg output to stdout instead of to a file
@@ -596,7 +599,7 @@ int preparse_dpf(
 		mypars->xml_files = xml_files.size();
 		if(mypars->xml_files>100){ // output progress bar
 			printf("Preparing ");
-			if(mypars->xml2analyze)
+			if(mypars->contact_analysis)
 				printf("analysis\n");
 			else
 				printf("conversion\n");
@@ -655,7 +658,13 @@ int preparse_dpf(
 			filelist.mygrids.push_back(*mygrid);
 		}
 		if(mypars->xml_files>100) printf("\n\n");
-		if(mypars->xml2analyze && filelist.preload_maps){
+		filelist.nfiles = mypars->xml_files;
+	} else{
+		filelist.nfiles = filelist.ligand_files.size();
+	}
+	if(filelist.nfiles>0){
+		filelist.used = true;
+		if(mypars->contact_analysis && filelist.preload_maps){
 			std::string receptor_name=mygrid->grid_file_path;
 			if(strlen(mygrid->grid_file_path)>0) receptor_name+="/";
 			receptor_name += mygrid->receptor_name;
@@ -663,11 +672,7 @@ int preparse_dpf(
 			mypars->receptor_atoms = read_receptor(receptor_name.c_str(),mygrid,mypars->receptor_map,mypars->receptor_map_list);
 			mypars->nr_receptor_atoms = mypars->receptor_atoms.size();
 		}
-		filelist.nfiles = mypars->xml_files;
-	} else{
-		filelist.nfiles = filelist.ligand_files.size();
 	}
-	if(filelist.nfiles>0) filelist.used = true;
 	return 0;
 }
 
@@ -963,6 +968,11 @@ int get_commandpars(
 			tempint = sscanf(argv[i+1], "%u,%u,%u", &(mypars->seed[0]), &(mypars->seed[1]), &(mypars->seed[2]));
 		}
 
+		if (strcmp("-contact_analysis", argv[i]) == 0)
+		{
+			arg_recognized = 1;
+		}
+
 		// Argument: number of generations. Must be a positive integer.
 		if (strcmp("-ngen", argv[i]) == 0)
 		{
@@ -1240,11 +1250,10 @@ int get_commandpars(
 			i += mypars->xml_files-1; // skip ahead
 		}
 
-		// Argument: load initial data from xml file and do a distance-based analysis
-		if (strcmp("-xml2analyze", argv [i]) == 0)
+		// Argument: wether to perform a distance-based pose contact analysis or not
+		if (strcmp("-contact_analysis", argv [i]) == 0)
 		{
 			arg_recognized = 1;
-			i += mypars->xml_files-1; // skip ahead
 		}
 
 		// Argument: print dlg output to stdout instead of to a file

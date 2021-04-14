@@ -72,7 +72,7 @@ int setup(
 	//------------------------------------------------------------
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
-		if ((strcmp("-xml2dlg", argv[i]) == 0) || (strcmp("-xml2analyze", argv[i]) == 0))
+		if (strcmp("-xml2dlg", argv[i]) == 0)
 			i+=mypars.xml_files-1; // skip ahead in case there are multiple entries here
 
 		// ----------------------------------
@@ -294,7 +294,7 @@ int setup(
 		return 1;
 	}
 	
-	if (mypars.xml2analyze && (mypars.flexresfile!=NULL)){
+	if (mypars.contact_analysis && (mypars.flexresfile!=NULL)){
 		std::vector<ReceptorAtom> flexresatoms = read_receptor_atoms(mypars.flexresfile);
 		mypars.receptor_atoms.insert(mypars.receptor_atoms.end(), flexresatoms.begin(), flexresatoms.end());
 	}
@@ -348,6 +348,13 @@ int setup(
 			return 1;
 		}
 	} else {
+		// read receptor in case contact analysis is requested and we haven't done so already (in the preload case above)
+		std::string receptor_name=mygrid.grid_file_path;
+		if(strlen(mygrid.grid_file_path)>0) receptor_name+="/";
+		receptor_name += mygrid.receptor_name;
+		receptor_name += ".pdbqt";
+		mypars.receptor_atoms = read_receptor(receptor_name.c_str(),&mygrid,mypars.receptor_map,mypars.receptor_map_list);
+		mypars.nr_receptor_atoms = mypars.receptor_atoms.size();
 		// Reading the grid files and storing values in the memory region pointed by floatgrids
 		if (get_gridvalues_f(&mygrid,
 		                     floatgrids.data(),

@@ -98,7 +98,7 @@ typedef struct _Dockpars
 	unsigned long             pop_size                        = 150;
 	char*                     load_xml                        = NULL;
 	bool                      xml2dlg                         = false;
-	bool                      xml2analyze                     = false;
+	bool                      contact_analysis                = false; // by default no distance-based contact analysis is performed
 	std::vector<ReceptorAtom> receptor_atoms;
 	unsigned int              nr_receptor_atoms               = 0;
 	unsigned int*             receptor_map                    = NULL;
