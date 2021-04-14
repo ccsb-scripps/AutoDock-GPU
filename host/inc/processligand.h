@@ -294,7 +294,9 @@ std::vector<AnalysisData> analyze_ligand_receptor(
                                                   const unsigned int* receptor_map,
                                                   const unsigned int* receptor_map_list,
                                                         float         outofgrid_tolerance,
-                                                        int           debug
+                                                        int           debug,
+                                                        float         H_cutoff,
+                                                        float         V_cutoff
                                                  );
 
 float calc_interE_f(
@@ -362,7 +364,10 @@ float calc_intraE_f(
                           int                       nr_mod_atype_pairs,
                           pair_mod*                 mod_atype_pairs,
                           std::vector<AnalysisData> *analysis = NULL,
-                    const ReceptorAtom*             flexres_atoms = NULL
+                    const ReceptorAtom*             flexres_atoms = NULL,
+                          float                     R_cutoff = 2.1,
+                          float                     H_cutoff = 3.7,
+                          float                     V_cutoff = 4.2
                    );
 
 int map_to_all_maps(

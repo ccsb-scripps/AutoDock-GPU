@@ -1704,7 +1704,9 @@ std::vector<AnalysisData> analyze_ligand_receptor(
                                                   const unsigned int* receptor_map,
                                                   const unsigned int* receptor_map_list,
                                                         float         outofgrid_tolerance,
-                                                        int           debug
+                                                        int           debug,
+                                                        float         H_cutoff,
+                                                        float         V_cutoff
                                                  )
 // The function performs a simple distance based ligand-receptor analysis
 {
@@ -1713,6 +1715,10 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 	int atomtypeid;
 	char line[256];
 	std::vector<AnalysisData> result;
+	H_cutoff /= mygrid->spacing;
+	H_cutoff *= H_cutoff;
+	V_cutoff /= mygrid->spacing;
+	V_cutoff *= V_cutoff;
 
 	unsigned int g1 = mygrid->size_xyz[0];
 	unsigned int g2 = g1*mygrid->size_xyz[1];
@@ -1775,10 +1781,9 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 		{
 			const ReceptorAtom* curr = &receptor_atoms[receptor_list[rid]];
 			double dist2 = (curr->x-x)*(curr->x-x)+(curr->y-y)*(curr->y-y)+(curr->z-z)*(curr->z-z);
-			dist2 *= mygrid->spacing*mygrid->spacing;
 			if((myligand->acceptor[atom_cnt] && curr->donor) ||
 			   (myligand->donor[atom_cnt] && curr->acceptor)){
-				if(dist2 <= 3.7*3.7){
+				if(dist2 <= H_cutoff){
 					datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 					datum.lig_id   = atom_cnt;
 					datum.lig_name = myligand->atom_names[atom_cnt];
@@ -1793,7 +1798,7 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 				if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr->atom_type[0]!='H') && // exclude Hydrogens,
 				   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&                  // non-H-bond capable atoms on ligand
 				   !curr->acceptor && !curr->donor){                                               // ... and receptor
-					if(dist2 <= 4.2*4.2){
+					if(dist2 <= V_cutoff){
 						datum.type     = 2; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 						datum.lig_id   = atom_cnt;
 						datum.lig_name = myligand->atom_names[atom_cnt];
@@ -2257,7 +2262,10 @@ float calc_intraE_f(
                           int                       nr_mod_atype_pairs,
                           pair_mod*                 mod_atype_pairs,
                           std::vector<AnalysisData> *analysis,
-                    const ReceptorAtom*             flexres_atoms
+                    const ReceptorAtom*             flexres_atoms,
+                          float                     R_cutoff,
+                          float                     H_cutoff,
+                          float                     V_cutoff
                    )
 // The function calculates the intramolecular energy of the ligand given by the first parameter,
 // and returns it as a double. The second parameter is the distance cutoff, if the third isn't 0,
@@ -2401,7 +2409,7 @@ float calc_intraE_f(
 								curr = &flexres_atoms[atom_id2-myligand->true_ligand_atoms];
 							}
 							if(pm){ // Reactive
-								if(dist <= 2.1){
+								if(dist <= R_cutoff){
 									datum.type     = 0; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 									datum.lig_id   = atom_cnt;
 									datum.lig_name = myligand->atom_names[atom_cnt];
@@ -2415,7 +2423,7 @@ float calc_intraE_f(
 							} else{ // HB or vdW
 								if((myligand->acceptor[atom_cnt] && curr->donor) ||
 								   (myligand->donor[atom_cnt] && curr->acceptor)){
-									if(dist <= 3.7){
+									if(dist <= H_cutoff){
 										datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 										datum.lig_id   = atom_cnt;
 										datum.lig_name = myligand->atom_names[atom_cnt];
@@ -2430,7 +2438,7 @@ float calc_intraE_f(
 									if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr->atom_type[0]!='H') && // exclude Hydrogens,
 									   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&                  // non-H-bond capable atoms on ligand,
 									   !curr->acceptor && !curr->donor){                                               // as well as flexres
-										if(dist <= 4.2){
+										if(dist <= V_cutoff){
 											datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 											datum.lig_id   = atom_cnt;
 											datum.lig_name = myligand->atom_names[atom_cnt];

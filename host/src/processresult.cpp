@@ -393,7 +393,7 @@ void make_resfiles(
 		accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE);	//calculating the intermolecular energy
 
 		if (mypars->xml2analyze){
-			analysis = analyze_ligand_receptor(mygrid, &temp_docked, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, debug);
+			analysis = analyze_ligand_receptor(mygrid, &temp_docked, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, debug, mypars->H_cutoff, mypars->V_cutoff);
 		}
 
 		if (i == 0) // additional calculations for ADT-compatible result file, only in case of best conformation
@@ -403,7 +403,7 @@ void make_resfiles(
 		
 		// the interaction between flex res and ligand is stored in accurate_interflexE
 		if(mypars->xml2analyze)
-			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs, &analysis, mypars->receptor_atoms.data() + mypars->nr_receptor_atoms);
+			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs, &analysis, mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
 		else
 			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
 
