@@ -779,21 +779,21 @@ void clusanal_gendlg(
 						chain    += ",";
 					}
 					switch(myresults[i].analysis[j].type){
-						case 0: types += "   'R'";
+						case 0: types += "   \"R\"";
 						        break;
-						case 1: types += "   'H'";
+						case 1: types += "   \"H\"";
 						        break;
 						default:
-						case 2: types += "   'V'";
+						case 2: types += "   \"V\"";
 						        break;
 					}
 					sprintf(item, "%5d ", myresults[i].analysis[j].lig_id);   lig_id+=item;
-					sprintf(item, "'%s'", myresults[i].analysis[j].lig_name); sprintf(pad, "%6s", item); ligname+=pad;
+					sprintf(item, "\"%s\"", myresults[i].analysis[j].lig_name); sprintf(pad, "%6s", item); ligname+=pad;
 					sprintf(item, "%5d ", myresults[i].analysis[j].rec_id);   rec_id+=item;
-					sprintf(item, "'%s'", myresults[i].analysis[j].rec_name); sprintf(pad, "%6s", item); rec_name+=pad;
-					sprintf(item, "'%s'", myresults[i].analysis[j].residue); sprintf(pad, "%6s", item);  residue+=pad;
+					sprintf(item, "\"%s\"", myresults[i].analysis[j].rec_name); sprintf(pad, "%6s", item); rec_name+=pad;
+					sprintf(item, "\"%s\"", myresults[i].analysis[j].residue); sprintf(pad, "%6s", item);  residue+=pad;
 					sprintf(item, "%5d ", myresults[i].analysis[j].res_id);   res_id+=item;
-					sprintf(item, "'%s'", myresults[i].analysis[j].chain); sprintf(pad, "%6s", item);    chain+=pad;
+					sprintf(item, "\"%s\"", myresults[i].analysis[j].chain); sprintf(pad, "%6s", item);    chain+=pad;
 				}
 				fprintf(fp, "ANALYSIS: %s}\n", types.c_str());
 				fprintf(fp, "ANALYSIS: %s}\n", lig_id.c_str());
@@ -1100,30 +1100,30 @@ void clusanal_gendlg(
 							chain    += ",";
 						}
 						switch(myresults[j].analysis[i].type){
-							case 0: types += "   'R'";
+							case 0: types += "   \"R\"";
 							        break;
-							case 1: types += "   'H'";
+							case 1: types += "   \"H\"";
 							        break;
 							default:
-							case 2: types += "   'V'";
+							case 2: types += "   \"V\"";
 							        break;
 						}
 						sprintf(item, "%5d ", myresults[j].analysis[i].lig_id);   lig_id+=item;
-						sprintf(item, "'%s'", myresults[j].analysis[i].lig_name); sprintf(pad, "%6s", item); ligname+=pad;
+						sprintf(item, "\"%s\"", myresults[j].analysis[i].lig_name); sprintf(pad, "%6s", item); ligname+=pad;
 						sprintf(item, "%5d ", myresults[j].analysis[i].rec_id);   rec_id+=item;
-						sprintf(item, "'%s'", myresults[j].analysis[i].rec_name); sprintf(pad, "%6s", item); rec_name+=pad;
-						sprintf(item, "'%s'", myresults[j].analysis[i].residue); sprintf(pad, "%6s", item);  residue+=pad;
+						sprintf(item, "\"%s\"", myresults[j].analysis[i].rec_name); sprintf(pad, "%6s", item); rec_name+=pad;
+						sprintf(item, "\"%s\"", myresults[j].analysis[i].residue); sprintf(pad, "%6s", item);  residue+=pad;
 						sprintf(item, "%5d ", myresults[j].analysis[i].res_id);   res_id+=item;
-						sprintf(item, "'%s'", myresults[j].analysis[i].chain); sprintf(pad, "%6s", item);    chain+=pad;
+						sprintf(item, "\"%s\"", myresults[j].analysis[i].chain); sprintf(pad, "%6s", item);    chain+=pad;
 					}
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_types>  %s</contact_analysis_types>\n", types.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_ligid>  %s</contact_analysis_ligid>\n", lig_id.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_ligname>%s</contact_analysis_ligname>\n", ligname.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_recid>  %s</contact_analysis_recid>\n", rec_id.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_recname>%s</contact_analysis_recname>\n", rec_name.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_residue>%s</contact_analysis_residue>\n", residue.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_resid>  %s</contact_analysis_resid>\n", res_id.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_chain>  %s</contact_analysis_chain>\n", chain.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_types>  %s</contact_analyis_types>\n", types.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_ligid>  %s</contact_analyis_ligid>\n", lig_id.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_ligname>%s</contact_analyis_ligname>\n", ligname.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_recid>  %s</contact_analyis_recid>\n", rec_id.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_recname>%s</contact_analyis_recname>\n", rec_name.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_residue>%s</contact_analyis_residue>\n", residue.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_resid>  %s</contact_analyis_resid>\n", res_id.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analyis_chain>  %s</contact_analyis_chain>\n", chain.c_str());
 					fprintf(fp_xml, "\t\t\t</contact_analysis>\n");
 				}
 			}
