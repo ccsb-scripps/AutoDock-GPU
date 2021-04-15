@@ -392,7 +392,7 @@ void make_resfiles(
 		// the map interaction of flex res atoms is stored in accurate_intraflexE
 		accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE);	//calculating the intermolecular energy
 
-		if (mypars->contact_analysis){
+		if (mypars->contact_analysis && (i==0)){
 			analysis = analyze_ligand_receptor(mygrid, &temp_docked, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, debug, mypars->H_cutoff, mypars->V_cutoff);
 		}
 
@@ -402,7 +402,7 @@ void make_resfiles(
 		scale_ligand(&temp_docked, mygrid->spacing);
 		
 		// the interaction between flex res and ligand is stored in accurate_interflexE
-		if(mypars->contact_analysis)
+		if(mypars->contact_analysis && (i==0))
 			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs, &analysis, mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
 		else
 			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
@@ -1116,14 +1116,14 @@ void clusanal_gendlg(
 						sprintf(item, "%5d ", myresults[j].analysis[i].res_id);   res_id+=item;
 						sprintf(item, "\"%s\"", myresults[j].analysis[i].chain); sprintf(pad, "%6s", item);    chain+=pad;
 					}
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_types>  %s</contact_analyis_types>\n", types.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_ligid>  %s</contact_analyis_ligid>\n", lig_id.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_ligname>%s</contact_analyis_ligname>\n", ligname.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_recid>  %s</contact_analyis_recid>\n", rec_id.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_recname>%s</contact_analyis_recname>\n", rec_name.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_residue>%s</contact_analyis_residue>\n", residue.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_resid>  %s</contact_analyis_resid>\n", res_id.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analyis_chain>  %s</contact_analyis_chain>\n", chain.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analysis_types>  %s</contact_analysis_types>\n", types.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analysis_ligid>  %s</contact_analysis_ligid>\n", lig_id.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analysis_ligname>%s</contact_analsyis_ligname>\n", ligname.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analysis_recid>  %s</contact_analysis_recid>\n", rec_id.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analysis_recname>%s</contact_analysis_recname>\n", rec_name.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analysis_residue>%s</contact_analysis_residue>\n", residue.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analysis_resid>  %s</contact_analysis_resid>\n", res_id.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analysis_chain>  %s</contact_analysis_chain>\n", chain.c_str());
 					fprintf(fp_xml, "\t\t\t</contact_analysis>\n");
 				}
 			}
