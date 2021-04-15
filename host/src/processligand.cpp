@@ -1785,7 +1785,7 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 			   (myligand->donor[atom_cnt] && curr->acceptor)){
 				if(dist2 <= H_cutoff){
 					datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
-					datum.lig_id   = atom_cnt;
+					datum.lig_id   = atom_cnt+1;
 					datum.lig_name = myligand->atom_names[atom_cnt];
 					datum.rec_id   = curr->id;
 					datum.rec_name = curr->name;
@@ -1800,7 +1800,7 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 				   !curr->acceptor && !curr->donor){                                               // ... and receptor
 					if(dist2 <= V_cutoff){
 						datum.type     = 2; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
-						datum.lig_id   = atom_cnt;
+						datum.lig_id   = atom_cnt+1;
 						datum.lig_name = myligand->atom_names[atom_cnt];
 						datum.rec_id   = curr->id;
 						datum.rec_name = curr->name;
@@ -2411,7 +2411,7 @@ float calc_intraE_f(
 							if(pm){ // Reactive
 								if(dist <= R_cutoff){
 									datum.type     = 0; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
-									datum.lig_id   = atom_cnt;
+									datum.lig_id   = atom_cnt+1;
 									datum.lig_name = myligand->atom_names[atom_cnt];
 									datum.rec_id   = curr->id;
 									datum.rec_name = curr->name;
@@ -2425,7 +2425,7 @@ float calc_intraE_f(
 								   (myligand->donor[atom_cnt] && curr->acceptor)){
 									if(dist <= H_cutoff){
 										datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
-										datum.lig_id   = atom_cnt;
+										datum.lig_id   = atom_cnt+1;
 										datum.lig_name = myligand->atom_names[atom_cnt];
 										datum.rec_id   = curr->id;
 										datum.rec_name = curr->name;
@@ -2440,7 +2440,7 @@ float calc_intraE_f(
 									   !curr->acceptor && !curr->donor){                                               // as well as flexres
 										if(dist <= V_cutoff){
 											datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
-											datum.lig_id   = atom_cnt;
+											datum.lig_id   = atom_cnt+1;
 											datum.lig_name = myligand->atom_names[atom_cnt];
 											datum.rec_id   = curr->id;
 											datum.rec_name = curr->name;
