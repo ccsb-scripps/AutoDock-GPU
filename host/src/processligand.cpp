@@ -2439,7 +2439,7 @@ float calc_intraE_f(
 									   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&                  // non-H-bond capable atoms on ligand,
 									   !curr->acceptor && !curr->donor){                                               // as well as flexres
 										if(dist <= V_cutoff){
-											datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+											datum.type     = 2; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 											datum.lig_id   = atom_cnt+1;
 											datum.lig_name = myligand->atom_names[atom_cnt];
 											datum.rec_id   = curr->id;
