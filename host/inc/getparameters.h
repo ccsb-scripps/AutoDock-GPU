@@ -105,7 +105,7 @@ typedef struct _Dockpars
 	unsigned int*             receptor_map_list               = NULL;
 	float                     R_cutoff                        = 2.1;
 	float                     H_cutoff                        = 3.7;
-	float                     V_cutoff                        = 4.2;
+	float                     V_cutoff                        = 4.0;
 	unsigned int              xml_files                       = 0;
 	bool                      dlg2stdout                      = false;
 	int                       gen_pdbs                        = 0;
