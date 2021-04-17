@@ -561,7 +561,7 @@ int preparse_dpf(
 		if (strcmp("-contact_analysis", argv[i]) == 0)
 		{
 			float temp;
-			error = sscanf(argv[i+1], "%f,%f,%f", &temp);
+			error = sscanf(argv[i+1], "%f,%f,%f", &temp, &temp, &temp);
 			if(error==1){
 				sscanf(argv [i+1], "%d", &error);
 				if (error == 0)
@@ -570,8 +570,8 @@ int preparse_dpf(
 					mypars->contact_analysis = true;
 			} else{
 				if(error!=3){
-					printf("\nError: Argument analysis expects either one parameter to enable/disable (i.e. -contact_analysis 1)\n"
-					         "       or three parameters to specify cutoffs (default: -contact_analysis %.1f,%.1f,%.1f)\n", mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
+					printf("\nError: Argument -contact_analysis expects either one parameter to enable/disable (i.e. -contact_analysis 1)\n"
+					         "       or exactly three parameters to specify cutoffs (default: -contact_analysis %.1f,%.1f,%.1f)\n", mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
 					return 1;
 				}
 				sscanf(argv[i+1], "%f,%f,%f", &(mypars->R_cutoff), &(mypars->H_cutoff), &(mypars->V_cutoff));
