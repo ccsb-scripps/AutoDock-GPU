@@ -592,11 +592,17 @@ int get_bonds(Liganddata* myligand)
 	double HD_dists[MAX_NUM_OF_ATOMS];
 	int HD_ids[MAX_NUM_OF_ATOMS];
 	memset(HD_ids,0xFF,MAX_NUM_OF_ATOMS*sizeof(int));
+	// make sure the last ones are initialized too (saves work in second loop)
+	myligand->acceptor[myligand->num_of_atoms-1] = is_H_acceptor(myligand->base_atom_types[(int)(myligand->atom_idxyzq[myligand->num_of_atoms-1][0])]);
+	char reactnum = myligand->atom_types[(int)(myligand->atom_idxyzq[myligand->num_of_atoms-1][0])][strlen(myligand->atom_types[(int)(myligand->atom_idxyzq[myligand->num_of_atoms-1][0])])-1];
+	myligand->reactive[myligand->num_of_atoms-1] = ((reactnum=='1') || (reactnum=='4') || (reactnum=='7'));
 
 	for (atom_id1=0; atom_id1 < myligand->num_of_atoms-1; atom_id1++)
 	{
 		atom_typeid1 = myligand->atom_idxyzq[atom_id1][0];
 		myligand->acceptor[atom_id1] = is_H_acceptor(myligand->base_atom_types[atom_typeid1]);
+		reactnum = myligand->atom_types[atom_typeid1][strlen(myligand->atom_types[atom_typeid1])-1];
+		myligand->reactive[atom_id1] = ((reactnum=='1') || (reactnum=='4') || (reactnum=='7'));
 		is_HD1=(strcmp(myligand->base_atom_types[atom_typeid1],"HD")==0);
 		for (atom_id2=atom_id1+1; atom_id2 < myligand->num_of_atoms; atom_id2++)
 		{
@@ -2284,6 +2290,7 @@ float calc_intraE_f(
 	bool analyze = (analysis!=NULL);
 	bool hbond, a_flex, b_flex;
 	int atomtypeid;
+	bool flex_reactive;
 	AnalysisData datum;
 
 	vW = 0.0f;
@@ -2403,12 +2410,14 @@ float calc_intraE_f(
 								atomtypeid = myligand->base_type_idx[type_id2];
 								atom_cnt = atom_id2;
 								curr = &flexres_atoms[atom_id1-myligand->true_ligand_atoms];
+								flex_reactive = myligand->reactive[atom_id1];
 							} else{ // a is ligand, b is flexres
 								atomtypeid = myligand->base_type_idx[type_id1];
 								atom_cnt = atom_id1;
 								curr = &flexres_atoms[atom_id2-myligand->true_ligand_atoms];
+								flex_reactive = myligand->reactive[atom_id2];
 							}
-							if(pm){ // Reactive
+							if(myligand->reactive[atom_cnt] && flex_reactive){
 								if(dist <= R_cutoff){
 									datum.type     = 0; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 									datum.lig_id   = atom_cnt+1;

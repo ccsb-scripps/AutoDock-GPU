@@ -138,6 +138,7 @@ typedef struct
 // acceptor, donor indicates if a given atom is a Hydrogen acceptor or donor
 	bool           acceptor                [MAX_NUM_OF_ATOMS];
 	bool           donor                   [MAX_NUM_OF_ATOMS];
+	bool           reactive                [MAX_NUM_OF_ATOMS]; // atoms with 1,4,7 numbered atom types
 } Liganddata;
 
 // structure to store relevant receptor atom data
