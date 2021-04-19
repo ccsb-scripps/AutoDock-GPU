@@ -293,10 +293,15 @@ int setup(
 		printf("\n\nError in get_liganddata, stopped job.");
 		return 1;
 	}
-	
+
+	// Adding receptor atom information needed for analysis
 	if (mypars.contact_analysis && (mypars.flexresfile!=NULL)){
 		std::vector<ReceptorAtom> flexresatoms = read_receptor_atoms(mypars.flexresfile);
 		mypars.receptor_atoms.insert(mypars.receptor_atoms.end(), flexresatoms.begin(), flexresatoms.end());
+		for(unsigned int i=myligand_init.true_ligand_atoms; i<myligand_init.num_of_atoms; i++){
+			mypars.receptor_atoms[mypars.nr_receptor_atoms+i-myligand_init.true_ligand_atoms].acceptor=myligand_init.acceptor[i];
+			mypars.receptor_atoms[mypars.nr_receptor_atoms+i-myligand_init.true_ligand_atoms].donor=myligand_init.donor[i];
+		}
 	}
 
 	// Resize grid

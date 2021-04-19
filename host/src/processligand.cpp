@@ -2417,18 +2417,16 @@ float calc_intraE_f(
 								curr = &flexres_atoms[atom_id2-myligand->true_ligand_atoms];
 								flex_reactive = myligand->reactive[atom_id2];
 							}
-							if(myligand->reactive[atom_cnt] && flex_reactive){
-								if(dist <= R_cutoff){
-									datum.type     = 0; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
-									datum.lig_id   = atom_cnt+1;
-									datum.lig_name = myligand->atom_names[atom_cnt];
-									datum.rec_id   = curr->id;
-									datum.rec_name = curr->name;
-									datum.residue  = curr->res_name;
-									datum.res_id   = curr->res_id;
-									datum.chain    = curr->chain_id;
-									analysis->push_back(datum);
-								}
+							if(myligand->reactive[atom_cnt] && flex_reactive && (dist <= R_cutoff)){
+								datum.type     = 0; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+								datum.lig_id   = atom_cnt+1;
+								datum.lig_name = myligand->atom_names[atom_cnt];
+								datum.rec_id   = curr->id;
+								datum.rec_name = curr->name;
+								datum.residue  = curr->res_name;
+								datum.res_id   = curr->res_id;
+								datum.chain    = curr->chain_id;
+								analysis->push_back(datum);
 							} else{ // HB or vdW
 								if((myligand->acceptor[atom_cnt] && curr->donor) ||
 								   (myligand->donor[atom_cnt] && curr->acceptor)){

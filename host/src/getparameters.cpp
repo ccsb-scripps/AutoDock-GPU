@@ -1609,9 +1609,9 @@ std::vector<ReceptorAtom> read_receptor_atoms(
 			sscanf(&line.c_str()[77], "%3s", current.atom_type);
 			line[27]='\0';
 			sscanf(line.c_str(), "%*s %d %4s %3s %1s %d", &(current.id), current.name, current.res_name, current.chain_id, &(current.res_id));
-			// assign H-bond acceptors
+			// assign H-bond acceptors (is going to fail for flexres with modified atom types)
 			current.acceptor = is_H_acceptor(current.atom_type);
-			// initialize/setup H-bond donors
+			// initialize/setup H-bond donors (is going to fail for flexres with modified atom types)
 			current.donor = false;
 			if(strcmp(current.atom_type,"HD")==0) HD_ids.push_back(atoms.size());
 			char heavy=current.atom_type[0];
