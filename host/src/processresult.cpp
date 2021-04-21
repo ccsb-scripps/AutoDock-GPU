@@ -849,6 +849,19 @@ void clusanal_gendlg(
 		fprintf(fp, " kcal/mol\n");
 
 		fprintf(fp, "DOCKED: USER\n");
+		if(mypars->xml2dlg || mypars->contact_analysis){
+			fprintf(fp, "DOCKED: USER    NEWDPF about 0.0 0.0 0.0\n");
+			fprintf(fp, "DOCKED: USER    NEWDPF tran0 %.6f %.6f %.6f\n", myresults[i].genotype[0]*mygrid->spacing, myresults[i].genotype[1]*mygrid->spacing, myresults[i].genotype[2]*mygrid->spacing);
+			if(!mypars->xml2dlg){
+				double phi = myresults[j].genotype[3]/180.0*PI;
+				double theta = myresults[j].genotype[4]/180.0*PI;
+				fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[j].genotype[5]);
+			} else fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", myresults[i].genotype[3], myresults[i].genotype[4], myresults[i].genotype[5], myresults[i].genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1]);
+			fprintf(fp, "DOCKED: USER    NEWDPF dihe0");
+			for(j=0; j<myresults[i].reslig_realcoord.num_of_rotbonds; j++)
+				fprintf(fp, " %.6f", myresults[i].genotype[6+j]);
+			fprintf(fp, "\n");
+		}
 		fprintf(fp, "DOCKED: USER\n");
 
 		unsigned int lnr=1;
