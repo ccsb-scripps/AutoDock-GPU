@@ -52,12 +52,15 @@ typedef struct
 	int            num_of_rotbonds;
 // true_ligand_rotbonds:  Number of rotatable bonds in the ligand only.
 	int            true_ligand_rotbonds;
+// atom_names:            Each row (first index) contain the ligand atom name
+	char           atom_names            [MAX_NUM_OF_ATOMS][5];
 // atom_types:            Each row (first index) contain an atom type (as two characters),
 //                        the row index is equal to the atom type code.
 	char           atom_types            [MAX_NUM_OF_ATOMS][4]; // there can be at most as many types (base+derived) as there are atoms
 // base_atom_types:       Each row (first index) contain an atom base type (for derived types it'll be different from atom_types),
 //                        the row index is equal to the atom type code.
 	char           base_atom_types       [MAX_NUM_OF_ATOMS][4];
+	char           base_atom_names       [MAX_NUM_OF_ATOMS][4];
 // atom_map_to_fgrids:    Maps each moving atom to a (pre-loaded) map id
 	int            atom_map_to_fgrids    [MAX_NUM_OF_ATOMS];
 // atom_idxyzq:           Each row describes one atom of the ligand.
@@ -132,7 +135,38 @@ typedef struct
 //                                 it is necessary.
 	double         rotbonds_moving_vectors [MAX_NUM_OF_ROTBONDS][3];
 	double         rotbonds_unit_vectors   [MAX_NUM_OF_ROTBONDS][3];
+// acceptor, donor indicates if a given atom is a Hydrogen acceptor or donor
+	bool           acceptor                [MAX_NUM_OF_ATOMS];
+	bool           donor                   [MAX_NUM_OF_ATOMS];
+	bool           reactive                [MAX_NUM_OF_ATOMS]; // atoms with 1,4,7 numbered atom types
 } Liganddata;
+
+// structure to store relevant receptor atom data
+// ATOM      1  N   SER A   1      -2.367   4.481 -16.909  1.00  1.00     0.185 N
+typedef struct
+{
+	unsigned int id;           // 1
+	char         name[5];      // "N"
+	char         res_name[4];  // "SER"
+	char         chain_id[2];  // "A"
+	unsigned int res_id;       // 1
+	float        x,y,z;        // -2.367, 4.481, -16.909
+	char         atom_type[4]; // "N"
+	bool         acceptor;
+	bool         donor;
+} ReceptorAtom;
+
+typedef struct
+{
+	unsigned int type;     // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+	unsigned int lig_id;   // ligand atom id
+	const char*  lig_name; // ligand atom name
+	unsigned int rec_id;   // receptor/flex res atom id
+	const char*  rec_name; // receptor/flex res atom name
+	const char*  residue;  // residue name
+	unsigned int res_id;   // residue id
+	const char*  chain;    // chain id
+} AnalysisData;
 
 int init_liganddata(
                     const char*,
@@ -199,7 +233,12 @@ double calc_rmsd(const Liganddata*, const Liganddata*, const bool);
 
 double calc_ddd_Mehler_Solmajer(double);
 
-int is_H_bond(const char*, const char*);
+bool is_H_acceptor(const char* atype);
+
+bool is_H_bond(
+               const char* atype1,
+               const char* atype2
+              );
 
 void print_ref_lig_energies_f(
                                     Liganddata,
@@ -248,6 +287,18 @@ void change_conform(
                     const double      axisangle[4],
                           int         debug
                    );
+
+std::vector<AnalysisData> analyze_ligand_receptor(
+                                                  const Gridinfo*     mygrid,
+                                                  const Liganddata*   myligand,
+                                                  const ReceptorAtom* receptor_atoms,
+                                                  const unsigned int* receptor_map,
+                                                  const unsigned int* receptor_map_list,
+                                                        float         outofgrid_tolerance,
+                                                        int           debug,
+                                                        float         H_cutoff,
+                                                        float         V_cutoff
+                                                 );
 
 float calc_interE_f(
                     const Gridinfo*   mygrid,
@@ -303,16 +354,21 @@ struct IntraTables{
 };
 
 float calc_intraE_f(
-                    const Liganddata*  myligand,
-                          float        dcutoff,
-                          float        smooth,
-                          bool         ignore_desolv,
-                    const float        elec_min_distance,
-                          IntraTables& tables,
-                          int          debug,
-                          float&       interflexE,
-                          int          nr_mod_atype_pairs,
-                          pair_mod*    mod_atype_pairs
+                    const Liganddata*               myligand,
+                          float                     dcutoff,
+                          float                     smooth,
+                          bool                      ignore_desolv,
+                    const float                     elec_min_distance,
+                          IntraTables&              tables,
+                          int                       debug,
+                          float&                    interflexE,
+                          int                       nr_mod_atype_pairs,
+                          pair_mod*                 mod_atype_pairs,
+                          std::vector<AnalysisData> *analysis = NULL,
+                    const ReceptorAtom*             flexres_atoms = NULL,
+                          float                     R_cutoff = 2.1,
+                          float                     H_cutoff = 3.7,
+                          float                     V_cutoff = 4.2
                    );
 
 int map_to_all_maps(

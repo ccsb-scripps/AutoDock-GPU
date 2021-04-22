@@ -294,6 +294,16 @@ int setup(
 		return 1;
 	}
 
+	// Adding receptor atom information needed for analysis
+	if (mypars.contact_analysis && (mypars.flexresfile!=NULL)){
+		std::vector<ReceptorAtom> flexresatoms = read_receptor_atoms(mypars.flexresfile);
+		mypars.receptor_atoms.insert(mypars.receptor_atoms.end(), flexresatoms.begin(), flexresatoms.end());
+		for(unsigned int i=myligand_init.true_ligand_atoms; i<myligand_init.num_of_atoms; i++){
+			mypars.receptor_atoms[mypars.nr_receptor_atoms+i-myligand_init.true_ligand_atoms].acceptor=myligand_init.acceptor[i];
+			mypars.receptor_atoms[mypars.nr_receptor_atoms+i-myligand_init.true_ligand_atoms].donor=myligand_init.donor[i];
+		}
+	}
+
 	// Resize grid
 	floatgrids.resize(4*(mygrid.num_of_atypes+2)*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2]);
 
@@ -343,6 +353,13 @@ int setup(
 			return 1;
 		}
 	} else {
+		// read receptor in case contact analysis is requested and we haven't done so already (in the preload case above)
+		std::string receptor_name=mygrid.grid_file_path;
+		if(strlen(mygrid.grid_file_path)>0) receptor_name+="/";
+		receptor_name += mygrid.receptor_name;
+		receptor_name += ".pdbqt";
+		mypars.receptor_atoms = read_receptor(receptor_name.c_str(),&mygrid,mypars.receptor_map,mypars.receptor_map_list);
+		mypars.nr_receptor_atoms = mypars.receptor_atoms.size();
 		// Reading the grid files and storing values in the memory region pointed by floatgrids
 		if (get_gridvalues_f(&mygrid,
 		                     floatgrids.data(),

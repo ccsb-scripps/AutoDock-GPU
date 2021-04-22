@@ -53,12 +53,13 @@ int init_liganddata(
 // parameters correspond to each other.
 // If the operation was successful, the function returns 0, if not, it returns 1.
 {
-	FILE* fp;
+	std::ifstream fp;
 	int num_of_atypes, new_type, num_of_base_atypes;
 	char atom_types [MAX_NUM_OF_ATOMS][4];
 	char base_atom_types [MAX_NUM_OF_ATOMS][4];
 	memset(myligand->base_type_idx,0,MAX_NUM_OF_ATOMS*sizeof(int));
 	char tempstr [256];
+	std::string line;
 
 	unsigned int lnr=1;
 	if ( flexresfilename!=NULL) {
@@ -68,13 +69,14 @@ int init_liganddata(
 
 	num_of_atypes = 0;
 	num_of_base_atypes = 0;
+	unsigned int atom_cnt = 0;
 	for (unsigned int l=0; l<lnr; l++)
 	{
 		if(l==0)
-			fp = fopen(ligfilename, "rb"); // fp = fopen(ligfilename, "r");
+			fp.open(ligfilename);
 		else
-			fp = fopen(flexresfilename, "rb"); // fp = fopen(ligfilename, "r");
-		if (fp == NULL)
+			fp.open(flexresfilename);
+		if (fp.fail())
 		{
 			if(l==0)
 				printf("Error: can't open ligand data file %s!\n", ligfilename);
@@ -83,24 +85,20 @@ int init_liganddata(
 			return 1;
 		}
 		// reading the whole ligand pdbqt file
-		while (fscanf(fp, "%255s", tempstr) != EOF)
+		while(std::getline(fp, line))
 		{
+			sscanf(line.c_str(),"%255s",tempstr);
 			if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 			{
 				new_type = 1; // supposing this will be a new atom type
 				if ((strcmp(tempstr, "HETATM") == 0)) // seeking to the first coordinate value
-					fseek(fp, 25, SEEK_CUR);
-				else
-					fseek(fp, 27, SEEK_CUR);
-				fscanf(fp, "%*f"); // skipping fields
-				fscanf(fp, "%*f");
-				fscanf(fp, "%*f");
-				fscanf(fp, "%*s");
-				fscanf(fp, "%*s");
-				fscanf(fp, "%*f");
-				fscanf(fp, "%s", tempstr); // reading atom type
-
+				line[17]='\0';
+				sscanf(&line.c_str()[77], "%3s", tempstr); // reading atom type
 				tempstr[3] = '\0'; //just to be sure strcpy wont fail even if something is wrong with position
+				line[17]='\0';
+				sscanf(&line.c_str()[13], "%4s", myligand->atom_names[atom_cnt]);
+				atom_cnt++;
+
 				// checking if this atom has been already found
 				for (unsigned int i=0; i<num_of_atypes; i++)
 				{
@@ -152,7 +150,7 @@ int init_liganddata(
 		myligand->num_of_atypes = num_of_atypes;
 		mygrid->num_of_atypes   = num_of_base_atypes;
 		mygrid->num_of_map_atypes   = num_of_base_atypes;
-		fclose (fp);
+		fp.close();
 	}
 #if defined(CG_G0_INFO)
 	if (cgmaps)
@@ -589,12 +587,27 @@ int get_bonds(Liganddata* myligand)
 	
 	memset(myligand->bonds,0,MAX_NUM_OF_ATOMS*MAX_NUM_OF_ATOMS*sizeof(char));
 
+	bool is_HD1, is_HD2;
+	memset(myligand->donor,0,MAX_NUM_OF_ATOMS*sizeof(bool));
+	double HD_dists[MAX_NUM_OF_ATOMS];
+	int HD_ids[MAX_NUM_OF_ATOMS];
+	memset(HD_ids,0xFF,MAX_NUM_OF_ATOMS*sizeof(int));
+	// make sure the last ones are initialized too (saves work in second loop)
+	myligand->acceptor[myligand->num_of_atoms-1] = is_H_acceptor(myligand->base_atom_types[(int)(myligand->atom_idxyzq[myligand->num_of_atoms-1][0])]);
+	char reactnum = myligand->atom_types[(int)(myligand->atom_idxyzq[myligand->num_of_atoms-1][0])][strlen(myligand->atom_types[(int)(myligand->atom_idxyzq[myligand->num_of_atoms-1][0])])-1];
+	myligand->reactive[myligand->num_of_atoms-1] = ((reactnum=='1') || (reactnum=='4') || (reactnum=='7'));
+
 	for (atom_id1=0; atom_id1 < myligand->num_of_atoms-1; atom_id1++)
 	{
 		atom_typeid1 = myligand->atom_idxyzq[atom_id1][0];
+		myligand->acceptor[atom_id1] = is_H_acceptor(myligand->base_atom_types[atom_typeid1]);
+		reactnum = myligand->atom_types[atom_typeid1][strlen(myligand->atom_types[atom_typeid1])-1];
+		myligand->reactive[atom_id1] = ((reactnum=='1') || (reactnum=='4') || (reactnum=='7'));
+		is_HD1=(strcmp(myligand->base_atom_types[atom_typeid1],"HD")==0);
 		for (atom_id2=atom_id1+1; atom_id2 < myligand->num_of_atoms; atom_id2++)
 		{
 			atom_typeid2 = myligand->atom_idxyzq[atom_id2][0];
+			is_HD2=(strcmp(myligand->base_atom_types[atom_typeid2],"HD")==0);
 			temp_point1[0] = myligand->atom_idxyzq[atom_id1][1];
 			temp_point1[1] = myligand->atom_idxyzq[atom_id1][2];
 			temp_point1[2] = myligand->atom_idxyzq[atom_id1][3];
@@ -654,6 +667,18 @@ int get_bonds(Liganddata* myligand)
 				{
 					myligand->bonds [atom_id1][atom_id2] = 1;
 					myligand->bonds [atom_id2][atom_id1] = 1;
+					if(is_HD1 || is_HD2){ // closest O,N,S is going to be an H-bond donor
+						unsigned int HD_id = is_HD1 ? atom_id1 : atom_id2;
+						unsigned int heavy_id = is_HD1 ? atom_id2 : atom_id1;
+						char heavy=myligand->base_atom_types[is_HD1 ? atom_typeid2 : atom_typeid1][0];
+						if((heavy=='O') || (heavy=='N') || (heavy=='S')){
+							if((HD_ids[HD_id]<0) ||
+							   ((HD_ids[HD_id]>=0) && (temp_dist<HD_dists[HD_id]))){
+								HD_ids[HD_id] = heavy_id;
+								HD_dists[HD_id] = temp_dist;
+							}
+						}
+					}
 				}
 				else if ((atom_nameid1 == CG_nameid) && (atom_nameid2 == CG_nameid) && // two CG atoms
 					 (strcmp(myligand->base_atom_types[atom_typeid1]+2,myligand->base_atom_types[atom_typeid2]+2) == 0)) // and matching numbers
@@ -666,6 +691,12 @@ int get_bonds(Liganddata* myligand)
 					}
 		} // inner for-loop
 	} // outer for-loop
+
+	for(unsigned int i=0; i<myligand->num_of_atoms; i++){
+		if(HD_ids[i]>=0)
+			myligand->donor[i]=true;
+		else if(strcmp(myligand->base_atom_types[(int)(myligand->atom_idxyzq[i][0])],"HD")==0) myligand->donor[i]=true;
+	}
 
 	return 0;
 }
@@ -901,7 +932,7 @@ int get_VWpars(
 
 			myligand->VWpars_exp  [atom_typeid1][atom_typeid2] = (12 << 8) + 6; // shift first exponent right by 8 bit
 			// calculating van der Waals parameters
-			if (is_H_bond(myligand->base_atom_types [atom_typeid1], myligand->base_atom_types [atom_typeid2]) != 0)
+			if (is_H_bond(myligand->base_atom_types [atom_typeid1], myligand->base_atom_types [atom_typeid2]))
 			{
 				eps12 = AD4_coeff_hb * eps_hbond [VWid_atype1] * eps_hbond [VWid_atype2]; // The hydrogen's eps is 1, doesn't change the value...
 				reqm12 = reqm_hbond [VWid_atype1] + reqm_hbond [VWid_atype2]; // The hydrogen's is 0, doesn't change the value...
@@ -1474,28 +1505,32 @@ double calc_ddd_Mehler_Solmajer(double distance)
     return epsilon;
 }
 
-int is_H_bond(const char* atype1, const char* atype2)
-// Returns 1 if a H-bond can exist between the atoms with atom code atype1 and atype2,
-// otherwise it returns 0.
+bool is_H_acceptor(const char* atype)
 {
-	if  ( // H-bond
-	        (((strcmp(atype1, "HD") == 0) || (strcmp(atype1, "HS") == 0)) && // HD or HS
-	        ( (strcmp(atype2, "NA") == 0) ||
-	          (strcmp(atype2, "NS") == 0) ||
-	          (strcmp(atype2, "OA") == 0) ||
-	          (strcmp(atype2, "OS") == 0) ||
-	          (strcmp(atype2, "SA") == 0) ))                // NA NS OA OS or SA
-	        ||
-	        (((strcmp(atype2, "HD") == 0) || (strcmp(atype2, "HS") == 0)) && // HD or HS
-	        ( (strcmp(atype1, "NA") == 0) ||
-	          (strcmp(atype1, "NS") == 0) ||
-	          (strcmp(atype1, "OA") == 0) ||
-	          (strcmp(atype1, "OS") == 0) ||
-	          (strcmp(atype1, "SA") == 0) ))                // NA NS OA OS or SA
-	        )
-		return 1;
+	return ((strcmp(atype, "NA") == 0) ||
+	        (strcmp(atype, "NS") == 0) ||
+	        (strcmp(atype, "OA") == 0) ||
+	        (strcmp(atype, "OS") == 0) ||
+	        (strcmp(atype, "SA") == 0) ); // NA NS OA OS or SA are all acceptors
+}
+
+bool is_H_bond(
+               const char* atype1,
+               const char* atype2
+              )
+// Returns True if a H-bond can exist between the atoms with atom code atype1 and atype2,
+// otherwise it returns False.
+{
+	if ( // H-bond
+	    (((strcmp(atype1, "HD") == 0) || (strcmp(atype1, "HS") == 0)) && // HD or HS
+	              is_H_acceptor(atype2))
+	    ||
+	    (((strcmp(atype2, "HD") == 0) || (strcmp(atype2, "HS") == 0)) && // HD or HS
+	              is_H_acceptor(atype1))
+	   )
+		return true;
 	else
-		return 0;
+		return false;
 }
 
 void print_ref_lig_energies_f(
@@ -1667,6 +1702,126 @@ void change_conform(
 		for (atom_id=0; atom_id < myligand->num_of_atoms; atom_id++)
 			printf("Moved point (final values) (x,y,z): %lf, %lf, %lf\n", myligand->atom_idxyzq [atom_id][1], myligand->atom_idxyzq [atom_id][2], myligand->atom_idxyzq [atom_id][3]);
 }
+
+std::vector<AnalysisData> analyze_ligand_receptor(
+                                                  const Gridinfo*     mygrid,
+                                                  const Liganddata*   myligand,
+                                                  const ReceptorAtom* receptor_atoms,
+                                                  const unsigned int* receptor_map,
+                                                  const unsigned int* receptor_map_list,
+                                                        float         outofgrid_tolerance,
+                                                        int           debug,
+                                                        float         H_cutoff,
+                                                        float         V_cutoff
+                                                 )
+// The function performs a simple distance based ligand-receptor analysis
+{
+	int atom_cnt;
+	float x, y, z;
+	int atomtypeid;
+	char line[256];
+	std::vector<AnalysisData> result;
+	H_cutoff /= mygrid->spacing;
+	H_cutoff *= H_cutoff;
+	V_cutoff /= mygrid->spacing;
+	V_cutoff *= V_cutoff;
+
+	unsigned int g1 = mygrid->size_xyz[0];
+	unsigned int g2 = g1*mygrid->size_xyz[1];
+
+	const unsigned int* receptor_list;
+	AnalysisData datum;
+
+	for (atom_cnt=0; atom_cnt<myligand->true_ligand_atoms; atom_cnt++) // for each atom
+	{
+		if (myligand->ignore_inter[atom_cnt])
+			continue;
+		atomtypeid = myligand->base_type_idx[(int)myligand->atom_idxyzq [atom_cnt][0]];
+		x = myligand->atom_idxyzq [atom_cnt][1];
+		y = myligand->atom_idxyzq [atom_cnt][2];
+		z = myligand->atom_idxyzq [atom_cnt][3];
+
+		if ((x < 0) || (x >= mygrid->size_xyz [0]-1) ||
+		    (y < 0) || (y >= mygrid->size_xyz [1]-1) ||
+		    (z < 0) || (z >= mygrid->size_xyz [2]-1)) // if the atom is outside of the grid
+		{
+			if (debug == 1)
+			{
+				printf("\n\nPartial results for atom with id %d:\n", atom_cnt);
+				printf("Atom out of grid: ");
+				printf("x= %lf, y = %lf, z = %lf\n", x, y, z);
+			}
+
+			if (outofgrid_tolerance != 0) // if tolerance is set, try to place atom back into the grid
+			{
+				if (x < 0)
+					x += outofgrid_tolerance;
+				if (y < 0)
+					y += outofgrid_tolerance;
+				if (z < 0)
+					z += outofgrid_tolerance;
+				if (x >= mygrid->size_xyz [0]-1)
+					x -= outofgrid_tolerance;
+				if (y >= mygrid->size_xyz [1]-1)
+					y -= outofgrid_tolerance;
+				if (z >= mygrid->size_xyz [2]-1)
+					z -= outofgrid_tolerance;
+			}
+
+			if ((x < 0) || (x >= mygrid->size_xyz [0]-1) ||
+			    (y < 0) || (y >= mygrid->size_xyz [1]-1) ||
+			    (z < 0) || (z >= mygrid->size_xyz [2]-1)) // check again if the atom is outside of the grid
+			{
+				continue;
+			}
+
+			if (debug == 1)
+			{
+				printf("\n\nAtom was placed back into the grid according to the tolerance value %f:\n", outofgrid_tolerance);
+				printf("x= %lf, y = %lf, z = %lf\n", x, y, z);
+			}
+		}
+
+		receptor_list = receptor_map_list + receptor_map[(int)floor(x)  + ((int)floor(y))*g1  + ((int)floor(z))*g2];
+		for(unsigned int rid=1; rid<=receptor_list[0]; rid++)
+		{
+			const ReceptorAtom* curr = &receptor_atoms[receptor_list[rid]];
+			double dist2 = (curr->x-x)*(curr->x-x)+(curr->y-y)*(curr->y-y)+(curr->z-z)*(curr->z-z);
+			if((myligand->acceptor[atom_cnt] && curr->donor) ||
+			   (myligand->donor[atom_cnt] && curr->acceptor)){
+				if(dist2 <= H_cutoff){
+					datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+					datum.lig_id   = atom_cnt+1;
+					datum.lig_name = myligand->atom_names[atom_cnt];
+					datum.rec_id   = curr->id;
+					datum.rec_name = curr->name;
+					datum.residue  = curr->res_name;
+					datum.res_id   = curr->res_id;
+					datum.chain    = curr->chain_id;
+					result.push_back(datum);
+				}
+			} else{ // vdW
+				if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr->atom_type[0]!='H') && // exclude Hydrogens,
+				   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&                  // non-H-bond capable atoms on ligand
+				   !curr->acceptor && !curr->donor){                                               // ... and receptor
+					if(dist2 <= V_cutoff){
+						datum.type     = 2; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+						datum.lig_id   = atom_cnt+1;
+						datum.lig_name = myligand->atom_names[atom_cnt];
+						datum.rec_id   = curr->id;
+						datum.rec_name = curr->name;
+						datum.residue  = curr->res_name;
+						datum.res_id   = curr->res_id;
+						datum.chain    = curr->chain_id;
+						result.push_back(datum);
+					}
+				}
+			}
+		}
+	}
+	return result;
+}
+
 
 float calc_interE_f(
                     const Gridinfo*   mygrid,
@@ -2102,24 +2257,28 @@ void calc_interE_peratom_f(
 
 // Corrected host "calc_intraE_f" function after smoothing was added
 float calc_intraE_f(
-                    const Liganddata*  myligand,
-                          float        dcutoff,
-                          float        smooth,
-                          bool         ignore_desolv,
-                    const float        elec_min_distance,
-                          IntraTables& tables,
-                          int          debug,
-                          float&       interflexE,
-                          int          nr_mod_atype_pairs,
-                          pair_mod*    mod_atype_pairs
+                    const Liganddata*               myligand,
+                          float                     dcutoff,
+                          float                     smooth,
+                          bool                      ignore_desolv,
+                    const float                     elec_min_distance,
+                          IntraTables&              tables,
+                          int                       debug,
+                          float&                    interflexE,
+                          int                       nr_mod_atype_pairs,
+                          pair_mod*                 mod_atype_pairs,
+                          std::vector<AnalysisData> *analysis,
+                    const ReceptorAtom*             flexres_atoms,
+                          float                     R_cutoff,
+                          float                     H_cutoff,
+                          float                     V_cutoff
                    )
 // The function calculates the intramolecular energy of the ligand given by the first parameter,
 // and returns it as a double. The second parameter is the distance cutoff, if the third isn't 0,
 // desolvation energy won't be included by the energy value, the fourth indicates if messages
 // about partial results are required (if debug=1)
 {
-
-	int atom_id1, atom_id2;
+	int atom_id1, atom_id2, atom_cnt;
 	int type_id1, type_id2;
 	float dist;
 	int distance_id;
@@ -2128,6 +2287,11 @@ float calc_intraE_f(
 	float s1, s2, v1, v2;
 
 	float vW, el, desolv;
+	bool analyze = (analysis!=NULL);
+	bool hbond, a_flex, b_flex;
+	int atomtypeid;
+	bool flex_reactive;
+	AnalysisData datum;
 
 	vW = 0.0f;
 	el = 0.0f;
@@ -2139,8 +2303,10 @@ float calc_intraE_f(
 
 	for (atom_id1=0; atom_id1<myligand->num_of_atoms-1; atom_id1++) // for each atom pair
 	{
+		a_flex = (atom_id1>=myligand->true_ligand_atoms);
 		for (atom_id2=atom_id1+1; atom_id2<myligand->num_of_atoms; atom_id2++)
 		{
+			b_flex = (atom_id2>=myligand->true_ligand_atoms);
 			if (myligand->intraE_contributors [atom_id1][atom_id2] == 1) // if they have to be included in intramolecular energy calculation
 			{                                                            // the energy contribution has to be calculated
 				dist = distance(&(myligand->atom_idxyzq [atom_id1][1]), &(myligand->atom_idxyzq [atom_id2][1]));
@@ -2206,10 +2372,10 @@ float calc_intraE_f(
 					/*printf("OpenCL host - calc_intraE_f: CG-G0 pair found!\n");*/
 				}
 				// ------------------------------------------------
-
 				if (dist < dcutoff) // but only if the distance is less than distance cutoff value
 				{
 					pair_mod* pm = is_mod_pair(myligand->atom_types[type_id1], myligand->atom_types[type_id2], nr_mod_atype_pairs, mod_atype_pairs);
+					hbond = tables.is_HB [type_id1][type_id2];
 					if (tables.is_HB [type_id1][type_id2] && !pm) //H-bond
 					{
 						vdW1 = myligand->VWpars_C [type_id1][type_id2]*tables.r_12_table [smoothed_distance_id];
@@ -2236,14 +2402,68 @@ float calc_intraE_f(
 								printf("van der Waals interaction = ");
 						}
 					}
-
-					if (((atom_id1<myligand->true_ligand_atoms) && (atom_id2<myligand->true_ligand_atoms)) ||
-					    ((atom_id1>=myligand->true_ligand_atoms) && (atom_id2>=myligand->true_ligand_atoms))) // if both atoms are of either a ligand or a flex res it's intra
-						vW += vdW1 - vdW2;
-					else
+					if ((a_flex + b_flex) & 1){ // if both atoms are of either a ligand or a flex res it's intra
 						interflexE += vdW1 - vdW2;
+						if (analyze){
+							const ReceptorAtom* curr;
+							if(a_flex){ // a is flexres, b is ligand
+								atomtypeid = myligand->base_type_idx[type_id2];
+								atom_cnt = atom_id2;
+								curr = &flexres_atoms[atom_id1-myligand->true_ligand_atoms];
+								flex_reactive = myligand->reactive[atom_id1];
+							} else{ // a is ligand, b is flexres
+								atomtypeid = myligand->base_type_idx[type_id1];
+								atom_cnt = atom_id1;
+								curr = &flexres_atoms[atom_id2-myligand->true_ligand_atoms];
+								flex_reactive = myligand->reactive[atom_id2];
+							}
+							if(myligand->reactive[atom_cnt] && flex_reactive && (dist <= R_cutoff)){
+								datum.type     = 0; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+								datum.lig_id   = atom_cnt+1;
+								datum.lig_name = myligand->atom_names[atom_cnt];
+								datum.rec_id   = curr->id;
+								datum.rec_name = curr->name;
+								datum.residue  = curr->res_name;
+								datum.res_id   = curr->res_id;
+								datum.chain    = curr->chain_id;
+								analysis->push_back(datum);
+							} else{ // HB or vdW
+								if((myligand->acceptor[atom_cnt] && curr->donor) ||
+								   (myligand->donor[atom_cnt] && curr->acceptor)){
+									if(dist <= H_cutoff){
+										datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+										datum.lig_id   = atom_cnt+1;
+										datum.lig_name = myligand->atom_names[atom_cnt];
+										datum.rec_id   = curr->id;
+										datum.rec_name = curr->name;
+										datum.residue  = curr->res_name;
+										datum.res_id   = curr->res_id;
+										datum.chain    = curr->chain_id;
+										analysis->push_back(datum);
+									}
+								} else{
+									if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr->atom_type[0]!='H') && // exclude Hydrogens,
+									   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&                  // non-H-bond capable atoms on ligand,
+									   !curr->acceptor && !curr->donor){                                               // as well as flexres
+										if(dist <= V_cutoff){
+											datum.type     = 2; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
+											datum.lig_id   = atom_cnt+1;
+											datum.lig_name = myligand->atom_names[atom_cnt];
+											datum.rec_id   = curr->id;
+											datum.rec_name = curr->name;
+											datum.residue  = curr->res_name;
+											datum.res_id   = curr->res_id;
+											datum.chain    = curr->chain_id;
+											analysis->push_back(datum);
+										}
+									}
+								}
+							}
+						}
+					} else{ // both atoms are on either a ligand xor a flex res
+						vW += vdW1 - vdW2;
+					}
 				}
-
 				if (dist < 20.48)
 				{
 					if(dist<elec_min_distance){
@@ -2259,14 +2479,13 @@ float calc_intraE_f(
 						printf(" %lf, electrostatic = %lf, desolv = %lf\n", (vdW1 - vdW2), tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id],
 							   (s1*v2 + s2*v1) * tables.desolv_table [distance_id]);
 
-
-					if (((atom_id1<myligand->true_ligand_atoms) && (atom_id2<myligand->true_ligand_atoms)) ||
-					    ((atom_id1>=myligand->true_ligand_atoms) && (atom_id2>=myligand->true_ligand_atoms))){ // if both atoms are of either a ligand or a flex res it's intra
+					if ((a_flex + b_flex) & 1){ // if both atoms are of either a ligand or a flex res it's intra
+						interflexE += tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id] +
+						              (s1*v2 + s2*v1) * tables.desolv_table [distance_id];
+					} else{
 						el += tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id];
 						desolv += (s1*v2 + s2*v1) * tables.desolv_table [distance_id];
-					} else
-						interflexE += tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id] +
-							      (s1*v2 + s2*v1) * tables.desolv_table [distance_id];
+					}
 				}
 			}
 		}

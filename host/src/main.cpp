@@ -112,14 +112,25 @@ int main(int argc, char* argv[])
 	}
 #endif
 	if(initial_pars.xml2dlg){
-		printf("Converting %d xml file",n_files);
+		if(initial_pars.contact_analysis)
+			printf("Analyzing ");
+		else
+			printf("Converting ");
+		printf("%d xml file",n_files);
 		if(n_files>1) printf("s");
-		printf(" to dlg\n");
+		if(initial_pars.contact_analysis)
+			printf(" (contact analysis cutoffs: R=%.1f Å, H=%.1f Å, V=%.1f Å)\n", initial_pars.R_cutoff, initial_pars.H_cutoff, initial_pars.V_cutoff);
+		else
+			printf(" to dlg\n");
 	} else{
 		printf("Running %d docking calculation",n_files);
 		if(n_files>1) printf("s");
-		printf("\n");
+		if(initial_pars.contact_analysis)
+			printf(" (contact analysis cutoffs: R=%.1f Å, H=%.1f Å, V=%.1f Å)\n", initial_pars.R_cutoff, initial_pars.H_cutoff, initial_pars.V_cutoff);
+		else
+			printf("\n");
 	}
+	printf("\n");
 	int pl_gridsize = preload_gridsize(filelist);
 
 	// Setup master map set (one for now, nthreads-1 for general case)
@@ -132,6 +143,7 @@ int main(int argc, char* argv[])
 	{
 		if (strcmp("-xml2dlg", argv[i]) == 0)
 			i+=initial_pars.xml_files-1; // skip ahead in case there are multiple entries here
+		
 		if (strcmp("-devnum", argv [i]) == 0)
 		{
 			unsigned int tempint;
@@ -217,13 +229,21 @@ int main(int argc, char* argv[])
 				mypars = filelist.mypars[i_job];
 				mygrid = filelist.mygrids[i_job];
 			}
+			if(mypars.contact_analysis){
+				if(filelist.preload_maps){ // use preloaded data for receptor
+					mypars.receptor_atoms    = initial_pars.receptor_atoms;
+					mypars.nr_receptor_atoms = mypars.receptor_atoms.size();
+					mypars.receptor_map      = initial_pars.receptor_map;
+					mypars.receptor_map_list = initial_pars.receptor_map_list;
+				}
+			}
 			if(mypars.xml2dlg){
 				if(!mypars.dlg2stdout && (n_files>100))
 					if((50*(i_job+1)) % n_files < 50)
 						printf("*"); fflush(stdout);
 			} else{
-				printf ("(Thread %d is setting up Job #%d)\n",t_id,i_job+1); fflush(stdout);
 #ifdef USE_PIPELINE
+				printf ("(Thread %d is setting up Job #%d)\n",t_id,i_job+1); fflush(stdout);
 				#pragma omp critical
 #endif
 				{
@@ -352,9 +372,11 @@ int main(int argc, char* argv[])
 			}
 
 			// Post-processing
+#ifdef USE_PIPELINE
 			if(!mypars.xml2dlg){
 				printf ("(Thread %d is processing Job #%d)\n",t_id,i_job+1); fflush(stdout);
 			}
+#endif
 			start_timer(processing_timer);
 			process_result(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), &argc,argv, sim_state);
 #ifdef USE_PIPELINE
@@ -363,6 +385,7 @@ int main(int argc, char* argv[])
 			total_processing_time+=seconds_since(processing_timer);
 			if(filelist.used){
 				// Clean up memory dynamically allocated to not leak
+				mypars.receptor_atoms.clear();
 				if(mypars.fldfile) free(mypars.fldfile);
 				if(mypars.ligandfile) free(mypars.ligandfile);
 				if(mypars.flexresfile) free(mypars.flexresfile);
@@ -375,6 +398,7 @@ int main(int argc, char* argv[])
 		} // end of for loop
 		if(!filelist.used){
 			// Clean up memory dynamically allocated to not leak
+			mypars.receptor_atoms.clear();
 			if(mypars.fldfile) free(mypars.fldfile);
 			if(mypars.ligandfile) free(mypars.ligandfile);
 			if(mypars.flexresfile) free(mypars.flexresfile);
@@ -385,11 +409,11 @@ int main(int argc, char* argv[])
 			if(mygrid.map_base_name) free(mygrid.map_base_name);
 		}
 	} // end of parallel section
-	if(initial_pars.xml2dlg && !initial_pars.dlg2stdout && (n_files>100)) printf("\n"); // finish progress bar
+	if(initial_pars.xml2dlg && !initial_pars.dlg2stdout && (n_files>100)) printf("\n\n"); // finish progress bar
 	
 #ifndef _WIN32
 	// Total time measurement
-	printf("\nRun time of entire job set (%d file%s): %.3f sec", n_files, n_files>1?"s":"", seconds_since(time_start));
+	printf("Run time of entire job set (%d file%s): %.3f sec", n_files, n_files>1?"s":"", seconds_since(time_start));
 #ifdef USE_PIPELINE
 	if(n_files>1){
 		printf("\nSavings from multithreading: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));

@@ -41,6 +41,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define LS_METHOD_STRING_LEN 8
 
+
 typedef struct
 {
 	double AD4_coeff_vdW;
@@ -63,69 +64,77 @@ constexpr AD4_free_energy_coeffs unbound_models[3] = {
 
 // Struct which contains the docking parameters (partly parameters for fpga)
 typedef struct _Dockpars
-{                                                              // default values
-	int                    devnum                          = -1;
-	int                    devices_requested               = 1; // this is AD-GPU ...
-	uint32_t               seed[3]                         = {(uint32_t)time(NULL),(uint32_t)processid(),0};
-	unsigned long          num_of_energy_evals             = 2500000;
-	unsigned long          num_of_generations              = 42000;
-	bool                   nev_provided                    = false;
-	bool                   use_heuristics                  = true; // Flag if we want to use Diogo's heuristics
-	unsigned long          heuristics_max                  = 12000000; // Maximum number of evaluations under the heuristics (12M max evaluates to 80% of 3M evals calculated by heuristics -> 2.4M)
-	float                  abs_max_dmov;                   // depends on grid spacing
-	float                  abs_max_dang                    = 90; // +/- 90°
-	float                  mutation_rate                   = 2;  // 2%
-	float                  crossover_rate                  = 80; // 80%
-	float                  tournament_rate                 = 60; // 60%
-	float                  lsearch_rate                    = 100; // 1000%
-	float                  smooth                          = 0.5f;
-	int                    nr_deriv_atypes                 = 0;    // this is to support: -derivtype C1,C2,C3=C
-	deriv_atype*           deriv_atypes                    = NULL; // or even: -derivtype C1,C2,C3=C/S4=S/H5=HD
-	int                    nr_mod_atype_pairs              = 0;    // this is to support: -modpair C1:S4,1.60,1.200,13,7
-	pair_mod*              mod_atype_pairs                 = NULL; // or even: -modpair C1:S4,1.60,1.200,13,7/C1:C3,1.20 0.025
-	char                   ls_method[LS_METHOD_STRING_LEN] = "ad"; // "sw": Solis-Wets,
-	                                                               // "sd": Steepest-Descent
-	                                                               // "fire": FIRE, https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
-	                                                               // "ad": ADADELTA, https://arxiv.org/abs/1212.5701
-	                                                               // "adam": ADAM (currently only on Cuda)
-	int                    initial_sw_generations          = 0;
-	float                  rho_lower_bound                 = 0.01; // 0.01;
-	float                  base_dmov_mul_sqrt3;            // depends on grid spacing
-	float                  base_dang_mul_sqrt3             = 75.0*sqrt(3.0); // 75°
-	unsigned long          cons_limit                      = 4;
-	unsigned long          max_num_of_iters                = 300;
-	unsigned long          pop_size                        = 150;
-	char*                  load_xml                        = NULL;
-	bool                   xml2dlg                         = false;
-	unsigned int           xml_files                       = 0;
-	bool                   dlg2stdout                      = false;
-	int                    gen_pdbs                        = 0;
-	char*                  dpffile                         = NULL;
-	char*                  fldfile                         = NULL;
-	char*                  ligandfile                      = NULL;
-	char*                  flexresfile                     = NULL;
-	char*                  xrayligandfile                  = NULL;  // by default will be ligand file name
-	char*                  resname                         = NULL; // by default will be ligand file basename
-	bool                   given_xrayligandfile            = false; // That is, not given (explicitly by the user)
-	bool                   autostop                        = true;
-	unsigned int           as_frequency                    = 5;
-	float                  stopstd                         = 0.15;
-	bool                   cgmaps                          = false; // default is false (use a single map for every CGx or Gx atom type)
-	unsigned long          num_of_runs                     = 20;
-	unsigned int           list_nr                         = 0;
-	bool                   reflig_en_required              = false;
-	int                    unbound_model                   = 0;                 // bound same as unbound, the coefficients
-	AD4_free_energy_coeffs coeffs                          = unbound_models[0]; // are also set in get_filenames_and_ADcoeffs()
-	float                  elec_min_distance               = 0.01;
-	bool                   handle_symmetry                 = true;
-	bool                   gen_finalpop                    = false;
-	bool                   gen_best                        = false;
-	float                  qasp                            = 0.01097f;
-	float                  rmsd_tolerance                  = 2.0; // 2 Angstroem
-	float                  adam_beta1                      = 0.9f;
-	float                  adam_beta2                      = 0.999f;
-	float                  adam_epsilon                    = 1.0e-8f;
-	bool                   output_xml                      = true; // xml output file will be generated
+{                                                                 // default values
+	int                       devnum                          = -1;
+	int                       devices_requested               = 1; // this is AD-GPU ...
+	uint32_t                  seed[3]                         = {(uint32_t)time(NULL),(uint32_t)processid(),0};
+	unsigned long             num_of_energy_evals             = 2500000;
+	unsigned long             num_of_generations              = 42000;
+	bool                      nev_provided                    = false;
+	bool                      use_heuristics                  = true; // Flag if we want to use Diogo's heuristics
+	unsigned long             heuristics_max                  = 12000000; // Maximum number of evaluations under the heuristics (12M max evaluates to 80% of 3M evals calculated by heuristics -> 2.4M)
+	float                     abs_max_dmov;                   // depends on grid spacing
+	float                     abs_max_dang                    = 90; // +/- 90°
+	float                     mutation_rate                   = 2;  // 2%
+	float                     crossover_rate                  = 80; // 80%
+	float                     tournament_rate                 = 60; // 60%
+	float                     lsearch_rate                    = 100; // 1000%
+	float                     smooth                          = 0.5f;
+	int                       nr_deriv_atypes                 = 0;    // this is to support: -derivtype C1,C2,C3=C
+	deriv_atype*              deriv_atypes                    = NULL; // or even: -derivtype C1,C2,C3=C/S4=S/H5=HD
+	int                       nr_mod_atype_pairs              = 0;    // this is to support: -modpair C1:S4,1.60,1.200,13,7
+	pair_mod*                 mod_atype_pairs                 = NULL; // or even: -modpair C1:S4,1.60,1.200,13,7/C1:C3,1.20 0.025
+	char                      ls_method[LS_METHOD_STRING_LEN] = "ad"; // "sw": Solis-Wets,
+	                                                                  // "sd": Steepest-Descent
+	                                                                  // "fire": FIRE, https://www.math.uni-bielefeld.de/~gaehler/papers/fire.pdf
+	                                                                  // "ad": ADADELTA, https://arxiv.org/abs/1212.5701
+	                                                                  // "adam": ADAM (currently only on Cuda)
+	int                       initial_sw_generations          = 0;
+	float                     rho_lower_bound                 = 0.01; // 0.01;
+	float                     base_dmov_mul_sqrt3;            // depends on grid spacing
+	float                     base_dang_mul_sqrt3             = 75.0*sqrt(3.0); // 75°
+	unsigned long             cons_limit                      = 4;
+	unsigned long             max_num_of_iters                = 300;
+	unsigned long             pop_size                        = 150;
+	char*                     load_xml                        = NULL;
+	bool                      xml2dlg                         = false;
+	bool                      contact_analysis                = false; // by default no distance-based contact analysis is performed
+	std::vector<ReceptorAtom> receptor_atoms;
+	unsigned int              nr_receptor_atoms               = 0;
+	unsigned int*             receptor_map                    = NULL;
+	unsigned int*             receptor_map_list               = NULL;
+	float                     R_cutoff                        = 2.1;
+	float                     H_cutoff                        = 3.7;
+	float                     V_cutoff                        = 4.0;
+	unsigned int              xml_files                       = 0;
+	bool                      dlg2stdout                      = false;
+	int                       gen_pdbs                        = 0;
+	char*                     dpffile                         = NULL;
+	char*                     fldfile                         = NULL;
+	char*                     ligandfile                      = NULL;
+	char*                     flexresfile                     = NULL;
+	char*                     xrayligandfile                  = NULL;  // by default will be ligand file name
+	char*                     resname                         = NULL; // by default will be ligand file basename
+	bool                      given_xrayligandfile            = false; // That is, not given (explicitly by the user)
+	bool                      autostop                        = true;
+	unsigned int              as_frequency                    = 5;
+	float                     stopstd                         = 0.15;
+	bool                      cgmaps                          = false; // default is false (use a single map for every CGx or Gx atom type)
+	unsigned long             num_of_runs                     = 20;
+	unsigned int              list_nr                         = 0;
+	bool                      reflig_en_required              = false;
+	int                       unbound_model                   = 0;                 // bound same as unbound, the coefficients
+	AD4_free_energy_coeffs    coeffs                          = unbound_models[0]; // are also set in get_filenames_and_ADcoeffs()
+	float                     elec_min_distance               = 0.01;
+	bool                      handle_symmetry                 = true;
+	bool                      gen_finalpop                    = false;
+	bool                      gen_best                        = false;
+	float                     qasp                            = 0.01097f;
+	float                     rmsd_tolerance                  = 2.0; // 2 Angstroem
+	float                     adam_beta1                      = 0.9f;
+	float                     adam_beta2                      = 0.999f;
+	float                     adam_epsilon                    = 1.0e-8f;
+	bool                      output_xml                      = true; // xml output file will be generated
 } Dockpars;
 
 inline bool add_deriv_atype(
@@ -185,6 +194,18 @@ int get_commandpars(
                           Dockpars*,
                     const bool late_call = true
                    );
+
+std::vector<ReceptorAtom> read_receptor_atoms(
+                                              const char* receptor_name
+                                             );
+
+std::vector<ReceptorAtom> read_receptor(
+                                        const char* receptor_name,
+                                        Gridinfo* mygrid,
+                                        unsigned int* &in_reach_map,
+                                        unsigned int* &atom_map_list,
+                                        double cutoff = 4.2
+                                       );
 
 void read_xml_filenames(
                         char* xml_filename,
