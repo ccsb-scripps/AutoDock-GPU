@@ -43,7 +43,7 @@ make DEVICE=<TYPE> NUMWI=<NWI>
 | `<TYPE>`   | Accelerator chosen           | `CPU`, `GPU`, `CUDA`, `OCLGPU`                     |
 | `<NWI>`    | work-group/thread block size | `1`, `2`, `4`, `8`, `16`, `32`, `64`, `128`, `256` |
 
-When `DEVICE=GPU` is chosen, the Makefile will automatically tests if it can compile Cuda succesfully. To override, use `DEVICE=CUDA` or `DEVICE=OCLGPU`. The cpu target is only supported using OpenCL.
+When `DEVICE=GPU` is chosen, the Makefile will automatically tests if it can compile Cuda succesfully. To override, use `DEVICE=CUDA` or `DEVICE=OCLGPU`. The cpu target is only supported using OpenCL. Furthermore, an OpenMP-enabled overlapped pipeline (for setup and processing) can be compiled with `OVERLAP=ON`.
 Hints: The best work-group size depends on the GPU and workload. Try `NUMWI=128` or `NUMWI=64` for modern cards with the example workloads. On macOS, use `NUMWI=1` for CPUs.
 
 After successful compilation, the host binary **autodock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
@@ -79,29 +79,32 @@ By default the output log file is written in the current working folder. Example
 
 ## Supported arguments
 
-| Argument    | Description                                           | Default value    |
-|:------------|:------------------------------------------------------|-----------------:|
-| -nrun       | # LGA runs                                            | 20               |
-| -nev        | # Score evaluations (max.) per LGA run                | 2500000          |
-| -ngen       | # Generations (max.) per LGA run                      | 42000            |
-| -lsmet      | Local-search method                                   | ad (ADADELTA)    |
-| -lsit       | # Local-search iterations (max.)                      | 300              |
-| -psize      | Population size                                       | 150              |
-| -mrat       | Mutation rate                                         | 2   (%)          |
-| -crat       | Crossover rate                                        | 80  (%)          |
-| -lsrat      | Local-search rate                                     | 100 (%)          |
-| -trat       | Tournament (selection) rate                           | 60  (%)          |
-| -resnam     | Name for docking output log                           | ligand basename  |
-| -hsym       | Handle symmetry in RMSD calc.                         | 1 (yes)          |
-| -devnum     | OpenCL/Cuda device number (counting starts at 1)      | 1                |
-| -cgmaps     | Use individual maps for CG-G0 instead of the same one | 0 (use same map) |
-| -heuristics | Ligand-based automatic search method and # evals      | 1 (yes)          |
-| -heurmax    | Asymptotic heuristics # evals limit (smooth limit)    | 12000000         |
-| -autostop   | Automatic stopping criterion based on convergence     | 1 (yes)          |
-| -asfreq     | Autostop testing frequency (in # of generations)      | 5                |
-| -initswgens | Initial # generations of Solis-Wets instead of -lsmet | 0 (no)           |
-| -filelist   | Batch file                                            | no default       |
-| -xmloutput  | Specify if xml output format is wanted                | 1 (yes)          |
+| Argument          | Description                                           | Default value    |
+|:------------------|:------------------------------------------------------|-----------------:|
+| -nrun             | # LGA runs                                            | 20               |
+| -nev              | # Score evaluations (max.) per LGA run                | 2500000          |
+| -ngen             | # Generations (max.) per LGA run                      | 42000            |
+| -lsmet            | Local-search method                                   | ad (ADADELTA)    |
+| -lsit             | # Local-search iterations (max.)                      | 300              |
+| -psize            | Population size                                       | 150              |
+| -mrat             | Mutation rate                                         | 2   (%)          |
+| -crat             | Crossover rate                                        | 80  (%)          |
+| -lsrat            | Local-search rate                                     | 100 (%)          |
+| -trat             | Tournament (selection) rate                           | 60  (%)          |
+| -resnam           | Name for docking output log                           | ligand basename  |
+| -hsym             | Handle symmetry in RMSD calc.                         | 1 (yes)          |
+| -devnum           | OpenCL/Cuda device number (counting starts at 1)      | 1                |
+| -cgmaps           | Use individual maps for CG-G0 instead of the same one | 0 (use same map) |
+| -heuristics       | Ligand-based automatic search method and # evals      | 1 (yes)          |
+| -heurmax          | Asymptotic heuristics # evals limit (smooth limit)    | 12000000         |
+| -autostop         | Automatic stopping criterion based on convergence     | 1 (yes)          |
+| -asfreq           | Autostop testing frequency (in # of generations)      | 5                |
+| -initswgens       | Initial # generations of Solis-Wets instead of -lsmet | 0 (no)           |
+| -filelist         | Batch file                                            | no default       |
+| -xmloutput        | Specify if xml output format is wanted                | 1 (yes)          |
+| -xml2dlg          | One (or many) AD-GPU xml file(s) to convert to dlg(s) | none             |
+| -contact_analysis | Perform distance-based analysis (description below)   | 0 (no)           |
+| -dlg2stdout       | Write dlg file output to stdout (if not OVERLAP=ON)   | 0 (no)           |
 
 Autostop is ON by default since v1.4. The collective distribution of scores among all LGA populations
 is tested for convergence every `<asfreq>` generations, and docking is stopped if the top-scored poses
@@ -126,6 +129,14 @@ Ligand 2
 ./ligand3.pdbqt
 Ligand 3
 ```
+
+When the distance-based analysis is used (`-contact_analysis 1` or `-contact_analysis <R_cutoff>,<H_cutoff>,<V_cutoff>`),
+the ligand poses of a given run (either after a docking run or even when `-xml2dlg <xml file(s)>` is used) are analyzed in
+terms of their individual atom distances to the target protein with individual cutoffs for:
+* `R`eactive (default: 2.1 Å): These are interactions between modified atom types numbered 1, 4, or 7 (i.e. between C1 and S4)
+* `H`ydrogen bonds (default: 3.7 Å): Interactions between Hydrogen-bond donor (closest N,O,S to an HD, or HD otherwise) and acceptor atom types (NA,NS,OA,OS,SA atom types).
+* `V`an der Waals (default: 4.0  Å): All other interactions not fulfilling the above criteria.
+The contact analysis results for each pose are output in dlg lines starting with `ANALYSIS:` and/or in `<contact_analysis>` blocks in xml file output.
 
 For a complete list of available arguments and their default values, check [getparameters.cpp](host/src/getparameters.cpp).
 
