@@ -136,6 +136,7 @@ terms of their individual atom distances to the target protein with individual c
 * `R`eactive (default: 2.1 Å): These are interactions between modified atom types numbered 1, 4, or 7 (i.e. between C1 and S4)
 * `H`ydrogen bonds (default: 3.7 Å): Interactions between Hydrogen-bond donor (closest N,O,S to an HD, or HD otherwise) and acceptor atom types (NA,NS,OA,OS,SA atom types).
 * `V`an der Waals (default: 4.0  Å): All other interactions not fulfilling the above criteria.
+
 The contact analysis results for each pose are output in dlg lines starting with `ANALYSIS:` and/or in `<contact_analysis>` blocks in xml file output.
 
 For a complete list of available arguments and their default values, check [getparameters.cpp](host/src/getparameters.cpp).
