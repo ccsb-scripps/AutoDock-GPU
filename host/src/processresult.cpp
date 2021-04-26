@@ -667,11 +667,8 @@ void clusanal_gendlg(
 			fp = fopen(report_file_name, "w");
 			free(report_file_name);
 		}
-	}
 
-	// writing basic info
-
-	if(mypars->output_dlg){
+		// writing basic info
 		write_basic_info_dlg(fp, ligand_ref, mypars, mygrid, argc, argv);
 
 		if(!mypars->xml2dlg){

@@ -1545,6 +1545,10 @@ int get_commandpars(
 				mypars->output_dlg = false;
 			else
 				mypars->output_dlg = true;
+			if(!mypars->output_dlg && (mypars->xml2dlg || mypars->dlg2stdout)){
+				printf("Note: Value of -dlgoutput ignored. Arguments -xml2dlg or -dlg2stdout require dlg output.\n");
+				mypars->output_dlg = true;
+			}
 		}
 
 		// Argument: choose wether to output XML or not
