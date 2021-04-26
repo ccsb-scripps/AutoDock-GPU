@@ -657,241 +657,242 @@ void clusanal_gendlg(
 
 	int len = strlen(mypars->resname) + 4 + 1;
 	// GENERATING DLG FILE
-	if(mypars->dlg2stdout){
-		fp = stdout;
-	} else{
-		char* report_file_name = (char*)malloc(len*sizeof(char));
-		strcpy(report_file_name, mypars->resname);
-		strcat(report_file_name, ".dlg");
-		fp = fopen(report_file_name, "w");
-		free(report_file_name);
+	if(mypars->output_dlg){
+		if(mypars->dlg2stdout){
+			fp = stdout;
+		} else{
+			char* report_file_name = (char*)malloc(len*sizeof(char));
+			strcpy(report_file_name, mypars->resname);
+			strcat(report_file_name, ".dlg");
+			fp = fopen(report_file_name, "w");
+			free(report_file_name);
+		}
 	}
 
 	// writing basic info
 
-	write_basic_info_dlg(fp, ligand_ref, mypars, mygrid, argc, argv);
+	if(mypars->output_dlg){
+		write_basic_info_dlg(fp, ligand_ref, mypars, mygrid, argc, argv);
 
-	if(!mypars->xml2dlg){
-		fprintf(fp, "           COUNTER STATES           \n");
-		fprintf(fp, "___________________________________\n\n");
-		fprintf(fp, "Number of energy evaluations performed:    %lu\n", evals_performed);
-		fprintf(fp, "Number of generations used:                %lu\n", generations_used);
-		fprintf(fp, "\n\n");
-	}
-
-	std::string pdbqt_template;
-	std::vector<unsigned int> atom_data;
-	char lineout [256];
-	// writing input pdbqt file
-	fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
-	fp_orig = fopen(mypars->ligandfile, "rb"); // fp_orig = fopen(mypars->ligandfile, "r");
-	while (fgets(tempstr, 255, fp_orig) != NULL) // reading original ligand pdb line by line
-	{
-		fprintf(fp, "INPUT-LIGAND-PDBQT: %s", tempstr);
-		if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
-		{
-			tempstr[30] = '\0';
-			sprintf(lineout, "DOCKED: %s", tempstr, atom_cnt);
-			pdbqt_template += lineout;
-			atom_data.push_back(pdbqt_template.length());
-		} else{
-			if (strncmp("ROOT", tempstr, 4) == 0)
-			{
-				root_atom = atom_cnt;
-				pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
-				pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
-			}
-			sprintf(lineout, "DOCKED: %s", tempstr);
-			pdbqt_template += lineout;
-		}
-	}
-	fprintf(fp, "\n\n");
-	fclose(fp_orig);
-
-	// writing input flexres pdbqt file if specified
-	if (mypars->flexresfile!=NULL) {
-		if ( strlen(mypars->flexresfile)>0 ) {
-			fprintf(fp, "    INPUT FLEXRES PDBQT FILE:\n    ________________________\n\n\n");
-			fp_orig = fopen(mypars->flexresfile, "rb"); // fp_orig = fopen(mypars->flexresfile, "r");
-			while (fgets(tempstr, 255, fp_orig) != NULL) // reading original flexres pdb line by line
-			{
-				fprintf(fp, "INPUT-FLEXRES-PDBQT: %s", tempstr);
-				if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
-				{
-					tempstr[30] = '\0';
-					sprintf(lineout, "DOCKED: %s", tempstr, atom_cnt);
-					pdbqt_template += lineout;
-					atom_data.push_back(pdbqt_template.length());
-				} else{
-					if (strncmp("ROOT", tempstr, 4) == 0)
-					{
-						pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
-						pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
-					}
-					sprintf(lineout, "DOCKED: %s", tempstr);
-					pdbqt_template += lineout;
-				}
-			}
+		if(!mypars->xml2dlg){
+			fprintf(fp, "           COUNTER STATES           \n");
+			fprintf(fp, "___________________________________\n\n");
+			fprintf(fp, "Number of energy evaluations performed:    %lu\n", evals_performed);
+			fprintf(fp, "Number of generations used:                %lu\n", generations_used);
 			fprintf(fp, "\n\n");
-			fclose(fp_orig);
 		}
-	}
 
-	// writing docked conformations
-	std::string curr_model;
-	for (i=0; i<num_of_runs; i++)
-	{
-		fprintf(fp, "    FINAL DOCKED STATE:\n    ________________________\n\n\n");
-
-		fprintf(fp, "Run:   %d / %lu\n", i+1, mypars->num_of_runs);
-		fprintf(fp, "Time taken for this run:   %.3lfs\n\n", docking_avg_runtime);
-
-		if(mypars->contact_analysis){
-			if(myresults[i].analysis.size()>0){
-				// sort by analysis type
-				AnalysisData temp;
-				for(unsigned int j=0; j<myresults[i].analysis.size(); j++)
-					for(unsigned int k=0; k<myresults[i].analysis.size()-j-1; k++)
-						if(myresults[i].analysis[k].type>myresults[i].analysis[k+1].type){
-							temp = myresults[i].analysis[k];
-							myresults[i].analysis[k]   = myresults[i].analysis[k+1];
-							myresults[i].analysis[k+1] = temp;
-						}
-				fprintf(fp, "ANALYSIS: COUNT %d\n", myresults[i].analysis.size());
-				std::string types    = "TYPE    {";
-				std::string lig_id   = "LIGID   {";
-				std::string ligname  = "LIGNAME {";
-				std::string rec_id   = "RECID   {";
-				std::string rec_name = "RECNAME {";
-				std::string residue  = "RESIDUE {";
-				std::string res_id   = "RESID   {";
-				std::string chain    = "CHAIN   {";
-				char item[8], pad[8];
-				for(unsigned int j=0; j<myresults[i].analysis.size(); j++){
-					if(j>0){
-						types    += ",";
-						lig_id   += ",";
-						ligname  += ",";
-						rec_id   += ",";
-						rec_name += ",";
-						residue  += ",";
-						res_id   += ",";
-						chain    += ",";
-					}
-					switch(myresults[i].analysis[j].type){
-						case 0: types += "   \"R\"";
-						        break;
-						case 1: types += "   \"H\"";
-						        break;
-						default:
-						case 2: types += "   \"V\"";
-						        break;
-					}
-					sprintf(item, "%5d ", myresults[i].analysis[j].lig_id);   lig_id+=item;
-					sprintf(item, "\"%s\"", myresults[i].analysis[j].lig_name); sprintf(pad, "%6s", item); ligname+=pad;
-					sprintf(item, "%5d ", myresults[i].analysis[j].rec_id);   rec_id+=item;
-					sprintf(item, "\"%s\"", myresults[i].analysis[j].rec_name); sprintf(pad, "%6s", item); rec_name+=pad;
-					sprintf(item, "\"%s\"", myresults[i].analysis[j].residue); sprintf(pad, "%6s", item);  residue+=pad;
-					sprintf(item, "%5d ", myresults[i].analysis[j].res_id);   res_id+=item;
-					sprintf(item, "\"%s\"", myresults[i].analysis[j].chain); sprintf(pad, "%6s", item);    chain+=pad;
+		std::string pdbqt_template;
+		std::vector<unsigned int> atom_data;
+		char lineout [256];
+		// writing input pdbqt file
+		fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
+		fp_orig = fopen(mypars->ligandfile, "rb"); // fp_orig = fopen(mypars->ligandfile, "r");
+		while (fgets(tempstr, 255, fp_orig) != NULL) // reading original ligand pdb line by line
+		{
+			fprintf(fp, "INPUT-LIGAND-PDBQT: %s", tempstr);
+			if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
+			{
+				tempstr[30] = '\0';
+				sprintf(lineout, "DOCKED: %s", tempstr, atom_cnt);
+				pdbqt_template += lineout;
+				atom_data.push_back(pdbqt_template.length());
+			} else{
+				if (strncmp("ROOT", tempstr, 4) == 0)
+				{
+					root_atom = atom_cnt;
+					pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
+					pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
 				}
-				fprintf(fp, "ANALYSIS: %s}\n", types.c_str());
-				fprintf(fp, "ANALYSIS: %s}\n", lig_id.c_str());
-				fprintf(fp, "ANALYSIS: %s}\n", ligname.c_str());
-				fprintf(fp, "ANALYSIS: %s}\n", rec_id.c_str());
-				fprintf(fp, "ANALYSIS: %s}\n", rec_name.c_str());
-				fprintf(fp, "ANALYSIS: %s}\n", residue.c_str());
-				fprintf(fp, "ANALYSIS: %s}\n", res_id.c_str());
-				fprintf(fp, "ANALYSIS: %s}\n\n", chain.c_str());
+				sprintf(lineout, "DOCKED: %s", tempstr);
+				pdbqt_template += lineout;
 			}
 		}
-
-		fprintf(fp, "DOCKED: MODEL        %d\n", i+1);
-		fprintf(fp, "DOCKED: USER    Run = %d\n", i+1);
-		fprintf(fp, "DOCKED: USER\n");
-
-		fprintf(fp, "DOCKED: USER    Estimated Free Energy of Binding    =");
-		PRINT1000(fp, ((float) (myresults[i].interE + myresults[i].interflexE + torsional_energy)));
-		fprintf(fp, " kcal/mol  [=(1)+(2)+(3)-(4)]\n");
-
-		fprintf(fp, "DOCKED: USER\n");
-
-		fprintf(fp, "DOCKED: USER    (1) Final Intermolecular Energy     =");
-		PRINT1000(fp, ((float) (myresults[i].interE + myresults[i].interflexE)));
-		fprintf(fp, " kcal/mol\n");
-
-		fprintf(fp, "DOCKED: USER        vdW + Hbond + desolv Energy     =");
-		PRINT1000(fp, ((float) (myresults[i].interE - myresults[i].interE_elec)));
-		fprintf(fp, " kcal/mol\n");
-
-		fprintf(fp, "DOCKED: USER        Electrostatic Energy            =");
-		PRINT1000(fp, ((float) myresults[i].interE_elec));
-		fprintf(fp, " kcal/mol\n");
-
-		fprintf(fp, "DOCKED: USER        Moving Ligand-Fixed Receptor    =");
-		PRINT1000(fp, ((float) myresults[i].interE));
-		fprintf(fp, " kcal/mol\n");
-
-		fprintf(fp, "DOCKED: USER        Moving Ligand-Moving Receptor   =");
-		PRINT1000(fp, ((float) myresults[i].interflexE));
-		fprintf(fp, " kcal/mol\n");
-
-		fprintf(fp, "DOCKED: USER    (2) Final Total Internal Energy     =");
-		PRINT1000(fp, ((float) (myresults[i].intraE + myresults[i].intraflexE)));
-		fprintf(fp, " kcal/mol\n");
-
-		fprintf(fp, "DOCKED: USER    (3) Torsional Free Energy           =");
-		PRINT1000(fp, ((float) torsional_energy));
-		fprintf(fp, " kcal/mol\n");
-
-		fprintf(fp, "DOCKED: USER    (4) Unbound System's Energy         =");
-		PRINT1000(fp, ((float) (myresults[i].intraE + myresults[i].intraflexE)));
-		fprintf(fp, " kcal/mol\n");
-
-		fprintf(fp, "DOCKED: USER\n");
-		if(mypars->xml2dlg || mypars->contact_analysis){
-			fprintf(fp, "DOCKED: USER    NEWDPF about 0.0 0.0 0.0\n");
-			fprintf(fp, "DOCKED: USER    NEWDPF tran0 %.6f %.6f %.6f\n", myresults[i].genotype[0]*mygrid->spacing, myresults[i].genotype[1]*mygrid->spacing, myresults[i].genotype[2]*mygrid->spacing);
-			if(!mypars->xml2dlg){
-				double phi = myresults[j].genotype[3]/180.0*PI;
-				double theta = myresults[j].genotype[4]/180.0*PI;
-				fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[j].genotype[5]);
-			} else fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", myresults[i].genotype[3], myresults[i].genotype[4], myresults[i].genotype[5], myresults[i].genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1]);
-			fprintf(fp, "DOCKED: USER    NEWDPF dihe0");
-			for(j=0; j<myresults[i].reslig_realcoord.num_of_rotbonds; j++)
-				fprintf(fp, " %.6f", myresults[i].genotype[6+j]);
-			fprintf(fp, "\n");
-		}
-		fprintf(fp, "DOCKED: USER\n");
-
-		unsigned int lnr=1;
-		if ( mypars->flexresfile!=NULL) {
-			if ( strlen(mypars->flexresfile)>0 )
-				lnr++;
+		fprintf(fp, "\n\n");
+		fclose(fp_orig);
+		
+		// writing input flexres pdbqt file if specified
+		if (mypars->flexresfile!=NULL) {
+			if ( strlen(mypars->flexresfile)>0 ) {
+				fprintf(fp, "    INPUT FLEXRES PDBQT FILE:\n    ________________________\n\n\n");
+				fp_orig = fopen(mypars->flexresfile, "rb"); // fp_orig = fopen(mypars->flexresfile, "r");
+				while (fgets(tempstr, 255, fp_orig) != NULL) // reading original flexres pdb line by line
+				{
+					fprintf(fp, "INPUT-FLEXRES-PDBQT: %s", tempstr);
+					if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
+					{
+						tempstr[30] = '\0';
+						sprintf(lineout, "DOCKED: %s", tempstr, atom_cnt);
+						pdbqt_template += lineout;
+						atom_data.push_back(pdbqt_template.length());
+					} else{
+						if (strncmp("ROOT", tempstr, 4) == 0)
+						{
+							pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
+							pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
+							}
+						sprintf(lineout, "DOCKED: %s", tempstr);
+						pdbqt_template += lineout;
+					}
+				}
+				fprintf(fp, "\n\n");
+				fclose(fp_orig);
+			}
 		}
 		
-		curr_model = pdbqt_template;
-		for(atom_cnt = atom_data.size(); atom_cnt-->0;)
+		// writing docked conformations
+		std::string curr_model;
+		for (i=0; i<num_of_runs; i++)
 		{
-			char* line = lineout;
-			line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][1]); // x
-			line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][2]); // y
-			line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][3]); // z
-			line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw
-			line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec
-			line += sprintf(line, "    %+6.3lf ", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][4]); // q
-			line += sprintf(line, "%-2s\n\0", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]); // type
-			curr_model.insert(atom_data[atom_cnt],lineout);
+			fprintf(fp, "    FINAL DOCKED STATE:\n    ________________________\n\n\n");
+
+			fprintf(fp, "Run:   %d / %lu\n", i+1, mypars->num_of_runs);
+			fprintf(fp, "Time taken for this run:   %.3lfs\n\n", docking_avg_runtime);
+
+			if(mypars->contact_analysis){
+				if(myresults[i].analysis.size()>0){
+					// sort by analysis type
+					AnalysisData temp;
+					for(unsigned int j=0; j<myresults[i].analysis.size(); j++)
+						for(unsigned int k=0; k<myresults[i].analysis.size()-j-1; k++)
+							if(myresults[i].analysis[k].type>myresults[i].analysis[k+1].type){
+								temp = myresults[i].analysis[k];
+								myresults[i].analysis[k]   = myresults[i].analysis[k+1];
+								myresults[i].analysis[k+1] = temp;
+							}
+					fprintf(fp, "ANALYSIS: COUNT %d\n", myresults[i].analysis.size());
+					std::string types    = "TYPE    {";
+					std::string lig_id   = "LIGID   {";
+					std::string ligname  = "LIGNAME {";
+					std::string rec_id   = "RECID   {";
+					std::string rec_name = "RECNAME {";
+					std::string residue  = "RESIDUE {";
+					std::string res_id   = "RESID   {";
+					std::string chain    = "CHAIN   {";
+					char item[8], pad[8];
+					for(unsigned int j=0; j<myresults[i].analysis.size(); j++){
+						if(j>0){
+							types    += ",";
+							lig_id   += ",";
+							ligname  += ",";
+							rec_id   += ",";
+							rec_name += ",";
+							residue  += ",";
+							res_id   += ",";
+							chain    += ",";
+						}
+						switch(myresults[i].analysis[j].type){
+							case 0: types += "   \"R\"";
+							        break;
+							case 1: types += "   \"H\"";
+							        break;
+							default:
+							case 2: types += "   \"V\"";
+							        break;
+						}
+						sprintf(item, "%5d ", myresults[i].analysis[j].lig_id);   lig_id+=item;
+						sprintf(item, "\"%s\"", myresults[i].analysis[j].lig_name); sprintf(pad, "%6s", item); ligname+=pad;
+						sprintf(item, "%5d ", myresults[i].analysis[j].rec_id);   rec_id+=item;
+						sprintf(item, "\"%s\"", myresults[i].analysis[j].rec_name); sprintf(pad, "%6s", item); rec_name+=pad;
+						sprintf(item, "\"%s\"", myresults[i].analysis[j].residue); sprintf(pad, "%6s", item);  residue+=pad;
+						sprintf(item, "%5d ", myresults[i].analysis[j].res_id);   res_id+=item;
+						sprintf(item, "\"%s\"", myresults[i].analysis[j].chain); sprintf(pad, "%6s", item);    chain+=pad;
+					}
+					fprintf(fp, "ANALYSIS: %s}\n", types.c_str());
+					fprintf(fp, "ANALYSIS: %s}\n", lig_id.c_str());
+					fprintf(fp, "ANALYSIS: %s}\n", ligname.c_str());
+					fprintf(fp, "ANALYSIS: %s}\n", rec_id.c_str());
+					fprintf(fp, "ANALYSIS: %s}\n", rec_name.c_str());
+					fprintf(fp, "ANALYSIS: %s}\n", residue.c_str());
+					fprintf(fp, "ANALYSIS: %s}\n", res_id.c_str());
+					fprintf(fp, "ANALYSIS: %s}\n\n", chain.c_str());
+				}
+			}
+
+			fprintf(fp, "DOCKED: MODEL        %d\n", i+1);
+			fprintf(fp, "DOCKED: USER    Run = %d\n", i+1);
+			fprintf(fp, "DOCKED: USER\n");
+
+			fprintf(fp, "DOCKED: USER    Estimated Free Energy of Binding    =");
+			PRINT1000(fp, ((float) (myresults[i].interE + myresults[i].interflexE + torsional_energy)));
+			fprintf(fp, " kcal/mol  [=(1)+(2)+(3)-(4)]\n");
+
+			fprintf(fp, "DOCKED: USER\n");
+
+			fprintf(fp, "DOCKED: USER    (1) Final Intermolecular Energy     =");
+			PRINT1000(fp, ((float) (myresults[i].interE + myresults[i].interflexE)));
+			fprintf(fp, " kcal/mol\n");
+
+			fprintf(fp, "DOCKED: USER        vdW + Hbond + desolv Energy     =");
+			PRINT1000(fp, ((float) (myresults[i].interE - myresults[i].interE_elec)));
+			fprintf(fp, " kcal/mol\n");
+
+			fprintf(fp, "DOCKED: USER        Electrostatic Energy            =");
+			PRINT1000(fp, ((float) myresults[i].interE_elec));
+			fprintf(fp, " kcal/mol\n");
+
+			fprintf(fp, "DOCKED: USER        Moving Ligand-Fixed Receptor    =");
+			PRINT1000(fp, ((float) myresults[i].interE));
+			fprintf(fp, " kcal/mol\n");
+
+			fprintf(fp, "DOCKED: USER        Moving Ligand-Moving Receptor   =");
+			PRINT1000(fp, ((float) myresults[i].interflexE));
+			fprintf(fp, " kcal/mol\n");
+
+			fprintf(fp, "DOCKED: USER    (2) Final Total Internal Energy     =");
+			PRINT1000(fp, ((float) (myresults[i].intraE + myresults[i].intraflexE)));
+			fprintf(fp, " kcal/mol\n");
+
+			fprintf(fp, "DOCKED: USER    (3) Torsional Free Energy           =");
+			PRINT1000(fp, ((float) torsional_energy));
+			fprintf(fp, " kcal/mol\n");
+
+			fprintf(fp, "DOCKED: USER    (4) Unbound System's Energy         =");
+			PRINT1000(fp, ((float) (myresults[i].intraE + myresults[i].intraflexE)));
+			fprintf(fp, " kcal/mol\n");
+
+			fprintf(fp, "DOCKED: USER\n");
+			if(mypars->xml2dlg || mypars->contact_analysis){
+				fprintf(fp, "DOCKED: USER    NEWDPF about 0.0 0.0 0.0\n");
+				fprintf(fp, "DOCKED: USER    NEWDPF tran0 %.6f %.6f %.6f\n", myresults[i].genotype[0]*mygrid->spacing, myresults[i].genotype[1]*mygrid->spacing, myresults[i].genotype[2]*mygrid->spacing);
+				if(!mypars->xml2dlg){
+					double phi = myresults[j].genotype[3]/180.0*PI;
+					double theta = myresults[j].genotype[4]/180.0*PI;
+					fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[j].genotype[5]);
+				} else fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", myresults[i].genotype[3], myresults[i].genotype[4], myresults[i].genotype[5], myresults[i].genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1]);
+				fprintf(fp, "DOCKED: USER    NEWDPF dihe0");
+				for(j=0; j<myresults[i].reslig_realcoord.num_of_rotbonds; j++)
+					fprintf(fp, " %.6f", myresults[i].genotype[6+j]);
+				fprintf(fp, "\n");
+			}
+			fprintf(fp, "DOCKED: USER\n");
+
+			unsigned int lnr=1;
+			if ( mypars->flexresfile!=NULL) {
+				if ( strlen(mypars->flexresfile)>0 )
+					lnr++;
+			}
+			
+			curr_model = pdbqt_template;
+			for(atom_cnt = atom_data.size(); atom_cnt-->0;)
+			{
+				char* line = lineout;
+				line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][1]); // x
+				line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][2]); // y
+				line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][3]); // z
+				line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw
+				line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec
+				line += sprintf(line, "    %+6.3lf ", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][4]); // q
+				line += sprintf(line, "%-2s\n\0", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]); // type
+				curr_model.insert(atom_data[atom_cnt],lineout);
+			}
+			fprintf(fp, "%s", curr_model.c_str());
+			fprintf(fp, "DOCKED: TER\n");
+			fprintf(fp, "DOCKED: ENDMDL\n");
+			fprintf(fp, "________________________________________________________________________________\n\n\n");
 		}
-		fprintf(fp, "%s", curr_model.c_str());
-		fprintf(fp, "DOCKED: TER\n");
-		fprintf(fp, "DOCKED: ENDMDL\n");
-		fprintf(fp, "________________________________________________________________________________\n\n\n");
-
 	}
-
 	// PERFORM CLUSTERING
-
 	// arranging results according to energy, myresults [0] will be the best one (with lowest energy)
 	for (j=0; j<num_of_runs-1; j++)
 		for (i=num_of_runs-2; i>=j; i--) // arrange according to sum of inter- and intramolecular energies
@@ -962,86 +963,86 @@ void clusanal_gendlg(
 			}
 	}
 
-	// WRITING CLUSTER INFORMATION
+	if(mypars->output_dlg){
+		// WRITING CLUSTER INFORMATION
+		fprintf(fp, "    CLUSTERING HISTOGRAM\n    ____________________\n\n\n");
+		fprintf(fp, "________________________________________________________________________________\n");
+		fprintf(fp, "     |           |     |           |     |\n");
+		fprintf(fp, "Clus | Lowest    | Run | Mean      | Num | Histogram\n");
+		fprintf(fp, "-ter | Binding   |     | Binding   | in  |\n");
+		fprintf(fp, "Rank | Energy    |     | Energy    | Clus|    5    10   15   20   25   30   35\n");
+		fprintf(fp, "_____|___________|_____|___________|_____|____:____|____:____|____:____|____:___\n");
 
-	fprintf(fp, "    CLUSTERING HISTOGRAM\n    ____________________\n\n\n");
-	fprintf(fp, "________________________________________________________________________________\n");
-	fprintf(fp, "     |           |     |           |     |\n");
-	fprintf(fp, "Clus | Lowest    | Run | Mean      | Num | Histogram\n");
-	fprintf(fp, "-ter | Binding   |     | Binding   | in  |\n");
-	fprintf(fp, "Rank | Energy    |     | Energy    | Clus|    5    10   15   20   25   30   35\n");
-	fprintf(fp, "_____|___________|_____|___________|_____|____:____|____:____|____:____|____:___\n");
+		for (i=0; i<num_of_clusters; i++)
+		{
+			fprintf(fp, "%4d |", i+1);
 
-	for (i=0; i<num_of_clusters; i++)
-	{
-		fprintf(fp, "%4d |", i+1);
+			if (best_energy[i] > 999999.99)
+				fprintf(fp, "%+10.2e", best_energy[i]);
+			else
+				fprintf(fp, "%+10.2f", best_energy[i]);
+			fprintf(fp, " |%4d |", best_energy_runid[i]);
 
-		if (best_energy[i] > 999999.99)
-			fprintf(fp, "%+10.2e", best_energy[i]);
-		else
-			fprintf(fp, "%+10.2f", best_energy[i]);
+			if (sum_energy[i]/cluster_sizes[i] > 999999.99)
+				fprintf(fp, "%+10.2e |", sum_energy[i]/cluster_sizes[i]);
+			else
+				fprintf(fp, "%+10.2f |", sum_energy[i]/cluster_sizes[i]);
 
-		fprintf(fp, " |%4d |", best_energy_runid[i]);
+			fprintf(fp, "%4d |", cluster_sizes [i]);
 
-		if (sum_energy[i]/cluster_sizes[i] > 999999.99)
-			fprintf(fp, "%+10.2e |", sum_energy[i]/cluster_sizes[i]);
-		else
-			fprintf(fp, "%+10.2f |", sum_energy[i]/cluster_sizes[i]);
+			for (j=0; j<cluster_sizes [i]; j++)
+				fprintf(fp, "#");
 
-		fprintf(fp, "%4d |", cluster_sizes [i]);
+			fprintf(fp, "\n");
+		}
 
-		for (j=0; j<cluster_sizes [i]; j++)
-			fprintf(fp, "#");
+		fprintf(fp, "_____|___________|_____|___________|_____|______________________________________\n\n\n");
 
-		fprintf(fp, "\n");
-	}
+		// writing RMSD table
 
-	fprintf(fp, "_____|___________|_____|___________|_____|______________________________________\n\n\n");
+		fprintf(fp, "    RMSD TABLE\n");
+		fprintf(fp, "    __________\n\n\n");
 
-	// writing RMSD table
+		fprintf(fp, "_____________________________________________________________________\n");
+		fprintf(fp, "     |      |      |           |         |                 |\n");
+		fprintf(fp, "Rank | Sub- | Run  | Binding   | Cluster | Reference       | Grep\n");
+		fprintf(fp, "     | Rank |      | Energy    | RMSD    | RMSD            | Pattern\n");
+		fprintf(fp, "_____|______|______|___________|_________|_________________|___________\n" );
 
-	fprintf(fp, "    RMSD TABLE\n");
-	fprintf(fp, "    __________\n\n\n");
+		for (i=0; i<num_of_clusters; i++) // printing cluster info to file
+		{
+			for (j=0; j<num_of_runs; j++)
+				if (myresults [j].clus_id == i+1) {
+					if (myresults[j].interE + myresults[j].interflexE + torsional_energy > 999999.99)
+						fprintf(fp, "%4d   %4d   %4d  %+10.2e  %8.2f  %8.2f           RANKING\n",
+						             (myresults [j]).clus_id,
+						                   (myresults [j]).clus_subrank,
+						                         (myresults [j]).run_number,
+						                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
+						                                       (myresults [j]).rmsd_from_cluscent,
+						                                              (myresults [j]).rmsd_from_ref);
+					else
+						fprintf(fp, "%4d   %4d   %4d  %+10.2f  %8.2f  %8.2f           RANKING\n",
+						             (myresults [j]).clus_id,
+						                   (myresults [j]).clus_subrank,
+						                         (myresults [j]).run_number,
+						                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
+						                                       (myresults [j]).rmsd_from_cluscent,
+						                                              (myresults [j]).rmsd_from_ref);
+				}
+		}
 
-	fprintf(fp, "_____________________________________________________________________\n");
-	fprintf(fp, "     |      |      |           |         |                 |\n");
-	fprintf(fp, "Rank | Sub- | Run  | Binding   | Cluster | Reference       | Grep\n");
-	fprintf(fp, "     | Rank |      | Energy    | RMSD    | RMSD            | Pattern\n");
-	fprintf(fp, "_____|______|______|___________|_________|_________________|___________\n" );
+		// Add execution and idle time information
+		fprintf(fp, "\nRun time %.3f sec", exec_time);
+		fprintf(fp, "\nIdle time %.3f sec\n", idle_time);
 
-	for (i=0; i<num_of_clusters; i++) // printing cluster info to file
-	{
-		for (j=0; j<num_of_runs; j++)
-			if (myresults [j].clus_id == i+1) {
-				if (myresults[j].interE + myresults[j].interflexE + torsional_energy > 999999.99)
-					fprintf(fp, "%4d   %4d   %4d  %+10.2e  %8.2f  %8.2f           RANKING\n",
-					             (myresults [j]).clus_id,
-					                   (myresults [j]).clus_subrank,
-					                         (myresults [j]).run_number,
-					                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
-					                                       (myresults [j]).rmsd_from_cluscent,
-					                                              (myresults [j]).rmsd_from_ref);
-				else
-					fprintf(fp, "%4d   %4d   %4d  %+10.2f  %8.2f  %8.2f           RANKING\n",
-					             (myresults [j]).clus_id,
-					                   (myresults [j]).clus_subrank,
-					                         (myresults [j]).run_number,
-					                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
-					                                       (myresults [j]).rmsd_from_cluscent,
-					                                              (myresults [j]).rmsd_from_ref);
-			}
-	}
-
-	// Add execution and idle time information
-	fprintf(fp, "\nRun time %.3f sec", exec_time);
-	fprintf(fp, "\nIdle time %.3f sec\n", idle_time);
-
-	if(!mypars->dlg2stdout){
-		fclose(fp);
+		if(!mypars->dlg2stdout){
+			fclose(fp);
+		}
 	}
 
 	// if xml has to be generated
-	if (mypars->output_xml == true)
+	if (mypars->output_xml)
 	{
 		char* xml_file_name = (char*)malloc(len*sizeof(char));
 		strcpy(xml_file_name, mypars->resname);

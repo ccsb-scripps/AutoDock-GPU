@@ -1533,8 +1533,22 @@ int get_commandpars(
 				printf("Warning: value of -rmstol argument ignored. Value must be a double greater than 0.\n");
 		}
 
+		// Argument: choose wether to output DLG or not
+		// If the value is 1, DLG output will be generated
+		// DLG output won't be generated if 0 is specified
+		if (strcmp("-dlgoutput", argv [i]) == 0)
+		{
+			arg_recognized = 1;
+			sscanf(argv [i+1], "%d", &tempint);
+			
+			if (tempint == 0)
+				mypars->output_dlg = false;
+			else
+				mypars->output_dlg = true;
+		}
+
 		// Argument: choose wether to output XML or not
-		// If the value is 1, XML output will still be generated
+		// If the value is 1, XML output will be generated
 		// XML output won't be generated if 0 is specified
 		if (strcmp("-xmloutput", argv [i]) == 0)
 		{

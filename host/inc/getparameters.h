@@ -134,7 +134,8 @@ typedef struct _Dockpars
 	float                     adam_beta1                      = 0.9f;
 	float                     adam_beta2                      = 0.999f;
 	float                     adam_epsilon                    = 1.0e-8f;
-	bool                      output_xml                      = true; // xml output file will be generated
+	bool                      output_dlg                      = true; // dlg output file will be generated (by default)
+	bool                      output_xml                      = true; // xml output file will be generated (by default)
 } Dockpars;
 
 inline bool add_deriv_atype(
