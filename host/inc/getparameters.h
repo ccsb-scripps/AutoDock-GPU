@@ -165,6 +165,11 @@ inline bool add_deriv_atype(
 	return true;
 }
 
+bool argcmp(
+            const char* arg,
+            const char* cmd
+           );
+
 int preparse_dpf(
                  const int*      argc,
                        char**    argv,
@@ -187,6 +192,10 @@ int get_filenames_and_ADcoeffs(
                                      Dockpars*,
                                const bool
                               );
+
+void print_options(
+                   const char* program_name
+                  );
 
 int get_commandpars(
                     const int*,

@@ -138,10 +138,10 @@ void setup_gpu_for_docking(
 
 #ifdef _WIN32
 	const char *filename = KRNL_FILE;
-	printf("\n%-40s %-40s\n", "Kernel source file: ", filename);  fflush(stdout);
+	printf("%-40s %-40s\n", "Kernel source file: ", filename);  fflush(stdout);
 #else
-	printf("\n%-40s %-40s\n", "Kernel source used for development: ", "./device/calcenergy.cl");  fflush(stdout);
-	printf(  "%-40s %-40s\n", "Kernel string used for building: ",    "./host/inc/stringify.h");  fflush(stdout);
+	printf("%-40s %-40s\n", "Kernel source used for development: ", "./device/calcenergy.cl");  fflush(stdout);
+	printf("%-40s %-40s\n", "Kernel string used for building: ",    "./host/inc/stringify.h");  fflush(stdout);
 #endif
 
 	const char* options_program = OPT_PROG;
@@ -337,7 +337,7 @@ void finish_gpu_from_docking(
 	clReleaseMemObject(cData.mem_dependence_on_theta_const);
 	clReleaseMemObject(cData.mem_dependence_on_rotangle_const);
 
-	clReleaseMemObject(tData.pMem_fgrids);
+	if(tData.pMem_fgrids) clReleaseMemObject(tData.pMem_fgrids);
 
 	// Release all kernels,
 	// regardless of the chosen local-search method for execution.

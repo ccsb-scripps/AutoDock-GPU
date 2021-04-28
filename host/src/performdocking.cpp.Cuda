@@ -265,8 +265,10 @@ void finish_gpu_from_docking(
 	RTERROR(status, "cudaFree: error freeing cData.pMem_dependence_on_rotangle_const");
 
 	// Non-constant
-	status = cudaFree(tData.pMem_fgrids);
-	RTERROR(status, "cudaFree: error freeing pMem_fgrids");
+	if(tData.pMem_fgrids){
+		status = cudaFree(tData.pMem_fgrids);
+		RTERROR(status, "cudaFree: error freeing pMem_fgrids");
+	}
 	status = cudaFree(tData.pMem_conformations1);
 	RTERROR(status, "cudaFree: error freeing pMem_conformations1");
 	status = cudaFree(tData.pMem_conformations2);

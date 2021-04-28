@@ -72,12 +72,12 @@ int setup(
 	//------------------------------------------------------------
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
-		if (strcmp("-xml2dlg", argv[i]) == 0)
+		if (argcmp("xml2dlg", argv[i]))
 			i+=mypars.xml_files-1; // skip ahead in case there are multiple entries here
 
 		// ----------------------------------
 		// Argument: Use individual maps for CG-G0 instead of the same one
-		if (strcmp("-cgmaps", argv [i]) == 0)
+		if (argcmp("cgmaps", argv [i]))
 		{
 			int tempint;
 			sscanf(argv [i+1], "%d", &tempint);
@@ -88,7 +88,7 @@ int setup(
 		}
 		// ----------------------------------
 		// Argument: derivate atom types
-		if (strcmp("-derivtype", argv [i]) == 0)
+		if (argcmp("derivtype", argv [i]))
 		{
 			if(mypars.nr_deriv_atypes==0){
 				mypars.deriv_atypes=(deriv_atype*)malloc(sizeof(deriv_atype));
@@ -165,7 +165,7 @@ int setup(
 		}
 
 		// Argument: modify pairwise atom type parameters (LJ only at this point)
-		if (strcmp("-modpair", argv [i]) == 0)
+		if (argcmp("modpair", argv [i]))
 		{
 			bool success=true;
 			char* tmp=argv[i+1];
@@ -374,7 +374,8 @@ int setup(
 	// Capturing algorithm parameters (command line args)
 	//------------------------------------------------------------
 	char* orig_resn = mypars.resname;
-	get_commandpars(&argc, argv, &(mygrid.spacing), &mypars);
+	if(get_commandpars(&argc, argv, &(mygrid.spacing), &mypars)<0)
+		return 1;
 
 	// command-line specified resname with more than one file
 	if (!mypars.xml2dlg){ // if the user specified an xml file, that's the one we want to use
