@@ -73,8 +73,8 @@ int main(int argc, char* argv[])
 	// Print version info
 	printf("AutoDock-GPU version: %s\n\n", VERSION);
 	// Print help screen if no parameters were specified
-	// (or if last parameter is "-help" - parameters in
-	//  between will be cought in preparse_dpf function)
+	// (or if last parameter is "-help"; parameters in
+	//  between will be caught in preparse_dpf later)
 	if((argc<2) || (argcmp("help", argv[argc-1])))
 		print_options(argv[0]);
 	// Timer initializations
