@@ -249,7 +249,7 @@ int setup(
 #endif
 			}
 			if(!success){
-				printf("Example syntax: -modpair C1:S4,1.60,1.200,13,7/C1:C3,1.20 0.025.\n");
+				printf("Example syntax: -modpair C1:S4,1.60,1.200,13,7/C1:C3,1.20,0.025.\n");
 				exit(12);
 			}
 		}
