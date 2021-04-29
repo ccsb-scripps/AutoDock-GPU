@@ -966,10 +966,10 @@ void print_options(
 	printf(" -cslim            | Solis-Wets cons. success/failure limit to adjust rho  | 4\n");
 	printf(" -smooth           | Smoothing parameter for vdW interactions              | 0.5 (Å)\n");
 	printf(" -elecmindist      | Min. electrostatic potential distance (w/ dpf: 0.5 Å) | 0.01 (Å)\n");
-	printf(" -modqp            | Use modified QASP from VirtualDrug or AD4 original    | 0 (AD4)\n");
+	printf(" -modqp            | Use modified QASP from VirtualDrug or AD4 original    | 0 (no, use AD4)\n");
 	printf(" -seed             | Random number seeds (up to three comma-sep. integers) | time, process id\n");
 	printf(" -ubmod            | Unbound model: 0 (bound), 1 (extended), 2 (compact)   | 0 (same as bound)\n");
-	printf(" -devnum           | OpenCL/Cuda device number (counting starts at 1)      | 1 (yes)\n");
+	printf(" -devnum           | OpenCL/Cuda device number (counting starts at 1)      | 1\n");
 	printf(" -derivtype        | Derivative atom types (e.g. C1,C2,C3=C/S4=S/H5=HD)    | no default\n");
 	printf(" -modpair          | Modify vdW pair params (e.g. C1:S4,1.60,1.200,13,7)   | no default\n");
 	printf(" -cgmaps           | Use individual maps for CG-G0 instead of the same one | 0 (no, same map)\n");
