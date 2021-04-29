@@ -942,6 +942,9 @@ void print_options(
 	printf("Command line options:\n");
 	printf(" Argument          | Description                                           | Default value    \n");
 	printf("-------------------|-------------------------------------------------------|------------------\n");
+	printf(" -lfile            | Ligand pdbqt file                                     | no default       \n");
+	printf(" -ffile            | Grid map files descriptor fld file                    | no default       \n");
+	printf(" -import_dpf       | Import AD4-type dpf input file (only partial support) | no default       \n");
 	printf(" -nrun             | # LGA runs                                            | 20               \n");
 	printf(" -nev              | # Score evaluations (max.) per LGA run                | 2500000          \n");
 	printf(" -ngen             | # Generations (max.) per LGA run                      | 42000            \n");
