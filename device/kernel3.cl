@@ -212,39 +212,39 @@ __constant       kernelconstant_conform*      kerconst_conform
 		                 dockpars_gridsize_y,
 		                 dockpars_gridsize_z,
 		                                                     // g1 = gridsize_x
-		                dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
-		                dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
-		                dockpars_fgrids,
-		                dockpars_num_of_atypes,
-		                dockpars_num_of_map_atypes,
-		                dockpars_num_of_intraE_contributors,
-		                dockpars_grid_spacing,
-		                dockpars_coeff_elec,
-		                dockpars_elec_min_distance,
-		                dockpars_qasp,
-		                dockpars_coeff_desolv,
-		                dockpars_smooth,
-		                genotype_candidate,
-		                &candidate_energy,
-		                &run_id,
-		                // Some OpenCL compilers don't allow declaring
-		                // local variables within non-kernel functions.
-		                // These local variables must be declared in a kernel,
-		                // and then passed to non-kernel functions.
-		                calc_coords,
-		                partial_energies,
-		                #if defined (DEBUG_ENERGY_KERNEL)
-		                partial_interE,
-		                partial_intraE,
-		                #endif
+		                 dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
+		                 dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+		                 dockpars_fgrids,
+		                 dockpars_num_of_atypes,
+		                 dockpars_num_of_map_atypes,
+		                 dockpars_num_of_intraE_contributors,
+		                 dockpars_grid_spacing,
+		                 dockpars_coeff_elec,
+		                 dockpars_elec_min_distance,
+		                 dockpars_qasp,
+		                 dockpars_coeff_desolv,
+		                 dockpars_smooth,
+		                 genotype_candidate,
+		                 &candidate_energy,
+		                 &run_id,
+		                 // Some OpenCL compilers don't allow declaring
+		                 // local variables within non-kernel functions.
+		                 // These local variables must be declared in a kernel,
+		                 // and then passed to non-kernel functions.
+		                 calc_coords,
+		                 partial_energies,
+		                 #if defined (DEBUG_ENERGY_KERNEL)
+		                 partial_interE,
+		                 partial_intraE,
+		                 #endif
 #if 0
-		                false,
+		                 false,
 #endif
-		                kerconst_interintra,
-		                kerconst_intracontrib,
-		                kerconst_intra,
-		                kerconst_rotlist,
-		                kerconst_conform
+		                 kerconst_interintra,
+		                 kerconst_intracontrib,
+		                 kerconst_intra,
+		                 kerconst_rotlist,
+		                 kerconst_conform
 		              );
 		// =================================================================
 

@@ -1345,8 +1345,8 @@ int gen_new_pdbfile(
 	if (acnt_oldlig != myligand->num_of_atoms)
 	{
 		printf("%d %d \n", acnt_oldlig, myligand->num_of_atoms);
-		printf("Warning: new lingand consists more atoms than old one.\n");
-		printf("Not all the atoms have been written to file!\n");
+		printf("Warning: New ligand consists of more atoms than original one (i.e. w/ flexres).\n");
+		printf("         Not all the atoms have been written to file!\n");
 	}
 
 	fclose(fp_old);

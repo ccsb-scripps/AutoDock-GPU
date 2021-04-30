@@ -443,7 +443,7 @@ void make_resfiles(
 					gen_new_pdbfile(mypars->ligandfile, "best.pdbqt", &temp_docked);
 			}
 
-		if (i < mypars->gen_pdbs) //if it is necessary, making new pdbs for best entities
+		if (i < mypars->gen_pdbs) //if it is necessary, making new pdbqts for best entities
 		{
 			sprintf(name_ext_start, "_docked_run%d_entity%d.pdbqt", run_cnt+1, i+1); //name will be <original pdb filename>_docked_<number starting from 1>.pdb
 			gen_new_pdbfile(mypars->ligandfile, temp_filename, &temp_docked);
@@ -464,8 +464,6 @@ void make_resfiles(
 			fprintf(fp, " %8.3lf | \n", entity_rmsds);
 		}
 	}
-
-
 	if (mypars->gen_finalpop) fclose(fp);
 	free(temp_filename);
 }

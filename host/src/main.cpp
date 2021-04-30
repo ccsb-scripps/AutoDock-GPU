@@ -72,6 +72,11 @@ int main(int argc, char* argv[])
 {
 	// Print version info
 	printf("AutoDock-GPU version: %s\n\n", VERSION);
+	// Print help screen if no parameters were specified
+	// (or if last parameter is "-help"; parameters in
+	//  between will be caught in preparse_dpf later)
+	if((argc<2) || (argcmp("help", argv[argc-1], 'h')))
+		print_options(argv[0]);
 	// Timer initializations
 #ifndef _WIN32
 	timeval time_start, idle_timer;
@@ -141,23 +146,25 @@ int main(int argc, char* argv[])
 	// Get device number to run on
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
-		if (strcmp("-xml2dlg", argv[i]) == 0)
+		if (argcmp("xml2dlg", argv[i], 'X'))
 			i+=initial_pars.xml_files-1; // skip ahead in case there are multiple entries here
 		
-		if (strcmp("-devnum", argv [i]) == 0)
+		if (argcmp("devnum", argv [i], 'D'))
 		{
 			unsigned int tempint;
 			sscanf(argv [i+1], "%d", &tempint);
-			if ((tempint >= 1) && (tempint <= 65536))
+			if ((tempint >= 1) && (tempint <= 65536)){
 				devnum = (unsigned long) tempint-1;
-			else
-				printf("Warning: value of -devnum argument ignored. Value must be an integer between 1 and 65536.\n");
+			} else{
+				printf("Error: Value of --devnum (-D) argument must be an integer between 1 and 65536.\n");
+				exit(-1);
+			}
 			break;
 		}
 	}
 	if(devnum>=0){ // user-specified argument on command line has precedence
 		if(initial_pars.devices_requested>1)
-			printf("Using (single GPU) -devnum specified as command line option.\n");
+			printf("Using (single GPU) --devnum (-D) specified as command line option.\n");
 		nr_devices=1;
 	} else devnum=initial_pars.devnum;
 
@@ -165,12 +172,14 @@ int main(int argc, char* argv[])
 #ifndef USE_PIPELINE
 	if(nr_devices>1) printf("Info: Parallelization over multiple GPUs is only available if OVERLAP=ON is specified when AD-GPU is build.\n");
 #endif
-	for(unsigned int i=0; i<nr_devices; i++)
-		filelist.load_maps_gpu.push_back(true);
-	
 	// Objects that are arguments of docking_with_gpu
 	GpuData cData[nr_devices];
 	GpuTempData tData[nr_devices];
+	
+	for(unsigned int i=0; i<nr_devices; i++){
+		filelist.load_maps_gpu.push_back(true);
+		tData[i].pMem_fgrids=NULL; // in case setup fails this is needed to make sure we don't segfault trying to deallocate it
+	}
 	
 	// Set up run profiles for timing
 	bool get_profiles = true; // hard-coded switch to use ALS's job profiler
@@ -262,13 +271,14 @@ int main(int argc, char* argv[])
 			if (setup(all_maps, mygrid, floatgrids, mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv) != 0) {
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
 				// Keep in setup stage rather than moving to launch stage so a different job will be set up
-				printf("\n\nError in setup of Job #%d:\n", i_job+1);
+				printf("\n\nError in setup of Job #%d", i_job+1);
 				if (filelist.used){
+					printf(":\n");
 					printf("(   Grid map file: %s )\n",  mypars.fldfile);
 					printf("(   Ligand file: %s )\n", mypars.ligandfile); fflush(stdout);
 					if(mypars.flexresfile)
 						printf("(   Flexible residue: %s )\n", mypars.flexresfile); fflush(stdout);
-				}
+				} else printf("\n");
 				err[i_job] = 1;
 				continue;
 			} else { // Successful setup
@@ -333,13 +343,14 @@ int main(int argc, char* argv[])
 				#pragma omp critical
 #endif
 				{
-					printf("\nRunning Job #%d:\n", i_job+1);
+					printf("\nRunning Job #%d", i_job+1);
 					if (filelist.used){
+						printf(":\n");
 						printf("    Grid map file: %s\n",  mypars.fldfile);
 						printf("    Ligand file: %s\n", mypars.ligandfile); fflush(stdout);
 						if(mypars.flexresfile)
 							printf("    Flexible residue: %s\n", mypars.flexresfile); fflush(stdout);
-					}
+					} else printf("\n");
 					// End idling timer, start exec timer
 					sim_state.idle_time = seconds_since(idle_timer);
 					start_timer(exec_timer);
@@ -426,7 +437,6 @@ int main(int argc, char* argv[])
 	printf("\nProcessing time: %.3f sec",total_processing_time);
 #endif
 #endif
-
 	if(!initial_pars.xml2dlg)
 		for(unsigned int i=0; i<nr_devices; i++)
 			finish_gpu_from_docking(cData[i],tData[i]);
@@ -441,7 +451,7 @@ int main(int argc, char* argv[])
 			} else {
 				printf("\nThe job was not successful.\n");
 			}
-			n_errors+=1;
+			n_errors++;
 		}
 	}
 	if (n_errors==0) printf("\nAll jobs ran without errors.\n");
