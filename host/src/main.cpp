@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 	// Print help screen if no parameters were specified
 	// (or if last parameter is "-help"; parameters in
 	//  between will be caught in preparse_dpf later)
-	if((argc<2) || (argcmp("help", argv[argc-1])))
+	if((argc<2) || (argcmp("help", argv[argc-1], 'h')))
 		print_options(argv[0]);
 	// Timer initializations
 #ifndef _WIN32
@@ -146,17 +146,17 @@ int main(int argc, char* argv[])
 	// Get device number to run on
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
-		if (argcmp("xml2dlg", argv[i]))
+		if (argcmp("xml2dlg", argv[i], 'X'))
 			i+=initial_pars.xml_files-1; // skip ahead in case there are multiple entries here
 		
-		if (argcmp("devnum", argv [i]))
+		if (argcmp("devnum", argv [i], 'D'))
 		{
 			unsigned int tempint;
 			sscanf(argv [i+1], "%d", &tempint);
 			if ((tempint >= 1) && (tempint <= 65536)){
 				devnum = (unsigned long) tempint-1;
 			} else{
-				printf("Error: Value of -devnum argument must be an integer between 1 and 65536.\n");
+				printf("Error: Value of --devnum (-D) argument must be an integer between 1 and 65536.\n");
 				exit(-1);
 			}
 			break;
@@ -164,7 +164,7 @@ int main(int argc, char* argv[])
 	}
 	if(devnum>=0){ // user-specified argument on command line has precedence
 		if(initial_pars.devices_requested>1)
-			printf("Using (single GPU) -devnum specified as command line option.\n");
+			printf("Using (single GPU) --devnum (-D) specified as command line option.\n");
 		nr_devices=1;
 	} else devnum=initial_pars.devnum;
 

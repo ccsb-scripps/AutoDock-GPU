@@ -464,8 +464,6 @@ void make_resfiles(
 			fprintf(fp, " %8.3lf | \n", entity_rmsds);
 		}
 	}
-
-
 	if (mypars->gen_finalpop) fclose(fp);
 	free(temp_filename);
 }

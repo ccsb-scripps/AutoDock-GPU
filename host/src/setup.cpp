@@ -72,7 +72,7 @@ int setup(
 	//------------------------------------------------------------
 	for (unsigned int i=1; i<argc-1; i+=2)
 	{
-		if (argcmp("xml2dlg", argv[i]))
+		if (argcmp("xml2dlg", argv[i], 'X'))
 			i+=mypars.xml_files-1; // skip ahead in case there are multiple entries here
 
 		// ----------------------------------
@@ -88,12 +88,12 @@ int setup(
 		}
 		// ----------------------------------
 		// Argument: derivate atom types
-		if (argcmp("derivtype", argv [i]))
+		if (argcmp("derivtype", argv [i], 'T'))
 		{
 			if(mypars.nr_deriv_atypes==0){
 				mypars.deriv_atypes=(deriv_atype*)malloc(sizeof(deriv_atype));
 				if(mypars.deriv_atypes==NULL){
-					printf("Error: Cannot allocate memory for -derivtype.\n");
+					printf("Error: Cannot allocate memory for --derivtype (-T).\n");
 					exit(1);
 				}
 			}
@@ -108,19 +108,19 @@ int setup(
 				while((*tmp!='\0') && (*tmp!='/')){ // do one block at a time
 					if(*(tmp++)==','){ // this works here as the first character is not a ','
 						if(base_exists){
-							printf("Error in -derivtype %s: only one base name is allowed.\n",argv[i+1]);
+							printf("Error in --derivtype (-T) %s: only one base name is allowed.\n",argv[i+1]);
 							success=false;
 							break;
 						}
 						if(tmp-start_block-1>0){ // make sure there is a name (at least one char, we'll test later if it's taken already)
 							if(!add_deriv_atype(&mypars,start_block,tmp-start_block-1)){
-								printf("Error in -derivtype %s: derivative names can only be upto 3 characters long.\n",argv[i+1]);
+								printf("Error in --derivtype (-T) %s: derivative names can only be upto 3 characters long.\n",argv[i+1]);
 								success=false;
 								break;
 							}
 							start_block=tmp;
 						} else{
-							printf("Error in -derivtype %s: derivative names have to be at least one character long.\n",argv[i+1]);
+							printf("Error in --derivtype (-T) %s: derivative names have to be at least one character long.\n",argv[i+1]);
 							success=false;
 							break;
 						}
@@ -128,12 +128,12 @@ int setup(
 					if((*tmp=='=') && ((*(tmp+1)!='\0') || (*(tmp+1)!='/'))){
 						if(tmp-start_block>0){ // make sure there is a name (at least one char, we'll test later if it's taken already)
 							if(!add_deriv_atype(&mypars,start_block,tmp-start_block)){
-								printf("Error in -derivtype %s: derivative names can only be upto 3 characters long.\n",argv[i+1]);
+								printf("Error in --derivtype (-T) %s: derivative names can only be upto 3 characters long.\n",argv[i+1]);
 								success=false;
 								break;
 							}
 						} else{
-							printf("Error in -derivtype %s: derivative names have to be at least one character long.\n",argv[i+1]);
+							printf("Error in --derivtype (-T) %s: derivative names have to be at least one character long.\n",argv[i+1]);
 							success=false;
 							break;
 						}
@@ -147,7 +147,7 @@ int setup(
 						strncpy(mypars.deriv_atypes[idx].base_name,start_block,length);
 						mypars.deriv_atypes[idx].base_name[length]='\0';
 					} else{
-						printf("Error in -derivtype %s: base names can only be upto 3 characters long.\n",argv[i+1]);
+						printf("Error in --derivtype (-T) %s: base names can only be upto 3 characters long.\n",argv[i+1]);
 						success=false;
 						break;
 					}
@@ -159,13 +159,13 @@ int setup(
 					tmp++;
 			}
 			if(!success){
-				printf("Example syntax: -derivtype C1,C2,C3=C/S4=S/H5=HD.\n");
+				printf("Example syntax: --derivtype C1,C2,C3=C/S4=S/H5=HD.\n");
 				exit(12);
 			}
 		}
 
 		// Argument: modify pairwise atom type parameters (LJ only at this point)
-		if (argcmp("modpair", argv [i]))
+		if (argcmp("modpair", argv [i], 'P'))
 		{
 			bool success=true;
 			char* tmp=argv[i+1];
@@ -177,20 +177,20 @@ int setup(
 				else
 					mypars.mod_atype_pairs=(pair_mod*)realloc(mypars.mod_atype_pairs, mypars.nr_mod_atype_pairs*sizeof(pair_mod));
 				if(mypars.mod_atype_pairs==NULL){
-					printf("Error: Cannot allocate memory for -modpair.\n");
+					printf("Error: Cannot allocate memory for --modpair (-P).\n");
 					exit(1);
 				}
 				pair_mod* curr_pair=&mypars.mod_atype_pairs[mypars.nr_mod_atype_pairs-1];
 				// find atom type pair to modify
 				char* first_comma=strchr(tmp,',');
 				if(first_comma==NULL){
-					printf("Error in -modpair %s: no parameters specified (not even a first comma).\n",argv[i+1]);
+					printf("Error in --modpair (-P) %s: no parameters specified (not even a first comma).\n",argv[i+1]);
 					success=false;
 					break;
 				}
 				char* colon=strchr(tmp,':');
 				if(colon==NULL){
-					printf("Error in -modpair %s: Could not find pair atom type name separator (\":\").\n",argv[i+1]);
+					printf("Error in --modpair (-P) %s: Could not find pair atom type name separator (\":\").\n",argv[i+1]);
 					success=false;
 					break;
 				}
@@ -204,12 +204,12 @@ int setup(
 						strncpy(curr_pair->B,colon,Blen);
 						curr_pair->B[Blen]='\0';
 					} else{
-						printf("Error in -modpair %s: pair atom type name(s) are too long (>3 characters).\n",argv[i+1]);
+						printf("Error in --modpair (-P) %s: pair atom type name(s) are too long (>3 characters).\n",argv[i+1]);
 						success=false;
 						break;
 					}
 				} else{
-					printf("Error in -modpair %s: pair atom type name(s) not specified.\n",argv[i+1]);
+					printf("Error in --modpair (-P) %s: pair atom type name(s) not specified.\n",argv[i+1]);
 					success=false;
 					break;
 				}
@@ -227,13 +227,13 @@ int setup(
 							curr_pair->nr_parameters++;
 							curr_pair->parameters=(float*)realloc(curr_pair->parameters,curr_pair->nr_parameters*sizeof(float));
 							if(curr_pair->parameters==NULL){
-								printf("Error: Cannot allocate memory for -modpair.\n");
+								printf("Error: Cannot allocate memory for --modpair (-P).\n");
 								exit(1);
 							}
 							curr_pair->parameters[curr_pair->nr_parameters-1]=tmpfloat;
 							start_block=tmp+1;
 						} else{
-							printf("Error in -modpair %s: force field parameters should be at least one number long.\n",argv[i+1]);
+							printf("Error in --modpair (-P) %s: force field parameters should be at least one number long.\n",argv[i+1]);
 							success=false;
 							break;
 						}
@@ -249,7 +249,7 @@ int setup(
 #endif
 			}
 			if(!success){
-				printf("Example syntax: -modpair C1:S4,1.60,1.200,13,7/C1:C3,1.20,0.025.\n");
+				printf("Example syntax: --modpair C1:S4,1.60,1.200,13,7/C1:C3,1.20,0.025.\n");
 				exit(12);
 			}
 		}

@@ -511,7 +511,7 @@ int parse_dpf(
 								printf("Warning: Command line option '%s' at %s:%u is not supported inside a dpf file.\n",tempstr,mypars->dpffile,line_count);
 							}
 							// count GPUs in case we set a different one
-							if(argcmp("devnum",tempstr)){
+							if(argcmp("devnum",tempstr,'D')){
 								new_device=false;
 								for(i=0; (i<filelist.mypars.size())&&!new_device; i++){
 									if(mypars->devnum==filelist.mypars[i].devnum){
@@ -552,7 +552,7 @@ int preparse_dpf(
 	int error;
 	for (int i=1; i<(*argc)-1+(read_more_xml_files); i++)
 	{
-		if (argcmp("help", argv[i])){
+		if (argcmp("help", argv[i], 'h')){
 			print_options(argv[0]);
 		}
 		// wildcards for -xml2dlg are allowed (or multiple file names)
@@ -564,11 +564,11 @@ int preparse_dpf(
 		} else if (read_more_xml_files) xml_files.push_back(argv[i]); // copy argument into xml_files when read_more_xml_files is true
 		
 		// Argument: dpf file name.
-		if (argcmp("import_dpf", argv[i])){
+		if (argcmp("import_dpf", argv[i], 'I')){
 			if(mypars->dpffile){
 				free(mypars->dpffile);
 				if(output_multiple_warning){
-					printf("Warning: Multiple -import_dpf arguments, only the last one will be used.");
+					printf("Warning: Multiple --import_dpf (-I) arguments, only the last one will be used.");
 					output_multiple_warning = false;
 				}
 			}
@@ -576,7 +576,7 @@ int preparse_dpf(
 		}
 		
 		// Argument: load initial data from xml file and reconstruct dlg, then finish
-		if (argcmp("xml2dlg", argv [i]))
+		if (argcmp("xml2dlg", argv [i], 'X'))
 		{
 			mypars->load_xml = strdup(argv[i+1]);
 			read_more_xml_files = true;
@@ -584,7 +584,7 @@ int preparse_dpf(
 			mypars->xml_files = 1;
 		}
 		
-		if (argcmp("contact_analysis", argv[i]))
+		if (argcmp("contact_analysis", argv[i], 'C'))
 		{
 			float temp;
 			error = sscanf(argv[i+1], "%f,%f,%f", &temp, &temp, &temp);
@@ -596,8 +596,8 @@ int preparse_dpf(
 					mypars->contact_analysis = true;
 			} else{
 				if(error!=3){
-					printf("\nError: Argument -contact_analysis expects either one parameter to enable/disable (i.e. -contact_analysis 1)\n"
-					         "       or exactly three parameters to specify cutoffs (default: -contact_analysis %.1f,%.1f,%.1f)\n", mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
+					printf("\nError: Argument --contact_analysis (-C) expects either one parameter to enable/disable (i.e. --contact_analysis 1)\n"
+					         "       or exactly three parameters to specify cutoffs (default: --contact_analysis %.1f,%.1f,%.1f)\n", mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
 					return 1;
 				}
 				sscanf(argv[i+1], "%f,%f,%f", &(mypars->R_cutoff), &(mypars->H_cutoff), &(mypars->V_cutoff));
@@ -606,7 +606,7 @@ int preparse_dpf(
 		}
 		
 		// Argument: print dlg output to stdout instead of to a file
-		if (argcmp("dlg2stdout", argv [i]))
+		if (argcmp("dlg2stdout", argv [i], '2'))
 		{
 			sscanf(argv [i+1], "%d", &error);
 			if (error == 0)
@@ -720,13 +720,13 @@ int get_filelist(
 	for (int i=1; i<(*argc)-1; i++)
 	{
 		// Argument: file name that contains list of files.
-		if (argcmp("filelist", argv[i]))
+		if (argcmp("filelist", argv[i], 'B'))
 		{
 			filelist.used = true;
 			if(filelist.filename){
 				free(filelist.filename);
 				if(output_multiple_warning){
-					printf("Warning: Multiple -filelist arguments, only the last one will be used.");
+					printf("Warning: Multiple --filelist (-B) arguments, only the last one will be used.");
 					output_multiple_warning = false;
 				}
 			}
@@ -868,14 +868,14 @@ int get_filenames_and_ADcoeffs(
 	{
 		if (!multiple_files){
 			// Argument: grid parameter file name.
-			if (argcmp("ffile", argv[i]))
+			if (argcmp("ffile", argv[i], 'M'))
 			{
 				ffile_given = 1;
 				mypars->fldfile = strdup(argv[i+1]);
 			}
 
 			// Argument: ligand pdbqt file name
-			if (argcmp("lfile", argv[i]))
+			if (argcmp("lfile", argv[i], 'L'))
 			{
 				lfile_given = 1;
 				mypars->ligandfile = strdup(argv[i+1]);
@@ -883,7 +883,7 @@ int get_filenames_and_ADcoeffs(
 		}
 
 		// Argument: flexible residue pdbqt file name
-		if (argcmp("flexres", argv[i]))
+		if (argcmp("flexres", argv[i], 'F'))
 		{
 			mypars->flexresfile = strdup(argv[i+1]);
 		}
@@ -891,7 +891,7 @@ int get_filenames_and_ADcoeffs(
 		// Argument: unbound model to be used.
 		// 0 means the bound, 1 means the extended, 2 means the compact ...
 		// model's free energy coefficients will be used during docking.
-		if (argcmp("ubmod", argv[i]))
+		if (argcmp("ubmod", argv[i], 'u'))
 		{
 			sscanf(argv[i+1], "%ld", &tempint);
 			switch(tempint){
@@ -908,7 +908,7 @@ int get_filenames_and_ADcoeffs(
 					mypars->coeffs = unbound_models[mypars->unbound_model];
 					break;
 				default:
-					printf("Error: Value of -ubmod argument can only be 0 (unbound same as bound), 1 (extended), or 2 (compact).\n");
+					printf("Error: Value of --ubmod (-u) argument can only be 0 (unbound same as bound), 1 (extended), or 2 (compact).\n");
 					return 1;
 			}
 		}
@@ -916,14 +916,14 @@ int get_filenames_and_ADcoeffs(
 
 	if (ffile_given == 0 && !multiple_files)
 	{
-		printf("Error: grid fld file was not defined. Use -ffile argument!\n");
+		printf("Error: grid fld file was not defined. Use --ffile (-M) argument!\n");
 		print_options(argv[0]);
 		return 1; // we'll never get here - but we might in the future again ...
 	}
 
 	if (lfile_given == 0 && !multiple_files)
 	{
-		printf("Error: ligand pdbqt file was not defined. Use -lfile argument!\n");
+		printf("Error: ligand pdbqt file was not defined. Use --lfile (-L) argument!\n");
 		print_options(argv[0]);
 		return 1; // we'll never get here - but we might in the future again ...
 	}
@@ -936,79 +936,80 @@ void print_options(
                   )
 {
 	printf("Command line options:\n\n");
-	printf(" Argument          | Description                                           | Default value\n");
-	printf("-------------------|-------------------------------------------------------|------------------\n");
-	printf(" -lfile            | Ligand pdbqt file                                     | no default\n");
-	printf(" -ffile            | Grid map files descriptor fld file                    | no default\n");
-	printf(" -flexres          | Flexible residue pdbqt file                           | no default\n");
-	printf(" -filelist         | Batch file                                            | no default\n");
-	printf(" -import_dpf       | Import AD4-type dpf input file (only partial support) | no default\n");
-	printf(" -nrun             | # LGA runs                                            | 20\n");
-	printf(" -nev              | # Score evaluations (max.) per LGA run                | 2500000\n");
-	printf(" -ngen             | # Generations (max.) per LGA run                      | 42000\n");
-	printf(" -lsmet            | Local-search method                                   | ad (ADADELTA)\n");
-	printf(" -lsit             | # Local-search iterations (max.)                      | 300\n");
-	printf(" -psize            | Population size                                       | 150\n");
-	printf(" -mrat             | Mutation rate                                         | 2   (%%)\n");
-	printf(" -crat             | Crossover rate                                        | 80  (%%)\n");
-	printf(" -lsrat            | Local-search rate                                     | 100 (%%)\n");
-	printf(" -trat             | Tournament (selection) rate                           | 60  (%%)\n");
-	printf(" -resnam           | Name for docking output log                           | ligand basename\n");
-	printf(" -xraylfile        | reference ligand file for RMSD analysis               | ligand file\n");
-	printf(" -rlige            | Print reference ligand energies                       | 0 (no)\n");
-	printf(" -hsym             | Handle symmetry in RMSD calc.                         | 1 (yes)\n");
-	printf(" -rmstol           | RMSD clustering tolerance                             | 2 (Å)\n");
-	printf(" -dmov             | Maximum LGA movement delta                            | 6 (Å)\n");
-	printf(" -dang             | Maximum LGA angle delta                               | 90 (°)\n");
-	printf(" -rholb            | Solis-Wets lower bound of rho parameter               | 0.01\n");
-	printf(" -lsmov            | Solis-Wets movement delta                             | 2 (Å)\n");
-	printf(" -lsang            | Solis-Wets angle delta                                | 75 (°)\n");
-	printf(" -cslim            | Solis-Wets cons. success/failure limit to adjust rho  | 4\n");
-	printf(" -smooth           | Smoothing parameter for vdW interactions              | 0.5 (Å)\n");
-	printf(" -elecmindist      | Min. electrostatic potential distance (w/ dpf: 0.5 Å) | 0.01 (Å)\n");
-	printf(" -modqp            | Use modified QASP from VirtualDrug or AD4 original    | 0 (no, use AD4)\n");
-	printf(" -seed             | Random number seeds (up to three comma-sep. integers) | time, process id\n");
-	printf(" -ubmod            | Unbound model: 0 (bound), 1 (extended), 2 (compact)   | 0 (same as bound)\n");
-	printf(" -devnum           | OpenCL/Cuda device number (counting starts at 1)      | 1\n");
-	printf(" -derivtype        | Derivative atom types (e.g. C1,C2,C3=C/S4=S/H5=HD)    | no default\n");
-	printf(" -modpair          | Modify vdW pair params (e.g. C1:S4,1.60,1.200,13,7)   | no default\n");
-	printf(" -cgmaps           | Use individual maps for CG-G0 instead of the same one | 0 (no, same map)\n");
-	printf(" -heuristics       | Ligand-based automatic search method and # evals      | 1 (yes)\n");
-	printf(" -heurmax          | Asymptotic heuristics # evals limit (smooth limit)    | 12000000\n");
-	printf(" -autostop         | Automatic stopping criterion based on convergence     | 1 (yes)\n");
-	printf(" -asfreq           | AutoStop testing frequency (in # of generations)      | 5\n");
-	printf(" -stopstd          | AutoStop energy standard deviation tolerance          | 0.15 (kcal/mol)\n");
-	printf(" -initswgens       | Initial # generations of Solis-Wets instead of -lsmet | 0 (no)\n");
-	printf(" -gfpop            | Output all poses from all populations of each LGA run | 0 (no)\n");
-	printf(" -npdb             | # pose pdbqt files from populations of each LGA run   | 0\n");
-	printf(" -gbest            | Output single best pose as pdbqt file                 | 0 (no)\n");
-	printf(" -xmloutput        | Specify if xml output format is wanted                | 1 (yes)\n");
-	printf(" -loadxml          | Load initial population from xml results file         | no default\n");
-	printf(" -xml2dlg          | One (or many) AD-GPU xml file(s) to convert to dlg(s) | no default\n");
-	printf(" -contact_analysis | Perform distance-based analysis (description below)   | 0 (no)\n");
-	printf(" -dlgoutput        | Control if dlg output is created                      | 1 (yes)\n");
-	printf(" -dlg2stdout       | Write dlg file output to stdout (if not OVERLAP=ON)   | 0 (no)\n\n");
+	printf(" Argument              | Description                                           | Default value\n");
+	printf("-----------------------|-------------------------------------------------------|------------------\n");
+	printf("--lfile             -L | Ligand pdbqt file                                     | no default\n");
+	printf("--ffile             -M | Grid map files descriptor fld file                    | no default\n");
+	printf("--flexres           -F | Flexible residue pdbqt file                           | no default\n");
+	printf("--filelist          -B | Batch file                                            | no default\n");
+	printf("--import_dpf        -I | Import AD4-type dpf input file (only partial support) | no default\n");
+	printf("--resnam            -N | Name for docking output log                           | ligand basename\n");
+	printf("--xraylfile         -R | reference ligand file for RMSD analysis               | ligand file\n");
+	printf("--devnum            -D | OpenCL/Cuda device number (counting starts at 1)      | 1\n");
+	printf("--derivtype         -T | Derivative atom types (e.g. C1,C2,C3=C/S4=S/H5=HD)    | no default\n");
+	printf("--modpair           -P | Modify vdW pair params (e.g. C1:S4,1.60,1.200,13,7)   | no default\n");
+	printf("--heuristics        -H | Ligand-based automatic search method and # evals      | 1 (yes)\n");
+	printf("--heurmax           -E | Asymptotic heuristics # evals limit (smooth limit)    | 12000000\n");
+	printf("--autostop          -A | Automatic stopping criterion based on convergence     | 1 (yes)\n");
+	printf("--asfreq            -a | AutoStop testing frequency (in # of generations)      | 5\n");
+	printf("--contact_analysis  -C | Perform distance-based analysis (description below)   | 0 (no)\n");
+	printf("--xml2dlg           -X | One (or many) AD-GPU xml file(s) to convert to dlg(s) | no default\n");
+	printf("--xmloutput         -x | Specify if xml output format is wanted                | 1 (yes)\n");
+	printf("--loadxml           -c | Load initial population from xml results file         | no default\n");
+	printf("--dlgoutput         -d | Control if dlg output is created                      | 1 (yes)\n");
+	printf("--dlg2stdout        -2 | Write dlg file output to stdout (if not OVERLAP=ON)   | 0 (no)\n");
+	printf("--seed              -s | Random number seeds (up to three comma-sep. integers) | time, process id\n");
+	printf("--ubmod             -u | Unbound model: 0 (bound), 1 (extended), 2 (compact)   | 0 (same as bound)\n");
+	printf("--nrun              -n | # LGA runs                                            | 20\n");
+	printf("--nev               -e | # Score evaluations (max.) per LGA run                | 2500000\n");
+	printf("--ngen              -g | # Generations (max.) per LGA run                      | 42000\n");
+	printf("--lsmet             -l | Local-search method                                   | ad (ADADELTA)\n");
+	printf("--lsit              -i | # Local-search iterations (max.)                      | 300\n");
+	printf("--psize             -p | Population size                                       | 150\n");
+	printf("--mrat                 | Mutation rate                                         | 2   (%%)\n");
+	printf("--crat                 | Crossover rate                                        | 80  (%%)\n");
+	printf("--lsrat                | Local-search rate                                     | 100 (%%)\n");
+	printf("--trat                 | Tournament (selection) rate                           | 60  (%%)\n");
+	printf("--rlige                | Print reference ligand energies                       | 0 (no)\n");
+	printf("--hsym                 | Handle symmetry in RMSD calc.                         | 1 (yes)\n");
+	printf("--rmstol               | RMSD clustering tolerance                             | 2 (Å)\n");
+	printf("--dmov                 | Maximum LGA movement delta                            | 6 (Å)\n");
+	printf("--dang                 | Maximum LGA angle delta                               | 90 (°)\n");
+	printf("--rholb                | Solis-Wets lower bound of rho parameter               | 0.01\n");
+	printf("--lsmov                | Solis-Wets movement delta                             | 2 (Å)\n");
+	printf("--lsang                | Solis-Wets angle delta                                | 75 (°)\n");
+	printf("--cslim                | Solis-Wets cons. success/failure limit to adjust rho  | 4\n");
+	printf("--smooth               | Smoothing parameter for vdW interactions              | 0.5 (Å)\n");
+	printf("--elecmindist          | Min. electrostatic potential distance (w/ dpf: 0.5 Å) | 0.01 (Å)\n");
+	printf("--modqp                | Use modified QASP from VirtualDrug or AD4 original    | 0 (no, use AD4)\n");
+	printf("--cgmaps               | Use individual maps for CG-G0 instead of the same one | 0 (no, same map)\n");
+	printf("--stopstd              | AutoStop energy standard deviation tolerance          | 0.15 (kcal/mol)\n");
+	printf("--initswgens           | Initial # generations of Solis-Wets instead of -lsmet | 0 (no)\n");
+	printf("--gfpop                | Output all poses from all populations of each LGA run | 0 (no)\n");
+	printf("--npdb                 | # pose pdbqt files from populations of each LGA run   | 0\n");
+	printf("--gbest                | Output single best pose as pdbqt file                 | 0 (no)\n");
 
-	printf("Autodock-GPU requires a ligand and a set of grid maps as well as optionally a flexible residue to\n");
-	printf("perform a docking calculation. These could be specified directly (-lfile, -ffile, and -flexres),\n");
-	printf("as part of a filelist text file (see README.md for format), or as an AD4-style dpf.\n\n");
+	printf("\nAutodock-GPU requires a ligand and a set of grid maps as well as optionally a flexible residue to\n");
+	printf("perform a docking calculation. These could be specified directly (--lfile, --ffile, and --flexres),\n");
+	printf("as part of a filelist text file (see README.md for format), or as an AD4-style dpf.\n");
 
-	printf("Examples:\n");
+	printf("\nExamples:\n");
 	printf("   * Dock ligand.pdbqt to receptor.maps.fld using 50 LGA runs:\n");
-	printf("        %s -lfile ligand.pdbqt -ffile receptor.maps.fld -nrun 50\n",program_name);
+	printf("        %s --lfile ligand.pdbqt --ffile receptor.maps.fld --nrun 50\n",program_name);
 	printf("   * Convert ligand.xml to dlg, perform contact analysis, and output dlg to stdout:\n");
-	printf("        %s -xml2dlg ligand.xml -contact_analysis 1 -dlg2stdout 1\n",program_name);
+	printf("        %s --xml2dlg ligand.xml --contact_analysis 1 --dlg2stdout 1\n",program_name);
 	printf("   * Dock ligands and map specified in file.lst with flexres flex.pdbqt:\n");
-	printf("        %s -filelist file.lst -flexres flex.pdbqt\n",program_name);
+	printf("        %s --filelist file.lst --flexres flex.pdbqt\n",program_name);
 	printf("   * Dock ligands, map, and (optional) flexres specified in docking.dpf on device #2:\n");
-	printf("        %s -import_dpf docking.dpf -devnum 2\n\n",program_name);
+	printf("        %s --import_dpf docking.dpf --devnum 2\n\n",program_name);
 	
 	exit(0);
 }
 
 bool argcmp(
             const char* arg,
-            const char* cmd
+            const char* cmd,
+            const char  shortarg
            )
 {
 	int length=strlen(cmd);
@@ -1017,6 +1018,9 @@ bool argcmp(
 		if(cmd[0]!='-') return false;
 		if(cmd[1]=='-') offset++;
 		if(length-offset<1) return false;
+		if((length-offset==1) && (shortarg!='\0')){ // short argument
+			return (cmd[offset]==shortarg);
+		}
 		return (strcmp(arg,cmd+offset)==0);
 	} else return false;
 }
@@ -1079,7 +1083,7 @@ int get_commandpars(
 				mypars->num_of_energy_evals = (unsigned long) tempint;
 				mypars->nev_provided = true;
 			} else{
-				printf("Error: Value of -nev argument must be between 0 and 2^31-1.\n");
+				printf("Error: Value of --nev (-e) argument must be between 0 and 2^31-1.\n");
 				return -1;
 			}
 		}
@@ -1091,11 +1095,6 @@ int get_commandpars(
 			tempint = sscanf(argv[i+1], "%u,%u,%u", &(mypars->seed[0]), &(mypars->seed[1]), &(mypars->seed[2]));
 		}
 
-		if (argcmp("contact_analysis", argv[i]))
-		{
-			arg_recognized = 1;
-		}
-
 		// Argument: number of generations. Must be a positive integer.
 		if (argcmp("ngen", argv[i]))
 		{
@@ -1105,7 +1104,7 @@ int get_commandpars(
 			if ((tempint > 0) && (tempint < 16250000)){
 				mypars->num_of_generations = (unsigned long) tempint;
 			} else{
-				printf("Error: Value of -ngen argument must be between 0 and 16250000.\n");
+				printf("Error: Value of --ngen (-g) argument must be between 0 and 16250000.\n");
 				return -1;
 			}
 		}
@@ -1119,14 +1118,14 @@ int get_commandpars(
 			if ((tempint >= 0) && (tempint <= 16250000)){
 				mypars->initial_sw_generations = (unsigned long) tempint;
 			} else{
-				printf("Error: Value of -initswgens argument must be between 0 and 16250000.\n");
+				printf("Error: Value of --initswgens argument must be between 0 and 16250000.\n");
 				return -1;
 			}
 		}
 
 		// ----------------------------------
 		// Argument: Use Heuristics for number of evaluations (can be overwritten with -nev)
-		if (argcmp("heuristics", argv [i]))
+		if (argcmp("heuristics", argv [i], 'H'))
 		{
 			arg_recognized = 1;
 			sscanf(argv [i+1], "%d", &tempint);
@@ -1139,7 +1138,7 @@ int get_commandpars(
 		// ----------------------------------
 
 		// Argument: Upper limit for heuristics that's reached asymptotically
-		if (argcmp("heurmax", argv[i]))
+		if (argcmp("heurmax", argv[i], 'E'))
 		{
 			arg_recognized = 1;
 			sscanf(argv[i+1], "%d", &tempint);
@@ -1147,7 +1146,7 @@ int get_commandpars(
 			if ((tempint > 0) && (tempint <= 1625000000)){
 				mypars->heuristics_max = (unsigned long) tempint;
 			} else{
-				printf("Error: Value of -heurmax argument must be between 1 and 1625000000.\n");
+				printf("Error: Value of --heurmax (-E) argument must be between 1 and 1625000000.\n");
 				return -1;
 			}
 		}
@@ -1162,7 +1161,7 @@ int get_commandpars(
 			if ((tempfloat > 0) && (tempfloat < 10)){
 				mypars->abs_max_dmov = tempfloat/(*spacing);
 			} else{
-				printf("Error: Value of -dmov argument must be a float between 0 and 10.\n");
+				printf("Error: Value of --dmov argument must be a float between 0 and 10.\n");
 				return -1;
 			}
 		}
@@ -1177,7 +1176,7 @@ int get_commandpars(
 			if ((tempfloat > 0) && (tempfloat < 180)){
 				mypars->abs_max_dang = tempfloat;
 			} else{
-				printf("Error: Value of -dang argument must be a float between 0 and 180.\n");
+				printf("Error: Value of --dang argument must be a float between 0 and 180.\n");
 				return -1;
 			}
 		}
@@ -1192,7 +1191,7 @@ int get_commandpars(
 			if ((tempfloat >= 0.0) && (tempfloat < 100.0)){
 				mypars->mutation_rate = tempfloat;
 			} else{
-				printf("Error: Value of -mrat argument must be a float between 0 and 100.\n");
+				printf("Error: Value of --mrat argument must be a float between 0 and 100.\n");
 				return -1;
 			}
 		}
@@ -1207,7 +1206,7 @@ int get_commandpars(
 			if ((tempfloat >= 0.0) && (tempfloat <= 100.0)){
 				mypars->crossover_rate = tempfloat;
 			} else{
-				printf("Error: Value of -crat argument must be a float between 0 and 100.\n");
+				printf("Error: Value of --crat argument must be a float between 0 and 100.\n");
 				return -1;
 			}
 		}
@@ -1225,7 +1224,7 @@ int get_commandpars(
 			if ((tempfloat >= 0.0) && (tempfloat <= 100.0)){
 				mypars->lsearch_rate = tempfloat;
 			} else{
-				printf("Error: Value of -lrat argument must be a float between 0 and 100.\n");
+				printf("Error: Value of --lrat argument must be a float between 0 and 100.\n");
 				return -1;
 			}
 		}
@@ -1240,7 +1239,7 @@ int get_commandpars(
 			if ((tempfloat >= 0.0f) && (tempfloat <= 0.5f)){
 				mypars->smooth = tempfloat;
 			} else{
-				printf("Error: Value of -smooth argument must be a float between 0 and 0.5.\n");
+				printf("Error: Value of --smooth argument must be a float between 0 and 0.5.\n");
 				return -1;
 			}
 		}
@@ -1278,7 +1277,7 @@ int get_commandpars(
 				//mypars->max_num_of_iters = 30;
 			}
 			else {
-				printf("Error: Value of -lsmet must be a valid string: \"sw\", \"sd\", \"fire\", \"ad\", or \"adam\".\n");
+				printf("Error: Value of --lsmet must be a valid string: \"sw\", \"sd\", \"fire\", \"ad\", or \"adam\".\n");
 				return -1;
 			}
 			
@@ -1295,7 +1294,7 @@ int get_commandpars(
 			if ((tempfloat >= /*5*/0.0) && (tempfloat <= 100.0)){
 				mypars->tournament_rate = tempfloat;
 			} else{
-				printf("Error: Value of -trat argument must be a float between 0 and 100.\n");
+				printf("Error: Value of --trat argument must be a float between 0 and 100.\n");
 				return -1;
 			}
 		}
@@ -1311,7 +1310,7 @@ int get_commandpars(
 			if ((tempfloat >= 0.0) && (tempfloat < 1.0)){
 				mypars->rho_lower_bound = tempfloat;
 			} else{
-				printf("Error: Value of -rholb argument must be a float between 0 and 1.\n");
+				printf("Error: Value of --rholb argument must be a float between 0 and 1.\n");
 				return -1;
 			}
 		}
@@ -1326,7 +1325,7 @@ int get_commandpars(
 			if ((tempfloat > 0.0) && (tempfloat < (*spacing)*64/sqrt(3.0))){
 				mypars->base_dmov_mul_sqrt3 = tempfloat/(*spacing)*sqrt(3.0);
 			} else{
-				printf("Error: Value of -lsmov argument must be a float between 0 and %lf.\n", 64*(*spacing));
+				printf("Error: Value of --lsmov argument must be a float between 0 and %lf.\n", 64*(*spacing));
 				return -1;
 			}
 		}
@@ -1341,7 +1340,7 @@ int get_commandpars(
 			if ((tempfloat > 0.0) && (tempfloat < 103.0)){
 				mypars->base_dang_mul_sqrt3 = tempfloat*sqrt(3.0);
 			} else{
-				printf("Error: Value of -lsang argument must be a float between 0 and 103.\n");
+				printf("Error: Value of --lsang argument must be a float between 0 and 103.\n");
 				return -1;
 			}
 		}
@@ -1356,7 +1355,7 @@ int get_commandpars(
 			if ((tempint > 0) && (tempint < 256)){
 				mypars->cons_limit = (unsigned long) (tempint);
 			} else{
-				printf("Error: Value of -cslim argument must be an integer between 1 and 255.\n");
+				printf("Error: Value of --cslim argument must be an integer between 1 and 255.\n");
 				return -1;
 			}
 		}
@@ -1371,7 +1370,7 @@ int get_commandpars(
 			if ((tempint > 0) && (tempint < 262144)){
 				mypars->max_num_of_iters = (unsigned long) tempint;
 			} else{
-				printf("Error: Value of -lsit argument must be an integer between 1 and 262143.\n");
+				printf("Error: Value of --lsit (-i) argument must be an integer between 1 and 262143.\n");
 				return -1;
 			}
 		}
@@ -1386,33 +1385,33 @@ int get_commandpars(
 			if ((tempint >= 2) && (tempint <= MAX_POPSIZE)){
 				mypars->pop_size = (unsigned long) (tempint);
 			} else{
-				printf("Error: Value of -psize argument must be an integer between 2 and %d.\n", MAX_POPSIZE);
+				printf("Error: Value of --psize (-p) argument must be an integer between 2 and %d.\n", MAX_POPSIZE);
 				return -1;
 			}
 		}
 
 		// Argument: load initial population from xml file instead of generating one.
-		if (argcmp("loadxml", argv [i]))
+		if (argcmp("loadxml", argv [i], 'c'))
 		{
 			arg_recognized = 1;
 			mypars->load_xml = strdup(argv[i+1]);
 		}
 
 		// Argument: load initial data from xml file and reconstruct dlg, then finish
-		if (argcmp("xml2dlg", argv [i]))
+		if (argcmp("xml2dlg", argv [i], 'X'))
 		{
 			arg_recognized = 1;
 			i += mypars->xml_files-1; // skip ahead
 		}
 
 		// Argument: wether to perform a distance-based pose contact analysis or not
-		if (argcmp("contact_analysis", argv [i]))
+		if (argcmp("contact_analysis", argv [i], 'C'))
 		{
 			arg_recognized = 1;
 		}
 
 		// Argument: print dlg output to stdout instead of to a file
-		if (argcmp("dlg2stdout", argv [i]))
+		if (argcmp("dlg2stdout", argv [i], '2'))
 		{
 			arg_recognized = 1;
 		}
@@ -1425,7 +1424,7 @@ int get_commandpars(
 			sscanf(argv [i+1], "%d", &tempint);
 
 			if ((tempint < 0) || (tempint > MAX_POPSIZE)){
-				printf("Error: Value of -npdb argument must be an integer between 0 and %d.\n", MAX_POPSIZE);
+				printf("Error: Value of --npdb argument must be an integer between 0 and %d.\n", MAX_POPSIZE);
 				return -1;
 			} else mypars->gen_pdbs = tempint;
 		}
@@ -1434,14 +1433,14 @@ int get_commandpars(
 		// UPDATED in : get_filelist()
 		// ---------------------------------
 		// Argument: name of file containing file list
-		if (argcmp("filelist", argv [i]))
+		if (argcmp("filelist", argv [i], 'B'))
 			arg_recognized = 1;
 
 		// ---------------------------------
 		// UPDATED in : preparse_dpf()
 		// ---------------------------------
 		// Argument: name of file containing file list
-		if (argcmp("import_dpf", argv [i]))
+		if (argcmp("import_dpf", argv [i], 'I'))
 			arg_recognized = 1;
 
 		// ---------------------------------
@@ -1449,7 +1448,7 @@ int get_commandpars(
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
 		// Argument: name of grid parameter file.
-		if (argcmp("ffile", argv [i])){
+		if (argcmp("ffile", argv [i], 'M')){
 			arg_recognized = 1;
 			arg_set = 0;
 		}
@@ -1459,7 +1458,7 @@ int get_commandpars(
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
 		// Argument: name of ligand pdbqt file
-		if (argcmp("lfile", argv [i])){
+		if (argcmp("lfile", argv [i], 'L')){
 			arg_recognized = 1;
 			arg_set = 0;
 		}
@@ -1469,7 +1468,7 @@ int get_commandpars(
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
 		// Argument: name of ligand pdbqt file
-		if (argcmp("flexres", argv [i])){
+		if (argcmp("flexres", argv [i], 'F')){
 			arg_recognized = 1;
 			arg_set = 0;
 		}
@@ -1478,7 +1477,7 @@ int get_commandpars(
 		// - has already been tested for in
 		//   main.cpp, as it's needed at grid
 		//   creation time not after (now)
-		if (argcmp("derivtype", argv [i]))
+		if (argcmp("derivtype", argv [i], 'T'))
 		{
 			arg_recognized = 1;
 		}
@@ -1487,7 +1486,7 @@ int get_commandpars(
 		// - has already been tested for in
 		//   main.cpp, as it's needed at grid
 		//   creation time not after (now)
-		if (argcmp("modpair", argv [i]))
+		if (argcmp("modpair", argv [i], 'P'))
 		{
 			arg_recognized = 1;
 		}
@@ -1497,7 +1496,7 @@ int get_commandpars(
 		// UPDATED in : main
 		// ----------------------------------
 		// Argument: OpenCL/Cuda device number to use
-		if (argcmp("devnum", argv [i]))
+		if (argcmp("devnum", argv [i], 'D'))
 		{
 			arg_recognized = 1;
 			arg_set = 0;
@@ -1507,7 +1506,7 @@ int get_commandpars(
 				if ((tempint >= 1) && (tempint <= 65536)){
 					mypars->devnum = (unsigned long) tempint-1;
 				} else{
-					printf("Error: Value of -devnum argument must be an integer between 1 and 65536.\n");
+					printf("Error: Value of --devnum (-D) argument must be an integer between 1 and 65536.\n");
 					return -1;
 				}
 			}
@@ -1527,7 +1526,7 @@ int get_commandpars(
 
 		// ----------------------------------
 		// Argument: Automatic stopping criterion (1) or not (0)
-		if (argcmp("autostop", argv [i]))
+		if (argcmp("autostop", argv [i], 'A'))
 		{
 			arg_recognized = 1;
 			sscanf(argv [i+1], "%d", &tempint);
@@ -1541,14 +1540,14 @@ int get_commandpars(
 
 		// ----------------------------------
 		// Argument: Test frequency for auto-stopping criterion
-		if (argcmp("asfreq", argv [i]))
+		if (argcmp("asfreq", argv [i], 'a'))
 		{
 			arg_recognized = 1;
 			sscanf(argv [i+1], "%d", &tempint);
 			if ((tempint >= 1) && (tempint <= 100)){
 				mypars->as_frequency = (unsigned int) tempint;
 			} else{
-				printf("Error: Value of -asfreq argument must be an integer between 1 and 100.\n");
+				printf("Error: Value of --asfreq (-a) argument must be an integer between 1 and 100.\n");
 				return -1;
 			}
 		}
@@ -1565,7 +1564,7 @@ int get_commandpars(
 			if ((tempfloat >= 0.01) && (tempfloat < 2.0)){
 				mypars->stopstd = tempfloat;
 			} else{
-				printf("Error: Value of -stopstd argument must be a float between 0.01 and 2.0.\n");
+				printf("Error: Value of --stopstd argument must be a float between 0.01 and 2.0.\n");
 				return -1;
 			}
 		}
@@ -1582,7 +1581,7 @@ int get_commandpars(
 			if ((tempfloat >= 0.0) && (tempfloat < 2.0)){
 				mypars->elec_min_distance = tempfloat;
 			} else{
-				printf("Error: Value of -elecmindist argument must be a float between 0.0 and 2.0.\n");
+				printf("Error: Value of --elecmindist argument must be a float between 0.0 and 2.0.\n");
 				return -1;
 			}
 		}
@@ -1598,7 +1597,7 @@ int get_commandpars(
 			if ((tempint >= 1) && (tempint <= MAX_NUM_OF_RUNS)){
 				mypars->num_of_runs = (int) tempint;
 			} else{
-				printf("Error: Value of -nrun argument must be an integer between 1 and %d.\n", MAX_NUM_OF_RUNS);
+				printf("Error: Value of --nrun (-n) argument must be an integer between 1 and %d.\n", MAX_NUM_OF_RUNS);
 				return -1;
 			}
 		}
@@ -1666,7 +1665,7 @@ int get_commandpars(
 		}
 
 		// Argument: name of result files.
-		if (argcmp("resnam", argv [i]))
+		if (argcmp("resnam", argv [i], 'N'))
 		{
 			arg_recognized = 1;
 			free(mypars->resname); // as we assign a default value dynamically created to it
@@ -1696,7 +1695,7 @@ int get_commandpars(
 			if (tempfloat > 0.0){
 				mypars->rmsd_tolerance = tempfloat;
 			} else{
-				printf("Error: Value of -rmstol argument must be a double greater than 0.\n");
+				printf("Error: Value of --rmstol argument must be a double greater than 0.\n");
 				return -1;
 			}
 		}
@@ -1704,7 +1703,7 @@ int get_commandpars(
 		// Argument: choose wether to output DLG or not
 		// If the value is 1, DLG output will be generated
 		// DLG output won't be generated if 0 is specified
-		if (argcmp("dlgoutput", argv [i]))
+		if (argcmp("dlgoutput", argv [i], 'd'))
 		{
 			arg_recognized = 1;
 			sscanf(argv [i+1], "%d", &tempint);
@@ -1714,7 +1713,7 @@ int get_commandpars(
 			else
 				mypars->output_dlg = true;
 			if(!mypars->output_dlg && (mypars->xml2dlg || mypars->dlg2stdout)){
-				printf("Note: Value of -dlgoutput ignored. Arguments -xml2dlg or -dlg2stdout require dlg output.\n");
+				printf("Note: Value of --dlgoutput (-d) ignored. Arguments --xml2dlg (-X) or --dlg2stdout (-2) require dlg output.\n");
 				mypars->output_dlg = true;
 			}
 		}
@@ -1722,7 +1721,7 @@ int get_commandpars(
 		// Argument: choose wether to output XML or not
 		// If the value is 1, XML output will be generated
 		// XML output won't be generated if 0 is specified
-		if (argcmp("xmloutput", argv [i]))
+		if (argcmp("xmloutput", argv [i], 'x'))
 		{
 			arg_recognized = 1;
 			sscanf(argv [i+1], "%d", &tempint);
@@ -1735,13 +1734,13 @@ int get_commandpars(
 
 		// ----------------------------------
 		// Argument: ligand xray pdbqt file name
-		if (argcmp("xraylfile", argv[i]))
+		if (argcmp("xraylfile", argv[i], 'R'))
 		{
 			arg_recognized = 1;
 			free(mypars->xrayligandfile);
 			mypars->xrayligandfile = strdup(argv[i+1]);
 			mypars->given_xrayligandfile = true;
-			printf("Info: using -xraylfile value as X-ray ligand.\n");
+			printf("Info: using --xraylfile (-R) value as X-ray ligand.\n");
 		}
 		// ----------------------------------
 
@@ -1755,7 +1754,7 @@ int get_commandpars(
 	// validating some settings
 	if (mypars->pop_size < mypars->gen_pdbs)
 	{
-		printf("Error: Value of -npdb argument (%d) cannot be greater than the population size (%d).\n", mypars->gen_pdbs, mypars->pop_size);
+		printf("Error: Value of --npdb argument (%d) cannot be greater than the population size (%d).\n", mypars->gen_pdbs, mypars->pop_size);
 //		mypars->gen_pdbs = 1;
 		return -1;
 	}

@@ -635,7 +635,7 @@ parameters argc and argv:
 		mypars->num_of_energy_evals = (unsigned long)ceil(heur_evals*(float)mypars->heuristics_max/(mypars->heuristics_max+heur_evals));
 		printf("    Using heuristics: (capped) number of evaluations set to %lu\n",mypars->num_of_energy_evals);
 		if (mypars->nev_provided && (mypars->num_of_energy_evals>nev)){
-			printf("    Overriding heuristics, setting number of evaluations to -nev = %lu instead.\n",nev);
+			printf("    Overriding heuristics, setting number of evaluations to --nev = %lu instead.\n",nev);
 			mypars->num_of_energy_evals = nev;
 			profile.capped = true;
 		}
@@ -648,9 +648,9 @@ parameters argc and argv:
 			printf("    Warning: The set number of evals is %.2f%% of the uncapped heuristics estimate of %lu evals.\n",cap_fraction*100.0f,heur_evals);
 			printf("             This means this docking may not be able to converge. Increasing ");
 			if (mypars->nev_provided && (mypars->num_of_energy_evals>nev))
-				printf("-nev");
+				printf("--nev");
 			else
-				printf("-heurmax");
+				printf("--heurmax");
 			printf(" may improve\n             convergence but will also increase runtime.\n");
 			if(mypars->autostop) printf("             AutoStop will not stop before %.2f%% (%lu) of the set number of evaluations.\n",min_frac*100.0f,min_as_evals/mypars->num_of_runs);
 		}

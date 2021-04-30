@@ -167,7 +167,8 @@ inline bool add_deriv_atype(
 
 bool argcmp(
             const char* arg,
-            const char* cmd
+            const char* cmd,
+            const char shortarg = '\0'
            );
 
 int preparse_dpf(
