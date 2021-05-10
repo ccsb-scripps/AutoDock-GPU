@@ -322,7 +322,7 @@ void make_resfiles(
 // be moved and rotated according to the genotype values). The function returns some information about the best result wich
 // was found with the best_result parameter.
 {
-	FILE* fp;
+	FILE* fp = stdout; // takes care of compile warning down below (and serves as a visual bug tracker in case fp is written to accidentally)
 	int i,j;
 	double entity_rmsds;
 	Liganddata temp_docked;
@@ -630,14 +630,13 @@ void clusanal_gendlg(
 // will be written to it.
 {
 	int i, j, atom_cnt;
-	int root_atom = 0;
 	Ligandresult temp_ligres;
 	int num_of_clusters;
 	int current_clust_center;
 	double temp_rmsd;
 	int result_clustered;
 	int subrank;
-	FILE* fp;
+	FILE* fp = stdout;
 	FILE* fp_orig;
 	FILE* fp_xml;
 	int cluster_sizes [1000];
@@ -656,9 +655,7 @@ void clusanal_gendlg(
 	int len = strlen(mypars->resname) + 4 + 1;
 	// GENERATING DLG FILE
 	if(mypars->output_dlg){
-		if(mypars->dlg2stdout){
-			fp = stdout;
-		} else{
+		if(!mypars->dlg2stdout){
 			char* report_file_name = (char*)malloc(len*sizeof(char));
 			strcpy(report_file_name, mypars->resname);
 			strcat(report_file_name, ".dlg");
@@ -679,7 +676,7 @@ void clusanal_gendlg(
 
 		std::string pdbqt_template;
 		std::vector<unsigned int> atom_data;
-		char lineout [256];
+		char lineout [264];
 		// writing input pdbqt file
 		fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
 		fp_orig = fopen(mypars->ligandfile, "rb"); // fp_orig = fopen(mypars->ligandfile, "r");
@@ -695,7 +692,6 @@ void clusanal_gendlg(
 			} else{
 				if (strncmp("ROOT", tempstr, 4) == 0)
 				{
-					root_atom = atom_cnt;
 					pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
 					pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
 				}
@@ -851,9 +847,9 @@ void clusanal_gendlg(
 				fprintf(fp, "DOCKED: USER    NEWDPF about 0.0 0.0 0.0\n");
 				fprintf(fp, "DOCKED: USER    NEWDPF tran0 %.6f %.6f %.6f\n", myresults[i].genotype[0]*mygrid->spacing, myresults[i].genotype[1]*mygrid->spacing, myresults[i].genotype[2]*mygrid->spacing);
 				if(!mypars->xml2dlg){
-					double phi = myresults[j].genotype[3]/180.0*PI;
-					double theta = myresults[j].genotype[4]/180.0*PI;
-					fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[j].genotype[5]);
+					double phi = myresults[i].genotype[3]/180.0*PI;
+					double theta = myresults[i].genotype[4]/180.0*PI;
+					fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[i].genotype[5]);
 				} else fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", myresults[i].genotype[3], myresults[i].genotype[4], myresults[i].genotype[5], myresults[i].genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1]);
 				fprintf(fp, "DOCKED: USER    NEWDPF dihe0");
 				for(j=0; j<myresults[i].reslig_realcoord.num_of_rotbonds; j++)

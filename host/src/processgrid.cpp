@@ -184,7 +184,7 @@ int get_gridvalues_f(
 {
 	int t, x, y, z;
 	FILE* fp;
-	int len = strlen(mygrid->grid_file_path)+strlen(mygrid->receptor_name)+1;
+	size_t len = strlen(mygrid->grid_file_path)+strlen(mygrid->receptor_name)+1;
 	if(strlen(mygrid->map_base_name)>len)
 		len = strlen(mygrid->map_base_name);
 	len += 10; // "..map\0" = 6 entries + 4 at most for grid type

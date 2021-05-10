@@ -338,8 +338,8 @@ parameters argc and argv:
 	int threadsPerBlock;
 	int blocksPerGridForEachEntity;
 	int blocksPerGridForEachRun;
-	int blocksPerGridForEachLSEntity;
-	int blocksPerGridForEachGradMinimizerEntity;
+	int blocksPerGridForEachLSEntity = 0;
+	int blocksPerGridForEachGradMinimizerEntity = 0;
 
 	int generation_cnt;
 	int i;
@@ -515,7 +515,7 @@ parameters argc and argv:
 	cData.dockpars.adam_beta2                   = mypars->adam_beta2;
 	cData.dockpars.adam_epsilon                 = mypars->adam_epsilon;
 
-	if (cData.dockpars.lsearch_rate != 0.0f) 
+	if (cData.dockpars.lsearch_rate != 0.0f)
 	{
 		cData.dockpars.num_of_lsentities        = (unsigned int) (mypars->lsearch_rate/100.0*mypars->pop_size + 0.5);
 		cData.dockpars.rho_lower_bound          = mypars->rho_lower_bound;

@@ -221,7 +221,7 @@ void setup_gpu_for_docking(
 		}
 	}
 	
-	if (cData.devnum>=deviceCount)
+	if (cData.devnum>=(int)deviceCount)
 	{
 		printf("Info: User specified OpenCL device number does not exist, using first device.\n");
 		cData.devnum=0;
@@ -395,11 +395,15 @@ parameters argc and argv:
 
 	size_t kernel1_gxsize, kernel1_lxsize;
 	size_t kernel2_gxsize, kernel2_lxsize;
-	size_t kernel3_gxsize, kernel3_lxsize;
+	size_t kernel3_gxsize = 0;
+	size_t kernel3_lxsize = 0;
 	size_t kernel4_gxsize, kernel4_lxsize;
-	size_t kernel5_gxsize, kernel5_lxsize;
-	size_t kernel6_gxsize, kernel6_lxsize;
-	size_t kernel7_gxsize, kernel7_lxsize;
+	size_t kernel5_gxsize = 0;
+	size_t kernel5_lxsize = 0;
+	size_t kernel6_gxsize = 0;
+	size_t kernel6_lxsize = 0;
+	size_t kernel7_gxsize = 0;
+	size_t kernel7_lxsize = 0;
 
 	Liganddata myligand_reference;
 
@@ -417,10 +421,9 @@ parameters argc and argv:
 	int threadsPerBlock;
 	int blocksPerGridForEachEntity;
 	int blocksPerGridForEachRun;
-	int blocksPerGridForEachLSEntity;
-	int blocksPerGridForEachGradMinimizerEntity;
+	int blocksPerGridForEachLSEntity = 0;
+	int blocksPerGridForEachGradMinimizerEntity = 0;
 
-	unsigned long run_cnt; /* int run_cnt; */
 	int generation_cnt;
 	int i;
 	double progress;
@@ -735,12 +738,11 @@ parameters argc and argv:
 	setKernelArg(tData.kernel1,19,sizeof(dockpars.pop_size),                      &dockpars.pop_size);
 	setKernelArg(tData.kernel1,20,sizeof(dockpars.qasp),                          &dockpars.qasp);
 	setKernelArg(tData.kernel1,21,sizeof(dockpars.smooth),                        &dockpars.smooth);
-	
 	setKernelArg(tData.kernel1,22,sizeof(cData.mem_interintra_const),             &cData.mem_interintra_const);
-  	setKernelArg(tData.kernel1,23,sizeof(cData.mem_intracontrib_const),           &cData.mem_intracontrib_const);
-  	setKernelArg(tData.kernel1,24,sizeof(cData.mem_intra_const),                  &cData.mem_intra_const);
-  	setKernelArg(tData.kernel1,25,sizeof(cData.mem_rotlist_const),                &cData.mem_rotlist_const);
-  	setKernelArg(tData.kernel1,26,sizeof(cData.mem_conform_const),                &cData.mem_conform_const);
+	setKernelArg(tData.kernel1,23,sizeof(cData.mem_intracontrib_const),           &cData.mem_intracontrib_const);
+	setKernelArg(tData.kernel1,24,sizeof(cData.mem_intra_const),                  &cData.mem_intra_const);
+	setKernelArg(tData.kernel1,25,sizeof(cData.mem_rotlist_const),                &cData.mem_rotlist_const);
+	setKernelArg(tData.kernel1,26,sizeof(cData.mem_conform_const),                &cData.mem_conform_const);
 	kernel1_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
 	kernel1_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG

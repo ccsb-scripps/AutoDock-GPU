@@ -70,7 +70,7 @@ int setup(
 	// for derived atom types, and modified atom type pairs
 	// since they will be needed at ligand and grid creation
 	//------------------------------------------------------------
-	for (unsigned int i=1; i<argc-1; i+=2)
+	for (int i=1; i<argc-1; i+=2)
 	{
 		if (argcmp("xml2dlg", argv[i], 'X'))
 			i+=mypars.xml_files-1; // skip ahead in case there are multiple entries here
@@ -141,7 +141,7 @@ int setup(
 						base_exists=true;
 					}
 				}
-				for(unsigned int idx=nr_start; idx<mypars.nr_deriv_atypes; idx++){
+				for(int idx=nr_start; idx<mypars.nr_deriv_atypes; idx++){
 					int length=tmp-start_block;
 					if(length<4){
 						strncpy(mypars.deriv_atypes[idx].base_name,start_block,length);
@@ -223,7 +223,7 @@ int setup(
 					if((*tmp==',') || (*tmp=='\0') || (*tmp=='/')){
 						if(tmp-start_block>0){ // make sure there is a name (at least one char, we'll test later if it's taken already)
 							float tmpfloat;
-							int nr=sscanf(start_block, "%f", &tmpfloat);
+							sscanf(start_block, "%f", &tmpfloat);
 							curr_pair->nr_parameters++;
 							curr_pair->parameters=(float*)realloc(curr_pair->parameters,curr_pair->nr_parameters*sizeof(float));
 							if(curr_pair->parameters==NULL){
@@ -298,7 +298,7 @@ int setup(
 	if (mypars.contact_analysis && (mypars.flexresfile!=NULL)){
 		std::vector<ReceptorAtom> flexresatoms = read_receptor_atoms(mypars.flexresfile);
 		mypars.receptor_atoms.insert(mypars.receptor_atoms.end(), flexresatoms.begin(), flexresatoms.end());
-		for(unsigned int i=myligand_init.true_ligand_atoms; i<myligand_init.num_of_atoms; i++){
+		for(int i=myligand_init.true_ligand_atoms; i<myligand_init.num_of_atoms; i++){
 			mypars.receptor_atoms[mypars.nr_receptor_atoms+i-myligand_init.true_ligand_atoms].acceptor=myligand_init.acceptor[i];
 			mypars.receptor_atoms[mypars.nr_receptor_atoms+i-myligand_init.true_ligand_atoms].donor=myligand_init.donor[i];
 		}
@@ -452,7 +452,6 @@ int fill_maplist(
 		return 1;
 	}
 	std::string line;
-	bool prev_line_was_fld=false;
 	while(std::getline(file, line)) {
 		std::stringstream sline(line.c_str());
 		// Split line by spaces:
@@ -488,9 +487,9 @@ int load_all_maps(
 	if(fill_maplist(fldfilename,all_maps)==1) return 1;
 
 	// Now fill the maps
-	int t, x, y, z;
+	int x, y, z;
 	FILE* fp;
-	int len = strlen(mygrid->grid_file_path)+strlen(mygrid->receptor_name)+1;
+	size_t len = strlen(mygrid->grid_file_path)+strlen(mygrid->receptor_name)+1;
 	if(strlen(mygrid->map_base_name)>len)
 		len = strlen(mygrid->map_base_name);
 	len += 10; // "..map\0" = 6 entries + 4 at most for grid type
@@ -498,7 +497,7 @@ int load_all_maps(
 	char* tempstr = (char*)malloc(len*sizeof(char));
 	int size_of_one_map = 4*mygrid->size_xyz[0]*mygrid->size_xyz[1]*mygrid->size_xyz[2];
 
-	for (t=0; t < all_maps.size(); t++)
+	for (unsigned int t=0; t < all_maps.size(); t++)
 	{
 		all_maps[t].grid.resize(size_of_one_map);
 		float* mypoi = all_maps[t].grid.data();
@@ -569,7 +568,7 @@ int copy_from_all_maps(
 	for (int t=0; t < mygrid->num_of_atypes+2; t++) {
 		// Look in all_maps for desired map
 		int i_map = -1;
-		for (int i_atype=0; i_atype < all_maps.size(); i_atype++){
+		for (unsigned int i_atype=0; i_atype < all_maps.size(); i_atype++){
 			if (strcmp(mygrid->grid_types[t],all_maps[i_atype].atype.c_str())==0){
 				i_map = i_atype; // Found the map!
 				break;

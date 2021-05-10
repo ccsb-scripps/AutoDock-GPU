@@ -156,7 +156,7 @@ inline bool add_deriv_atype(
 		mypars->deriv_atypes[mypars->nr_deriv_atypes-1].deriv_name[length]='\0';
 	} else return false; // name is too long
 	// make sure name hasn't already been used
-	for(unsigned int i=0; i<mypars->nr_deriv_atypes-1; i++){
+	for(int i=0; i<mypars->nr_deriv_atypes-1; i++){
 		if (strcmp(mypars->deriv_atypes[i].deriv_name, mypars->deriv_atypes[mypars->nr_deriv_atypes-1].deriv_name) == 0){
 			printf("Error: -derivtype type name \"%s\" has already been used.\n",mypars->deriv_atypes[i].deriv_name);
 			exit(2);
@@ -231,7 +231,7 @@ void read_xml_filenames(
 std::vector<float> read_xml_genomes(
                                     char* xml_filename,
                                     float grid_spacing,
-                                    unsigned int &nrot,
+                                    int &nrot,
                                     bool store_axisangle=false
                                    );
 

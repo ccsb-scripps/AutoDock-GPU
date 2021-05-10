@@ -167,7 +167,7 @@ ifeq ($(CONFIG),FDEBUG)
 else ifeq ($(CONFIG),LDEBUG)
 	OPT =-O0 -g3 -Wall $(OCL_DEBUG_BASIC)
 else ifeq ($(CONFIG),RELEASE)
-	OPT =-O3
+	OPT =-O3 -Wall
 else
 	OPT =
 endif
