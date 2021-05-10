@@ -38,10 +38,10 @@ class FileList{
 	public:
 
 	bool                     used;
+	int                      nfiles;
 	bool                     preload_maps;
 	bool                     maps_are_loaded;
 	char*                    filename;
-	int                      nfiles;
 	int                      max_len; // maximum length of strings in arrays below
 	std::vector<std::string> resnames;
 	std::vector<std::string> fld_files;

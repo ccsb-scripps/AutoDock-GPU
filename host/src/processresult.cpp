@@ -322,7 +322,7 @@ void make_resfiles(
 // be moved and rotated according to the genotype values). The function returns some information about the best result wich
 // was found with the best_result parameter.
 {
-	FILE* fp;
+	FILE* fp = stdout; // takes care of compile warning down below (and serves as a visual bug tracker in case fp is written to accidentally)
 	int i,j;
 	double entity_rmsds;
 	Liganddata temp_docked;
@@ -376,7 +376,7 @@ void make_resfiles(
 		
 		if(mypars->xml2dlg){
 			double axisangle[4];
-			double genotype [ACTUAL_GENOTYPE_LENGTH];
+			double genotype [GENOTYPE_LENGTH_IN_GLOBMEM];
 			for (unsigned int j=0; j<ACTUAL_GENOTYPE_LENGTH; j++)
 				genotype [j] = (final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM)[j];
 			genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1] = (final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM)[GENOTYPE_LENGTH_IN_GLOBMEM-1];
@@ -630,14 +630,13 @@ void clusanal_gendlg(
 // will be written to it.
 {
 	int i, j, atom_cnt;
-	int root_atom = 0;
 	Ligandresult temp_ligres;
 	int num_of_clusters;
 	int current_clust_center;
 	double temp_rmsd;
 	int result_clustered;
 	int subrank;
-	FILE* fp;
+	FILE* fp = stdout;
 	FILE* fp_orig;
 	FILE* fp_xml;
 	int cluster_sizes [1000];
@@ -656,9 +655,7 @@ void clusanal_gendlg(
 	int len = strlen(mypars->resname) + 4 + 1;
 	// GENERATING DLG FILE
 	if(mypars->output_dlg){
-		if(mypars->dlg2stdout){
-			fp = stdout;
-		} else{
+		if(!mypars->dlg2stdout){
 			char* report_file_name = (char*)malloc(len*sizeof(char));
 			strcpy(report_file_name, mypars->resname);
 			strcat(report_file_name, ".dlg");
@@ -679,7 +676,7 @@ void clusanal_gendlg(
 
 		std::string pdbqt_template;
 		std::vector<unsigned int> atom_data;
-		char lineout [256];
+		char lineout [264];
 		// writing input pdbqt file
 		fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
 		fp_orig = fopen(mypars->ligandfile, "rb"); // fp_orig = fopen(mypars->ligandfile, "r");
@@ -689,13 +686,12 @@ void clusanal_gendlg(
 			if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 			{
 				tempstr[30] = '\0';
-				sprintf(lineout, "DOCKED: %s", tempstr, atom_cnt);
+				sprintf(lineout, "DOCKED: %s", tempstr);
 				pdbqt_template += lineout;
 				atom_data.push_back(pdbqt_template.length());
 			} else{
 				if (strncmp("ROOT", tempstr, 4) == 0)
 				{
-					root_atom = atom_cnt;
 					pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
 					pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
 				}
@@ -717,7 +713,7 @@ void clusanal_gendlg(
 					if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 					{
 						tempstr[30] = '\0';
-						sprintf(lineout, "DOCKED: %s", tempstr, atom_cnt);
+						sprintf(lineout, "DOCKED: %s", tempstr);
 						pdbqt_template += lineout;
 						atom_data.push_back(pdbqt_template.length());
 					} else{
@@ -755,7 +751,7 @@ void clusanal_gendlg(
 								myresults[i].analysis[k]   = myresults[i].analysis[k+1];
 								myresults[i].analysis[k+1] = temp;
 							}
-					fprintf(fp, "ANALYSIS: COUNT %d\n", myresults[i].analysis.size());
+					fprintf(fp, "ANALYSIS: COUNT %lu\n", myresults[i].analysis.size());
 					std::string types    = "TYPE    {";
 					std::string lig_id   = "LIGID   {";
 					std::string ligname  = "LIGNAME {";
@@ -851,9 +847,9 @@ void clusanal_gendlg(
 				fprintf(fp, "DOCKED: USER    NEWDPF about 0.0 0.0 0.0\n");
 				fprintf(fp, "DOCKED: USER    NEWDPF tran0 %.6f %.6f %.6f\n", myresults[i].genotype[0]*mygrid->spacing, myresults[i].genotype[1]*mygrid->spacing, myresults[i].genotype[2]*mygrid->spacing);
 				if(!mypars->xml2dlg){
-					double phi = myresults[j].genotype[3]/180.0*PI;
-					double theta = myresults[j].genotype[4]/180.0*PI;
-					fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[j].genotype[5]);
+					double phi = myresults[i].genotype[3]/180.0*PI;
+					double theta = myresults[i].genotype[4]/180.0*PI;
+					fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[i].genotype[5]);
 				} else fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", myresults[i].genotype[3], myresults[i].genotype[4], myresults[i].genotype[5], myresults[i].genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1]);
 				fprintf(fp, "DOCKED: USER    NEWDPF dihe0");
 				for(j=0; j<myresults[i].reslig_realcoord.num_of_rotbonds; j++)
@@ -878,7 +874,7 @@ void clusanal_gendlg(
 				line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw
 				line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec
 				line += sprintf(line, "    %+6.3lf ", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][4]); // q
-				line += sprintf(line, "%-2s\n\0", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]); // type
+				line += sprintf(line, "%-2s\n", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]); // type
 				curr_model.insert(atom_data[atom_cnt],lineout);
 			}
 			fprintf(fp, "%s", curr_model.c_str());
@@ -1071,7 +1067,7 @@ void clusanal_gendlg(
 		fprintf(fp_xml, "\t<ls_method>%s</ls_method>\n",mypars->ls_method);
 		fprintf(fp_xml, "\t<autostop>%s</autostop>\n",mypars->autostop ? "yes" : "no");
 		fprintf(fp_xml, "\t<heuristics>%s</heuristics>\n",mypars->use_heuristics ? "yes" : "no");
-		fprintf(fp_xml, "\t<run_requested>%d</run_requested>\n",mypars->num_of_runs);
+		fprintf(fp_xml, "\t<run_requested>%lu</run_requested>\n",mypars->num_of_runs);
 		fprintf(fp_xml, "\t<runs>\n");
 		double phi, theta;
 		for(j=0; j<num_of_runs; j++){
@@ -1087,7 +1083,7 @@ void clusanal_gendlg(
 								myresults[j].analysis[k]   = myresults[j].analysis[k+1];
 								myresults[j].analysis[k+1] = temp;
 							}
-					fprintf(fp_xml, "\t\t\t<contact_analysis count=\"%d\">\n", myresults[j].analysis.size());
+					fprintf(fp_xml, "\t\t\t<contact_analysis count=\"%lu\">\n", myresults[j].analysis.size());
 					std::string types;
 					std::string lig_id;
 					std::string ligname;

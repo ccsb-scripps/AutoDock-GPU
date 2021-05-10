@@ -33,8 +33,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // expand the allowed bond length ranges by the BOND_LENGTH_TOLERANCE
 #define BOND_LENGTH_TOLERANCE 0.1
 #define set_minmax( a1, a2, min, max)  \
-    mindist[(a1)][(a2)] = (mindist[(a2)][(a1)] = (min)-BOND_LENGTH_TOLERANCE);\
-    maxdist[(a1)][(a2)] = (maxdist[(a2)][(a1)] = (max)+BOND_LENGTH_TOLERANCE)
+    mindist[(a1)][(a2)] = (min)-BOND_LENGTH_TOLERANCE;\
+    maxdist[(a1)][(a2)] = (max)+BOND_LENGTH_TOLERANCE;\
+    if((a1) != (a2)){\
+        mindist[(a2)][(a1)] = mindist[(a1)][(a2)];\
+        maxdist[(a2)][(a1)] = maxdist[(a1)][(a2)];\
+    }
 
 // Struct which contains ligand and flexres information.
 typedef struct
@@ -346,8 +350,8 @@ struct IntraTables{
 	{
 		calc_distdep_tables_f(r_6_table, r_10_table, r_12_table, r_epsr_table, desolv_table, scaled_AD4_coeff_elec, AD4_coeff_desolv);
 		calc_q_tables_f(myligand, qasp, q1q2, qasp_mul_absq);
-		for (unsigned int type_id1=0; type_id1<myligand->num_of_atypes; type_id1++)
-			for (unsigned int type_id2=0; type_id2<myligand->num_of_atypes; type_id2++)
+		for (int type_id1=0; type_id1<myligand->num_of_atypes; type_id1++)
+			for (int type_id2=0; type_id2<myligand->num_of_atypes; type_id2++)
 				is_HB [type_id1][type_id2] = (is_H_bond(myligand->atom_types [type_id1],
 				                              myligand->atom_types [type_id2]) != 0);
 	}

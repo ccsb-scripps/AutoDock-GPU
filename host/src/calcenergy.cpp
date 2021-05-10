@@ -44,10 +44,8 @@ int prepare_const_fields_for_gpu(
 {
 	// Some variables
 	int i, j;
-	int type_id1, type_id2;
 	float* floatpoi;
-	int *intpoi, *intpoi2;
-	float phi, theta, genrotangle;
+	int *intpoi;
 
 // --------------------------------------------------
 // Allocating memory on the heap (not stack) with new

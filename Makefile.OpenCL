@@ -233,7 +233,7 @@ check-env-all: check-env-dev check-env-cpu check-env-gpu
 # ------------------------------------------------------
 # Priting out its git version hash
 
-GIT_VERSION := $(shell git describe --abbrev=40 --dirty --always --tags)
+GIT_VERSION := $(shell ./version_string.sh)
 
 CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
 

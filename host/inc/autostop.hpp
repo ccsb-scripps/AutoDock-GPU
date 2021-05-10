@@ -41,16 +41,16 @@ class AutoStop{
 	      float              curr_std;
 	      unsigned int       roll_count;
 	      unsigned int       bestN;
-	const unsigned int       Ntop;
-	const unsigned int       pop_size;
-	const int                num_of_runs;
-	const float              stopstd;
-	const unsigned int       as_frequency;
-	const unsigned int       Ncream;
-	      float              delta_energy;
-	      float              overall_best_energy;
 	      std::vector<float> rolling;
 	      std::vector<float> average_sd2_N;
+	const int                num_of_runs;
+	const unsigned int       pop_size;
+	const unsigned int       Ntop;
+	const unsigned int       Ncream;
+	const float              stopstd;
+	const unsigned int       as_frequency;
+	      float              delta_energy;
+	      float              overall_best_energy;
 
 	inline float average(float* average_sd2_N)
 	{
@@ -70,7 +70,7 @@ class AutoStop{
 
 	inline void tabulate_energies(const float* energies){
 		overall_best_energy = 1<<24;
-		for (unsigned long run_cnt=0; run_cnt < num_of_runs; run_cnt++) {
+		for (int run_cnt=0; run_cnt < num_of_runs; run_cnt++) {
 			for (unsigned int i=0; i<pop_size; i++) {
 				float energy = energies[run_cnt*pop_size + i];
 				if(energy < overall_best_energy)
@@ -198,7 +198,7 @@ class AutoStop{
 		best_var -= best_avg*best_avg;
 
 		// Finish when the std.dev. of the last 4 rounds is below -stopstd kcal/mol and are at (essentially) the same best energy
-		if((stddev(&average_sd2_N[0])<stopstd) && (generation_cnt>=4*as_frequency) && (best_var<=0.00002f))
+		if((stddev(&average_sd2_N[0])<stopstd) && (generation_cnt>=(int)(4*as_frequency)) && (best_var<=0.00002f))
 			autostopped = true;
 
 		return autostopped;

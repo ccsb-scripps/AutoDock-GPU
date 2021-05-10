@@ -62,9 +62,8 @@ public:
 		strcat(profile_file_name, ".timing");
 		FILE* fp = fopen(profile_file_name, "a");
 		fprintf(fp, "ID ADADELTA n_evals capped autostopped nev_at_stop num_atoms num_rotbonds successful exec_time");
-		for (int i=0;i<p.size();i++){
+		for (size_t i=0;i<p.size();i++)
 			p[i].write_to_file(fp);
-		}
 		fclose(fp);
 		free(profile_file_name);
 	}

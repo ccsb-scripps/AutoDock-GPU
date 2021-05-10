@@ -100,7 +100,7 @@ int init_liganddata(
 				atom_cnt++;
 
 				// checking if this atom has been already found
-				for (unsigned int i=0; i<num_of_atypes; i++)
+				for (int i=0; i<num_of_atypes; i++)
 				{
 					if (strcmp(atom_types[i], tempstr) == 0)
 						new_type = 0; // this is not a new type
@@ -126,12 +126,12 @@ int init_liganddata(
 					// - search for it's base type name in the current list of base atom types,
 					// - if found, the index is changed to the found one,
 					// - if not, this is a new base type and the index above is correct :-)
-					for (unsigned int i=0; i<nr_deriv_atypes; i++){
+					for (int i=0; i<nr_deriv_atypes; i++){
 						if (strcmp(deriv_atypes[i].deriv_name, tempstr) == 0){
 							strcpy(base_atom_types[num_of_atypes-1],deriv_atypes[i].base_name); // copy the actual base atom type
 							// find the base idx (if it's not found the above is correct)
 							num_of_base_atypes++;
-							for(unsigned int j=0; j<num_of_atypes-1; j++)
+							for(int j=0; j<num_of_atypes-1; j++)
 								if(strcmp(base_atom_types[j],base_atom_types[num_of_atypes-1]) == 0){
 									myligand->base_type_idx[num_of_atypes-1]=myligand->base_type_idx[j];
 									num_of_base_atypes--;
@@ -165,13 +165,13 @@ int init_liganddata(
 #ifdef TYPE_INFO
 	printf("Ligand contains %i base types and %i derived types.\n",num_of_base_atypes,num_of_atypes-num_of_base_atypes);
 #endif
-	for (unsigned int i=0; i<num_of_atypes; i++)
+	for (int i=0; i<num_of_atypes; i++)
 	{
 		strcpy(myligand->atom_types[i], atom_types[i]);
 		strcpy(myligand->base_atom_types[i], base_atom_types[i]);
 		strcpy(mygrid->grid_types[myligand->base_type_idx[i]], base_atom_types[i]);
 		if(strncmp(base_atom_types[i],"CG",2)+strncmp(base_atom_types[i],"G",1)==0){
-			strncpy(mygrid->grid_types[myligand->base_type_idx[i]], base_atom_types[i],2);
+			memcpy(mygrid->grid_types[myligand->base_type_idx[i]], base_atom_types[i],2*sizeof(char));
 			mygrid->grid_types[myligand->base_type_idx[i]][2] = '\0'; // make sure CG0..9 results in CG
 			if (isdigit(mygrid->grid_types[myligand->base_type_idx[i]][1])) // make sure G0..9 results in G0
 				mygrid->grid_types[myligand->base_type_idx[i]][1] = '0';
@@ -692,7 +692,7 @@ int get_bonds(Liganddata* myligand)
 		} // inner for-loop
 	} // outer for-loop
 
-	for(unsigned int i=0; i<myligand->num_of_atoms; i++){
+	for(int i=0; i<myligand->num_of_atoms; i++){
 		if(HD_ids[i]>=0)
 			myligand->donor[i]=true;
 		else if(strcmp(myligand->base_atom_types[(int)(myligand->atom_idxyzq[i][0])],"HD")==0) myligand->donor[i]=true;
@@ -708,7 +708,7 @@ pair_mod* is_mod_pair(
                             pair_mod* mod_atype_pairs
                      )
 {
-	for(unsigned i=0; i<nr_mod_atype_pairs; i++) // need to make sure there isn't a modified pair
+	for(int i=0; i<nr_mod_atype_pairs; i++) // need to make sure there isn't a modified pair
 		if ( ((strcmp(mod_atype_pairs[i].A, A) == 0) && (strcmp(mod_atype_pairs[i].B, B) == 0)) ||
 		     ((strcmp(mod_atype_pairs[i].A, B) == 0) && (strcmp(mod_atype_pairs[i].B, A) == 0)))
 			return &mod_atype_pairs[i];
@@ -1189,10 +1189,14 @@ int get_liganddata(
 		}
 		
 		fsetpos (fp, &fp_start);
+		unsigned int flex_root = atom_rot_start; // takes care of multiple flexible residues in the same file
 		
 		// reading data for rotbonds and atom_rotbonds fields
 		while (fscanf(fp, "%255s", tempstr) != EOF)
 		{
+			if ((l>0) && (strcmp(tempstr, "ROOT") == 0)){
+				flex_root = atom_counter;
+			}
 			if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0)) // if new atom, looking for open rotatable bonds
 			{
 				for (i=branch_start; i<branch_counter; i++) // for all branches found until now
@@ -1203,7 +1207,7 @@ int get_liganddata(
 				myligand->atom_rigid_structures [atom_counter] = current_rigid_struct_id; // using the id of the current rigid structure
 
 				if (l>0)
-					if (atom_counter-atom_rot_start<2)
+					if (atom_counter-flex_root<2)
 						myligand->ignore_inter [atom_counter] = true;
 
 				atom_counter++;
@@ -1298,11 +1302,10 @@ int gen_new_pdbfile(
 	FILE* fp_new;
 	char tempstr [256];
 	char tempstr_short [32];
-	int acnt_oldlig, acnt_newlig;
+	int acnt_oldlig;
 	int i,j;
 
 	acnt_oldlig = 0;
-	acnt_newlig = 0;
 
 	fp_old = fopen(oldpdb, "rb"); // fp_old = fopen(oldpdb, "r");
 	if (fp_old == NULL)
@@ -1719,7 +1722,6 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 	int atom_cnt;
 	float x, y, z;
 	int atomtypeid;
-	char line[256];
 	std::vector<AnalysisData> result;
 	H_cutoff /= mygrid->spacing;
 	H_cutoff *= H_cutoff;
@@ -2283,12 +2285,13 @@ float calc_intraE_f(
 	float dist;
 	int distance_id;
 	int smoothed_distance_id;
-	float vdW1, vdW2;
+	float vdW1 = 0.0f;
+	float vdW2 = 0.0f;
 	float s1, s2, v1, v2;
 
 	float vW, el, desolv;
 	bool analyze = (analysis!=NULL);
-	bool hbond, a_flex, b_flex;
+	bool a_flex, b_flex;
 	int atomtypeid;
 	bool flex_reactive;
 	AnalysisData datum;
@@ -2375,7 +2378,6 @@ float calc_intraE_f(
 				if (dist < dcutoff) // but only if the distance is less than distance cutoff value
 				{
 					pair_mod* pm = is_mod_pair(myligand->atom_types[type_id1], myligand->atom_types[type_id2], nr_mod_atype_pairs, mod_atype_pairs);
-					hbond = tables.is_HB [type_id1][type_id2];
 					if (tables.is_HB [type_id1][type_id2] && !pm) //H-bond
 					{
 						vdW1 = myligand->VWpars_C [type_id1][type_id2]*tables.r_12_table [smoothed_distance_id];
@@ -2510,7 +2512,7 @@ int map_to_all_maps(
 		int type = myligand->atom_idxyzq[i_atom][0];
 		int type_idx = myligand->base_type_idx[type];
 		int map_idx = -1;
-		for (int i_map = 0; i_map<all_maps.size(); i_map++){
+		for (unsigned int i_map = 0; i_map<all_maps.size(); i_map++){
 			if (strcmp(all_maps[i_map].atype.c_str(),mygrid->grid_types[type_idx])==0){
 				map_idx = i_map;
 				break;

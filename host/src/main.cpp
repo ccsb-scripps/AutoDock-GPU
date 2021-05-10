@@ -89,7 +89,6 @@ int main(int argc, char* argv[])
 	double total_setup_time=0;
 	double total_processing_time=0;
 	double total_exec_time=0;
-	double idle_time;
 
 	// File list setup if -filelist option is on
 	FileList filelist;
@@ -144,7 +143,7 @@ int main(int argc, char* argv[])
 	int devnum=-1;
 	int nr_devices=initial_pars.devices_requested;
 	// Get device number to run on
-	for (unsigned int i=1; i<argc-1; i+=2)
+	for (int i=1; i<argc-1; i+=2)
 	{
 		if (argcmp("xml2dlg", argv[i], 'X'))
 			i+=initial_pars.xml_files-1; // skip ahead in case there are multiple entries here
@@ -176,7 +175,7 @@ int main(int argc, char* argv[])
 	GpuData cData[nr_devices];
 	GpuTempData tData[nr_devices];
 	
-	for(unsigned int i=0; i<nr_devices; i++){
+	for(int i=0; i<nr_devices; i++){
 		filelist.load_maps_gpu.push_back(true);
 		tData[i].pMem_fgrids=NULL; // in case setup fails this is needed to make sure we don't segfault trying to deallocate it
 	}
@@ -215,7 +214,6 @@ int main(int argc, char* argv[])
 		int t_id = omp_get_thread_num();
 #else
 	{
-		int t_id = 0;
 #endif
 		Dockpars   mypars = initial_pars;
 		Liganddata myligand_init;
@@ -248,8 +246,9 @@ int main(int argc, char* argv[])
 			}
 			if(mypars.xml2dlg){
 				if(!mypars.dlg2stdout && (n_files>100))
-					if((50*(i_job+1)) % n_files < 50)
+					if((50*(i_job+1)) % n_files < 50){
 						printf("*"); fflush(stdout);
+					}
 			} else{
 #ifdef USE_PIPELINE
 				printf ("(Thread %d is setting up Job #%d)\n",t_id,i_job+1); fflush(stdout);
@@ -277,7 +276,8 @@ int main(int argc, char* argv[])
 					printf("(   Grid map file: %s )\n",  mypars.fldfile);
 					printf("(   Ligand file: %s )\n", mypars.ligandfile); fflush(stdout);
 					if(mypars.flexresfile)
-						printf("(   Flexible residue: %s )\n", mypars.flexresfile); fflush(stdout);
+						printf("(   Flexible residue: %s )\n", mypars.flexresfile);
+					fflush(stdout);
 				} else printf("\n");
 				err[i_job] = 1;
 				continue;
@@ -295,7 +295,7 @@ int main(int argc, char* argv[])
 						start_timer(setup_timer);
 						if(filelist.preload_maps && filelist.load_maps_gpu[dev_nr]){
 							int size_of_one_map = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
-							for (int t=0; t < all_maps.size(); t++){
+							for (unsigned int t=0; t < all_maps.size(); t++){
 								copy_map_to_gpu(tData[dev_nr],all_maps,t,size_of_one_map);
 							}
 							filelist.load_maps_gpu[dev_nr]=false;
@@ -310,8 +310,7 @@ int main(int argc, char* argv[])
 				start_timer(setup_timer);
 				// allocating CPU memory for initial populations
 				mypars.output_xml = false;
-				unsigned int nr_genomes_loaded=0;
-				unsigned int nrot;
+				int nrot;
 				sim_state.cpu_populations = read_xml_genomes(mypars.load_xml, mygrid.spacing, nrot, true);
 				if(nrot!=myligand_init.num_of_rotbonds){
 					printf("\nError: XML genome contains %d rotatable bonds but current ligand has %d.\n",nrot,myligand_init.num_of_rotbonds);
@@ -349,7 +348,8 @@ int main(int argc, char* argv[])
 						printf("    Grid map file: %s\n",  mypars.fldfile);
 						printf("    Ligand file: %s\n", mypars.ligandfile); fflush(stdout);
 						if(mypars.flexresfile)
-							printf("    Flexible residue: %s\n", mypars.flexresfile); fflush(stdout);
+							printf("    Flexible residue: %s\n", mypars.flexresfile);
+						fflush(stdout);
 					} else printf("\n");
 					// End idling timer, start exec timer
 					sim_state.idle_time = seconds_since(idle_timer);
@@ -438,7 +438,7 @@ int main(int argc, char* argv[])
 #endif
 #endif
 	if(!initial_pars.xml2dlg)
-		for(unsigned int i=0; i<nr_devices; i++)
+		for(int i=0; i<nr_devices; i++)
 			finish_gpu_from_docking(cData[i],tData[i]);
 
 	// Alert user to ligands that failed to complete
