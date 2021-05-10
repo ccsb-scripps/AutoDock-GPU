@@ -376,7 +376,7 @@ void make_resfiles(
 		
 		if(mypars->xml2dlg){
 			double axisangle[4];
-			double genotype [ACTUAL_GENOTYPE_LENGTH];
+			double genotype [GENOTYPE_LENGTH_IN_GLOBMEM];
 			for (unsigned int j=0; j<ACTUAL_GENOTYPE_LENGTH; j++)
 				genotype [j] = (final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM)[j];
 			genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1] = (final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM)[GENOTYPE_LENGTH_IN_GLOBMEM-1];
@@ -689,7 +689,7 @@ void clusanal_gendlg(
 			if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 			{
 				tempstr[30] = '\0';
-				sprintf(lineout, "DOCKED: %s", tempstr, atom_cnt);
+				sprintf(lineout, "DOCKED: %s", tempstr);
 				pdbqt_template += lineout;
 				atom_data.push_back(pdbqt_template.length());
 			} else{
@@ -717,7 +717,7 @@ void clusanal_gendlg(
 					if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 					{
 						tempstr[30] = '\0';
-						sprintf(lineout, "DOCKED: %s", tempstr, atom_cnt);
+						sprintf(lineout, "DOCKED: %s", tempstr);
 						pdbqt_template += lineout;
 						atom_data.push_back(pdbqt_template.length());
 					} else{
@@ -755,7 +755,7 @@ void clusanal_gendlg(
 								myresults[i].analysis[k]   = myresults[i].analysis[k+1];
 								myresults[i].analysis[k+1] = temp;
 							}
-					fprintf(fp, "ANALYSIS: COUNT %d\n", myresults[i].analysis.size());
+					fprintf(fp, "ANALYSIS: COUNT %lu\n", myresults[i].analysis.size());
 					std::string types    = "TYPE    {";
 					std::string lig_id   = "LIGID   {";
 					std::string ligname  = "LIGNAME {";
@@ -878,7 +878,7 @@ void clusanal_gendlg(
 				line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw
 				line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec
 				line += sprintf(line, "    %+6.3lf ", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][4]); // q
-				line += sprintf(line, "%-2s\n\0", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]); // type
+				line += sprintf(line, "%-2s\n", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]); // type
 				curr_model.insert(atom_data[atom_cnt],lineout);
 			}
 			fprintf(fp, "%s", curr_model.c_str());
@@ -1071,7 +1071,7 @@ void clusanal_gendlg(
 		fprintf(fp_xml, "\t<ls_method>%s</ls_method>\n",mypars->ls_method);
 		fprintf(fp_xml, "\t<autostop>%s</autostop>\n",mypars->autostop ? "yes" : "no");
 		fprintf(fp_xml, "\t<heuristics>%s</heuristics>\n",mypars->use_heuristics ? "yes" : "no");
-		fprintf(fp_xml, "\t<run_requested>%d</run_requested>\n",mypars->num_of_runs);
+		fprintf(fp_xml, "\t<run_requested>%lu</run_requested>\n",mypars->num_of_runs);
 		fprintf(fp_xml, "\t<runs>\n");
 		double phi, theta;
 		for(j=0; j<num_of_runs; j++){
@@ -1087,7 +1087,7 @@ void clusanal_gendlg(
 								myresults[j].analysis[k]   = myresults[j].analysis[k+1];
 								myresults[j].analysis[k+1] = temp;
 							}
-					fprintf(fp_xml, "\t\t\t<contact_analysis count=\"%d\">\n", myresults[j].analysis.size());
+					fprintf(fp_xml, "\t\t\t<contact_analysis count=\"%lu\">\n", myresults[j].analysis.size());
 					std::string types;
 					std::string lig_id;
 					std::string ligname;

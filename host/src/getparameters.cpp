@@ -618,7 +618,7 @@ int preparse_dpf(
 	
 	bool specified_dpf = (mypars->dpffile!=NULL);
 	if(specified_dpf){
-		if(error=parse_dpf(mypars,mygrid,filelist)) return error;
+		if((error=parse_dpf(mypars,mygrid,filelist))) return error;
 	}
 	
 	if(xml_files.size()>0){ // use filelist parameter list in case multiple xml files are converted
@@ -659,14 +659,14 @@ int preparse_dpf(
 			                   mypars->list_nr,
 			                   mypars->seed);
 			if(!specified_dpf){ // parse dpf file in XML file unless user specified one
-				if(error=parse_dpf(mypars,mygrid,filelist)) return error;
+				if((error=parse_dpf(mypars,mygrid,filelist))) return error;
 			}
 			mypars->pop_size=1;
 			// Filling mygrid according to the specified fld file
 			mygrid->info_read = false;
 			if (get_gridinfo(mypars->fldfile, mygrid) != 0)
 			{
-				printf("\nError: get_gridinfo failed with fld file specified in %s.\n",mypars->fldfile,mypars->load_xml);
+				printf("\nError: get_gridinfo failed with fld file (%s) specified in %s.\n",mypars->fldfile,mypars->load_xml);
 				return 1;
 			}
 			if(prev_fld_file){ // unfortunately, some strcmp implementation segfault with NULL as input
@@ -1754,7 +1754,7 @@ int get_commandpars(
 	// validating some settings
 	if (mypars->pop_size < mypars->gen_pdbs)
 	{
-		printf("Error: Value of --npdb argument (%d) cannot be greater than the population size (%d).\n", mypars->gen_pdbs, mypars->pop_size);
+		printf("Error: Value of --npdb argument (%d) cannot be greater than the population size (%lu).\n", mypars->gen_pdbs, mypars->pop_size);
 //		mypars->gen_pdbs = 1;
 		return -1;
 	}
@@ -1990,7 +1990,7 @@ void read_xml_filenames(
 	}
 	if(!grid_found || !ligand_found) error |= 16;
 	if(error){
-		printf("Error: XML file is not in AutoDock-GPU format (error #%d in line %d).\n",error,line_nr);
+		printf("Error: XML file is not in AutoDock-GPU format (error #%d in line %lu).\n",error,line_nr);
 		exit(error);
 	}
 }
@@ -2124,7 +2124,7 @@ std::vector<float> read_xml_genomes(
 		}
 	}
 	if(error){
-		printf("Error: XML file is not in AutoDock-GPU format (error #%d in line %d).\n",error,line_nr);
+		printf("Error: XML file is not in AutoDock-GPU format (error #%d in line %lu).\n",error,line_nr);
 		exit(error);
 	}
 	return result;
@@ -2166,7 +2166,7 @@ void gen_initpop_and_reflig(
 		}
 		nr_genomes_loaded = std::min(genome.size()/GENOTYPE_LENGTH_IN_GLOBMEM, mypars->num_of_runs);
 		if(nr_genomes_loaded < mypars->num_of_runs){
-			printf("Note: XML contains %d genomes but %d runs are requested, randomizing other runs.\n",nr_genomes_loaded, mypars->num_of_runs);
+			printf("Note: XML contains %d genomes but %lu runs are requested, randomizing other runs.\n",nr_genomes_loaded, mypars->num_of_runs);
 		}
 		// copy to rest of population
 		float *src;

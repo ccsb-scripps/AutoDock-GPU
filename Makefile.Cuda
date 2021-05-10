@@ -100,16 +100,16 @@ CONFIG=RELEASE
 
 ifeq ($(CONFIG),FDEBUG)
 	OPT =-O0 -g3 -Wall -DDOCK_DEBUG
-    CUDA_FLAGS = -G -use_fast_math --ptxas-options="-v" $(CUDA_TARGETS) -std=c++11
+	CUDA_FLAGS = -G -use_fast_math --ptxas-options="-v" $(CUDA_TARGETS) -std=c++11
 else ifeq ($(CONFIG),LDEBUG)
-	OPT =-O0 -g3 -Wall 
+	OPT =-O0 -g3 -Wall
 	CUDA_FLAGS = -use_fast_math --ptxas-options="-v" $(CUDA_TARGETS) -std=c++11
 else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
 	CUDA_FLAGS = -use_fast_math --ptxas-options="-v" $(CUDA_TARGETS) -std=c++11
 else
 	OPT =
-    CUDA_FLAGS = -use_fast_math --ptxas-options="-v" $(CUDA_TARGETS) -std=c++11
+	CUDA_FLAGS = -use_fast_math --ptxas-options="-v" $(CUDA_TARGETS) -std=c++11
 endif
 
 # ------------------------------------------------------
@@ -173,7 +173,7 @@ check-env-all: check-env-dev check-env-cpu check-env-gpu
 # ------------------------------------------------------
 # Priting out its git version hash
 
-GIT_VERSION := $(shell git describe --abbrev=40 --dirty --always --tags)
+GIT_VERSION := $(shell git describe --abbrev=40 --dirty --always --tags 2>/dev/null)
 
 CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
 
