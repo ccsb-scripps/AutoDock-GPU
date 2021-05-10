@@ -1189,10 +1189,14 @@ int get_liganddata(
 		}
 		
 		fsetpos (fp, &fp_start);
+		unsigned int flex_root = atom_rot_start; // takes care of multiple flexible residues in the same file
 		
 		// reading data for rotbonds and atom_rotbonds fields
 		while (fscanf(fp, "%255s", tempstr) != EOF)
 		{
+			if ((l>0) && (strcmp(tempstr, "ROOT") == 0)){
+				flex_root = atom_counter;
+			}
 			if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0)) // if new atom, looking for open rotatable bonds
 			{
 				for (i=branch_start; i<branch_counter; i++) // for all branches found until now
@@ -1203,7 +1207,7 @@ int get_liganddata(
 				myligand->atom_rigid_structures [atom_counter] = current_rigid_struct_id; // using the id of the current rigid structure
 
 				if (l>0)
-					if (atom_counter-atom_rot_start<2)
+					if (atom_counter-flex_root<2)
 						myligand->ignore_inter [atom_counter] = true;
 
 				atom_counter++;
