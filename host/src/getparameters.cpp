@@ -1074,7 +1074,7 @@ int get_commandpars(
 		arg_recognized = 0;
 
 		// Argument: number of energy evaluations. Must be a positive integer.
-		if (argcmp("nev", argv[i]))
+		if (argcmp("nev", argv[i], 'e'))
 		{
 			arg_recognized = 1;
 			sscanf(argv[i+1], "%d", &tempint);
@@ -1088,7 +1088,7 @@ int get_commandpars(
 			}
 		}
 
-		if (argcmp("seed", argv[i]))
+		if (argcmp("seed", argv[i], 's'))
 		{
 			arg_recognized = 1;
 			mypars->seed[0] = 0; mypars->seed[1] = 0; mypars->seed[2] = 0;
@@ -1096,7 +1096,7 @@ int get_commandpars(
 		}
 
 		// Argument: number of generations. Must be a positive integer.
-		if (argcmp("ngen", argv[i]))
+		if (argcmp("ngen", argv[i], 'g'))
 		{
 			arg_recognized = 1;
 			sscanf(argv[i+1], "%d", &tempint);
@@ -1250,7 +1250,7 @@ int get_commandpars(
 		// "fire": FIRE
 		// "ad": ADADELTA
 		// "adam": ADAM
-		if (argcmp("lsmet", argv [i]))
+		if (argcmp("lsmet", argv [i], 'l'))
 		{
 			arg_recognized = 1;
 
@@ -1362,7 +1362,7 @@ int get_commandpars(
 
 		// Argument: maximal number of iterations for local search. Must be an integer between 1 and 262143.
 		// Means the number of iterations after which the local search algorithm has to terminate.
-		if (argcmp("lsit", argv [i]))
+		if (argcmp("lsit", argv [i], 'i'))
 		{
 			arg_recognized = 1;
 			sscanf(argv [i+1], "%d", &tempint);
@@ -1377,7 +1377,7 @@ int get_commandpars(
 
 		// Argument: size of population. Must be an integer between 32 and CPU_MAX_POP_SIZE.
 		// Means the size of the population in the genetic algorithm.
-		if (argcmp("psize", argv [i]))
+		if (argcmp("psize", argv [i], 'p'))
 		{
 			arg_recognized = 1;
 			sscanf(argv [i+1], "%d", &tempint);
@@ -1589,7 +1589,7 @@ int get_commandpars(
 
 		// Argument: number of runs. Must be an integer between 1 and 1000.
 		// Means the number of required runs
-		if (argcmp("nrun", argv [i]))
+		if (argcmp("nrun", argv [i], 'n'))
 		{
 			arg_recognized = 1;
 			sscanf(argv [i+1], "%d", &tempint);
@@ -1620,7 +1620,7 @@ int get_commandpars(
 		// UPDATED in : get_filenames_and_ADcoeffs()
 		// ---------------------------------
 		// Argument: unbound model to be used.
-		if (argcmp("ubmod", argv [i])){
+		if (argcmp("ubmod", argv [i], 'u')){
 			arg_recognized = 1;
 			arg_set = 0;
 		}
