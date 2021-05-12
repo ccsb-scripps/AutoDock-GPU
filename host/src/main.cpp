@@ -446,8 +446,8 @@ int main(int argc, char* argv[])
 	for (int i=0; i<n_files; i++){
 		if (err[i]==1){
 			if (filelist.used){
-				if (n_errors==0) printf("\nWARNING: The following jobs were not successful:");
-				printf("\nJob %d: %s\n", i, filelist.ligand_files[i].c_str());
+				if (n_errors==0) printf("\nWARNING: The following jobs were not successful:\n");
+				printf("Job %d: %s\n", i, filelist.ligand_files[i].c_str());
 			} else {
 				printf("\nThe job was not successful.\n");
 			}

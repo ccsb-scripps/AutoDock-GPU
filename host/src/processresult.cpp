@@ -637,7 +637,6 @@ void clusanal_gendlg(
 	int result_clustered;
 	int subrank;
 	FILE* fp = stdout;
-	FILE* fp_orig;
 	FILE* fp_xml;
 	int cluster_sizes [1000];
 	double sum_energy [1000];
@@ -679,9 +678,11 @@ void clusanal_gendlg(
 		char lineout [264];
 		// writing input pdbqt file
 		fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
-		fp_orig = fopen(mypars->ligandfile, "rb"); // fp_orig = fopen(mypars->ligandfile, "r");
-		while (fgets(tempstr, 255, fp_orig) != NULL) // reading original ligand pdb line by line
+		int line_count = 0;
+		while (line_count < ligand_ref->ligand_line_count)
 		{
+			strcpy(tempstr,ligand_ref->file_content[line_count].c_str());
+			line_count++;
 			fprintf(fp, "INPUT-LIGAND-PDBQT: %s", tempstr);
 			if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 			{
@@ -700,15 +701,15 @@ void clusanal_gendlg(
 			}
 		}
 		fprintf(fp, "\n\n");
-		fclose(fp_orig);
 		
 		// writing input flexres pdbqt file if specified
 		if (mypars->flexresfile!=NULL) {
 			if ( strlen(mypars->flexresfile)>0 ) {
 				fprintf(fp, "    INPUT FLEXRES PDBQT FILE:\n    ________________________\n\n\n");
-				fp_orig = fopen(mypars->flexresfile, "rb"); // fp_orig = fopen(mypars->flexresfile, "r");
-				while (fgets(tempstr, 255, fp_orig) != NULL) // reading original flexres pdb line by line
+				while (line_count < ligand_ref->file_content.size())
 				{
+					strcpy(tempstr,ligand_ref->file_content[line_count].c_str());
+					line_count++;
 					fprintf(fp, "INPUT-FLEXRES-PDBQT: %s", tempstr);
 					if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 					{
@@ -727,7 +728,6 @@ void clusanal_gendlg(
 					}
 				}
 				fprintf(fp, "\n\n");
-				fclose(fp_orig);
 			}
 		}
 		

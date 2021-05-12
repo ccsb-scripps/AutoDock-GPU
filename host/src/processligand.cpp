@@ -53,6 +53,8 @@ int init_liganddata(
 // parameters correspond to each other.
 // If the operation was successful, the function returns 0, if not, it returns 1.
 {
+	myligand->file_content.clear();
+	myligand->ligand_line_count = 0;
 	std::ifstream fp;
 	int num_of_atypes, new_type, num_of_base_atypes;
 	char atom_types [MAX_NUM_OF_ATOMS][4];
@@ -76,6 +78,7 @@ int init_liganddata(
 			fp.open(ligfilename);
 		else
 			fp.open(flexresfilename);
+		
 		if (fp.fail())
 		{
 			if(l==0)
@@ -87,12 +90,11 @@ int init_liganddata(
 		// reading the whole ligand pdbqt file
 		while(std::getline(fp, line))
 		{
+			myligand->file_content.push_back(line+'\n'); // also stores flexres
 			sscanf(line.c_str(),"%255s",tempstr);
 			if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 			{
 				new_type = 1; // supposing this will be a new atom type
-				if ((strcmp(tempstr, "HETATM") == 0)) // seeking to the first coordinate value
-				line[17]='\0';
 				sscanf(&line.c_str()[77], "%3s", tempstr); // reading atom type
 				tempstr[3] = '\0'; //just to be sure strcpy wont fail even if something is wrong with position
 				line[17]='\0';
@@ -147,6 +149,7 @@ int init_liganddata(
 			}
 		}
 		// copying field to ligand and grid data
+		if(l==0) myligand->ligand_line_count = myligand->file_content.size();
 		myligand->num_of_atypes = num_of_atypes;
 		mygrid->num_of_atypes   = num_of_base_atypes;
 		mygrid->num_of_map_atypes   = num_of_base_atypes;
@@ -1106,8 +1109,9 @@ int get_liganddata(
 // and fills the other fields of myligand according to the content of the file.
 // If the operation was successful, the function returns 0, if not, it returns 1.
 {
-	FILE* fp;
-	fpos_t fp_start;
+	int line_count=0;
+	std::string line;
+	int fp_start, offset;
 	char tempstr [256];
 	int atom_counter;
 	int delta_count = 0;
@@ -1130,26 +1134,19 @@ int get_liganddata(
 		if ( strlen(flexresfilename)>0 )
 			lnr++;
 	}
+	int endline = myligand->ligand_line_count;
 	for (unsigned int l=0; l<lnr; l++)
 	{
-		if(l==0)
-			fp = fopen(ligfilename, "rb"); // fp = fopen(ligfilename, "r");
-		else
-			fp = fopen(flexresfilename, "rb"); // fp = fopen(ligfilename, "r");
-		if (fp == NULL)
-		{
-			if(l==0)
-				printf("Error: can't open ligand data file %s!\n", ligfilename);
-			else
-				printf("Error: can't open flexible residue data file %s!\n", flexresfilename);
-			return 1;
-		}
-		fgetpos (fp, &fp_start);
-	
+		if(l>0) endline =  myligand->file_content.size();
+		fp_start = line_count;
+		
 		// reading atomic coordinates, charges and atom types, and writing
 		// data to myligand->atom_idxyzq
-		while (fscanf(fp, "%255s", tempstr) != EOF)
+		while (line_count < endline)
 		{
+			line = myligand->file_content[line_count];
+			line_count++;
+			sscanf(line.c_str(),"%255s",tempstr);
 			if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 			{
 				if (atom_counter > MAX_NUM_OF_ATOMS-1)
@@ -1158,19 +1155,13 @@ int get_liganddata(
 					printf("Maximal allowed number of atoms is %d!\n", MAX_NUM_OF_ATOMS);
 					return 1;
 				}
-				if ((strcmp(tempstr, "HETATM") == 0)) // seeking to the first coordinate value
-					fseek(fp, 25, SEEK_CUR);
-				else
-					fseek(fp, 27, SEEK_CUR);
-				fscanf(fp, "%lf", &(myligand->atom_idxyzq [atom_counter][1]));
-				fscanf(fp, "%lf", &(myligand->atom_idxyzq [atom_counter][2]));
-				fscanf(fp, "%lf", &(myligand->atom_idxyzq [atom_counter][3]));
-				fscanf(fp, "%255s", tempstr); // skipping the next two fields
-				fscanf(fp, "%255s", tempstr);
-				fscanf(fp, "%lf", &(myligand->atom_idxyzq [atom_counter][4])); // reading charge
-				fscanf(fp, "%4s", tempstr); // reading atom type
+				sscanf(&line.c_str()[30], "%lf %lf %lf", &(myligand->atom_idxyzq [atom_counter][1]), &(myligand->atom_idxyzq [atom_counter][2]), &(myligand->atom_idxyzq [atom_counter][3]));
+				sscanf(&line.c_str()[70], "%lf", &(myligand->atom_idxyzq [atom_counter][4])); // reading charge
+				sscanf(&line.c_str()[77], "%3s", tempstr); // reading atom type
+				tempstr[3]='\0';
 				if (set_liganddata_typeid(myligand, atom_counter, tempstr) != 0) // the function sets the type index
-					return 1;
+					exit(42);
+//					return 1;
 				atom_counter++;
 			}
 		}
@@ -1188,12 +1179,15 @@ int get_liganddata(
 			branch_start=branch_counter;
 		}
 		
-		fsetpos (fp, &fp_start);
+		line_count = fp_start;
 		unsigned int flex_root = atom_rot_start; // takes care of multiple flexible residues in the same file
 		
 		// reading data for rotbonds and atom_rotbonds fields
-		while (fscanf(fp, "%255s", tempstr) != EOF)
+		while (line_count < endline)
 		{
+			line = myligand->file_content[line_count];
+			line_count++;
+			sscanf(line.c_str(),"%255s",tempstr);
 			if ((l>0) && (strcmp(tempstr, "ROOT") == 0)){
 				flex_root = atom_counter;
 			}
@@ -1222,11 +1216,9 @@ int get_liganddata(
 					else
 						printf("Error: ligand and flexible residue include too many rotatable bonds.\n");
 					printf("Maximal allowed number is %d.\n", MAX_NUM_OF_ROTBONDS);
-					fclose(fp);
 					return 1;
 				}
-				fscanf(fp, "%d", &(branches [branch_counter][0]));
-				fscanf(fp, "%d", &(branches [branch_counter][1]));
+				sscanf(&line.c_str()[6], "%d %d", &(branches [branch_counter][0]), &(branches [branch_counter][1]));
 				branches [branch_counter][0] += atom_rot_start-1; // atom IDs start from 0 instead of 1
 				branches [branch_counter][1] += atom_rot_start-1;
 	
@@ -1240,8 +1232,7 @@ int get_liganddata(
 	
 			if (strcmp(tempstr, "ENDBRANCH") == 0)
 			{
-				fscanf(fp, "%d", &(myligand->rotbonds [endbranch_counter][0])); // rotatable bonds have to be stored in the order
-				fscanf(fp, "%d", &(myligand->rotbonds [endbranch_counter][1])); // of endbranches
+				sscanf(&line.c_str()[9], "%d %d", &(myligand->rotbonds [endbranch_counter][0]), &(myligand->rotbonds [endbranch_counter][1])); // rotatable bonds have to be stored in the order of endbranches
 				myligand->rotbonds [endbranch_counter][0] += atom_rot_start-1;
 				myligand->rotbonds [endbranch_counter][1] += atom_rot_start-1;
 				for (i=branch_start; i<branch_counter; i++) // the branch have to be closed
@@ -1254,7 +1245,6 @@ int get_liganddata(
 		}
 		reserved_highest_rigid_struct_id++;
 		current_rigid_struct_id=reserved_highest_rigid_struct_id;
-		fclose(fp);
 		myligand->num_of_rotbonds = branch_counter;
 		if (l==0)
 			myligand->true_ligand_rotbonds = branch_counter;

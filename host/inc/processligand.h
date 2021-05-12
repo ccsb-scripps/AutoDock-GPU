@@ -41,7 +41,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
     }
 
 // Struct which contains ligand and flexres information.
-typedef struct
+typedef struct _Liganddata
 {
 // num_of_atoms:          Number of ligand/flexres atoms.
 	int            num_of_atoms;
@@ -143,6 +143,9 @@ typedef struct
 	bool           acceptor                [MAX_NUM_OF_ATOMS];
 	bool           donor                   [MAX_NUM_OF_ATOMS];
 	bool           reactive                [MAX_NUM_OF_ATOMS]; // atoms with 1,4,7 numbered atom types
+// store the ligand file content so it only gets read once (not upto 4 times ...)
+	std::vector<std::string> file_content;
+	int ligand_line_count = 0;
 } Liganddata;
 
 // structure to store relevant receptor atom data
