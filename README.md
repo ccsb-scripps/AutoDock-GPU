@@ -5,13 +5,14 @@ AutoDock-GPU: AutoDock for GPUs and other accelerators
 
 # About
 
+* AutoDock-GPU is developed by the [Forli lab](https://forlilab.org/) at Scripps Research.
 * OpenCL and Cuda accelerated version of AutoDock4.2.6. It leverages its embarrasingly parallelizable LGA by processing ligand-receptor poses in parallel over multiple compute units.
 * The OpenCL version was developed in collaboration with TU-Darmstadt and is able to target CPU, GPU, and FPGA architectures. This version itself was based on work done by Imre Pechan from evopro Innovation Kft.
 * The Cuda version was developed in collaboration with Nvidia to run AutoDock-GPU on the Oak Ridge National Laboratory's (ORNL) Summit, and it included a batched ligand pipeline developed by Aaron Scheinberg from Jubilee Development.
 
 # Citation
 
-Accelerating AutoDock4 with GPUs and Gradient-Based Local Search, [J. Chem. Theory Comput.](https://doi.org/10.1021/acs.jctc.0c01006) 2021, 10.1021/acs.jctc.0c01006
+Accelerating AutoDock4 with GPUs and Gradient-Based Local Search, [J. Chem. Theory Comput. 2021, 10.1021/acs.jctc.0c01006](https://doi.org/10.1021/acs.jctc.0c01006)
 
 See [more relevant papers](https://github.com/ccsb-scripps/AutoDock-GPU/wiki/Publications)
 
@@ -170,3 +171,8 @@ The contact analysis results for each pose are output in dlg lines starting with
 # Documentation
 
 Visit the project [Wiki](https://github.com/ccsb-scripps/AutoDock-GPU/wiki).
+
+# Contributing
+
+* If you have a bug report, please check the [open issues](https://github.com/ccsb-scripps/AutoDock-GPU/issues), and if it has not been reported yet, open a new one.
+* If you want to add a new feature, pull/fork the code and submit a [pull request](https://github.com/ccsb-scripps/AutoDock-GPU/pulls).
