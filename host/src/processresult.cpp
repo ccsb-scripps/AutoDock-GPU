@@ -884,27 +884,30 @@ void clusanal_gendlg(
 		}
 	}
 	
+	// arranging results according to energy, myresults [energy_order[0]] will be the best one (with lowest energy)
+	std::vector<int> energy_order;
+	std::vector<double> energies;
+	energy_order.reserve(num_of_runs);
+	energies.reserve(num_of_runs);
+	for (i=0; i<num_of_runs; i++){
+		energy_order[i] = i;
+		energies[i] = myresults [i].interE+myresults[i].interflexE; // mimics the behaviour of AD4 unbound_same_as_bound
+		myresults[i].clus_id = 0; // indicates that it hasn't been put into cluster yet (may as well do that here ...)
+	}
+	// sorting the indices instead of copying the results around will be faster
+	for(i=0; i<num_of_runs-1; i++)
+		for(j=0; j<num_of_runs-i-1; j++)
+			if(energies[energy_order[j]]>energies[energy_order[j+1]]){ // swap indices
+				int tmp = energy_order[j];
+				energy_order[j]   = energy_order[j+1];
+				energy_order[j+1] = tmp;
+			}
 	// PERFORM CLUSTERING
-	// arranging results according to energy, myresults [0] will be the best one (with lowest energy)
 	if(mypars->calc_clustering){
-		for (j=0; j<num_of_runs-1; j++)
-			for (i=num_of_runs-2; i>=j; i--) // arrange according to sum of inter- and intramolecular energies
-				if ((myresults [i]).interE+myresults[i].interflexE /*+ (myresults [i]).intraE*/ > (myresults [i+1]).interE+myresults[i+1].interflexE /*+ (myresults [i+1]).intraE*/)	//mimics the behaviour of AD4 unbound_same_as_bound
-				//if ((myresults [i]).interE + (myresults [i]).intraE > (myresults [i+1]).interE + (myresults [i+1]).intraE)
-				{
-					temp_ligres = myresults [i];
-					myresults [i] = myresults [i+1];
-					myresults [i+1] = temp_ligres;
-				}
-
-		for (i=0; i<num_of_runs; i++)
-		{
-			(myresults [i]).clus_id = 0; // indicates that it hasn't been put into cluster yet
-		}
 
 		// the best result is the center of the first cluster
-		(myresults [0]).clus_id = 1;
-		(myresults [0]).rmsd_from_cluscent = 0;
+		myresults[energy_order[0]].clus_id = 1;
+		myresults[energy_order[0]].rmsd_from_cluscent = 0;
 		num_of_clusters = 1;
 
 		for (i=1; i<num_of_runs; i++) // for each result
@@ -914,14 +917,14 @@ void clusanal_gendlg(
 
 			for (j=0; j<i; j++) // results with lower id-s are clustered, look for cluster centers
 			{
-				if ((myresults [j]).clus_id > current_clust_center) // it is the center of a new cluster
+				if (myresults[energy_order[j]].clus_id > current_clust_center) // it is the center of a new cluster
 				{
-					current_clust_center = (myresults [j]).clus_id;
-					temp_rmsd = calc_rmsd(&((myresults [j]).reslig_realcoord), &((myresults [i]).reslig_realcoord), mypars->handle_symmetry); // comparing current result with cluster center
+					current_clust_center = myresults[energy_order[j]].clus_id;
+					temp_rmsd = calc_rmsd(&(myresults[energy_order[j]].reslig_realcoord), &(myresults[energy_order[i]].reslig_realcoord), mypars->handle_symmetry); // comparing current result with cluster center
 					if (temp_rmsd <= cluster_tolerance) // in this case we put result i to cluster with center j
 					{
-						(myresults [i]).clus_id = current_clust_center;
-						(myresults [i]).rmsd_from_cluscent = temp_rmsd;
+						myresults[energy_order[i]].clus_id = current_clust_center;
+						myresults[energy_order[i]].rmsd_from_cluscent = temp_rmsd;
 						result_clustered = 1;
 						break;
 					}
@@ -931,8 +934,8 @@ void clusanal_gendlg(
 			if (result_clustered != 1) // if no suitable cluster was found, this is the center of a new one
 			{
 				num_of_clusters++;
-				(myresults [i]).clus_id = num_of_clusters; // new cluster id
-				(myresults [i]).rmsd_from_cluscent = 0;
+				myresults[energy_order[i]].clus_id = num_of_clusters; // new cluster id
+				myresults[energy_order[i]].rmsd_from_cluscent = 0;
 			}
 		}
 
@@ -941,19 +944,21 @@ void clusanal_gendlg(
 			subrank = 0;
 			cluster_sizes [i-1] = 0;
 			sum_energy [i-1] = 0;
-			for (j=0; j<num_of_runs; j++)
+			for (int u=0; u<num_of_runs; u++){
+				j = energy_order[u];
 				if (myresults [j].clus_id == i)
 				{
 					subrank++;
-					(cluster_sizes [i-1])++;
-					sum_energy [i-1] += (myresults [j]).interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
-					(myresults [j]).clus_subrank = subrank;
+					cluster_sizes[i-1]++;
+					sum_energy [i-1] += myresults[j].interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
+					myresults[j].clus_subrank = subrank;
 					if (subrank == 1)
 					{
-						best_energy [i-1] = (myresults [j]).interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
-						best_energy_runid  [i-1] = (myresults [j]).run_number;
+						best_energy [i-1] = myresults[j].interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
+						best_energy_runid  [i-1] = myresults[j].run_number;
 					}
 				}
+			}
 		}
 
 		if(mypars->output_dlg){
@@ -1004,25 +1009,27 @@ void clusanal_gendlg(
 
 			for (i=0; i<num_of_clusters; i++) // printing cluster info to file
 			{
-				for (j=0; j<num_of_runs; j++)
-					if (myresults [j].clus_id == i+1) {
+				for (int u=0; u<num_of_runs; u++){
+					j = energy_order[u];
+					if (myresults[j].clus_id == i+1) {
 						if (myresults[j].interE + myresults[j].interflexE + torsional_energy > 999999.99)
 							fprintf(fp, "%4d   %4d   %4d  %+10.2e  %8.2f  %8.2f           RANKING\n",
-							             (myresults [j]).clus_id,
-							                   (myresults [j]).clus_subrank,
-							                         (myresults [j]).run_number,
+							             myresults[j].clus_id,
+							                   myresults[j].clus_subrank,
+							                         myresults[j].run_number,
 							                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
-							                                       (myresults [j]).rmsd_from_cluscent,
-							                                              (myresults [j]).rmsd_from_ref);
+							                                       myresults[j].rmsd_from_cluscent,
+							                                              myresults[j].rmsd_from_ref);
 						else
 							fprintf(fp, "%4d   %4d   %4d  %+10.2f  %8.2f  %8.2f           RANKING\n",
-							             (myresults [j]).clus_id,
-							                   (myresults [j]).clus_subrank,
-							                         (myresults [j]).run_number,
+							             myresults[j].clus_id,
+							                   myresults[j].clus_subrank,
+							                         myresults[j].run_number,
 							                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
-							                                       (myresults [j]).rmsd_from_cluscent,
-							                                              (myresults [j]).rmsd_from_ref);
+							                                       myresults[j].rmsd_from_cluscent,
+							                                              myresults[j].rmsd_from_ref);
 					}
+				}
 			}
 		}
 	}
@@ -1074,7 +1081,8 @@ void clusanal_gendlg(
 		fprintf(fp_xml, "\t<run_requested>%lu</run_requested>\n",mypars->num_of_runs);
 		fprintf(fp_xml, "\t<runs>\n");
 		double phi, theta;
-		for(j=0; j<num_of_runs; j++){
+		for(int u=0; u<num_of_runs; u++){
+			j = energy_order[u];
 			fprintf(fp_xml, "\t\t<run id=\"%d\">\n",(myresults [j]).run_number);
 			if(mypars->contact_analysis){
 				if(myresults[j].analysis.size()>0){
@@ -1165,12 +1173,14 @@ void clusanal_gendlg(
 			fprintf(fp_xml, "\t\t<rmsd_table>\n");
 			for (i=0; i<num_of_clusters; i++)
 			{
-				for (j=0; j<num_of_runs; j++)
-					if (myresults [j].clus_id == i+1)
+				for (int u=0; u<num_of_runs; u++){
+					j = energy_order[u];
+					if (myresults[j].clus_id == i+1)
 					{
 						fprintf(fp_xml, "\t\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
-							(myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number, myresults[j].interE + myresults[j].interflexE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
+							myresults[j].clus_id, myresults[j].clus_subrank, myresults[j].run_number, myresults[j].interE + myresults[j].interflexE + torsional_energy, myresults[j].rmsd_from_cluscent, myresults[j].rmsd_from_ref);
 					}
+				}
 			}
 			fprintf(fp_xml, "\t\t</rmsd_table>\n");
 			fprintf(fp_xml, "\t</result>\n");
