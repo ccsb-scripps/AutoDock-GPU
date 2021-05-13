@@ -214,17 +214,15 @@ int get_VWpars(
 
 int get_moving_and_unit_vectors(Liganddata*);
 
-int get_liganddata(
-                   const char*,
-                   const char*,
-                         Liganddata*,
-                   const double,
-                   const double,
-                         int          nr_deriv_atypes,
-                         deriv_atype* deriv_atypes,
-                         int          nr_mod_atype_pairs,
-                         pair_mod*    mod_atype_pairs
-                  );
+int parse_liganddata(
+                           Liganddata*,
+                     const double,
+                     const double,
+                           int          nr_deriv_atypes,
+                           deriv_atype* deriv_atypes,
+                           int          nr_mod_atype_pairs,
+                           pair_mod*    mod_atype_pairs
+                    );
 
 int gen_new_pdbfile(const char*, const char*, const Liganddata*);
 

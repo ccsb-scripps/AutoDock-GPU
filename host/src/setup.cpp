@@ -280,17 +280,15 @@ int setup(
 	}
 
 	// Filling myligand according to the pdbqt file
-	if (get_liganddata(mypars.ligandfile,
-	                   mypars.flexresfile,
-	                   &myligand_init,
-	                   mypars.coeffs.AD4_coeff_vdW,
-	                   mypars.coeffs.AD4_coeff_hb,
-	                   mypars.nr_deriv_atypes,
-	                   mypars.deriv_atypes,
-	                   mypars.nr_mod_atype_pairs,
-	                   mypars.mod_atype_pairs) != 0)
+	if (parse_liganddata(&myligand_init,
+	                     mypars.coeffs.AD4_coeff_vdW,
+	                     mypars.coeffs.AD4_coeff_hb,
+	                     mypars.nr_deriv_atypes,
+	                     mypars.deriv_atypes,
+	                     mypars.nr_mod_atype_pairs,
+	                     mypars.mod_atype_pairs) != 0)
 	{
-		printf("\n\nError in get_liganddata, stopped job.");
+		printf("\n\nError in parse_liganddata, stopped job.");
 		return 1;
 	}
 
@@ -394,7 +392,7 @@ int setup(
 
 	Gridinfo mydummygrid;
 	// if -lxrayfile provided, then read xray ligand data
-	if (mypars.given_xrayligandfile == true)
+	if (mypars.given_xrayligandfile)
 	{
 		if (init_liganddata(mypars.xrayligandfile,
 		                    "\0",
@@ -408,17 +406,15 @@ int setup(
 			return 1;
 		}
 
-		if (get_liganddata(mypars.xrayligandfile,
-		                   "\0",
-		                   &myxrayligand,
-		                   mypars.coeffs.AD4_coeff_vdW,
-		                   mypars.coeffs.AD4_coeff_hb,
-		                   mypars.nr_deriv_atypes,
-		                   mypars.deriv_atypes,
-		                   mypars.nr_mod_atype_pairs,
-		                   mypars.mod_atype_pairs) != 0)
+		if (parse_liganddata(&myxrayligand,
+		                     mypars.coeffs.AD4_coeff_vdW,
+		                     mypars.coeffs.AD4_coeff_hb,
+		                     mypars.nr_deriv_atypes,
+		                     mypars.deriv_atypes,
+		                     mypars.nr_mod_atype_pairs,
+		                     mypars.mod_atype_pairs) != 0)
 		{
-			printf("\n\nError in get_liganddata, stopped job.");
+			printf("\n\nError in parse_liganddata, stopped job.");
 			return 1;
 		}
 	}

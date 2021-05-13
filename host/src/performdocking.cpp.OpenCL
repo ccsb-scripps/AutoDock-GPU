@@ -381,7 +381,7 @@ parameter mypars:
 		filled with get_commandpars()
 parameter myligand_init:
 		describes the ligands
-		filled with get_liganddata()
+		filled with parse_liganddata()
 parameter myxrayligand:
 		describes the xray ligand
 		filled with get_xrayliganddata()

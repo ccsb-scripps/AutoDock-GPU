@@ -1092,22 +1092,21 @@ int get_moving_and_unit_vectors(Liganddata* myligand)
 	return 0;
 }
 
-int get_liganddata(
-                   const char*        ligfilename,
-                   const char*        flexresfilename,
-                         Liganddata*  myligand,
-                   const double       AD4_coeff_vdW,
-                   const double       AD4_coeff_hb,
-                         int          nr_deriv_atypes,
-                         deriv_atype* deriv_atypes,
-                         int          nr_mod_atype_pairs,
-                         pair_mod*    mod_atype_pairs
-                  )
+int parse_liganddata(
+                           Liganddata*  myligand,
+                     const double       AD4_coeff_vdW,
+                     const double       AD4_coeff_hb,
+                           int          nr_deriv_atypes,
+                           deriv_atype* deriv_atypes,
+                           int          nr_mod_atype_pairs,
+                           pair_mod*    mod_atype_pairs
+                    )
 // The functions second parameter is a Liganddata variable whose num_of_atypes
 // and atom_types fields must contain valid data.
-// The function opens the file ligfilename, which is supposed to be an AutoDock4 pdbqt file,
-// and fills the other fields of myligand according to the content of the file.
-// If the operation was successful, the function returns 0, if not, it returns 1.
+// The function parses the ligand and flexres file contents, which are supposed
+// to be AutoDock4 pdbqt files, and fills the other fields of myligand according
+// to the content of the file. If the operation was successful, the function
+// returns 0, if not, it returns 1.
 {
 	int line_count=0;
 	std::string line;
@@ -1129,11 +1128,8 @@ int get_liganddata(
 	reserved_highest_rigid_struct_id = 1;
 
 	atom_counter = 0;
-	unsigned int lnr=1;
-	if ( flexresfilename!=NULL ) {
-		if ( strlen(flexresfilename)>0 )
-			lnr++;
-	}
+	unsigned int lnr=1+(myligand->ligand_line_count<myligand->file_content.size());
+	
 	int endline = myligand->ligand_line_count;
 	for (unsigned int l=0; l<lnr; l++)
 	{

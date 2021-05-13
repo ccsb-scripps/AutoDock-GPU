@@ -318,7 +318,7 @@ void make_resfiles(
 // as well as different parameters about the docking, the receptor and the ligand to a file called fdock_report.txt in a
 // readable and understandable format. The ligand_from_pdb parametere must be the Liganddata which includes the original
 // ligand conformation as the result conformations will be compared to this one. The structs containing the grid informations
-// and docking parameters are requrided as well as the number and values of command line arguments. The ligand_ref parameter
+// and docking parameters are required as well as the number and values of command line arguments. The ligand_ref parameter
 // describes the ligand with the reference orientation (gene values of final_population refer to this one, that is, this can
 // be moved and rotated according to the genotype values). The function returns some information about the best result wich
 // was found with the best_result parameter.
