@@ -84,6 +84,7 @@ void write_basic_info_dlg(
 void make_resfiles(
                          float*        final_population,
                          float*        energies,
+                         IntraTables*  tables,
                    const Liganddata*   ligand_ref,
                    const Liganddata*   ligand_from_pdb,
                    const Liganddata*   ligand_xray,

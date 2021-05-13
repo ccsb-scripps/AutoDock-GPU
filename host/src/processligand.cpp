@@ -1547,7 +1547,7 @@ void print_ref_lig_energies_f(
 
 	IntraTables tables(&myligand, scaled_AD4_coeff_elec, AD4_coeff_desolv, qasp);
 	printf("Intramolecular energy of reference ligand: %lf\n",
-	       calc_intraE_f(&myligand, 8, smooth, 0, elec_min_distance, tables, 0, tmp, nr_mod_atype_pairs, mod_atype_pairs));
+	       calc_intraE_f(&myligand, 8, smooth, 0, elec_min_distance, &tables, 0, tmp, nr_mod_atype_pairs, mod_atype_pairs));
 
 	for (i=0; i<3; i++)
 		temp_vec [i] = -1*mygrid.origo_real_xyz [i];
@@ -2254,7 +2254,7 @@ float calc_intraE_f(
                           float                     smooth,
                           bool                      ignore_desolv,
                     const float                     elec_min_distance,
-                          IntraTables&              tables,
+                          IntraTables*              tables,
                           int                       debug,
                           float&                    interflexE,
                           int                       nr_mod_atype_pairs,
@@ -2368,16 +2368,16 @@ float calc_intraE_f(
 				if (dist < dcutoff) // but only if the distance is less than distance cutoff value
 				{
 					pair_mod* pm = is_mod_pair(myligand->atom_types[type_id1], myligand->atom_types[type_id2], nr_mod_atype_pairs, mod_atype_pairs);
-					if (tables.is_HB [type_id1][type_id2] && !pm) //H-bond
+					if (tables->is_HB [type_id1][type_id2] && !pm) //H-bond
 					{
-						vdW1 = myligand->VWpars_C [type_id1][type_id2]*tables.r_12_table [smoothed_distance_id];
-						vdW2 = myligand->VWpars_D [type_id1][type_id2]*tables.r_10_table [smoothed_distance_id];
+						vdW1 = myligand->VWpars_C [type_id1][type_id2]*tables->r_12_table [smoothed_distance_id];
+						vdW2 = myligand->VWpars_D [type_id1][type_id2]*tables->r_10_table [smoothed_distance_id];
 						if (debug == 1) printf("H-bond interaction = ");
 					}
 					else // normal van der Waals or mod pair
 					{
-						float r_A = tables.r_12_table [smoothed_distance_id];
-						float r_B = tables.r_6_table  [smoothed_distance_id];
+						float r_A = tables->r_12_table [smoothed_distance_id];
+						float r_B = tables->r_6_table  [smoothed_distance_id];
 						if(pm){
 							int m = (myligand->VWpars_exp [type_id1][type_id2] & 0xFF00) >> 8;
 							int n = (myligand->VWpars_exp [type_id1][type_id2] & 0xFF);
@@ -2462,21 +2462,21 @@ float calc_intraE_f(
 						dist=elec_min_distance;
 						distance_id = (int) floor((100*dist) + 0.5) - 1; // +0.5: rounding, -1: r_xx_table [0] corresponds to r=0.01
 					}
-					s1 = (myligand->solpar [type_id1] + tables.qasp_mul_absq [atom_id1]);
-					s2 = (myligand->solpar [type_id2] + tables.qasp_mul_absq [atom_id2]);
+					s1 = (myligand->solpar [type_id1] + tables->qasp_mul_absq [atom_id1]);
+					s2 = (myligand->solpar [type_id2] + tables->qasp_mul_absq [atom_id2]);
 					v1 = myligand->volume [type_id1];
 					v2 = myligand->volume [type_id2];
 
 					if (debug == 1)
-						printf(" %lf, electrostatic = %lf, desolv = %lf\n", (vdW1 - vdW2), tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id],
-							   (s1*v2 + s2*v1) * tables.desolv_table [distance_id]);
+						printf(" %lf, electrostatic = %lf, desolv = %lf\n", (vdW1 - vdW2), tables->q1q2[atom_id1][atom_id2] * tables->r_epsr_table [distance_id],
+							   (s1*v2 + s2*v1) * tables->desolv_table [distance_id]);
 
 					if ((a_flex + b_flex) & 1){ // if both atoms are of either a ligand or a flex res it's intra
-						interflexE += tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id] +
-						              (s1*v2 + s2*v1) * tables.desolv_table [distance_id];
+						interflexE += tables->q1q2[atom_id1][atom_id2] * tables->r_epsr_table [distance_id] +
+						              (s1*v2 + s2*v1) * tables->desolv_table [distance_id];
 					} else{
-						el += tables.q1q2[atom_id1][atom_id2] * tables.r_epsr_table [distance_id];
-						desolv += (s1*v2 + s2*v1) * tables.desolv_table [distance_id];
+						el += tables->q1q2[atom_id1][atom_id2] * tables->r_epsr_table [distance_id];
+						desolv += (s1*v2 + s2*v1) * tables->desolv_table [distance_id];
 					}
 				}
 			}

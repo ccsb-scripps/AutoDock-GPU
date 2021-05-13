@@ -298,6 +298,7 @@ void write_basic_info_dlg(
 void make_resfiles(
                          float*        final_population,
                          float*        energies,
+                         IntraTables*  tables,
                    const Liganddata*   ligand_ref,
                    const Liganddata*   ligand_from_pdb,
                    const Liganddata*   ligand_xray,
@@ -369,7 +370,6 @@ void make_resfiles(
 	strcpy(temp_filename, mypars->ligandfile);
 	name_ext_start = temp_filename + strlen(mypars->ligandfile) - 6; // without .pdbqt
 
-	IntraTables tables(ligand_ref, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp);
 	for (i=0; i<pop_size; i++)
 	{
 		temp_docked = *ligand_ref;
@@ -1191,11 +1191,13 @@ void process_result(
 
 	// Fill in cpu_result_ligands
 	float best_energy_of_all = 1000000000000.0;
+	IntraTables tables(&(sim_state.myligand_reference), mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp);
 	for (unsigned long run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
 	{
 		arrange_result(sim_state.cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, sim_state.cpu_energies.data()+run_cnt*mypars->pop_size, mypars->pop_size);
 		make_resfiles(sim_state.cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM,
 		              sim_state.cpu_energies.data()+run_cnt*mypars->pop_size,
+		              &tables,
 		              &(sim_state.myligand_reference),
 		              myligand_init,
 		              myxrayligand,

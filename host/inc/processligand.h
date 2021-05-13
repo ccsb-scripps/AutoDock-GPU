@@ -366,7 +366,7 @@ float calc_intraE_f(
                           float                     smooth,
                           bool                      ignore_desolv,
                     const float                     elec_min_distance,
-                          IntraTables&              tables,
+                          IntraTables*              tables,
                           int                       debug,
                           float&                    interflexE,
                           int                       nr_mod_atype_pairs,
