@@ -145,7 +145,7 @@ void setup_gpu_for_docking(
 	if(gpuCount>1) printf(" (#%d / %d)",cData.devnum+1,gpuCount);
 	printf("\n");
 	RTERROR(cudaMemGetInfo(&freemem,&totalmem), "cudaGetMemInfo failed");
-	printf("Available memory on device:               %llu MB (total: %llu MB)\n",(freemem>>20),(totalmem>>20));
+	printf("Available memory on device:               %lu MB (total: %lu MB)\n",(freemem>>20),(totalmem>>20));
 	cData.devnum=-2;
 #ifdef SET_CUDA_PRINTF_BUFFER
 	status = cudaDeviceSetLimit(cudaLimitPrintfFifoSize, 200000000ull);
@@ -662,26 +662,32 @@ parameters argc and argv:
 #endif
 	// End of Kernel4
 
-	uint32_t kernel3_gxsize, kernel3_lxsize;
-	uint32_t kernel5_gxsize, kernel5_lxsize;
-	uint32_t kernel6_gxsize, kernel6_lxsize;
-	uint32_t kernel7_gxsize, kernel7_lxsize;
-	uint32_t kernel8_gxsize, kernel8_lxsize;
+	uint32_t kernel3_gxsize = 0;
+	uint32_t kernel3_lxsize = threadsPerBlock;
+/*
+	uint32_t kernel5_gxsize = 0;
+	uint32_t kernel5_lxsize = threadsPerBlock;
+	uint32_t kernel6_gxsize = 0;
+	uint32_t kernel6_lxsize = threadsPerBlock;
+*/
+	uint32_t kernel7_gxsize = 0;
+	uint32_t kernel7_lxsize = threadsPerBlock;
+	uint32_t kernel8_gxsize = 0;
+	uint32_t kernel8_lxsize = threadsPerBlock;
 	if (cData.dockpars.lsearch_rate != 0.0f) {
 
 		if ((strcmp(mypars->ls_method, "sw") == 0) || (mypars->initial_sw_generations>0)) {
 			// Kernel3
 			kernel3_gxsize = blocksPerGridForEachLSEntity;
-			kernel3_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_SOLISWETS", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel3
 		}
+/* SD and Fire are not currently supported by the Cuda version
 		if (strcmp(mypars->ls_method, "sd") == 0) {
 			// Kernel5
 			kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity;
-			kernel5_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_SDESCENT", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
 			#endif
@@ -690,16 +696,15 @@ parameters argc and argv:
 		if (strcmp(mypars->ls_method, "fire") == 0) {
 			// Kernel6
 			kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity;
-			kernel6_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_FIRE", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel6
 		}
+*/
 		if (strcmp(mypars->ls_method, "ad") == 0) {
 			// Kernel7
 			kernel7_gxsize = blocksPerGridForEachGradMinimizerEntity;
-			kernel7_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_ADADELTA", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
 			#endif
@@ -708,7 +713,6 @@ parameters argc and argv:
 		if (strcmp(mypars->ls_method, "adam") == 0) {
 			// Kernel8
 			kernel8_gxsize = blocksPerGridForEachGradMinimizerEntity;
-			kernel8_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
 			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_ADADELTA", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
 			#endif

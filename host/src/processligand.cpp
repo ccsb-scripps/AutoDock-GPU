@@ -1110,7 +1110,7 @@ int parse_liganddata(
 {
 	int line_count=0;
 	std::string line;
-	int fp_start, offset;
+	int fp_start;
 	char tempstr [256];
 	int atom_counter;
 	int delta_count = 0;

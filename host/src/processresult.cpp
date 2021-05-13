@@ -630,8 +630,7 @@ void clusanal_gendlg(
 // will be written to it.
 {
 	int i, j, atom_cnt;
-	Ligandresult temp_ligres;
-	int num_of_clusters;
+	int num_of_clusters = 0;
 	int current_clust_center;
 	double temp_rmsd;
 	int result_clustered;
@@ -678,7 +677,7 @@ void clusanal_gendlg(
 		char lineout [264];
 		// writing input pdbqt file
 		fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
-		int line_count = 0;
+		unsigned int line_count = 0;
 		while (line_count < ligand_ref->ligand_line_count)
 		{
 			strcpy(tempstr,ligand_ref->file_content[line_count].c_str());

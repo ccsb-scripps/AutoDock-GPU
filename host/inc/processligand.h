@@ -145,7 +145,7 @@ typedef struct _Liganddata
 	bool           reactive                [MAX_NUM_OF_ATOMS]; // atoms with 1,4,7 numbered atom types
 // store the ligand file content so it only gets read once (not upto 4 times ...)
 	std::vector<std::string> file_content;
-	int ligand_line_count = 0;
+	unsigned int ligand_line_count = 0;
 } Liganddata;
 
 // structure to store relevant receptor atom data

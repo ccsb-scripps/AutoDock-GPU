@@ -137,12 +137,14 @@ class AutoStop{
 		first_time = true;
 		autostopped = false;
 		threshold = 1<<24;
+		threshold_used = threshold;
 		thres_stddev = threshold;
 		curr_avg = -(1<<24);
 		curr_std = thres_stddev;
 		roll_count = 0;
 		bestN = 1;
 		delta_energy = 2.0 * thres_stddev / Ntop;
+		overall_best_energy = 1<<24;
 	}
 
 	inline void print_intro(unsigned long num_of_generations, unsigned long num_of_energy_evals)
