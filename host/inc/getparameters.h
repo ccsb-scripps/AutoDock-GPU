@@ -136,6 +136,7 @@ typedef struct _Dockpars
 	float                     adam_epsilon                    = 1.0e-8f;
 	bool                      output_dlg                      = true; // dlg output file will be generated (by default)
 	bool                      output_xml                      = true; // xml output file will be generated (by default)
+	bool                      calc_clustering                 = true; // wether clustering will be calculated and output
 } Dockpars;
 
 inline bool add_deriv_atype(

@@ -883,150 +883,154 @@ void clusanal_gendlg(
 			fprintf(fp, "________________________________________________________________________________\n\n\n");
 		}
 	}
+	
 	// PERFORM CLUSTERING
 	// arranging results according to energy, myresults [0] will be the best one (with lowest energy)
-	for (j=0; j<num_of_runs-1; j++)
-		for (i=num_of_runs-2; i>=j; i--) // arrange according to sum of inter- and intramolecular energies
-			if ((myresults [i]).interE+myresults[i].interflexE /*+ (myresults [i]).intraE*/ > (myresults [i+1]).interE+myresults[i+1].interflexE /*+ (myresults [i+1]).intraE*/)	//mimics the behaviour of AD4 unbound_same_as_bound
-			//if ((myresults [i]).interE + (myresults [i]).intraE > (myresults [i+1]).interE + (myresults [i+1]).intraE)
-			{
-				temp_ligres = myresults [i];
-				myresults [i] = myresults [i+1];
-				myresults [i+1] = temp_ligres;
-			}
-
-	for (i=0; i<num_of_runs; i++)
-	{
-		(myresults [i]).clus_id = 0; // indicates that it hasn't been put into cluster yet
-	}
-
-	// the best result is the center of the first cluster
-	(myresults [0]).clus_id = 1;
-	(myresults [0]).rmsd_from_cluscent = 0;
-	num_of_clusters = 1;
-
-	for (i=1; i<num_of_runs; i++) // for each result
-	{
-		current_clust_center = 0;
-		result_clustered = 0;
-
-		for (j=0; j<i; j++) // results with lower id-s are clustered, look for cluster centers
-		{
-			if ((myresults [j]).clus_id > current_clust_center) // it is the center of a new cluster
-			{
-				current_clust_center = (myresults [j]).clus_id;
-				temp_rmsd = calc_rmsd(&((myresults [j]).reslig_realcoord), &((myresults [i]).reslig_realcoord), mypars->handle_symmetry); // comparing current result with cluster center
-				if (temp_rmsd <= cluster_tolerance) // in this case we put result i to cluster with center j
+	if(mypars->calc_clustering){
+		for (j=0; j<num_of_runs-1; j++)
+			for (i=num_of_runs-2; i>=j; i--) // arrange according to sum of inter- and intramolecular energies
+				if ((myresults [i]).interE+myresults[i].interflexE /*+ (myresults [i]).intraE*/ > (myresults [i+1]).interE+myresults[i+1].interflexE /*+ (myresults [i+1]).intraE*/)	//mimics the behaviour of AD4 unbound_same_as_bound
+				//if ((myresults [i]).interE + (myresults [i]).intraE > (myresults [i+1]).interE + (myresults [i+1]).intraE)
 				{
-					(myresults [i]).clus_id = current_clust_center;
-					(myresults [i]).rmsd_from_cluscent = temp_rmsd;
-					result_clustered = 1;
-					break;
+					temp_ligres = myresults [i];
+					myresults [i] = myresults [i+1];
+					myresults [i+1] = temp_ligres;
+				}
+
+		for (i=0; i<num_of_runs; i++)
+		{
+			(myresults [i]).clus_id = 0; // indicates that it hasn't been put into cluster yet
+		}
+
+		// the best result is the center of the first cluster
+		(myresults [0]).clus_id = 1;
+		(myresults [0]).rmsd_from_cluscent = 0;
+		num_of_clusters = 1;
+
+		for (i=1; i<num_of_runs; i++) // for each result
+		{
+			current_clust_center = 0;
+			result_clustered = 0;
+
+			for (j=0; j<i; j++) // results with lower id-s are clustered, look for cluster centers
+			{
+				if ((myresults [j]).clus_id > current_clust_center) // it is the center of a new cluster
+				{
+					current_clust_center = (myresults [j]).clus_id;
+					temp_rmsd = calc_rmsd(&((myresults [j]).reslig_realcoord), &((myresults [i]).reslig_realcoord), mypars->handle_symmetry); // comparing current result with cluster center
+					if (temp_rmsd <= cluster_tolerance) // in this case we put result i to cluster with center j
+					{
+						(myresults [i]).clus_id = current_clust_center;
+						(myresults [i]).rmsd_from_cluscent = temp_rmsd;
+						result_clustered = 1;
+						break;
+					}
 				}
 			}
-		}
 
-		if (result_clustered != 1) // if no suitable cluster was found, this is the center of a new one
-		{
-			num_of_clusters++;
-			(myresults [i]).clus_id = num_of_clusters; // new cluster id
-			(myresults [i]).rmsd_from_cluscent = 0;
-		}
-	}
-
-	for (i=1; i<=num_of_clusters; i++) // printing cluster info to file
-	{
-		subrank = 0;
-		cluster_sizes [i-1] = 0;
-		sum_energy [i-1] = 0;
-		for (j=0; j<num_of_runs; j++)
-			if (myresults [j].clus_id == i)
+			if (result_clustered != 1) // if no suitable cluster was found, this is the center of a new one
 			{
-				subrank++;
-				(cluster_sizes [i-1])++;
-				sum_energy [i-1] += (myresults [j]).interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
-				(myresults [j]).clus_subrank = subrank;
-				if (subrank == 1)
-				{
-					best_energy [i-1] = (myresults [j]).interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
-					best_energy_runid  [i-1] = (myresults [j]).run_number;
-				}
+				num_of_clusters++;
+				(myresults [i]).clus_id = num_of_clusters; // new cluster id
+				(myresults [i]).rmsd_from_cluscent = 0;
 			}
-	}
-
-	if(mypars->output_dlg){
-		// WRITING CLUSTER INFORMATION
-		fprintf(fp, "    CLUSTERING HISTOGRAM\n    ____________________\n\n\n");
-		fprintf(fp, "________________________________________________________________________________\n");
-		fprintf(fp, "     |           |     |           |     |\n");
-		fprintf(fp, "Clus | Lowest    | Run | Mean      | Num | Histogram\n");
-		fprintf(fp, "-ter | Binding   |     | Binding   | in  |\n");
-		fprintf(fp, "Rank | Energy    |     | Energy    | Clus|    5    10   15   20   25   30   35\n");
-		fprintf(fp, "_____|___________|_____|___________|_____|____:____|____:____|____:____|____:___\n");
-
-		for (i=0; i<num_of_clusters; i++)
-		{
-			fprintf(fp, "%4d |", i+1);
-
-			if (best_energy[i] > 999999.99)
-				fprintf(fp, "%+10.2e", best_energy[i]);
-			else
-				fprintf(fp, "%+10.2f", best_energy[i]);
-			fprintf(fp, " |%4d |", best_energy_runid[i]);
-
-			if (sum_energy[i]/cluster_sizes[i] > 999999.99)
-				fprintf(fp, "%+10.2e |", sum_energy[i]/cluster_sizes[i]);
-			else
-				fprintf(fp, "%+10.2f |", sum_energy[i]/cluster_sizes[i]);
-
-			fprintf(fp, "%4d |", cluster_sizes [i]);
-
-			for (j=0; j<cluster_sizes [i]; j++)
-				fprintf(fp, "#");
-
-			fprintf(fp, "\n");
 		}
 
-		fprintf(fp, "_____|___________|_____|___________|_____|______________________________________\n\n\n");
-
-		// writing RMSD table
-
-		fprintf(fp, "    RMSD TABLE\n");
-		fprintf(fp, "    __________\n\n\n");
-
-		fprintf(fp, "_____________________________________________________________________\n");
-		fprintf(fp, "     |      |      |           |         |                 |\n");
-		fprintf(fp, "Rank | Sub- | Run  | Binding   | Cluster | Reference       | Grep\n");
-		fprintf(fp, "     | Rank |      | Energy    | RMSD    | RMSD            | Pattern\n");
-		fprintf(fp, "_____|______|______|___________|_________|_________________|___________\n" );
-
-		for (i=0; i<num_of_clusters; i++) // printing cluster info to file
+		for (i=1; i<=num_of_clusters; i++) // printing cluster info to file
 		{
+			subrank = 0;
+			cluster_sizes [i-1] = 0;
+			sum_energy [i-1] = 0;
 			for (j=0; j<num_of_runs; j++)
-				if (myresults [j].clus_id == i+1) {
-					if (myresults[j].interE + myresults[j].interflexE + torsional_energy > 999999.99)
-						fprintf(fp, "%4d   %4d   %4d  %+10.2e  %8.2f  %8.2f           RANKING\n",
-						             (myresults [j]).clus_id,
-						                   (myresults [j]).clus_subrank,
-						                         (myresults [j]).run_number,
-						                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
-						                                       (myresults [j]).rmsd_from_cluscent,
-						                                              (myresults [j]).rmsd_from_ref);
-					else
-						fprintf(fp, "%4d   %4d   %4d  %+10.2f  %8.2f  %8.2f           RANKING\n",
-						             (myresults [j]).clus_id,
-						                   (myresults [j]).clus_subrank,
-						                         (myresults [j]).run_number,
-						                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
-						                                       (myresults [j]).rmsd_from_cluscent,
-						                                              (myresults [j]).rmsd_from_ref);
+				if (myresults [j].clus_id == i)
+				{
+					subrank++;
+					(cluster_sizes [i-1])++;
+					sum_energy [i-1] += (myresults [j]).interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
+					(myresults [j]).clus_subrank = subrank;
+					if (subrank == 1)
+					{
+						best_energy [i-1] = (myresults [j]).interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
+						best_energy_runid  [i-1] = (myresults [j]).run_number;
+					}
 				}
 		}
 
+		if(mypars->output_dlg){
+			// WRITING CLUSTER INFORMATION
+			fprintf(fp, "    CLUSTERING HISTOGRAM\n    ____________________\n\n\n");
+			fprintf(fp, "________________________________________________________________________________\n");
+			fprintf(fp, "     |           |     |           |     |\n");
+			fprintf(fp, "Clus | Lowest    | Run | Mean      | Num | Histogram\n");
+			fprintf(fp, "-ter | Binding   |     | Binding   | in  |\n");
+			fprintf(fp, "Rank | Energy    |     | Energy    | Clus|    5    10   15   20   25   30   35\n");
+			fprintf(fp, "_____|___________|_____|___________|_____|____:____|____:____|____:____|____:___\n");
+
+			for (i=0; i<num_of_clusters; i++)
+			{
+				fprintf(fp, "%4d |", i+1);
+
+				if (best_energy[i] > 999999.99)
+					fprintf(fp, "%+10.2e", best_energy[i]);
+				else
+					fprintf(fp, "%+10.2f", best_energy[i]);
+				fprintf(fp, " |%4d |", best_energy_runid[i]);
+
+				if (sum_energy[i]/cluster_sizes[i] > 999999.99)
+					fprintf(fp, "%+10.2e |", sum_energy[i]/cluster_sizes[i]);
+				else
+					fprintf(fp, "%+10.2f |", sum_energy[i]/cluster_sizes[i]);
+
+				fprintf(fp, "%4d |", cluster_sizes [i]);
+
+				for (j=0; j<cluster_sizes [i]; j++)
+					fprintf(fp, "#");
+
+				fprintf(fp, "\n");
+			}
+
+			fprintf(fp, "_____|___________|_____|___________|_____|______________________________________\n\n\n");
+
+			// writing RMSD table
+
+			fprintf(fp, "    RMSD TABLE\n");
+			fprintf(fp, "    __________\n\n\n");
+
+			fprintf(fp, "_____________________________________________________________________\n");
+			fprintf(fp, "     |      |      |           |         |                 |\n");
+			fprintf(fp, "Rank | Sub- | Run  | Binding   | Cluster | Reference       | Grep\n");
+			fprintf(fp, "     | Rank |      | Energy    | RMSD    | RMSD            | Pattern\n");
+			fprintf(fp, "_____|______|______|___________|_________|_________________|___________\n" );
+
+			for (i=0; i<num_of_clusters; i++) // printing cluster info to file
+			{
+				for (j=0; j<num_of_runs; j++)
+					if (myresults [j].clus_id == i+1) {
+						if (myresults[j].interE + myresults[j].interflexE + torsional_energy > 999999.99)
+							fprintf(fp, "%4d   %4d   %4d  %+10.2e  %8.2f  %8.2f           RANKING\n",
+							             (myresults [j]).clus_id,
+							                   (myresults [j]).clus_subrank,
+							                         (myresults [j]).run_number,
+							                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
+							                                       (myresults [j]).rmsd_from_cluscent,
+							                                              (myresults [j]).rmsd_from_ref);
+						else
+							fprintf(fp, "%4d   %4d   %4d  %+10.2f  %8.2f  %8.2f           RANKING\n",
+							             (myresults [j]).clus_id,
+							                   (myresults [j]).clus_subrank,
+							                         (myresults [j]).run_number,
+							                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
+							                                       (myresults [j]).rmsd_from_cluscent,
+							                                              (myresults [j]).rmsd_from_ref);
+					}
+			}
+		}
+	}
+	
+	if(mypars->output_dlg){
 		// Add execution and idle time information
 		fprintf(fp, "\nRun time %.3f sec", exec_time);
 		fprintf(fp, "\nIdle time %.3f sec\n", idle_time);
-
 		if(!mypars->dlg2stdout){
 			fclose(fp);
 		}
@@ -1148,28 +1152,29 @@ void clusanal_gendlg(
 			fprintf(fp_xml, "\t\t</run>\n");
 		}
 		fprintf(fp_xml, "\t</runs>\n");
-		fprintf(fp_xml, "\t<result>\n");
-		
-		fprintf(fp_xml, "\t\t<clustering_histogram>\n");
-		for (i=0; i<num_of_clusters; i++)
-		{
-			fprintf(fp_xml, "\t\t\t<cluster cluster_rank=\"%d\" lowest_binding_energy=\"%.2lf\" run=\"%d\" mean_binding_energy=\"%.2lf\" num_in_clus=\"%d\" />\n",
+		if(mypars->calc_clustering){
+			fprintf(fp_xml, "\t<result>\n");
+			fprintf(fp_xml, "\t\t<clustering_histogram>\n");
+			for (i=0; i<num_of_clusters; i++)
+			{
+				fprintf(fp_xml, "\t\t\t<cluster cluster_rank=\"%d\" lowest_binding_energy=\"%.2lf\" run=\"%d\" mean_binding_energy=\"%.2lf\" num_in_clus=\"%d\" />\n",
 					i+1, best_energy[i], best_energy_runid[i], sum_energy[i]/cluster_sizes[i], cluster_sizes [i]);
+			}
+			fprintf(fp_xml, "\t\t</clustering_histogram>\n");
+			
+			fprintf(fp_xml, "\t\t<rmsd_table>\n");
+			for (i=0; i<num_of_clusters; i++)
+			{
+				for (j=0; j<num_of_runs; j++)
+					if (myresults [j].clus_id == i+1)
+					{
+						fprintf(fp_xml, "\t\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
+							(myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number, myresults[j].interE + myresults[j].interflexE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
+					}
+			}
+			fprintf(fp_xml, "\t\t</rmsd_table>\n");
+			fprintf(fp_xml, "\t</result>\n");
 		}
-		fprintf(fp_xml, "\t\t</clustering_histogram>\n");
-		
-		fprintf(fp_xml, "\t\t<rmsd_table>\n");
-		for (i=0; i<num_of_clusters; i++)
-		{
-			for (j=0; j<num_of_runs; j++)
-				if (myresults [j].clus_id == i+1)
-				{
-					fprintf(fp_xml, "\t\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
-					                     (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number, myresults[j].interE + myresults[j].interflexE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
-				}
-		}
-		fprintf(fp_xml, "\t\t</rmsd_table>\n");
-		fprintf(fp_xml, "\t</result>\n");
 		fprintf(fp_xml, "</autodock_gpu>\n");
 		fclose(fp_xml);
 		free(xml_file_name);

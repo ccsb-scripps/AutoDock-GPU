@@ -988,6 +988,7 @@ void print_options(
 	printf("--gfpop                | Output all poses from all populations of each LGA run | 0 (no)\n");
 	printf("--npdb                 | # pose pdbqt files from populations of each LGA run   | 0\n");
 	printf("--gbest                | Output single best pose as pdbqt file                 | 0 (no)\n");
+	printf("--clustering           | Output clustering analysis in dlg and/or xml file     | 1 (yes)\n");
 
 	printf("\nAutodock-GPU requires a ligand and a set of grid maps as well as optionally a flexible residue to\n");
 	printf("perform a docking calculation. These could be specified directly (--lfile, --ffile, and --flexres),\n");
@@ -1730,6 +1731,20 @@ int get_commandpars(
 				mypars->output_xml = false;
 			else
 				mypars->output_xml = true;
+		}
+
+		// Argument: choose wether to calculate and output clustering
+		// If the value is 1, DLG output will be generated
+		// DLG output won't be generated if 0 is specified
+		if (argcmp("clustering", argv [i]))
+		{
+			arg_recognized = 1;
+			sscanf(argv [i+1], "%d", &tempint);
+			
+			if (tempint == 0)
+				mypars->calc_clustering = false;
+			else
+				mypars->calc_clustering = true;
 		}
 
 		// ----------------------------------

@@ -134,6 +134,7 @@ By default the output log file is written in the current working folder. Example
 |--gfpop            |   | Output all poses from all populations of each LGA run | 0 (no)           |
 |--npdb             |   | # pose pdbqt files from populations of each LGA run   | 0                |
 |--gbest            |   | Output single best pose as pdbqt file                 | 0 (no)           |
+|--clustering       |   | Output clustering analysis in dlg and/or xml file     | 1 (yes)          |
 
 Autostop is ON by default since v1.4. The collective distribution of scores among all LGA populations
 is tested for convergence every `<asfreq>` generations, and docking is stopped if the top-scored poses
