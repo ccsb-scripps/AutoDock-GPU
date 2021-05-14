@@ -1452,7 +1452,8 @@ double calc_rmsd(
 	{
 		for (i=0; i<myligand->true_ligand_atoms; i++)
 		{
-			sumdist2 += pow(distance(&(myligand->atom_idxyzq [i][1]), &(myligand_ref->atom_idxyzq [i][1])), 2);
+			double d2 = distance2(&(myligand->atom_idxyzq [i][1]), &(myligand_ref->atom_idxyzq [i][1]));
+			sumdist2 += d2;
 		}
 	}
 	else // handling symmetry with the silly AutoDock method
@@ -1462,9 +1463,12 @@ double calc_rmsd(
 			mindist2 = 100000; // initial value should be high enough so that it is ensured that lower distances will be found
 			for (j=0; j<myligand_ref->num_of_atoms; j++) // looking for the closest atom with same type from the reference
 			{
-				if (myligand->atom_idxyzq [i][0] == myligand_ref->atom_idxyzq [j][0])
-					if (pow(distance(&(myligand->atom_idxyzq [i][1]), &(myligand_ref->atom_idxyzq [j][1])), 2) < mindist2)
-						mindist2 = pow(distance(&(myligand->atom_idxyzq [i][1]), &(myligand_ref->atom_idxyzq [j][1])), 2);
+				if (myligand->atom_idxyzq [i][0] == myligand_ref->atom_idxyzq [j][0]){
+					double d2 = distance2(&(myligand->atom_idxyzq [i][1]), &(myligand_ref->atom_idxyzq [j][1]));
+					if (d2 < mindist2){
+						mindist2 = d2;
+					}
+				}
 			}
 			sumdist2 += mindist2;
 		}
@@ -1541,9 +1545,9 @@ void print_ref_lig_energies_f(
 	float tmp;
 	int i;
 
-	IntraTables tables(&myligand, scaled_AD4_coeff_elec, AD4_coeff_desolv, qasp);
+	IntraTables tables(&myligand, scaled_AD4_coeff_elec, AD4_coeff_desolv, qasp, nr_mod_atype_pairs, mod_atype_pairs);
 	printf("Intramolecular energy of reference ligand: %lf\n",
-	       calc_intraE_f(&myligand, 8, smooth, 0, elec_min_distance, &tables, 0, tmp, nr_mod_atype_pairs, mod_atype_pairs));
+	       calc_intraE_f(&myligand, 8, smooth, 0, elec_min_distance, &tables, 0, tmp));
 
 	for (i=0; i<3; i++)
 		temp_vec [i] = -1*mygrid.origo_real_xyz [i];
@@ -2253,8 +2257,6 @@ float calc_intraE_f(
                           IntraTables*              tables,
                           int                       debug,
                           float&                    interflexE,
-                          int                       nr_mod_atype_pairs,
-                          pair_mod*                 mod_atype_pairs,
                           std::vector<AnalysisData> *analysis,
                     const ReceptorAtom*             flexres_atoms,
                           float                     R_cutoff,
@@ -2363,7 +2365,7 @@ float calc_intraE_f(
 				// ------------------------------------------------
 				if (dist < dcutoff) // but only if the distance is less than distance cutoff value
 				{
-					pair_mod* pm = is_mod_pair(myligand->atom_types[type_id1], myligand->atom_types[type_id2], nr_mod_atype_pairs, mod_atype_pairs);
+					pair_mod* pm = tables->mod_pair [type_id1][type_id2];
 					if (tables->is_HB [type_id1][type_id2] && !pm) //H-bond
 					{
 						vdW1 = myligand->VWpars_C [type_id1][type_id2]*tables->r_12_table [smoothed_distance_id];

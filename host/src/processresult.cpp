@@ -403,9 +403,9 @@ void make_resfiles(
 		
 		// the interaction between flex res and ligand is stored in accurate_interflexE
 		if(mypars->contact_analysis && (i==0))
-			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs, &analysis, mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
+			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, &analysis, mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
 		else
-			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
+			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE);
 
 		move_ligand(&temp_docked, mygrid->origo_real_xyz, mygrid->origo_real_xyz); //moving it according to grid location
 
@@ -1205,7 +1205,7 @@ void process_result(
 
 	// Fill in cpu_result_ligands
 	float best_energy_of_all = 1000000000000.0;
-	IntraTables tables(&(sim_state.myligand_reference), mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp);
+	IntraTables tables(&(sim_state.myligand_reference), mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
 	for (unsigned long run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
 	{
 		arrange_result(sim_state.cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, sim_state.cpu_energies.data()+run_cnt*mypars->pop_size, mypars->pop_size);

@@ -340,21 +340,30 @@ struct IntraTables{
 	float q1q2          [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
 	float qasp_mul_absq [MAX_NUM_OF_ATOMS];
 	bool is_HB          [MAX_NUM_OF_ATYPES] [MAX_NUM_OF_ATYPES];
+	pair_mod* mod_pair  [MAX_NUM_OF_ATYPES] [MAX_NUM_OF_ATYPES];
 
 	// Fill intraE tables
 	IntraTables(
 	            const Liganddata* myligand,
 	            const float       scaled_AD4_coeff_elec,
 	            const float       AD4_coeff_desolv,
-	            const float       qasp
+	            const float       qasp,
+	                  int         nr_mod_atype_pairs,
+	                  pair_mod*   mod_atype_pairs
 	           )
 	{
 		calc_distdep_tables_f(r_6_table, r_10_table, r_12_table, r_epsr_table, desolv_table, scaled_AD4_coeff_elec, AD4_coeff_desolv);
 		calc_q_tables_f(myligand, qasp, q1q2, qasp_mul_absq);
-		for (int type_id1=0; type_id1<myligand->num_of_atypes; type_id1++)
-			for (int type_id2=0; type_id2<myligand->num_of_atypes; type_id2++)
-				is_HB [type_id1][type_id2] = (is_H_bond(myligand->atom_types [type_id1],
-				                              myligand->atom_types [type_id2]) != 0);
+		for (int type_id1=0; type_id1<myligand->num_of_atypes; type_id1++){
+			for (int type_id2=0; type_id2<myligand->num_of_atypes; type_id2++){
+				is_HB    [type_id1][type_id2] = (is_H_bond(myligand->atom_types [type_id1],
+				                                           myligand->atom_types [type_id2]) != 0);
+				mod_pair [type_id1][type_id2] = is_mod_pair(myligand->atom_types[type_id1],
+				                                            myligand->atom_types[type_id2],
+				                                            nr_mod_atype_pairs,
+				                                            mod_atype_pairs);
+			}
+		}
 	}
 };
 
@@ -367,8 +376,6 @@ float calc_intraE_f(
                           IntraTables*              tables,
                           int                       debug,
                           float&                    interflexE,
-                          int                       nr_mod_atype_pairs,
-                          pair_mod*                 mod_atype_pairs,
                           std::vector<AnalysisData> *analysis = NULL,
                     const ReceptorAtom*             flexres_atoms = NULL,
                           float                     R_cutoff = 2.1,

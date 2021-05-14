@@ -84,6 +84,8 @@ long long float2fraclint(double, int);
 
 double distance(const double [], const double []);
 
+double distance2(const double [], const double []);
+
 void vec_point2line(const double [], const double [], const double [], double []);
 
 void rotate(double [], const double [], const double [], const double*, int);

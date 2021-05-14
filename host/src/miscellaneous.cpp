@@ -57,6 +57,18 @@ double distance(const double point1 [], const double point2 [])
 	return sqrt(sub1*sub1 + sub2*sub2 + sub3*sub3);
 }
 
+double distance2(const double point1 [], const double point2 [])
+// Returns the square distance between point1 and point2.
+// The arrays have to store the x, y and z coordinates of the
+// point, respectively.
+{
+	double sub1, sub2, sub3;
+	sub1 = point1 [0] - point2 [0];
+	sub2 = point1 [1] - point2 [1];
+	sub3 = point1 [2] - point2 [2];
+	return sub1*sub1 + sub2*sub2 + sub3*sub3;
+}
+
 void vec_point2line(const double point [], const double line_pointA [], const double line_pointB [], double vec [])
 // The function calculates the vector which moves a point given by the first parameter to its perpendicular projection
 // on a line given by to of its points (line_pointA and line_pointB parameters). The result vector is the vec parameter.
@@ -362,13 +374,13 @@ double angle_of_vectors(const double vector1 [], const double vector2 [])
 
 	scalmul = 0;
 
-	len_vec1 = distance(vector1, zerovec);
-	len_vec2 = distance(vector2, zerovec);
+	len_vec1 = distance2(vector1, zerovec);
+	len_vec2 = distance2(vector2, zerovec);
 
 	for (i=0; i<3; i++)
 		scalmul += vector1 [i]*vector2 [i];
 
-	temp = scalmul/(len_vec1*len_vec2);
+	temp = scalmul/sqrt(len_vec1*len_vec2);
 
 	if (temp > 1)  temp =  1;
 	if (temp < -1) temp = -1;
