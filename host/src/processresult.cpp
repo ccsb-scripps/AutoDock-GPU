@@ -330,7 +330,6 @@ void make_resfiles(
 	int len = strlen(mypars->ligandfile) - 6 + 24 + 10 + 10; // length with added bits for things below (numbers below 11 digits should be a safe enough threshold)
 	char* temp_filename = (char*)malloc((len+1)*sizeof(char)); // +\0 at the end
 	char* name_ext_start;
-	std::vector<AnalysisData> analysis;
 	float accurate_interE;
 	float accurate_intraflexE;
 	float accurate_intraE;
@@ -390,10 +389,10 @@ void make_resfiles(
 		}
 		
 		// the map interaction of flex res atoms is stored in accurate_intraflexE
-		accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE);	//calculating the intermolecular energy
+		accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE); // calculating the intermolecular energy
 
 		if (mypars->contact_analysis && (i==0)){
-			analysis = analyze_ligand_receptor(mygrid, &temp_docked, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, debug, mypars->H_cutoff, mypars->V_cutoff);
+			best_result->analysis = analyze_ligand_receptor(mygrid, &temp_docked, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, debug, mypars->H_cutoff, mypars->V_cutoff);
 		}
 
 		if (i == 0) // additional calculations for ADT-compatible result file, only in case of best conformation
@@ -403,7 +402,7 @@ void make_resfiles(
 		
 		// the interaction between flex res and ligand is stored in accurate_interflexE
 		if(mypars->contact_analysis && (i==0))
-			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, &analysis, mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
+			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, &(best_result->analysis), mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
 		else
 			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE);
 
@@ -430,7 +429,13 @@ void make_resfiles(
 			best_result->reslig_realcoord = temp_docked;
 			best_result->rmsd_from_ref = entity_rmsds;
 			best_result->run_number = run_cnt+1;
-			if(mypars->contact_analysis) best_result->analysis = analysis;
+			if(mypars->contact_analysis){
+				// sort by analysis type
+				for(unsigned int j=0; j<best_result->analysis.size(); j++)
+					for(unsigned int k=0; k<best_result->analysis.size()-j-1; k++)
+						if(best_result->analysis[k].type>best_result->analysis[k+1].type)
+							std::swap(best_result->analysis[k], best_result->analysis[k+1]);
+			}
 		}
 
 		// generating best.pdbqt
@@ -651,6 +656,7 @@ void clusanal_gendlg(
 	torsional_energy = AD4_coeff_tors * ligand_ref->true_ligand_rotbonds;
 
 	int len = strlen(mypars->resname) + 4 + 1;
+	
 	// GENERATING DLG FILE
 	if(mypars->output_dlg){
 		if(!mypars->dlg2stdout){
@@ -741,15 +747,6 @@ void clusanal_gendlg(
 
 			if(mypars->contact_analysis){
 				if(myresults[i].analysis.size()>0){
-					// sort by analysis type
-					AnalysisData temp;
-					for(unsigned int j=0; j<myresults[i].analysis.size(); j++)
-						for(unsigned int k=0; k<myresults[i].analysis.size()-j-1; k++)
-							if(myresults[i].analysis[k].type>myresults[i].analysis[k+1].type){
-								temp = myresults[i].analysis[k];
-								myresults[i].analysis[k]   = myresults[i].analysis[k+1];
-								myresults[i].analysis[k+1] = temp;
-							}
 					fprintf(fp, "ANALYSIS: COUNT %lu\n", myresults[i].analysis.size());
 					std::string types    = "TYPE    {";
 					std::string lig_id   = "LIGID   {";
@@ -884,10 +881,8 @@ void clusanal_gendlg(
 	}
 	
 	// arranging results according to energy, myresults [energy_order[0]] will be the best one (with lowest energy)
-	std::vector<int> energy_order;
-	std::vector<double> energies;
-	energy_order.reserve(num_of_runs);
-	energies.reserve(num_of_runs);
+	std::vector<int> energy_order(num_of_runs);
+	std::vector<double> energies(num_of_runs);
 	for (i=0; i<num_of_runs; i++){
 		energy_order[i] = i;
 		energies[i] = myresults [i].interE+myresults[i].interflexE; // mimics the behaviour of AD4 unbound_same_as_bound
@@ -896,11 +891,8 @@ void clusanal_gendlg(
 	// sorting the indices instead of copying the results around will be faster
 	for(i=0; i<num_of_runs-1; i++)
 		for(j=0; j<num_of_runs-i-1; j++)
-			if(energies[energy_order[j]]>energies[energy_order[j+1]]){ // swap indices
-				int tmp = energy_order[j];
-				energy_order[j]   = energy_order[j+1];
-				energy_order[j+1] = tmp;
-			}
+			if(energies[energy_order[j]]>energies[energy_order[j+1]]) // swap indices
+				std::swap(energy_order[j], energy_order[j+1]);
 	// PERFORM CLUSTERING
 	if(mypars->calc_clustering){
 
@@ -1085,15 +1077,6 @@ void clusanal_gendlg(
 			fprintf(fp_xml, "\t\t<run id=\"%d\">\n",(myresults [j]).run_number);
 			if(mypars->contact_analysis){
 				if(myresults[j].analysis.size()>0){
-					// sort by analysis type
-					AnalysisData temp;
-					for(unsigned int i=0; i<myresults[j].analysis.size(); i++)
-						for(unsigned int k=0; k<myresults[j].analysis.size()-i-1; k++)
-							if(myresults[j].analysis[k].type>myresults[j].analysis[k+1].type){
-								temp = myresults[j].analysis[k];
-								myresults[j].analysis[k]   = myresults[j].analysis[k+1];
-								myresults[j].analysis[k+1] = temp;
-							}
 					fprintf(fp_xml, "\t\t\t<contact_analysis count=\"%lu\">\n", myresults[j].analysis.size());
 					std::string types;
 					std::string lig_id;

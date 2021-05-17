@@ -1724,10 +1724,8 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 	const unsigned int* receptor_list;
 	AnalysisData datum;
 
-	for (atom_cnt=0; atom_cnt<myligand->true_ligand_atoms; atom_cnt++) // for each atom
+	for (atom_cnt=0; atom_cnt<myligand->true_ligand_atoms; atom_cnt++) // for each ligand atom
 	{
-		if (myligand->ignore_inter[atom_cnt])
-			continue;
 		atomtypeid = myligand->base_type_idx[(int)myligand->atom_idxyzq [atom_cnt][0]];
 		x = myligand->atom_idxyzq [atom_cnt][1];
 		y = myligand->atom_idxyzq [atom_cnt][2];
@@ -2062,7 +2060,7 @@ void calc_interE_peratom_f(
 	//interE = 0;
 	*elecE = 0;
 
-	for (atom_cnt=myligand->num_of_atoms-1; atom_cnt>=0; atom_cnt--)		//for each atom
+	for (atom_cnt=myligand->num_of_atoms-1; atom_cnt>=0; atom_cnt--) //for each atom
 	{
 		if (myligand->ignore_inter[atom_cnt])
 			continue;
@@ -2353,7 +2351,7 @@ float calc_intraE_f(
 				// This interaction is evaluated at any distance,
 				// so no cuttoffs considered here!
 				// FIXME: accumulated into vW ... is that correct?
-				if (((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) || 
+				if (((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) ||
 				    ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX))) {
 					if (((atom_id1<myligand->true_ligand_atoms) && (atom_id2<myligand->true_ligand_atoms)) ||
 					    ((atom_id1>=myligand->true_ligand_atoms) && (atom_id2>=myligand->true_ligand_atoms))) // if both atoms are of either a ligand or a flex res it's intra
