@@ -63,11 +63,11 @@ int setup(
 {
 	// Filling the filename and coeffs fields of mypars according to command line arguments
 	if (get_filenames_and_ADcoeffs(&argc, argv, &mypars, filelist.used) != 0)
-		{printf("\n\nError in get_filenames_and_ADcoeffs, stopped job."); return 1;}
+		{printf("\nError in get_filenames_and_ADcoeffs, stopped job.\n"); return 1;}
 
 	//------------------------------------------------------------
-	// Testing command line arguments for cgmaps parameter,
-	// for derived atom types, and modified atom type pairs
+	// Testing command line arguments for xml2dlg mode,
+	// erived atom types, and modified atom type pairs
 	// since they will be needed at ligand and grid creation
 	//------------------------------------------------------------
 	for (int i=1; i<argc-1; i+=2)
@@ -75,18 +75,6 @@ int setup(
 		if (argcmp("xml2dlg", argv[i], 'X'))
 			i+=mypars.xml_files-1; // skip ahead in case there are multiple entries here
 
-		// ----------------------------------
-		// Argument: Use individual maps for CG-G0 instead of the same one
-		if (argcmp("cgmaps", argv [i]))
-		{
-			int tempint;
-			sscanf(argv [i+1], "%d", &tempint);
-			if (tempint == 0)
-				mypars.cgmaps = 0;
-			else
-				mypars.cgmaps = 1;
-		}
-		// ----------------------------------
 		// Argument: derivate atom types
 		if (argcmp("derivtype", argv [i], 'T'))
 		{
@@ -262,7 +250,7 @@ int setup(
 	// Filling mygrid according to the fld file
 	if (get_gridinfo(mypars.fldfile, &mygrid) != 0)
 	{
-		printf("\n\nError in get_gridinfo, stopped job.");
+		printf("\nError in get_gridinfo, stopped job.\n");
 		return 1;
 	}
 
@@ -272,10 +260,9 @@ int setup(
 	                    &myligand_init,
 	                    &mygrid,
 	                    mypars.nr_deriv_atypes,
-	                    mypars.deriv_atypes,
-	                    mypars.cgmaps) != 0)
+	                    mypars.deriv_atypes) != 0)
 	{
-		printf("\n\nError in init_liganddata, stopped job.");
+		printf("\nError in init_liganddata, stopped job.\n");
 		return 1;
 	}
 
@@ -288,7 +275,7 @@ int setup(
 	                     mypars.nr_mod_atype_pairs,
 	                     mypars.mod_atype_pairs) != 0)
 	{
-		printf("\n\nError in parse_liganddata, stopped job.");
+		printf("\nError in parse_liganddata, stopped job.\n");
 		return 1;
 	}
 
@@ -316,8 +303,7 @@ int setup(
 					// Load maps to all_maps
 					if (load_all_maps(mypars.fldfile,
 					                  &mygrid,
-					                  all_maps,
-					                  mypars.cgmaps) != 0)
+					                  all_maps) != 0)
 					{
 						got_error = true;
 					}
@@ -326,7 +312,7 @@ int setup(
 			}
 			// Return must be outside pragma
 			if (got_error) {
-				printf("\n\nError in load_all_maps, stopped job.");
+				printf("\nError in load_all_maps, stopped job.\n");
 				return 1;
 			}
 		}
@@ -336,7 +322,7 @@ int setup(
 		                       floatgrids.data(),
 		                       all_maps) != 0)
 		{
-			printf("\n\nError in copy_from_all_maps, stopped job.");
+			printf("\nError in copy_from_all_maps, stopped job.\n");
 			return 1;
 		}
 
@@ -347,7 +333,7 @@ int setup(
 		                    &myligand_init,
 		                    all_maps) !=0)
 		{
-			printf("\n\nError in map_to_all_maps, stopped job.");
+			printf("\nError in map_to_all_maps, stopped job.\n");
 			return 1;
 		}
 	} else {
@@ -360,10 +346,9 @@ int setup(
 		mypars.nr_receptor_atoms = mypars.receptor_atoms.size();
 		// Reading the grid files and storing values in the memory region pointed by floatgrids
 		if (get_gridvalues_f(&mygrid,
-		                     floatgrids.data(),
-		                     mypars.cgmaps) != 0)
+		                     floatgrids.data()) != 0)
 		{
-			printf("\n\nError in get_gridvalues_f, stopped job.");
+			printf("\nError in get_gridvalues_f, stopped job.\n");
 			return 1;
 		}
 	}
@@ -399,10 +384,9 @@ int setup(
 		                    &myxrayligand,
 		                    &mydummygrid,
 		                    0,
-		                    NULL,
-		                    mypars.cgmaps) != 0)
+		                    NULL) != 0)
 		{
-			printf("\n\nError in init_liganddata, stopped job.");
+			printf("\nError in init_liganddata, stopped job.\n");
 			return 1;
 		}
 
@@ -414,7 +398,7 @@ int setup(
 		                     mypars.nr_mod_atype_pairs,
 		                     mypars.mod_atype_pairs) != 0)
 		{
-			printf("\n\nError in parse_liganddata, stopped job.");
+			printf("\nError in parse_liganddata, stopped job.\n");
 			return 1;
 		}
 	}
@@ -475,16 +459,16 @@ int fill_maplist(
 int load_all_maps(
                   const char*             fldfilename,
                   const Gridinfo*         mygrid,
-                        std::vector<Map>& all_maps,
-                        bool              cgmaps
+                        std::vector<Map>& all_maps
                  )
 {
 	// First, parse .fld file to get map names
 	if(fill_maplist(fldfilename,all_maps)==1) return 1;
 
 	// Now fill the maps
-	int x, y, z;
-	FILE* fp;
+	int ti, x, y, z;
+	std::ifstream fp;
+	std::string line;
 	size_t len = strlen(mygrid->grid_file_path)+strlen(mygrid->receptor_name)+1;
 	if(strlen(mygrid->map_base_name)>len)
 		len = strlen(mygrid->map_base_name);
@@ -493,62 +477,73 @@ int load_all_maps(
 	char* tempstr = (char*)malloc(len*sizeof(char));
 	int size_of_one_map = 4*mygrid->size_xyz[0]*mygrid->size_xyz[1]*mygrid->size_xyz[2];
 
+	unsigned int g1 = mygrid->size_xyz[0];
+	unsigned int g2 = g1*mygrid->size_xyz[1];
+
 	for (unsigned int t=0; t < all_maps.size(); t++)
 	{
 		all_maps[t].grid.resize(size_of_one_map);
 		float* mypoi = all_maps[t].grid.data();
-		// opening corresponding .map file
-		strcpy(tempstr,mygrid->map_base_name);
-		strcat(tempstr, ".");
-		strcat(tempstr, all_maps[t].atype.c_str());
-		strcat(tempstr, ".map");
-		fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
-		if (fp == NULL){ // try again with the receptor name in the .maps.fld file
+		// find corresponding fld entry
+		ti=-1;
+		for (x=0; x<(mygrid->grid_mapping.size()/2); x++){
+			if(mygrid->grid_mapping[x].find(all_maps[t].atype) == 0){
+				ti=x+mygrid->grid_mapping.size()/2; // found
+				break;
+			}
+		}
+		if(ti<0){
+			 // if no G-map is specified, none is used and the corresponding map is set to zeroes
+			 // - parse_ligand() will exclude those atoms from contributing to interE
+			if(strncmp(all_maps[t].atype.c_str(),"G",1)==0){
+				for (z=0; z < mygrid->size_xyz[2]; z++)
+					for (y=0; y < mygrid->size_xyz[1]; y++)
+						for (x=0; x < mygrid->size_xyz[0]; x++)
+						{
+							*mypoi = 0.0f;
+							// fill in duplicate data for linearized memory access in kernel
+							if(y>0) *(mypoi-4*g1+1) = *mypoi;
+							if(z>0) *(mypoi-4*g2+2) = *mypoi;
+							if(y>0 && z>0) *(mypoi-4*(g2+g1)+3) = *mypoi;
+							mypoi+=4;
+						}
+				continue;
+			} else{
+				printf("Error: No map file specified for atom type in fld and no derived type (--derivtype, -T) either.\n");
+				if (strncmp(all_maps[t].atype.c_str(),"CG",2)==0)
+					printf("       Expecting a derived type for each CGx (x=0..9) atom type (i.e. --derivtype CG0,CG1=C).\n");
+				return 1;
+			}
+		}
+		if(mygrid->fld_relative){
 			strcpy(tempstr,mygrid->grid_file_path);
 			strcat(tempstr, "/");
-			strcat(tempstr, mygrid->receptor_name);
-			strcat(tempstr, ".");
-			strcat(tempstr, all_maps[t].atype.c_str());
-			strcat(tempstr, ".map");
-			fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
+			strcat(tempstr, mygrid->grid_mapping[ti].c_str());
+			fp.open(tempstr);
 		}
-		if (fp == NULL)
+		if (fp.fail())
 		{
-			printf("Error: can't open %s!\n", tempstr);
-			if ((strncmp(all_maps[t].atype.c_str(),"CG",2)==0) ||
-			    (strncmp(all_maps[t].atype.c_str(),"G",1)==0))
-			{
-				if(cgmaps)
-					printf("-> Expecting an individual map for each CGx and Gx (x=0..9) atom type.\n");
-				else
-					printf("-> Expecting one map file, ending in .CG.map and .G0.map, for CGx and Gx atom types, respectively.\n");
-				}
+			printf("Error: Can't open grid map %s!\n", tempstr);
 			return 1;
 		}
 
 		// seeking to first data
-		do    fscanf(fp, "%127s", tempstr);
-		while (strcmp(tempstr, "CENTER") != 0);
-		fscanf(fp, "%127s", tempstr);
-		fscanf(fp, "%127s", tempstr);
-		fscanf(fp, "%127s", tempstr);
+		do std::getline(fp, line);
+		while (line.find("CENTER") != 0);
 
-		unsigned int g1 = mygrid->size_xyz[0];
-		unsigned int g2 = g1*mygrid->size_xyz[1];
 		// reading values
 		for (z=0; z < mygrid->size_xyz[2]; z++)
 			for (y=0; y < mygrid->size_xyz[1]; y++)
 				for (x=0; x < mygrid->size_xyz[0]; x++)
 				{
-					fscanf(fp, "%f", mypoi);
+					std::getline(fp, line); sscanf(line.c_str(), "%f", mypoi);
 					// fill in duplicate data for linearized memory access in kernel
 					if(y>0) *(mypoi-4*g1+1) = *mypoi;
 					if(z>0) *(mypoi-4*g2+2) = *mypoi;
 					if(y>0 && z>0) *(mypoi-4*(g2+g1)+3) = *mypoi;
 					mypoi+=4;
 				}
-
-		fclose(fp);
+		fp.close();
 	}
 	free(tempstr);
 	return 0;
@@ -565,13 +560,18 @@ int copy_from_all_maps(
 		// Look in all_maps for desired map
 		int i_map = -1;
 		for (unsigned int i_atype=0; i_atype < all_maps.size(); i_atype++){
-			if (strcmp(mygrid->grid_types[t],all_maps[i_atype].atype.c_str())==0){
+			if (strcmp(mygrid->ligand_grid_types[t],all_maps[i_atype].atype.c_str())==0){
 				i_map = i_atype; // Found the map!
 				break;
 			}
 		}
 		if (i_map == -1){ // Didnt find the map
-			printf("\nError: The %s map needed for the ligand was not found in the .fld file!", mygrid->grid_types[t]);
+			// which is only OK for G-type
+			if(strncmp(mygrid->ligand_grid_types[t],"G",1)==0)
+				continue;
+			printf("Error: The %s map needed for the ligand was not found in the fld file and no derived type (--derivtype, -T) either.\n", mygrid->ligand_grid_types[t]);
+			if (strncmp(mygrid->ligand_grid_types[t],"CG",2)==0)
+				printf("       Expecting a derived type for each CGx (x=0..9) atom type (i.e. --derivtype CG0,CG1=C).\n");
 			return 1;
 		}
 

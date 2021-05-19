@@ -181,8 +181,7 @@ int init_liganddata(
                           Liganddata*,
                           Gridinfo*,
                           int          nr_deriv_atypes,
-                          deriv_atype* deriv_atypes,
-                          bool         cgmaps
+                          deriv_atype* deriv_atypes
                    );
 
 int set_liganddata_typeid(

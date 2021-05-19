@@ -40,8 +40,7 @@ int preload_gridsize(FileList& filelist);
 int load_all_maps(
                   const char*             fldfilename,
                   const Gridinfo*         mygrid,
-                        std::vector<Map>& all_maps,
-                        bool              cgmaps
+                        std::vector<Map>& all_maps
                  );
 
 int copy_from_all_maps(

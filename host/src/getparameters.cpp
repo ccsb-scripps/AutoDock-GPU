@@ -201,6 +201,7 @@ int parse_dpf(
 							mypars->fldfile = strdup(argstr); // this allows using the dpf to set up all parameters but the ligand
 							// Filling mygrid according to the specified fld file
 							mygrid->info_read = false;
+							mygrid->grid_mapping.clear();
 							if (get_gridinfo(mypars->fldfile, mygrid) != 0)
 							{
 								printf("\nError: get_gridinfo failed with fld file specified with <%s> parameter at %s:%u.\n",tempstr,mypars->dpffile,line_count);
@@ -666,13 +667,16 @@ int preparse_dpf(
 				if((error=parse_dpf(mypars,mygrid,filelist))) return error;
 			}
 			mypars->pop_size=1;
+
 			// Filling mygrid according to the specified fld file
 			mygrid->info_read = false;
+			mygrid->grid_mapping.clear();
 			if (get_gridinfo(mypars->fldfile, mygrid) != 0)
 			{
 				printf("\nError: get_gridinfo failed with fld file (%s) specified in %s.\n",mypars->fldfile,mypars->load_xml);
 				return 1;
 			}
+
 			if(prev_fld_file){ // unfortunately, some strcmp implementation segfault with NULL as input
 				if(strcmp(prev_fld_file,mypars->fldfile) != 0)
 					filelist.fld_files.push_back(mypars->fldfile);
@@ -771,6 +775,7 @@ int get_filelist(
 				}
 				// Filling mygrid according to the specified fld file
 				mygrid->info_read = false;
+				mygrid->grid_mapping.clear();
 				if (get_gridinfo(filelist.fld_files[filelist.fld_files.size()-1].c_str(), mygrid) != 0)
 				{
 					printf("\nError: get_gridinfo failed with fld file specified in filelist.\n");
@@ -998,7 +1003,6 @@ void print_options(
 	printf("--smooth               | Smoothing parameter for vdW interactions              | 0.5 (Å)\n");
 	printf("--elecmindist          | Min. electrostatic potential distance (w/ dpf: 0.5 Å) | 0.01 (Å)\n");
 	printf("--modqp                | Use modified QASP from VirtualDrug or AD4 original    | 0 (no, use AD4)\n");
-	printf("--cgmaps               | Use individual maps for CG-G0 instead of the same one | 0 (no, same map)\n");
 
 	printf("\nAutodock-GPU requires a ligand and a set of grid maps as well as optionally a flexible residue to\n");
 	printf("perform a docking calculation. These could be specified directly (--lfile, --ffile, and --flexres),\n");
@@ -1521,17 +1525,6 @@ int get_commandpars(
 					return -1;
 				}
 			}
-		}
-		// ----------------------------------
-
-		// ----------------------------------
-		// Argument: Multiple CG-G0 maps or not
-		// - has already been tested for in
-		//   main.cpp, as it's needed at grid
-		//   creation time not after (now)
-		if (argcmp("cgmaps", argv [i]))
-		{
-			arg_recognized = 1; // stub to not complain about an unknown parameter
 		}
 		// ----------------------------------
 

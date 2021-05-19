@@ -62,14 +62,16 @@ typedef struct _Gridinfo
 	char*  grid_file_path = NULL; // Added to store the full path of the grid file
 	char*  receptor_name  = NULL;
 	char*  map_base_name  = NULL;
-	int    size_xyz       [3];
+	int    size_xyz         [3];
 	double spacing;
-	double size_xyz_angstr[3];
-	char   grid_types     [MAX_NUM_OF_ATYPES+2][4]; // The additional two are the electrostatic and the desolvation types
+	double size_xyz_angstr  [3];
+	char   ligand_grid_types[MAX_NUM_OF_ATYPES+2][4]; // The additional two are the electrostatic and the desolvation types
+	bool   fld_relative   = true; // By default (and until further notice) map file names are relative to the fld file
 	int    num_of_atypes;
 	int    num_of_map_atypes;
-	double origo_real_xyz [3];
+	double origo_real_xyz   [3];
 	bool   info_read      = false; // so we don't have to continue reading the same information over and over again
+	std::vector<std::string> grid_mapping; // stores the atom types and associated map filenames from the fld file
 } Gridinfo;
 
 struct Map
@@ -86,14 +88,12 @@ int get_gridinfo(
 
 int get_gridvalues_f(
                      const Gridinfo* mygrid,
-                           float**   fgrids,
-                           bool      cgmaps
+                           float**   fgrids
                     );
 
 int get_gridvalues_f(
                      const Gridinfo* mygrid,
-                           float*    fgrids,
-                           bool      cgmaps
+                           float*    fgrids
                     );
 
 #endif /* PROCESSGRID_H_ */

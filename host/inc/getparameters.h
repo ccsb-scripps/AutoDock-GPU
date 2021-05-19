@@ -119,7 +119,6 @@ typedef struct _Dockpars
 	bool                      autostop                        = true;
 	unsigned int              as_frequency                    = 5;
 	float                     stopstd                         = 0.15;
-	bool                      cgmaps                          = false; // default is false (use a single map for every CGx or Gx atom type)
 	unsigned long             num_of_runs                     = 20;
 	unsigned int              list_nr                         = 0;
 	bool                      reflig_en_required              = false;

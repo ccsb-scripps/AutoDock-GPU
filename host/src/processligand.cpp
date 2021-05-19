@@ -43,12 +43,11 @@ int init_liganddata(
                           Liganddata*  myligand,
                           Gridinfo*    mygrid,
                           int          nr_deriv_atypes,
-                          deriv_atype* deriv_atypes,
-                          bool         cgmaps
+                          deriv_atype* deriv_atypes
                    )
 // The functions first parameter is an empty Liganddata, the second a variable of
 // Gridinfo type. The function fills the num_of_atypes and atom_types fields of
-// myligand according to the num_of_atypes and grid_types fields of mygrid. In
+// myligand according to the num_of_atypes and ligand_grid_types fields of mygrid. In
 // this case it is supposed, that the ligand and receptor described by the two
 // parameters correspond to each other.
 // If the operation was successful, the function returns 0, if not, it returns 1.
@@ -155,16 +154,6 @@ int init_liganddata(
 		mygrid->num_of_map_atypes   = num_of_base_atypes;
 		fp.close();
 	}
-#if defined(CG_G0_INFO)
-	if (cgmaps)
-	{
-		printf("Expecting individual maps for CGx and Gx atom types (x=0..9).\n");
-	}
-	else
-	{
-		printf("Using one map file, .CG.map and .G0.map, for CGx and Gx atom types, respectively.\n");
-	}
-#endif
 #ifdef TYPE_INFO
 	printf("Ligand contains %i base types and %i derived types.\n",num_of_base_atypes,num_of_atypes-num_of_base_atypes);
 #endif
@@ -172,21 +161,24 @@ int init_liganddata(
 	{
 		strcpy(myligand->atom_types[i], atom_types[i]);
 		strcpy(myligand->base_atom_types[i], base_atom_types[i]);
-		strcpy(mygrid->grid_types[myligand->base_type_idx[i]], base_atom_types[i]);
-		if(strncmp(base_atom_types[i],"CG",2)+strncmp(base_atom_types[i],"G",1)==0){
-			memcpy(mygrid->grid_types[myligand->base_type_idx[i]], base_atom_types[i],2*sizeof(char));
-			mygrid->grid_types[myligand->base_type_idx[i]][2] = '\0'; // make sure CG0..9 results in CG
-			if (isdigit(mygrid->grid_types[myligand->base_type_idx[i]][1])) // make sure G0..9 results in G0
-				mygrid->grid_types[myligand->base_type_idx[i]][1] = '0';
+		strcpy(mygrid->ligand_grid_types[myligand->base_type_idx[i]], base_atom_types[i]);
+		if(strncmp(atom_types[i],"CG",2)+strncmp(atom_types[i],"G",1)==0){ // CGx and Gx can have derived types but purely to determine which map to use (so only ligand_grid_types should be set to base_type)
+			memcpy(mygrid->ligand_grid_types[myligand->base_type_idx[i]], base_atom_types[i],2*sizeof(char)); // only base type name is copied
+			if(strcmp(atom_types[i],base_atom_types[i])!=0){ // derived CGx/Gx type
+				strcpy(myligand->base_atom_types[i], atom_types[i]);
+			}
+			mygrid->ligand_grid_types[myligand->base_type_idx[i]][2] = '\0'; // make sure CG0..9 results in CG
+			if (isdigit(mygrid->ligand_grid_types[myligand->base_type_idx[i]][1])) // make sure G0..9 results in G0
+				mygrid->ligand_grid_types[myligand->base_type_idx[i]][1] = '0';
 		}
 #ifdef TYPE_INFO
-		printf("Atom type %i -> %s -> %s (grid type %i)\n",i,myligand->atom_types[i],mygrid->grid_types[myligand->base_type_idx[i]],myligand->base_type_idx[i]);
+		printf("Atom type %i -> %s -> %s (grid type %i)\n",i,myligand->atom_types[i],mygrid->ligand_grid_types[myligand->base_type_idx[i]],myligand->base_type_idx[i]);
 #endif
 	}
 
 	// adding the two other grid types to mygrid
-	strcpy(mygrid->grid_types[num_of_base_atypes],   "e");
-	strcpy(mygrid->grid_types[num_of_base_atypes+1], "d");
+	strcpy(mygrid->ligand_grid_types[num_of_base_atypes],   "e");
+	strcpy(mygrid->ligand_grid_types[num_of_base_atypes+1], "d");
 
 	return 0;
 }
@@ -1156,8 +1148,11 @@ int parse_liganddata(
 				sscanf(&line.c_str()[77], "%3s", tempstr); // reading atom type
 				tempstr[3]='\0';
 				if (set_liganddata_typeid(myligand, atom_counter, tempstr) != 0) // the function sets the type index
-					exit(42);
-//					return 1;
+					return 1;
+				if(tempstr[0]=='G'){ // G-type are ignored for inter calc unless there is a map specified (checked above)
+					if(myligand->atom_idxyzq[atom_counter][0]==myligand->atom_map_to_fgrids[atom_counter])
+						myligand->ignore_inter[atom_counter] = true;
+				}
 				atom_counter++;
 			}
 		}
@@ -2499,15 +2494,21 @@ int map_to_all_maps(
 		int type_idx = myligand->base_type_idx[type];
 		int map_idx = -1;
 		for (unsigned int i_map = 0; i_map<all_maps.size(); i_map++){
-			if (strcmp(all_maps[i_map].atype.c_str(),mygrid->grid_types[type_idx])==0){
+			if (strcmp(all_maps[i_map].atype.c_str(),mygrid->ligand_grid_types[type_idx])==0){
 				map_idx = i_map;
 				break;
 			}
 		}
-		if (map_idx == -1) {printf("\nERROR: Did not map to all_maps correctly."); return 1;}
+		if (map_idx == -1){ // didn't find the map
+			// which is only OK for G-type
+			if(strncmp(mygrid->ligand_grid_types[type_idx],"G",1)==0)
+				continue;
+			printf("\nERROR: Did not map to all_maps correctly.");
+			return 1;
+		}
 
 		myligand->atom_map_to_fgrids[i_atom] = map_idx;
-//		printf("\nMapping atom %d (type %d, %s) in the ligand to map #%d (%s)",i_atom,type_idx,mygrid->grid_types[type_idx],map_idx,all_maps[map_idx].atype.c_str());
+//		printf("\nMapping atom %d (type %d, %s) in the ligand to map #%d (%s)",i_atom,type_idx,mygrid->ligand_grid_types[type_idx],map_idx,all_maps[map_idx].atype.c_str());
 	}
 
 	return 0;

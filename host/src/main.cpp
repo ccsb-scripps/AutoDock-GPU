@@ -270,7 +270,7 @@ int main(int argc, char* argv[])
 			if (setup(all_maps, mygrid, floatgrids, mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv) != 0) {
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
 				// Keep in setup stage rather than moving to launch stage so a different job will be set up
-				printf("\n\nError in setup of Job #%d", i_job+1);
+				printf("\nError in setup of Job #%d", i_job+1);
 				if (filelist.used){
 					printf(":\n");
 					printf("(   Grid map file: %s )\n",  mypars.fldfile);
@@ -364,7 +364,7 @@ int main(int argc, char* argv[])
 				if (error_in_docking!=0){
 					// If error encountered: Set error flag to 1; Add to count of finished jobs
 					// Set back to setup stage rather than moving to processing stage so a different job will be set up
-					printf("\n\nError in docking_with_gpu, stopped Job #%d.\n",i_job+1);
+					printf("\nError in docking_with_gpu, stopped Job #%d.\n",i_job+1);
 					err[i_job] = 1;
 					continue;
 				} else { // Successful run
@@ -424,17 +424,17 @@ int main(int argc, char* argv[])
 	
 #ifndef _WIN32
 	// Total time measurement
-	printf("Run time of entire job set (%d file%s): %.3f sec", n_files, n_files>1?"s":"", seconds_since(time_start));
+	printf("\nRun time of entire job set (%d file%s): %.3f sec\n", n_files, n_files>1?"s":"", seconds_since(time_start));
 #ifdef USE_PIPELINE
 	if(n_files>1){
-		printf("\nSavings from multithreading: %.3f sec",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
+		printf("Savings from multithreading: %.3f sec\n",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
 		//if (filelist.preload_maps) printf("\nSavings from receptor reuse: %.3f sec * avg_maps_used/n_maps",receptor_reuse_time*n_files);
-		printf("\nIdle time of execution thread: %.3f sec",seconds_since(time_start) - total_exec_time);
+		printf("Idle time of execution thread: %.3f sec\n",seconds_since(time_start) - total_exec_time);
 		if (get_profiles && filelist.used && !initial_pars.xml2dlg) // output profile with filelist name or dpf file name (depending on what is available)
 			profiler.write_profiles_to_file((filelist.filename!=NULL) ? filelist.filename : initial_pars.dpffile);
-	} else printf("\nProcessing time: %.3f sec",total_processing_time);
+	} else printf("Processing time: %.3f sec\n",total_processing_time);
 #else
-	printf("\nProcessing time: %.3f sec",total_processing_time);
+	printf("\nProcessing time: %.3f sec\n",total_processing_time);
 #endif
 #endif
 	if(!initial_pars.xml2dlg)
@@ -446,8 +446,8 @@ int main(int argc, char* argv[])
 	for (int i=0; i<n_files; i++){
 		if (err[i]==1){
 			if (filelist.used){
-				if (n_errors==0) printf("\nWARNING: The following jobs were not successful:\n");
-				printf("Job %d: %s\n", i, filelist.ligand_files[i].c_str());
+				if (n_errors==0) printf("\nWarning: The following jobs were not successful:\n");
+				printf("         Job %d: %s\n", i, filelist.ligand_files[i].c_str());
 			} else {
 				printf("\nThe job was not successful.\n");
 			}

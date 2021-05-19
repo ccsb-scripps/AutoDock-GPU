@@ -32,11 +32,13 @@ int get_gridinfo(
 {
 	if(mygrid->info_read) return 0; // already succesfully read this grid's information
 
-	FILE*  fp;
+	std::ifstream fp;
+	std::string line;
 	char   tempstr [256];
 	int    gpoints_even[3];
 	int    recnamelen;
 	double center[3];
+	int grid_types=0;
 
 	// ----------------------------------------------------
 	// Getting full path fo the grid file
@@ -61,8 +63,8 @@ int get_gridinfo(
 	// ----------------------------------------------------
 
 	// Processing fld file
-	fp = fopen(fldfilename, "rb"); // fp = fopen(fldfilename, "r");
-	if (fp == NULL)
+	fp.open(fldfilename);
+	if (fp.fail())
 	{
 		printf("Error: can't open fld file %s!\n", fldfilename);
 		return 1;
@@ -80,15 +82,16 @@ int get_gridinfo(
 		strcpy(mygrid->map_base_name,fldfilename);
 	}
 
-	while (fscanf(fp, "%255s", tempstr) != EOF)
+	while(std::getline(fp, line))
 	{
+		sscanf(line.c_str(),"%255s",tempstr);
 		// -----------------------------------
 		// Reorder according to file *.maps.fld
 		// -----------------------------------
 		// Grid spacing
 		if (strcmp(tempstr, "#SPACING") == 0)
 		{
-			fscanf(fp, "%lf", &(mygrid->spacing));
+			sscanf(&line.c_str()[8], "%lf", &(mygrid->spacing));
 			if (mygrid->spacing > 1)
 			{
 				printf("Error: grid spacing is too big!\n");
@@ -99,7 +102,7 @@ int get_gridinfo(
 		// capturing number of grid points
 		if (strcmp(tempstr, "#NELEMENTS") == 0)
 		{
-			fscanf(fp, "%d%d%d", &(gpoints_even[0]), &(gpoints_even[1]), &(gpoints_even[2]));
+			sscanf(&line.c_str()[10], "%d %d %d", &(gpoints_even[0]), &(gpoints_even[1]), &(gpoints_even[2]));
 			// plus one gridpoint in each dimension
 			mygrid->size_xyz[0] = gpoints_even[0] + 1;
 			mygrid->size_xyz[1] = gpoints_even[1] + 1;
@@ -116,13 +119,13 @@ int get_gridinfo(
 		// Capturing center
 		if (strcmp(tempstr, "#CENTER") == 0)
 		{
-			fscanf(fp, "%lf%lf%lf", &(center[0]), &(center[1]), &(center[2]));
+			sscanf(&line.c_str()[7], "%lf %lf %lf", &(center[0]), &(center[1]), &(center[2]));
 		}
 
 		// Name of the receptor and corresponding files
 		if (strcmp(tempstr, "#MACROMOLECULE") == 0)
 		{
-			fscanf(fp, "%255s", tempstr);
+			sscanf(&line.c_str()[14], "%255s", tempstr);
 			recnamelen = strcspn(tempstr,".");
 			tempstr[recnamelen] = '\0';
 			int len = strlen(tempstr)+1;
@@ -130,10 +133,35 @@ int get_gridinfo(
 			strcpy(mygrid->receptor_name, tempstr);
 		}
 
-		// -----------------------------------
-		// MISSING: similar section corresponding to
-		// #GRID_PARAMETER_FILE
-		// -----------------------------------
+		if (line.find("label=") == 0)
+		{
+			sscanf(&line.c_str()[6],"%255s", tempstr);
+			char* typesep = strchr(tempstr,'-'); // <atom type>-affinity ...
+			if(typesep!=NULL){
+				typesep[0]='\0'; // tempstr is now just the atom type
+			} else{
+				tempstr[1]='\0'; // tempstr is now either E(lectrostatics) or D(esolvation)
+				tempstr[0]=tolower(tempstr[0]); // lower-case it
+			}
+			mygrid->grid_mapping.push_back(tempstr);
+			grid_types++;
+		}
+		
+		if (strcmp(tempstr, "variable") == 0)
+		{
+			size_t fidx = line.find("file=");
+			if(fidx==std::string::npos){
+				printf("Error: grid map file names cannot be read.\n");
+				return 1;
+			}
+			sscanf(&line.c_str()[fidx+5],"%255s", tempstr);
+			mygrid->grid_mapping.push_back(tempstr);
+		}
+	}
+	
+	if(mygrid->grid_mapping.size() != 2*grid_types){
+		printf("Error: Number of grid map labels (%d) and filenames (%d) mismatched in fld file.\n", grid_types, mygrid->grid_mapping.size()-grid_types);
+		return 1;
 	}
 
 	// calculating grid size
@@ -146,7 +174,7 @@ int get_gridinfo(
 	mygrid->origo_real_xyz[1] = center[1] - (((double) gpoints_even[1])*0.5*(mygrid->spacing));
 	mygrid->origo_real_xyz[2] = center[2] - (((double) gpoints_even[2])*0.5*(mygrid->spacing));
 
-	fclose(fp);
+	fp.close();
 	mygrid->info_read = true;
 
 	return 0;
@@ -154,8 +182,7 @@ int get_gridinfo(
 
 int get_gridvalues_f(
                      const Gridinfo* mygrid,
-                           float**   fgrids,
-                           bool      cgmaps
+                           float**   fgrids
                     )
 {
 	*fgrids = (float*) malloc(4*(sizeof(float))*(mygrid->num_of_atypes+2)*
@@ -167,13 +194,12 @@ int get_gridvalues_f(
 		printf("Error: not enough memory!\n");
 		return 1;
 	}
-	return get_gridvalues_f(mygrid, *fgrids, cgmaps);
+	return get_gridvalues_f(mygrid, *fgrids);
 }
 
 int get_gridvalues_f(
                      const Gridinfo* mygrid,
-                           float*    fgrids,
-                           bool      cgmaps
+                           float*    fgrids
                     )
 // The function reads the grid point values from the .map files
 // that correspond to the receptor given by the first parameter.
@@ -182,8 +208,9 @@ int get_gridvalues_f(
 // If there are any errors, it returns 1, otherwise
 // the return value is 0.
 {
-	int t, x, y, z;
-	FILE* fp;
+	int t, ti, x, y, z;
+	std::ifstream fp;
+	std::string line;
 	size_t len = strlen(mygrid->grid_file_path)+strlen(mygrid->receptor_name)+1;
 	if(strlen(mygrid->map_base_name)>len)
 		len = strlen(mygrid->map_base_name);
@@ -192,61 +219,72 @@ int get_gridvalues_f(
 	char* tempstr = (char*)malloc(len*sizeof(char));
 	float* mypoi;
 
+	unsigned int g1 = mygrid->size_xyz[0];
+	unsigned int g2 = g1*mygrid->size_xyz[1];
 	mypoi = fgrids;
 
 	for (t=0; t < mygrid->num_of_atypes+2; t++)
 	{
-		// opening corresponding .map file
-		strcpy(tempstr,mygrid->map_base_name);
-		strcat(tempstr, ".");
-		strcat(tempstr, mygrid->grid_types[t]);
-		strcat(tempstr, ".map");
-		fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
-		if (fp == NULL){ // try again with the receptor name in the .maps.fld file
+		// find corresponding fld entry
+		ti=-1;
+		for (x=0; x<(mygrid->grid_mapping.size()/2); x++){
+			if(mygrid->grid_mapping[x].find(mygrid->ligand_grid_types[t]) == 0){
+				ti=x+mygrid->grid_mapping.size()/2; // found
+				break;
+			}
+		}
+		if(ti<0){
+			 // if no G-map is specified, none is used and the corresponding map is set to zeroes
+			 // - parse_ligand() will exclude those atoms from contributing to interE
+			if(strncmp(mygrid->ligand_grid_types[t],"G",1)==0){
+				for (z=0; z < mygrid->size_xyz[2]; z++)
+					for (y=0; y < mygrid->size_xyz[1]; y++)
+						for (x=0; x < mygrid->size_xyz[0]; x++)
+						{
+							*mypoi = 0.0f;
+							// fill in duplicate data for linearized memory access in kernel
+							if(y>0) *(mypoi-4*g1+1) = *mypoi;
+							if(z>0) *(mypoi-4*g2+2) = *mypoi;
+							if(y>0 && z>0) *(mypoi-4*(g2+g1)+3) = *mypoi;
+							mypoi+=4;
+						}
+				continue;
+			} else{
+				printf("Error: No map file specified for atom type in fld and no derived type (--derivtype, -T) either.\n");
+				if (strncmp(mygrid->ligand_grid_types[t],"CG",2)==0)
+					printf("       Expecting a derived type for each CGx (x=0..9) atom type (i.e. --derivtype CG0,CG1=C).\n");
+				return 1;
+			}
+		}
+		if(mygrid->fld_relative){
 			strcpy(tempstr,mygrid->grid_file_path);
 			strcat(tempstr, "/");
-			strcat(tempstr, mygrid->receptor_name);
-			strcat(tempstr, ".");
-			strcat(tempstr, mygrid->grid_types[t]);
-			strcat(tempstr, ".map");
-			fp = fopen(tempstr, "rb"); // fp = fopen(tempstr, "r");
+			strcat(tempstr, mygrid->grid_mapping[ti].c_str());
+			fp.open(tempstr);
 		}
-		if (fp == NULL)
+		if (fp.fail())
 		{
-			printf("Error: can't open %s!\n", tempstr);
-			if ((strncmp(mygrid->grid_types[t],"CG",2)==0) ||
-			    (strncmp(mygrid->grid_types[t],"G",1)==0))
-			{
-				if(cgmaps)
-					printf("-> Expecting an individual map for each CGx and Gx (x=0..9) atom type.\n");
-				else
-					printf("-> Expecting one map file, ending in .CG.map and .G0.map, for CGx and Gx atom types, respectively.\n");
-			}
+			printf("Error: Can't open grid map %s!\n", tempstr);
 			return 1;
 		}
 
 		// seeking to first data
-		do    fscanf(fp, "%127s", tempstr);
-		while (strcmp(tempstr, "CENTER") != 0);
-		fscanf(fp, "%127s", tempstr);
-		fscanf(fp, "%127s", tempstr);
-		fscanf(fp, "%127s", tempstr);
+		do std::getline(fp, line);
+		while (line.find("CENTER") != 0);
 
-		unsigned int g1 = mygrid->size_xyz[0];
-		unsigned int g2 = g1*mygrid->size_xyz[1];
 		// reading values
 		for (z=0; z < mygrid->size_xyz[2]; z++)
 			for (y=0; y < mygrid->size_xyz[1]; y++)
 				for (x=0; x < mygrid->size_xyz[0]; x++)
 				{
-					fscanf(fp, "%f", mypoi);
+					std::getline(fp, line); sscanf(line.c_str(), "%f", mypoi);
 					// fill in duplicate data for linearized memory access in kernel
 					if(y>0) *(mypoi-4*g1+1) = *mypoi;
 					if(z>0) *(mypoi-4*g2+2) = *mypoi;
 					if(y>0 && z>0) *(mypoi-4*(g2+g1)+3) = *mypoi;
 					mypoi+=4;
 				}
-		fclose(fp);
+		fp.close();
 	}
 	free(tempstr);
 	return 0;
