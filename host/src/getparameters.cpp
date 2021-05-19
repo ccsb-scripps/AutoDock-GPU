@@ -174,6 +174,10 @@ int parse_dpf(
 			tempstr[0]='\0';
 			sscanf(line.c_str(),"%255s",tempstr);
 			int token_id = dpf_token(tempstr);
+			if (token_id >= DPF_MOVE ){ // take care of end-comments for regular tokens
+				int comment_loc = line.find("#");
+				if(comment_loc>0) line.erase(comment_loc,line.size()-comment_loc);
+			}
 			switch(token_id){
 				case DPF_MOVE: // movable ligand file name
 						if(!mypars->xml2dlg){
