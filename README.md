@@ -82,30 +82,34 @@ By default the output log file is written in the current working folder. Example
 
 ## Supported arguments
 
-| Argument          |   | Description                                           | Default value    |
+| Argument          |   | Description                                           | Default value    <tr><td colspan="4">**INPUT**</td></tr>
 |:------------------|:-:|:------------------------------------------------------|-----------------:|
 |--lfile            |-L | Ligand pdbqt file                                     | no default       |
 |--ffile            |-M | Grid map files descriptor fld file                    | no default       |
 |--flexres          |-F | Flexible residue pdbqt file                           | no default       |
 |--filelist         |-B | Batch file                                            | no default       |
 |--import_dpf       |-I | Import AD4-type dpf input file (only partial support) | no default       |
+|--xraylfile        |-R | reference ligand file for RMSD analysis               | ligand file      <tr><td colspan="4">**CONVERSION**</td></tr>
+|--xml2dlg          |-X | One (or many) AD-GPU xml file(s) to convert to dlg(s) | no default       <tr><td colspan="4">**OUTPUT**</td></tr>
 |--resnam           |-N | Name for docking output log                           | ligand basename  |
-|--xraylfile        |-R | reference ligand file for RMSD analysis               | ligand file      |
+|--contact_analysis |-C | Perform distance-based analysis (description below)   | 0 (no)           |
+|--xmloutput        |-x | Specify if xml output format is wanted                | 1 (yes)          |
+|--dlgoutput        |-d | Control if dlg output is created                      | 1 (yes)          |
+|--dlg2stdout       |-2 | Write dlg file output to stdout (if not OVERLAP=ON)   | 0 (no)           |
+|--rlige            |   | Print reference ligand energies                       | 0 (no)           |
+|--gfpop            |   | Output all poses from all populations of each LGA run | 0 (no)           |
+|--npdb             |   | # pose pdbqt files from populations of each LGA run   | 0                |
+|--gbest            |   | Output single best pose as pdbqt file                 | 0 (no)           |
+|--clustering       |   | Output clustering analysis in dlg and/or xml file     | 1 (yes)          |
+|--hsym             |   | Handle symmetry in RMSD calc.                         | 1 (yes)          |
+|--rmstol           |   | RMSD clustering tolerance                             | 2 (Å)            <tr><td colspan="4">**SETUP**</td></tr>
 |--devnum           |-D | OpenCL/Cuda device number (counting starts at 1)      | 1                |
-|--derivtype        |-T | Derivative atom types (e.g. C1,C2,C3=C/S4=S/H5=HD)    | no default       |
-|--modpair          |-P | Modify vdW pair params (e.g. C1:S4,1.60,1.200,13,7)   | no default       |
+|--loadxml          |-c | Load initial population from xml results file         | no default       |
+|--seed             |-s | Random number seeds (up to three comma-sep. integers) | time, process id <tr><td colspan="4">**SEARCH**</td></tr>
 |--heuristics       |-H | Ligand-based automatic search method and # evals      | 1 (yes)          |
 |--heurmax          |-E | Asymptotic heuristics # evals limit (smooth limit)    | 12000000         |
 |--autostop         |-A | Automatic stopping criterion based on convergence     | 1 (yes)          |
 |--asfreq           |-a | AutoStop testing frequency (in # of generations)      | 5                |
-|--contact_analysis |-C | Perform distance-based analysis (description below)   | 0 (no)           |
-|--xml2dlg          |-X | One (or many) AD-GPU xml file(s) to convert to dlg(s) | no default       |
-|--xmloutput        |-x | Specify if xml output format is wanted                | 1 (yes)          |
-|--loadxml          |-c | Load initial population from xml results file         | no default       |
-|--dlgoutput        |-d | Control if dlg output is created                      | 1 (yes)          |
-|--dlg2stdout       |-2 | Write dlg file output to stdout (if not OVERLAP=ON)   | 0 (no)           |
-|--seed             |-s | Random number seeds (up to three comma-sep. integers) | time, process id |
-|--ubmod            |-u | Unbound model: 0 (bound), 1 (extended), 2 (compact)   | 0 (same as bound)|
 |--nrun             |-n | # LGA runs                                            | 20               |
 |--nev              |-e | # Score evaluations (max.) per LGA run                | 2500000          |
 |--ngen             |-g | # Generations (max.) per LGA run                      | 42000            |
@@ -116,24 +120,21 @@ By default the output log file is written in the current working folder. Example
 |--crat             |   | Crossover rate                                        | 80  (%)          |
 |--lsrat            |   | Local-search rate                                     | 100 (%)          |
 |--trat             |   | Tournament (selection) rate                           | 60  (%)          |
-|--rlige            |   | Print reference ligand energies                       | 0 (no)           |
-|--hsym             |   | Handle symmetry in RMSD calc.                         | 1 (yes)          |
-|--rmstol           |   | RMSD clustering tolerance                             | 2 (Å)            |
-|--dmov             |   | Maximum LGA movement delta                            | 6 (Å)            |
+|--dmov             |   | Maximum LGA movement delta                            | 6 (Å)            |
 |--dang             |   | Maximum LGA angle delta                               | 90 (°)           |
 |--rholb            |   | Solis-Wets lower bound of rho parameter               | 0.01             |
-|--lsmov            |   | Solis-Wets movement delta                             | 2 (Å)            |
+|--lsmov            |   | Solis-Wets movement delta                             | 2 (Å)            |
 |--lsang            |   | Solis-Wets angle delta                                | 75 (°)           |
 |--cslim            |   | Solis-Wets cons. success/failure limit to adjust rho  | 4                |
+|--stopstd          |   | AutoStop energy standard deviation tolerance          | 0.15 (kcal/mol)  |
+|--initswgens       |   | Initial # generations of Solis-Wets instead of -lsmet | 0 (no)           <tr><td colspan="4">**SCORING**</td></tr>
+|--derivtype        |-T | Derivative atom types (e.g. C1,C2,C3=C/S4=S/H5=HD)    | no default       |
+|--modpair          |-P | Modify vdW pair params (e.g. C1:S4,1.60,1.200,13,7)   | no default       |
+|--ubmod            |-u | Unbound model: 0 (bound), 1 (extended), 2 (compact)   | 0 (same as bound)|
 |--smooth           |   | Smoothing parameter for vdW interactions              | 0.5 (Å)          |
 |--elecmindist      |   | Min. electrostatic potential distance (w/ dpf: 0.5 Å) | 0.01 (Å)         |
 |--modqp            |   | Use modified QASP from VirtualDrug or AD4 original    | 0 (no, use AD4)  |
 |--cgmaps           |   | Use individual maps for CG-G0 instead of the same one | 0 (no, same map) |
-|--stopstd          |   | AutoStop energy standard deviation tolerance          | 0.15 (kcal/mol)  |
-|--initswgens       |   | Initial # generations of Solis-Wets instead of -lsmet | 0 (no)           |
-|--gfpop            |   | Output all poses from all populations of each LGA run | 0 (no)           |
-|--npdb             |   | # pose pdbqt files from populations of each LGA run   | 0                |
-|--gbest            |   | Output single best pose as pdbqt file                 | 0 (no)           |
 
 Autostop is ON by default since v1.4. The collective distribution of scores among all LGA populations
 is tested for convergence every `<asfreq>` generations, and docking is stopped if the top-scored poses
