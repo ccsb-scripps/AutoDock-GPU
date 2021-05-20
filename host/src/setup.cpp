@@ -569,7 +569,7 @@ int copy_from_all_maps(
 			// which is only OK for G-type
 			if(strncmp(mygrid->ligand_grid_types[t],"G",1)==0)
 				continue;
-			printf("Error: The %s map needed for the ligand was not found in the fld file and no derived type (--derivtype, -T) either.\n", mygrid->ligand_grid_types[t]);
+			printf("Error: The %s map needed for the ligand was not found in the fld file and no derived type (--derivtype, -T) was specified either.\n", mygrid->ligand_grid_types[t]);
 			if (strncmp(mygrid->ligand_grid_types[t],"CG",2)==0)
 				printf("       Expecting a derived type for each CGx (x=0..9) atom type (i.e. --derivtype CG0,CG1=C).\n");
 			return 1;

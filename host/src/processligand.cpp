@@ -162,10 +162,14 @@ int init_liganddata(
 		strcpy(myligand->atom_types[i], atom_types[i]);
 		strcpy(myligand->base_atom_types[i], base_atom_types[i]);
 		strcpy(mygrid->ligand_grid_types[myligand->base_type_idx[i]], base_atom_types[i]);
-		if(strncmp(atom_types[i],"CG",2)+strncmp(atom_types[i],"G",1)==0){ // CGx and Gx can have derived types but purely to determine which map to use (so only ligand_grid_types should be set to base_type)
+		if((strncmp(atom_types[i],"CG",2)==0) || (strncmp(atom_types[i],"G",1)==0)){ // CGx and Gx can have derived types but purely to determine which map to use (so only ligand_grid_types should be set to base_type)
 			memcpy(mygrid->ligand_grid_types[myligand->base_type_idx[i]], base_atom_types[i],2*sizeof(char)); // only base type name is copied
-			if(strcmp(atom_types[i],base_atom_types[i])!=0){ // derived CGx/Gx type
+			if(strcmp(atom_types[i],base_atom_types[i])!=0){ // derived CGx/Gx type exists
 				strcpy(myligand->base_atom_types[i], atom_types[i]);
+			} else{
+				if(strncmp(atom_types[i],"CG",2)==0){ // if no derived type CG type exists, use C map by default
+					mygrid->ligand_grid_types[myligand->base_type_idx[i]][1] = '\0'; // CG was already in there
+				}
 			}
 			mygrid->ligand_grid_types[myligand->base_type_idx[i]][2] = '\0'; // make sure CG0..9 results in CG
 			if (isdigit(mygrid->ligand_grid_types[myligand->base_type_idx[i]][1])) // make sure G0..9 results in G0
