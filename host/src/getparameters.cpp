@@ -133,7 +133,8 @@ int dpf_token(const char* token)
 int parse_dpf(
               Dockpars* mypars,
               Gridinfo* mygrid,
-              FileList& filelist
+              FileList& filelist,
+              bool get_grid_info = true
              )
 {
 	if (mypars->dpffile)
@@ -194,7 +195,7 @@ int parse_dpf(
 						}
 						break;
 				case DPF_FLD: // grid data file name
-						if(!mypars->xml2dlg){
+						if(get_grid_info){
 							sscanf(line.c_str(),"%*s %255s",argstr);
 							// Add the .fld file
 							if(mypars->fldfile) free(mypars->fldfile);
@@ -688,7 +689,7 @@ int preparse_dpf(
 			}
 
 			if(!specified_dpf){ // parse dpf file in XML file unless user specified one
-				if((error=parse_dpf(mypars,mygrid,filelist))) return error;
+				if((error=parse_dpf(mypars,mygrid,filelist,false))) return error;
 			}
 			mypars->pop_size=1;
 
