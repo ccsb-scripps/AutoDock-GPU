@@ -30,7 +30,11 @@ int get_gridinfo(
                        Gridinfo* mygrid
                 )
 {
-	if(mygrid->info_read) return 0; // already succesfully read this grid's information
+	if(strcmp(fldfilename,mygrid->fld_name.c_str())==0)
+		return 0; // already successfully read this grid's information
+
+	if(mygrid->fld_name.size()) // clear grid mapping if information from a previous fld file exists
+		mygrid->grid_mapping.clear();
 
 	std::ifstream fp;
 	std::string line;
@@ -46,20 +50,16 @@ int get_gridinfo(
 	//char* dir = dirname(ts1);
 	//char* filename = basename(ts1);
 
-	char* ts1 = strdup(fldfilename);
 	#ifndef _WIN32
-	mygrid->grid_file_path = strdup(dirname(ts1));
+	char* ts1 = strdup(fldfilename);
+	mygrid->grid_file_path = dirname(ts1);
+	free(ts1);
 	#else
 	char drive_tmp[_MAX_DRIVE];
 	char path_tmp[_MAX_DIR];
-	_splitpath(ts1, drive_tmp, path_tmp, NULL, NULL);
-	
-	char result[_MAX_DRIVE+_MAX_DIR];
-	strcpy(result, drive_tmp);
-	strcat(result, path_tmp);
-	mygrid->grid_file_path = strdup(result);
+	_splitpath(fldfilename, drive_tmp, path_tmp, NULL, NULL);
+	mygrid->grid_file_path = drive_tmp + path_tmp;
 	#endif
-	free(ts1); // clean up
 	// ----------------------------------------------------
 
 	// Processing fld file
@@ -73,13 +73,9 @@ int get_gridinfo(
 	const char* ext = strstr(fldfilename,".maps");
 	if(ext){
 		int len=ext-fldfilename;
-		mygrid->map_base_name = (char*)malloc((len+1)*sizeof(char));
-		strncpy(mygrid->map_base_name,fldfilename,len);
-		mygrid->map_base_name[len]='\0';
+		mygrid->map_base_name.assign(fldfilename,len);
 	} else{
-		int len=strlen(fldfilename)+1;
-		mygrid->map_base_name = (char*)malloc(len*sizeof(char));
-		strcpy(mygrid->map_base_name,fldfilename);
+		mygrid->map_base_name = fldfilename;
 	}
 
 	while(std::getline(fp, line))
@@ -129,8 +125,7 @@ int get_gridinfo(
 			recnamelen = strcspn(tempstr,".");
 			tempstr[recnamelen] = '\0';
 			int len = strlen(tempstr)+1;
-			mygrid->receptor_name = (char*)malloc(len*sizeof(char));
-			strcpy(mygrid->receptor_name, tempstr);
+			mygrid->receptor_name = tempstr;
 		}
 
 		if (line.find("label=") == 0)
@@ -175,7 +170,7 @@ int get_gridinfo(
 	mygrid->origo_real_xyz[2] = center[2] - (((double) gpoints_even[2])*0.5*(mygrid->spacing));
 
 	fp.close();
-	mygrid->info_read = true;
+	mygrid->fld_name = fldfilename;
 
 	return 0;
 }
@@ -210,13 +205,7 @@ int get_gridvalues_f(
 {
 	int t, ti, x, y, z;
 	std::ifstream fp;
-	std::string line;
-	size_t len = strlen(mygrid->grid_file_path)+strlen(mygrid->receptor_name)+1;
-	if(strlen(mygrid->map_base_name)>len)
-		len = strlen(mygrid->map_base_name);
-	len += 10; // "..map\0" = 6 entries + 4 at most for grid type
-	if(len<128) len=128;
-	char* tempstr = (char*)malloc(len*sizeof(char));
+	std::string fn, line;
 	float* mypoi;
 
 	unsigned int g1 = mygrid->size_xyz[0];
@@ -257,14 +246,12 @@ int get_gridvalues_f(
 			}
 		}
 		if(mygrid->fld_relative){
-			strcpy(tempstr,mygrid->grid_file_path);
-			strcat(tempstr, "/");
-			strcat(tempstr, mygrid->grid_mapping[ti].c_str());
-			fp.open(tempstr);
+			fn=mygrid->grid_file_path+"/"+mygrid->grid_mapping[ti];
+			fp.open(fn);
 		}
 		if (fp.fail())
 		{
-			printf("Error: Can't open grid map %s!\n", tempstr);
+			printf("Error: Can't open grid map %s!\n", fn.c_str());
 			return 1;
 		}
 
@@ -277,7 +264,8 @@ int get_gridvalues_f(
 			for (y=0; y < mygrid->size_xyz[1]; y++)
 				for (x=0; x < mygrid->size_xyz[0]; x++)
 				{
-					std::getline(fp, line); sscanf(line.c_str(), "%f", mypoi);
+					std::getline(fp, line);// sscanf(line.c_str(), "%f", mypoi);
+					*mypoi = map2float(line.c_str());
 					// fill in duplicate data for linearized memory access in kernel
 					if(y>0) *(mypoi-4*g1+1) = *mypoi;
 					if(z>0) *(mypoi-4*g2+2) = *mypoi;
@@ -286,7 +274,6 @@ int get_gridvalues_f(
 				}
 		fp.close();
 	}
-	free(tempstr);
 	return 0;
 }
 

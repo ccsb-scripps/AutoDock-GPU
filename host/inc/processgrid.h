@@ -59,18 +59,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // Struct containing all the important information coming from .gpf and .xyz files.
 typedef struct _Gridinfo
 {
-	char*  grid_file_path = NULL; // Added to store the full path of the grid file
-	char*  receptor_name  = NULL;
-	char*  map_base_name  = NULL;
-	int    size_xyz         [3];
-	double spacing;
-	double size_xyz_angstr  [3];
-	char   ligand_grid_types[MAX_NUM_OF_ATYPES+2][4]; // The additional two are the electrostatic and the desolvation types
-	bool   fld_relative   = true; // By default (and until further notice) map file names are relative to the fld file
-	int    num_of_atypes;
-	int    num_of_map_atypes;
-	double origo_real_xyz   [3];
-	bool   info_read      = false; // so we don't have to continue reading the same information over and over again
+	std::string fld_name; // keep track of fld filename
+	std::string grid_file_path; // Added to store the full path of the grid file
+	std::string receptor_name;
+	std::string map_base_name;
+	int         size_xyz           [3];
+	double      spacing;
+	double      size_xyz_angstr    [3];
+	char        ligand_grid_types  [MAX_NUM_OF_ATYPES+2][4]; // The additional two are the electrostatic and the desolvation types
+	bool        fld_relative       = true; // By default (and until further notice) map file names are relative to the fld file
+	int         num_of_atypes;
+	int         num_of_map_atypes;
+	double      origo_real_xyz     [3];
 	std::vector<std::string> grid_mapping; // stores the atom types and associated map filenames from the fld file
 } Gridinfo;
 

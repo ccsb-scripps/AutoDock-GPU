@@ -402,9 +402,6 @@ int main(int argc, char* argv[])
 				if(mypars.flexresfile) free(mypars.flexresfile);
 				if(mypars.xrayligandfile) free(mypars.xrayligandfile);
 				if(mypars.resname) free(mypars.resname);
-				if(mygrid.grid_file_path) free(mygrid.grid_file_path);
-				if(mygrid.receptor_name) free(mygrid.receptor_name);
-				if(mygrid.map_base_name) free(mygrid.map_base_name);
 			}
 		} // end of for loop
 		if(!filelist.used){
@@ -415,9 +412,6 @@ int main(int argc, char* argv[])
 			if(mypars.flexresfile) free(mypars.flexresfile);
 			if(mypars.xrayligandfile) free(mypars.xrayligandfile);
 			if(mypars.resname) free(mypars.resname);
-			if(mygrid.grid_file_path) free(mygrid.grid_file_path);
-			if(mygrid.receptor_name) free(mygrid.receptor_name);
-			if(mygrid.map_base_name) free(mygrid.map_base_name);
 		}
 	} // end of parallel section
 	if(initial_pars.xml2dlg && !initial_pars.dlg2stdout && (n_files>100)) printf("\n\n"); // finish progress bar

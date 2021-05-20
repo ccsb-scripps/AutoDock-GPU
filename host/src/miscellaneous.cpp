@@ -25,6 +25,51 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "miscellaneous.h"
 
+float map2float(const char* c)
+// This function converts what we typically find in an autogrid map file into a
+// floating point number - just a bit quicker than the usual sscanf()
+// -> due to using 32-bit integers this function is limited to 9 digits for both
+//    the whole number and the fractional part - a safety check is performed with
+//    sscanf() used as the fallback
+{
+	float result;
+	bool negative = false;                       // example: -123.456
+	if(*c == '-'){                               // *c = '-'
+		negative = true;                     // => negative = true
+		c++;
+	}
+	// safety check
+	int len = strlen(c);
+	if(len>9){ // no potential issues at or below 9 digits in total
+		char* dp = strchr(c,'.');
+		if(dp){
+			int d = dp-c;
+			if((d>9) || (len-d>9)){ // fall back to sscanf() if numbers are going to be too big for integers
+				sscanf(c, "%f", &result);
+				if(negative) return -result;
+				return result;
+			}
+		}
+	}
+	int number = 0;                              // 1. *c = '1': number = 0*10  + 1 = 1
+	while((*c >= '0') && (*c <= '9')){           // 2. *c = '2': number = 1*10  + 2 = 12
+		number = number * 10 + (*c - '0');   // 3. *c = '3': number = 12*10 + 3 = 123
+		c++;                                 // 4. *c = ','
+	}
+	if(*c == '.') c++; // jump over decimal point
+	int decimal = 0;
+	int denom = 1;
+	while((*c >= '0') && (*c <= '9')){           // 1. *c = '4': decimal = 0*10  + 4 = 4,   denom = 10
+		decimal = decimal * 10 + (*c - '0'); // 2. *c = '5': decimal = 4*10  + 5 = 45,  denom = 100
+		denom *= 10;                         // 3. *c = '6': decimal = 45*10 + 6 = 456, denom = 1000
+		c++;
+	}
+	// use more expensive division only once
+	result = (float)number + (float)decimal/((float)denom);
+	if(negative) return -result;
+	return result;
+}
+
 int float2fracint(double toconv, int frac)
 // The function converts a float value to a fixed pont fractional number in (32-frac).frac format,
 // and returns it as an integer.

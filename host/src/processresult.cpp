@@ -132,7 +132,7 @@ void write_basic_info(
 	fprintf(fp, "        RECEPTOR PARAMETERS        \n");
 	fprintf(fp, "===================================\n\n");
 
-	fprintf(fp, "Receptor name:                             %s\n", mygrid->receptor_name);
+	fprintf(fp, "Receptor name:                             %s\n", mygrid->receptor_name.c_str());
 	fprintf(fp, "Number of grid points (x, y, z):           %d, %d, %d\n", mygrid->size_xyz [0], mygrid->size_xyz [1], mygrid->size_xyz [2]);
 	fprintf(fp, "Grid size (x, y, z):                       %lf, %lf, %lfA\n", mygrid->size_xyz_angstr [0], mygrid->size_xyz_angstr [1], mygrid->size_xyz_angstr [2]);
 	fprintf(fp, "Grid spacing:                              %lfA\n", mygrid->spacing);
@@ -249,7 +249,7 @@ void write_basic_info_dlg(
 	fprintf(fp, "    GRID PARAMETERS\n");
 	fprintf(fp, "    ________________________\n\n\n");
 
-	fprintf(fp, "Receptor name:                             %s\n", mygrid->receptor_name);
+	fprintf(fp, "Receptor name:                             %s\n", mygrid->receptor_name.c_str());
 	fprintf(fp, "Number of grid points (x, y, z):           %d, %d, %d\n", mygrid->size_xyz [0],
 			mygrid->size_xyz [1], mygrid->size_xyz [2]);
 	fprintf(fp, "Grid size (x, y, z):                       %lf, %lf, %lfA\n", mygrid->size_xyz_angstr [0],
@@ -288,7 +288,7 @@ void write_basic_info_dlg(
 		fprintf(fp, "    ________________________\n\n\n");
 		fprintf(fp, "DPF> outlev 1\n");
 		fprintf(fp, "DPF> ga_run %lu\n", mypars->num_of_runs);
-		fprintf(fp, "DPF> fld %s.maps.fld\n", mygrid->receptor_name);
+		fprintf(fp, "DPF> fld %s.maps.fld\n", mygrid->receptor_name.c_str());
 		fprintf(fp, "DPF> move %s\n", mypars->ligandfile);
 		if(flexres) fprintf(fp, "DPF> flexres %s\n", mypars->flexresfile);
 		fprintf(fp, "\n\n");

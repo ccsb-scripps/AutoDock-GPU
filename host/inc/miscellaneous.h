@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <math.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <cstring>
 #include <limits>
 #include <cstdint>
 
@@ -75,6 +76,8 @@ typedef struct
 // in the vertices of the cube,
 // and the second one is a 2*2*2 array of the interpolation weights
 #define trilin_interpol(cube, weights) (cube[0][0][0]*weights[0][0][0] +cube[1][0][0]*weights[1][0][0] +cube[0][1][0]*weights[0][1][0] +cube[1][1][0]*weights[1][1][0] +cube[0][0][1]*weights[0][0][1] +cube[1][0][1]*weights[1][0][1] +cube[0][1][1]*weights[0][1][1] +cube[1][1][1]*weights[1][1][1])
+
+float map2float(const char* c);
 
 int float2fracint(double, int);
 

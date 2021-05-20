@@ -339,9 +339,8 @@ int setup(
 	} else {
 		// read receptor in case contact analysis is requested and we haven't done so already (in the preload case above)
 		std::string receptor_name=mygrid.grid_file_path;
-		if(strlen(mygrid.grid_file_path)>0) receptor_name+="/";
-		receptor_name += mygrid.receptor_name;
-		receptor_name += ".pdbqt";
+		if(mygrid.grid_file_path.size()>0) receptor_name+="/";
+		receptor_name += mygrid.receptor_name + ".pdbqt";
 		mypars.receptor_atoms = read_receptor(receptor_name.c_str(),&mygrid,mypars.receptor_map,mypars.receptor_map_list);
 		mypars.nr_receptor_atoms = mypars.receptor_atoms.size();
 		// Reading the grid files and storing values in the memory region pointed by floatgrids
@@ -468,13 +467,7 @@ int load_all_maps(
 	// Now fill the maps
 	int ti, x, y, z;
 	std::ifstream fp;
-	std::string line;
-	size_t len = strlen(mygrid->grid_file_path)+strlen(mygrid->receptor_name)+1;
-	if(strlen(mygrid->map_base_name)>len)
-		len = strlen(mygrid->map_base_name);
-	len += 10; // "..map\0" = 6 entries + 4 at most for grid type
-	if(len<128) len=128;
-	char* tempstr = (char*)malloc(len*sizeof(char));
+	std::string fn, line;
 	int size_of_one_map = 4*mygrid->size_xyz[0]*mygrid->size_xyz[1]*mygrid->size_xyz[2];
 
 	unsigned int g1 = mygrid->size_xyz[0];
@@ -516,14 +509,12 @@ int load_all_maps(
 			}
 		}
 		if(mygrid->fld_relative){
-			strcpy(tempstr,mygrid->grid_file_path);
-			strcat(tempstr, "/");
-			strcat(tempstr, mygrid->grid_mapping[ti].c_str());
-			fp.open(tempstr);
+			fn=mygrid->grid_file_path + "/" + mygrid->grid_mapping[ti];
+			fp.open(fn);
 		}
 		if (fp.fail())
 		{
-			printf("Error: Can't open grid map %s!\n", tempstr);
+			printf("Error: Can't open grid map %s!\n", fn.c_str());
 			return 1;
 		}
 
@@ -536,7 +527,8 @@ int load_all_maps(
 			for (y=0; y < mygrid->size_xyz[1]; y++)
 				for (x=0; x < mygrid->size_xyz[0]; x++)
 				{
-					std::getline(fp, line); sscanf(line.c_str(), "%f", mypoi);
+					std::getline(fp, line);// sscanf(line.c_str(), "%f", mypoi);
+					*mypoi = map2float(line.c_str());
 					// fill in duplicate data for linearized memory access in kernel
 					if(y>0) *(mypoi-4*g1+1) = *mypoi;
 					if(z>0) *(mypoi-4*g2+2) = *mypoi;
@@ -545,7 +537,6 @@ int load_all_maps(
 				}
 		fp.close();
 	}
-	free(tempstr);
 	return 0;
 }
 

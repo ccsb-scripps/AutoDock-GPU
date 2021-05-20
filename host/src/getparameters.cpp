@@ -201,8 +201,6 @@ int parse_dpf(
 							if(mypars->fldfile) free(mypars->fldfile);
 							mypars->fldfile = strdup(argstr); // this allows using the dpf to set up all parameters but the ligand
 							// Filling mygrid according to the specified fld file
-							mygrid->info_read = false;
-							mygrid->grid_mapping.clear();
 							if (get_gridinfo(mypars->fldfile, mygrid) != 0)
 							{
 								printf("\nError: get_gridinfo failed with fld file specified with <%s> parameter at %s:%u.\n",tempstr,mypars->dpffile,line_count);
@@ -376,15 +374,6 @@ int parse_dpf(
 									if((filelist.mypars.back().xrayligandfile) &&
 									   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
 										mypars->xrayligandfile=strdup(mypars->xrayligandfile);
-									if((filelist.mygrids.back().grid_file_path) &&
-									   (filelist.mygrids.back().grid_file_path==mygrid->grid_file_path))
-										mygrid->grid_file_path=strdup(mygrid->grid_file_path);
-									if((filelist.mygrids.back().receptor_name) &&
-									   (filelist.mygrids.back().receptor_name==mygrid->receptor_name))
-										mygrid->receptor_name=strdup(mygrid->receptor_name);
-									if((filelist.mygrids.back().map_base_name) &&
-									   (filelist.mygrids.back().map_base_name==mygrid->map_base_name))
-										mygrid->map_base_name=strdup(mygrid->map_base_name);
 								}
 								// Add the parameter block now that resname is set
 								filelist.mypars.push_back(*mypars);
@@ -680,8 +669,6 @@ int preparse_dpf(
 			                   mypars->seed);
 
 			// Filling mygrid according to the specified fld file
-			mygrid->info_read = false;
-			mygrid->grid_mapping.clear();
 			if (get_gridinfo(mypars->fldfile, mygrid) != 0)
 			{
 				printf("\nError: get_gridinfo failed with fld file (%s) specified in %s.\n",mypars->fldfile,mypars->load_xml);
@@ -716,9 +703,8 @@ int preparse_dpf(
 		filelist.used = true;
 		if(mypars->contact_analysis && filelist.preload_maps){
 			std::string receptor_name=mygrid->grid_file_path;
-			if(strlen(mygrid->grid_file_path)>0) receptor_name+="/";
-			receptor_name += mygrid->receptor_name;
-			receptor_name += ".pdbqt";
+			if(mygrid->grid_file_path.size()>0) receptor_name+="/";
+			receptor_name += mygrid->receptor_name + ".pdbqt";
 			mypars->receptor_atoms = read_receptor(receptor_name.c_str(),mygrid,mypars->receptor_map,mypars->receptor_map_list);
 			mypars->nr_receptor_atoms = mypars->receptor_atoms.size();
 		}
@@ -790,8 +776,6 @@ int get_filelist(
 					}
 				}
 				// Filling mygrid according to the specified fld file
-				mygrid->info_read = false;
-				mygrid->grid_mapping.clear();
 				if (get_gridinfo(filelist.fld_files[filelist.fld_files.size()-1].c_str(), mygrid) != 0)
 				{
 					printf("\nError: get_gridinfo failed with fld file specified in filelist.\n");
@@ -810,22 +794,13 @@ int get_filelist(
 					if((filelist.mypars.back().xrayligandfile) &&
 					   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
 						mypars->xrayligandfile=strdup(mypars->xrayligandfile);
-					if((filelist.mygrids.back().grid_file_path) &&
-					   (filelist.mygrids.back().grid_file_path==mygrid->grid_file_path))
-						mygrid->grid_file_path=strdup(mygrid->grid_file_path);
-					if((filelist.mygrids.back().receptor_name) &&
-					   (filelist.mygrids.back().receptor_name==mygrid->receptor_name))
-						mygrid->receptor_name=strdup(mygrid->receptor_name);
-					if((filelist.mygrids.back().map_base_name) &&
-					   (filelist.mygrids.back().map_base_name==mygrid->map_base_name))
-						mygrid->map_base_name=strdup(mygrid->map_base_name);
 				}
 				// Add the parameter block
 				filelist.mypars.push_back(*mypars);
 				// Add the grid info
 				filelist.mygrids.push_back(*mygrid);
 				if (filelist.fld_files.size()==0){
-					if(mygrid->info_read){ // already read a map file in with dpf import
+					if(mygrid->fld_name.size()){ // already read a map file in with dpf import
 						printf("\nUsing map file from dpf import.\n");
 						filelist.fld_files.push_back(mypars->fldfile);
 					} else{
