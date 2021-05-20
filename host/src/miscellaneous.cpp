@@ -41,7 +41,7 @@ float map2float(const char* c)
 	// safety check
 	int len = strlen(c);
 	if(len>9){ // no potential issues at or below 9 digits in total
-		char* dp = strchr(c,'.');
+		const char* dp = strchr(c,'.');
 		if(dp){
 			int d = dp-c;
 			if((d>9) || (len-d>9)){ // fall back to sscanf() if numbers are going to be too big for integers
