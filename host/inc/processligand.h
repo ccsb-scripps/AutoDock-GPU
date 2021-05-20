@@ -310,19 +310,11 @@ float calc_interE_f(
                     const float*      fgrids,
                           float       outofgrid_tolerance,
                           int         debug,
-                          float&      intraflexE
+                          float&      intraflexE,
+                          float*      elecE = NULL,
+                          float*      peratom_vdw = NULL,
+                          float*      peratom_elec = NULL
                    );
-
-void calc_interE_peratom_f(
-                           const Gridinfo*   mygrid,
-                           const Liganddata* myligand,
-                           const float*      fgrids,
-                                 float       outofgrid_tolerance,
-                                 float*      elecE,
-                                 float       peratom_vdw [MAX_NUM_OF_ATOMS],
-                                 float       peratom_elec[MAX_NUM_OF_ATOMS],
-                                 int         debug
-                          );
 
 struct IntraTables{
 	//The following tables will contain the 1/r^6, 1/r^10, 1/r^12, W_el/(r*eps(r)) and W_des*exp(-r^2/(2sigma^2)) functions for

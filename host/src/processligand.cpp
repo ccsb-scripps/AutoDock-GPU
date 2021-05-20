@@ -1818,7 +1818,10 @@ float calc_interE_f(
                     const float*      fgrids,
                           float       outofgrid_tolerance,
                           int         debug,
-                          float&      intraflexE
+                          float&      intraflexE,
+                          float*      elecE,
+                          float*      peratom_vdw,
+                          float*      peratom_elec
                    )
 // The function calculates the intermolecular energy of a ligand (given by myligand parameter),
 // and a receptor (represented as a grid). The grid point values must be stored at the location
@@ -1838,15 +1841,25 @@ float calc_interE_f(
 	float weights [2][2][2];
 	float dx, dy, dz;
 
-	float val;
+	float v, e, val;
 	interE = 0;
 	intraflexE = 0;
+	bool peratom = false;
+	if(elecE != NULL){
+		peratom = true;
+		*elecE = 0;
+	}
 
-	for (atom_cnt=myligand->num_of_atoms-1; atom_cnt>=0; atom_cnt--) // for each atom
+	for (atom_cnt=0; atom_cnt<myligand->num_of_atoms; atom_cnt++) // for each atom
 	{
 		val = 0.0;
-		if (myligand->ignore_inter[atom_cnt])
+		if (myligand->ignore_inter[atom_cnt]){
+			if(peratom){
+				peratom_vdw[atom_cnt] = 0;
+				peratom_elec[atom_cnt] = 0;
+			}
 			continue;
+		}
 		atomtypeid = myligand->base_type_idx[(int)myligand->atom_idxyzq [atom_cnt][0]];
 		x = myligand->atom_idxyzq [atom_cnt][1];
 		y = myligand->atom_idxyzq [atom_cnt][2];
@@ -1854,7 +1867,7 @@ float calc_interE_f(
 		q = myligand->atom_idxyzq [atom_cnt][4];
 
 		if ((x < 0) || (x >= mygrid->size_xyz [0]-1) || (y < 0) || (y >= mygrid->size_xyz [1]-1) ||
-			(z < 0) || (z >= mygrid->size_xyz [2]-1)) // if the atom is outside of the grid
+		    (z < 0) || (z >= mygrid->size_xyz [2]-1)) // if the atom is outside of the grid
 		{
 			if (debug == 1)
 			{
@@ -1890,6 +1903,10 @@ float calc_interE_f(
 					interE += val;
 				else
 					intraflexE += val;
+				if(peratom){
+					peratom_vdw[atom_cnt] = 100000;
+					peratom_elec[atom_cnt] = 100000;
+				}
 				continue;
 			}
 
@@ -1955,8 +1972,8 @@ float calc_interE_f(
 			printf("cube(1,1,1) = %lf\n", cube [1][1][1]);
 		}
 
-
-		val += trilin_interpol(cube, weights);
+		v = trilin_interpol(cube, weights);
+		val += v;
 
 		if (debug == 1)
 			printf("interpoated value = %lf\n\n", trilin_interpol(cube, weights));
@@ -1987,8 +2004,15 @@ float calc_interE_f(
 			printf("cube(1,1,1) = %lf\n", cube [1][1][1]);
 		}
 
-
-		val += q * trilin_interpol(cube, weights);
+		e = q * trilin_interpol(cube, weights);
+		val += e;
+		if(peratom){
+#ifndef AD4_desolv_peratom_vdW
+			peratom_vdw[atom_cnt] = v;
+#endif
+			peratom_elec[atom_cnt] = e;
+			*elecE += e;
+		}
 
 		if (debug == 1)
 			printf("interpoated value = %lf, multiplied by q = %lf\n\n", trilin_interpol(cube, weights), q*trilin_interpol(cube, weights));
@@ -2019,8 +2043,11 @@ float calc_interE_f(
 			printf("cube(1,1,1) = %lf\n", cube [1][1][1]);
 		}
 
-		val += fabs(q) * trilin_interpol(cube, weights);
-
+		e = fabs(q) * trilin_interpol(cube, weights);
+		val += e;
+#ifdef AD4_desolv_peratom_vdW
+		if(peratom) peratom_vdw[atom_cnt] = v + e;
+#endif
 		if (atom_cnt < myligand->true_ligand_atoms)
 			interE += val;
 		else
@@ -2033,215 +2060,6 @@ float calc_interE_f(
 			printf("Current value of intermolecular energy = %lf\n\n\n", interE);
 	}
 	return interE;
-}
-
-void calc_interE_peratom_f(
-                           const Gridinfo*   mygrid,
-                           const Liganddata* myligand,
-                           const float*      fgrids,
-                                 float       outofgrid_tolerance,
-                                 float*      elecE,
-                                 float       peratom_vdw [MAX_NUM_OF_ATOMS],
-                                 float       peratom_elec [MAX_NUM_OF_ATOMS],
-                                 int         debug
-                          )
-{
-	//float interE;
-	int atom_cnt;
-	float x, y, z;
-	int atomtypeid;
-	int x_low, x_high, y_low, y_high, z_low, z_high;
-	float q, x_frac, y_frac, z_frac;
-	float cube [2][2][2];
-	float weights [2][2][2];
-	float dx, dy, dz;
-
-	//interE = 0;
-	*elecE = 0;
-
-	for (atom_cnt=myligand->num_of_atoms-1; atom_cnt>=0; atom_cnt--) //for each atom
-	{
-		if (myligand->ignore_inter[atom_cnt])
-			continue;
-		atomtypeid = myligand->base_type_idx[(int)myligand->atom_idxyzq [atom_cnt][0]];
-		x = myligand->atom_idxyzq [atom_cnt][1];
-		y = myligand->atom_idxyzq [atom_cnt][2];
-		z = myligand->atom_idxyzq [atom_cnt][3];
-		q = myligand->atom_idxyzq [atom_cnt][4];
-
-		if ((x < 0) || (x >= mygrid->size_xyz [0]-1) ||
-		    (y < 0) || (y >= mygrid->size_xyz [1]-1) ||
-		    (z < 0) || (z >= mygrid->size_xyz [2]-1)) // if the atom is outside of the grid
-		{
-			if (debug == 1)
-			{
-				printf("\n\nPartial results for atom with id %d:\n", atom_cnt);
-				printf("Atom out of grid: ");
-				printf("x= %lf, y = %lf, z = %lf\n", x, y, z);
-			}
-
-			if (outofgrid_tolerance != 0) // if tolerance is set, try to place atom back into the grid
-			{
-				if (x < 0)
-					x += outofgrid_tolerance;
-				if (y < 0)
-					y += outofgrid_tolerance;
-				if (z < 0)
-					z += outofgrid_tolerance;
-				if (x >= mygrid->size_xyz [0]-1)
-					x -= outofgrid_tolerance;
-				if (y >= mygrid->size_xyz [1]-1)
-					y -= outofgrid_tolerance;
-				if (z >= mygrid->size_xyz [2]-1)
-					z -= outofgrid_tolerance;
-			}
-
-			if ((x < 0) || (x >= mygrid->size_xyz [0]-1) || (y < 0) || (y >= mygrid->size_xyz [1]-1) ||
-						(z < 0) || (z >= mygrid->size_xyz [2]-1)) // check again if the atom is outside of the grid
-			{
-				//interE = HIGHEST_ENERGY; // return maximal value
-				//return interE;
-				//interE += 16777216; // penalty is 2^24 for each atom outside the grid
-				peratom_vdw[atom_cnt] = 100000;
-				peratom_elec[atom_cnt] = 100000;
-				continue;
-			}
-
-			if (debug == 1)
-			{
-				printf("\n\nAtom was placed back into the grid according to the tolerance value %f:\n", outofgrid_tolerance);
-				printf("x= %lf, y = %lf, z = %lf\n", x, y, z);
-			}
-		}
-
-		x_low = (int) floor(x);
-		y_low = (int) floor(y);
-		z_low = (int) floor(z);
-		x_high = (int) ceil(x);
-		y_high = (int) ceil(y);
-		z_high = (int) ceil(z);
-		x_frac = x - x_low;
-		y_frac = y - y_low;
-		z_frac = z - z_low;
-		dx = x_frac;
-		dy = y_frac;
-		dz = z_frac;
-
-		get_trilininterpol_weights_f(weights, &dx, &dy, &dz);
-
-		if (debug == 1)
-		{
-			printf("\n\nPartial results for atom with id %d:\n", atom_cnt);
-			printf("x_low = %d, x_high = %d, x_frac = %lf\n", x_low, x_high, x_frac);
-			printf("y_low = %d, y_high = %d, y_frac = %lf\n", y_low, y_high, y_frac);
-			printf("z_low = %d, z_high = %d, z_frac = %lf\n\n", z_low, z_high, z_frac);
-			printf("coeff(0,0,0) = %lf\n", weights [0][0][0]);
-			printf("coeff(1,0,0) = %lf\n", weights [1][0][0]);
-			printf("coeff(0,1,0) = %lf\n", weights [0][1][0]);
-			printf("coeff(1,1,0) = %lf\n", weights [1][1][0]);
-			printf("coeff(0,0,1) = %lf\n", weights [0][0][1]);
-			printf("coeff(1,0,1) = %lf\n", weights [1][0][1]);
-			printf("coeff(0,1,1) = %lf\n", weights [0][1][1]);
-			printf("coeff(1,1,1) = %lf\n", weights [1][1][1]);
-		}
-
-		// energy contribution of the current grid type
-
-		cube [0][0][0] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_low, y_low, x_low);
-		cube [1][0][0] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_low, y_low, x_high);
-		cube [0][1][0] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_low, y_high, x_low);
-		cube [1][1][0] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_low, y_high, x_high);
-		cube [0][0][1] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_high, y_low, x_low);
-		cube [1][0][1] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_high, y_low, x_high);
-		cube [0][1][1] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_high, y_high, x_low);
-		cube [1][1][1] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_high, y_high, x_high);
-
-		if (debug == 1)
-		{
-			printf("Interpolation of van der Waals map:\n");
-			printf("cube(0,0,0) = %lf\n", cube [0][0][0]);
-			printf("cube(1,0,0) = %lf\n", cube [1][0][0]);
-			printf("cube(0,1,0) = %lf\n", cube [0][1][0]);
-			printf("cube(1,1,0) = %lf\n", cube [1][1][0]);
-			printf("cube(0,0,1) = %lf\n", cube [0][0][1]);
-			printf("cube(1,0,1) = %lf\n", cube [1][0][1]);
-			printf("cube(0,1,1) = %lf\n", cube [0][1][1]);
-			printf("cube(1,1,1) = %lf\n", cube [1][1][1]);
-		}
-
-
-		//interE += trilin_interpol(cube, weights);
-		peratom_vdw[atom_cnt] = trilin_interpol(cube, weights);
-
-		if (debug == 1)
-			printf("interpolated value = %lf\n\n", trilin_interpol(cube, weights));
-
-		// energy contribution of the electrostatic grid
-
-		atomtypeid = mygrid->num_of_atypes;
-
-		cube [0][0][0] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_low, y_low, x_low);
-		cube [1][0][0] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_low, y_low, x_high);
-		cube [0][1][0] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_low, y_high, x_low);
-		cube [1][1][0] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_low, y_high, x_high);
-		cube [0][0][1] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_high, y_low, x_low);
-		cube [1][0][1] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_high, y_low, x_high);
-		cube [0][1][1] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_high, y_high, x_low);
-		cube [1][1][1] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_high, y_high, x_high);
-
-		if (debug == 1)
-		{
-			printf("Interpolation of electrostatic map:\n");
-			printf("cube(0,0,0) = %lf\n", cube [0][0][0]);
-			printf("cube(1,0,0) = %lf\n", cube [1][0][0]);
-			printf("cube(0,1,0) = %lf\n", cube [0][1][0]);
-			printf("cube(1,1,0) = %lf\n", cube [1][1][0]);
-			printf("cube(0,0,1) = %lf\n", cube [0][0][1]);
-			printf("cube(1,0,1) = %lf\n", cube [1][0][1]);
-			printf("cube(0,1,1) = %lf\n", cube [0][1][1]);
-			printf("cube(1,1,1) = %lf\n", cube [1][1][1]);
-		}
-
-
-		//interE += q * trilin_interpol(cube, weights);
-		peratom_elec[atom_cnt] = q * trilin_interpol(cube, weights);
-		*elecE += q * trilin_interpol(cube, weights);
-
-		if (debug == 1)
-			printf("interpolated value = %lf, multiplied by q = %lf\n\n", trilin_interpol(cube, weights), q*trilin_interpol(cube, weights));
-
-#ifdef AD4_desolv_peratom_vdW
-		// energy contribution of the desolvation grid
-		atomtypeid = mygrid->num_of_atypes+1;
-
-		cube [0][0][0] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_low, y_low, x_low);
-		cube [1][0][0] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_low, y_low, x_high);
-		cube [0][1][0] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_low, y_high, x_low);
-		cube [1][1][0] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_low, y_high, x_high);
-		cube [0][0][1] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_high, y_low, x_low);
-		cube [1][0][1] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_high, y_low, x_high);
-		cube [0][1][1] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_high, y_high, x_low);
-		cube [1][1][1] = getvalue_4Darr(fgrids, *mygrid, atomtypeid, z_high, y_high, x_high);
-
-		if (debug == 1)
-		{
-			printf("Interpolation of desolvation map:\n");
-			printf("cube(0,0,0) = %lf\n", cube [0][0][0]);
-			printf("cube(1,0,0) = %lf\n", cube [1][0][0]);
-			printf("cube(0,1,0) = %lf\n", cube [0][1][0]);
-			printf("cube(1,1,0) = %lf\n", cube [1][1][0]);
-			printf("cube(0,0,1) = %lf\n", cube [0][0][1]);
-			printf("cube(1,0,1) = %lf\n", cube [1][0][1]);
-			printf("cube(0,1,1) = %lf\n", cube [0][1][1]);
-			printf("cube(1,1,1) = %lf\n", cube [1][1][1]);
-		}
-
-		peratom_vdw[atom_cnt] += fabs(q) * trilin_interpol(cube, weights);
-
-		if (debug == 1)
-			printf("interpolated value = %lf, multiplied by abs(q) = %lf\n\n", trilin_interpol(cube, weights), fabs(q) * trilin_interpol(cube, weights));
-#endif
-	}
 }
 
 // Corrected host "calc_intraE_f" function after smoothing was added

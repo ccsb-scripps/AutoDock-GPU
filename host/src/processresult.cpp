@@ -389,14 +389,14 @@ void make_resfiles(
 		}
 		
 		// the map interaction of flex res atoms is stored in accurate_intraflexE
-		accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE); // calculating the intermolecular energy
+		if (i == 0)
+			accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec); // calculate intermolecular and per atom energies
+		else
+			accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE); // calculating the intermolecular energy
 
 		if (mypars->contact_analysis && (i==0)){
 			best_result->analysis = analyze_ligand_receptor(mygrid, &temp_docked, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, debug, mypars->H_cutoff, mypars->V_cutoff);
 		}
-
-		if (i == 0) // additional calculations for ADT-compatible result file, only in case of best conformation
-			calc_interE_peratom_f(mygrid, &temp_docked, grids, 0.0005, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec, debug);
 
 		scale_ligand(&temp_docked, mygrid->spacing);
 		
