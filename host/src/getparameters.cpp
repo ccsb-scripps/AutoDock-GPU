@@ -158,8 +158,8 @@ int parse_dpf(
 		//   performance reasons (as they can be read once)
 		// - each ligand is still going to be limited to MAX_NUM_OF_ATYPES
 		char ltypes[4*MAX_NUM_OF_ATYPES][4];
-		char* typestr;
 		memset(ltypes,0,16*MAX_NUM_OF_ATYPES*sizeof(char));
+		std::string map_fn;
 		unsigned int idx;
 		pair_mod* curr_pair;
 		float paramA, paramB;
@@ -235,14 +235,28 @@ int parse_dpf(
 						mtype_nr=0;
 						break;
 				case DPF_MAP: // grid map specifier
-						sscanf(line.c_str(),"%*s %255s",argstr);
-						argstr[strlen(argstr)-4] = '\0'; // get rid of .map extension
-						typestr=strchr(argstr+strlen(argstr)-4,'.')+1; // 4 chars for atom type
 						if(mtype_nr>=ltype_nr){
 							printf("\nError: More map files specified than atom types at %s:%u (ligand types need to be specified before maps).\n",mypars->dpffile,line_count);
 							return 1;
 						}
-						if(strcmp(typestr,ltypes[mtype_nr])){ // derived type
+						sscanf(line.c_str(),"%*s %255s",argstr);
+						map_fn=argstr;
+						if(mygrid->grid_mapping.size()<2){
+							printf("Error: fld keyword needs to be placed before <%s> parameter at %s:%u.\n",tempstr,mypars->dpffile,line_count);
+							return 1;
+						}
+						n=-1;
+						for(m=mygrid->grid_mapping.size()/2; m<mygrid->grid_mapping.size(); m++)
+							if(map_fn.find(mygrid->grid_mapping[m])!=std::string::npos){
+								n=m-mygrid->grid_mapping.size()/2;
+								break;
+							}
+						if(n<0){
+							printf("Error: No matching map file <%s> specified in fld file at %s:%u.\n",argstr,mypars->dpffile,line_count);
+							return 1;
+						}
+						strcpy(argstr,mygrid->grid_mapping[n].c_str());
+						if(strcmp(argstr,ltypes[mtype_nr])){ // derived type
 							if(mypars->nr_deriv_atypes==0){ // get the derived atom types started
 								mypars->deriv_atypes=(deriv_atype*)malloc(sizeof(deriv_atype));
 								if(mypars->deriv_atypes==NULL){
@@ -255,7 +269,7 @@ int parse_dpf(
 								return 1;
 							}
 							idx = mypars->nr_deriv_atypes-1;
-							strcpy(mypars->deriv_atypes[idx].base_name,typestr);
+							strcpy(mypars->deriv_atypes[idx].base_name,argstr);
 #ifdef DERIVTYPE_INFO
 							printf("%i: %s=%s\n",mypars->deriv_atypes[idx].nr,mypars->deriv_atypes[idx].deriv_name,mypars->deriv_atypes[idx].base_name);
 #endif
@@ -663,10 +677,6 @@ int preparse_dpf(
 			                   mypars->flexresfile,
 			                   mypars->list_nr,
 			                   mypars->seed);
-			if(!specified_dpf){ // parse dpf file in XML file unless user specified one
-				if((error=parse_dpf(mypars,mygrid,filelist))) return error;
-			}
-			mypars->pop_size=1;
 
 			// Filling mygrid according to the specified fld file
 			mygrid->info_read = false;
@@ -676,6 +686,11 @@ int preparse_dpf(
 				printf("\nError: get_gridinfo failed with fld file (%s) specified in %s.\n",mypars->fldfile,mypars->load_xml);
 				return 1;
 			}
+
+			if(!specified_dpf){ // parse dpf file in XML file unless user specified one
+				if((error=parse_dpf(mypars,mygrid,filelist))) return error;
+			}
+			mypars->pop_size=1;
 
 			if(prev_fld_file){ // unfortunately, some strcmp implementation segfault with NULL as input
 				if(strcmp(prev_fld_file,mypars->fldfile) != 0)
