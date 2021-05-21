@@ -1849,10 +1849,11 @@ float calc_interE_f(
 
 	unsigned int g1 = mygrid->size_xyz[0];
 	unsigned int g2 = g1*mygrid->size_xyz[1];
-	unsigned int g3 = g2*mygrid->size_xyz[2];
+	unsigned int g3_4 = g2*mygrid->size_xyz[2]<<2; // g3 multiplied by 4
 
 	float weights[8];
 	float cube[8];
+	unsigned long mul_tmp;
 
 	for (atom_cnt=0; atom_cnt<myligand->num_of_atoms; atom_cnt++) // for each atom
 	{
@@ -1864,7 +1865,7 @@ float calc_interE_f(
 			}
 			continue;
 		}
-		atom_typeid = myligand->base_type_idx[(int)myligand->atom_idxyzq [atom_cnt][0]];
+		mul_tmp = myligand->base_type_idx[(int)myligand->atom_idxyzq [atom_cnt][0]]*g3_4;
 		x = myligand->atom_idxyzq [atom_cnt][1];
 		y = myligand->atom_idxyzq [atom_cnt][2];
 		z = myligand->atom_idxyzq [atom_cnt][3];
@@ -1963,8 +1964,7 @@ float calc_interE_f(
 			printf("coeff(1,1,1) = %f\n", weights [idx_111]);
 		}
 
-		unsigned long mul_tmp = atom_typeid*g3<<2;
-		cube[0] = *(grid_value_000+mul_tmp+0);
+		cube[0] = *(grid_value_000+mul_tmp);
 		cube[1] = *(grid_value_000+mul_tmp+1);
 		cube[2] = *(grid_value_000+mul_tmp+2);
 		cube[3] = *(grid_value_000+mul_tmp+3);
@@ -1994,10 +1994,8 @@ float calc_interE_f(
 			printf("interpolated value = %f\n\n", v);
 
 		// energy contribution of the electrostatic grid
-
-		atom_typeid = mygrid->num_of_atypes;
-		mul_tmp = atom_typeid*g3<<2; // different atom type id to get charge IA
-		cube[0] = *(grid_value_000+mul_tmp+0);
+		mul_tmp = mygrid->num_of_atypes*g3_4; // relative address of electrostatics map
+		cube[0] = *(grid_value_000+mul_tmp);
 		cube[1] = *(grid_value_000+mul_tmp+1);
 		cube[2] = *(grid_value_000+mul_tmp+2);
 		cube[3] = *(grid_value_000+mul_tmp+3);
@@ -2033,9 +2031,9 @@ float calc_interE_f(
 		if (debug == 1)
 			printf("interpolated value = %f (multiplied by q = %f)\n\n", e, q);
 
-		// Capturing desolvation values (atom_typeid+1 compared to above => mul_tmp + g3*4)
-		mul_tmp += g3<<2;
-		cube[0] = *(grid_value_000+mul_tmp+0);
+		// Capturing desolvation values (next map compared to above => mul_tmp += g3*4)
+		mul_tmp += g3_4;
+		cube[0] = *(grid_value_000+mul_tmp);
 		cube[1] = *(grid_value_000+mul_tmp+1);
 		cube[2] = *(grid_value_000+mul_tmp+2);
 		cube[3] = *(grid_value_000+mul_tmp+3);
@@ -2126,10 +2124,15 @@ float calc_intraE_f(
 		a_flex = (atom_id1>=myligand->true_ligand_atoms);
 		for (atom_id2=atom_id1+1; atom_id2<myligand->num_of_atoms; atom_id2++)
 		{
-			b_flex = (atom_id2>=myligand->true_ligand_atoms);
 			if (myligand->intraE_contributors [atom_id1][atom_id2] == 1) // if they have to be included in intramolecular energy calculation
 			{                                                            // the energy contribution has to be calculated
+				b_flex = (atom_id2>=myligand->true_ligand_atoms);
+
 				dist = distance(&(myligand->atom_idxyzq [atom_id1][1]), &(myligand->atom_idxyzq [atom_id2][1]));
+				distance_id = (int) floor((100.0f*dist) + 0.5f) - 1; // +0.5: rounding, -1: r_xx_table [0] corresponds to r=0.01
+				if (distance_id < 0) {
+					distance_id = 0;
+				}
 
 				if (debug == 1)
 				{
@@ -2145,34 +2148,6 @@ float calc_intraE_f(
 
 				unsigned int atom1_type_vdw_hb = myligand->atom_types_reqm [type_id1];
 				unsigned int atom2_type_vdw_hb = myligand->atom_types_reqm [type_id2];
-
-				// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
-				float opt_distance = myligand->reqm_AB [type_id1][type_id2];
-
-				// Getting smoothed distance
-				// smoothed_distance = function(dist, opt_distance)
-				float smoothed_distance;
-				float delta_distance = 0.5f*smooth;
-
-				if (dist <= (opt_distance - delta_distance)) {
-					smoothed_distance = dist + delta_distance;
-				}
-				else if (dist < (opt_distance + delta_distance)) {
-					smoothed_distance = opt_distance;
-				}
-				else { // else if (dist >= (opt_distance + delta_distance))
-					smoothed_distance = dist - delta_distance;
-				}
-
-				distance_id = (int) floor((100.0f*dist) + 0.5f) - 1; // +0.5: rounding, -1: r_xx_table [0] corresponds to r=0.01
-				if (distance_id < 0) {
-					distance_id = 0;
-				}
-
-				smoothed_distance_id = (int) floor((100.0f*smoothed_distance) + 0.5f) - 1; // +0.5: rounding, -1: r_xx_table [0] corresponds to r=0.01
-				if (smoothed_distance_id < 0) {
-					smoothed_distance_id = 0;
-				}
 
 				// ------------------------------------------------
 				// Required only for flexrings
@@ -2194,6 +2169,29 @@ float calc_intraE_f(
 				// ------------------------------------------------
 				if (dist < dcutoff) // but only if the distance is less than distance cutoff value
 				{
+					// Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
+					float opt_distance = myligand->reqm_AB [type_id1][type_id2];
+
+					// Getting smoothed distance
+					// smoothed_distance = function(dist, opt_distance)
+					float smoothed_distance;
+					float delta_distance = 0.5f*smooth;
+
+					if (dist <= (opt_distance - delta_distance)) {
+						smoothed_distance = dist + delta_distance;
+					}
+					else if (dist < (opt_distance + delta_distance)) {
+						smoothed_distance = opt_distance;
+					}
+					else { // else if (dist >= (opt_distance + delta_distance))
+						smoothed_distance = dist - delta_distance;
+					}
+
+					smoothed_distance_id = (int) floor((100.0f*smoothed_distance) + 0.5f) - 1; // +0.5: rounding, -1: r_xx_table [0] corresponds to r=0.01
+					if (smoothed_distance_id < 0) {
+						smoothed_distance_id = 0;
+					}
+
 					pair_mod* pm = tables->mod_pair [type_id1][type_id2];
 					if (tables->is_HB [type_id1][type_id2] && !pm) //H-bond
 					{
