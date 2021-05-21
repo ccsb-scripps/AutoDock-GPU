@@ -59,7 +59,7 @@ void arrange_result(
 
 void write_basic_info(
                             FILE*       fp,
-                      const Liganddata* ligand_ref,
+                            Liganddata* ligand_ref,
                       const Dockpars*   mypars,
                       const Gridinfo*   mygrid,
                       const int*        argc,
@@ -172,7 +172,7 @@ void write_basic_info(
 
 void write_basic_info_dlg(
                                 FILE*       fp,
-                          const Liganddata* ligand_ref,
+                                Liganddata* ligand_ref,
                           const Dockpars*   mypars,
                           const Gridinfo*   mygrid,
                           const int*        argc,
@@ -299,8 +299,8 @@ void make_resfiles(
                          float*        final_population,
                          float*        energies,
                          IntraTables*  tables,
-                   const Liganddata*   ligand_ref,
-                   const Liganddata*   ligand_from_pdb,
+                         Liganddata*   ligand_ref,
+                         Liganddata*   ligand_from_pdb,
                    const Liganddata*   ligand_xray,
                    const Dockpars*     mypars,
                          int           evals_performed,
@@ -326,7 +326,8 @@ void make_resfiles(
 	FILE* fp = stdout; // takes care of compile warning down below (and serves as a visual bug tracker in case fp is written to accidentally)
 	int i,j;
 	double entity_rmsds;
-	Liganddata temp_docked;
+	double init_atom_idxyzq[MAX_NUM_OF_ATOMS][5]; // type id .. 0, x .. 1, y .. 2, z .. 3, q ... 4
+	memcpy(init_atom_idxyzq, ligand_ref->atom_idxyzq, sizeof(ligand_ref->atom_idxyzq));
 	int len = strlen(mypars->ligandfile) - 6 + 24 + 10 + 10; // length with added bits for things below (numbers below 11 digits should be a safe enough threshold)
 	char* temp_filename = (char*)malloc((len+1)*sizeof(char)); // +\0 at the end
 	char* name_ext_start;
@@ -369,9 +370,24 @@ void make_resfiles(
 	strcpy(temp_filename, mypars->ligandfile);
 	name_ext_start = temp_filename + strlen(mypars->ligandfile) - 6; // without .pdbqt
 
+	bool rmsd_valid = true;
+	if (mypars->given_xrayligandfile == true) {
+		if(!((ligand_xray->num_of_atoms == ligand_ref->num_of_atoms) || (ligand_xray->num_of_atoms == ligand_ref->true_ligand_atoms))){
+			printf("Warning: RMSD can't be calculated, atom number mismatch %d (ref) vs. %d!\n",ligand_xray->true_ligand_atoms,ligand_ref->true_ligand_atoms);
+			rmsd_valid = false;
+		}
+	}
+	else {
+		if(ligand_from_pdb->true_ligand_atoms != ligand_ref->true_ligand_atoms){
+			printf("Warning: RMSD can't be calculated, atom number mismatch %d (ref) vs. %d!\n",ligand_xray->true_ligand_atoms,ligand_ref->true_ligand_atoms);
+			rmsd_valid = false;
+		}
+	}
+
 	for (i=0; i<pop_size; i++)
 	{
-		temp_docked = *ligand_ref;
+		// start from original coordinates
+		memcpy(ligand_ref->atom_idxyzq, init_atom_idxyzq, sizeof(ligand_ref->atom_idxyzq));
 		
 		if(mypars->xml2dlg){
 			double axisangle[4];
@@ -383,39 +399,38 @@ void make_resfiles(
 			axisangle[1] = genotype[4];
 			axisangle[2] = genotype[5];
 			axisangle[3] = genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1];
-			change_conform(&temp_docked, mygrid, genotype, axisangle, debug);
+			change_conform(ligand_ref, mygrid, genotype, axisangle, debug);
 		} else{
-			change_conform_f(&temp_docked, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, debug);
+			change_conform_f(ligand_ref, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, debug);
 		}
 		
 		// the map interaction of flex res atoms is stored in accurate_intraflexE
 		if (i == 0)
-			accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec); // calculate intermolecular and per atom energies
+			accurate_interE = calc_interE_f(mygrid, ligand_ref, grids, 0.0005, debug, accurate_intraflexE, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec); // calculate intermolecular and per atom energies
 		else
-			accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE); // calculating the intermolecular energy
+			accurate_interE = calc_interE_f(mygrid, ligand_ref, grids, 0.0005, debug, accurate_intraflexE); // calculating the intermolecular energy
 
 		if (mypars->contact_analysis && (i==0)){
-			best_result->analysis = analyze_ligand_receptor(mygrid, &temp_docked, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, debug, mypars->H_cutoff, mypars->V_cutoff);
+			best_result->analysis = analyze_ligand_receptor(mygrid, ligand_ref, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, debug, mypars->H_cutoff, mypars->V_cutoff);
 		}
 
-		scale_ligand(&temp_docked, mygrid->spacing);
+		scale_ligand(ligand_ref, mygrid->spacing);
 		
 		// the interaction between flex res and ligand is stored in accurate_interflexE
 		if(mypars->contact_analysis && (i==0))
-			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, &(best_result->analysis), mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
+			accurate_intraE = calc_intraE_f(ligand_ref, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, &(best_result->analysis), mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
 		else
-			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE);
+			accurate_intraE = calc_intraE_f(ligand_ref, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE);
 
-		move_ligand(&temp_docked, mygrid->origo_real_xyz, mygrid->origo_real_xyz); //moving it according to grid location
+		move_ligand(ligand_ref, mygrid->origo_real_xyz, mygrid->origo_real_xyz); //moving it according to grid location
 
-//		for (unsigned int atom_id=0; atom_id < temp_docked.num_of_atoms; atom_id++)
-//			printf("%i: %lf, %lf, %lf\n", atom_id+1, temp_docked.atom_idxyzq [atom_id][1], temp_docked.atom_idxyzq [atom_id][2], temp_docked.atom_idxyzq [atom_id][3]);
-
-		if (mypars->given_xrayligandfile == true) {
-			entity_rmsds = calc_rmsd(ligand_xray, &temp_docked, mypars->handle_symmetry); //calculating rmds compared to original xray file
-		}
-		else {
-			entity_rmsds = calc_rmsd(ligand_from_pdb, &temp_docked, mypars->handle_symmetry); //calculating rmds compared to original pdb file
+		if ((mypars->gen_finalpop) || (i==0)){ // rmsd value is only needed in either of those cases
+			if (rmsd_valid){
+				if (mypars->given_xrayligandfile)
+					entity_rmsds = calc_rmsd(ligand_xray->atom_idxyzq, ligand_ref->atom_idxyzq, ligand_xray->num_of_atoms, mypars->handle_symmetry); //calculating rmds compared to original xray file
+				else
+					entity_rmsds = calc_rmsd(ligand_from_pdb->atom_idxyzq, ligand_ref->atom_idxyzq, ligand_from_pdb->true_ligand_atoms, mypars->handle_symmetry); //calculating rmds compared to original pdb file
+			} else entity_rmsds = 100000;
 		}
 
 		// copying best result to output parameter
@@ -426,7 +441,7 @@ void make_resfiles(
 			best_result->interflexE = accurate_interflexE;
 			best_result->intraE = accurate_intraE;
 			best_result->intraflexE = accurate_intraflexE;
-			best_result->reslig_realcoord = temp_docked;
+			memcpy(best_result->atom_idxyzq, ligand_ref->atom_idxyzq, sizeof(ligand_ref->atom_idxyzq));
 			best_result->rmsd_from_ref = entity_rmsds;
 			best_result->run_number = run_cnt+1;
 			if(mypars->contact_analysis){
@@ -445,13 +460,13 @@ void make_resfiles(
 				best_energy_of_all = accurate_interE + accurate_intraE;
 
 				if (mypars->gen_best)
-					gen_new_pdbfile(mypars->ligandfile, "best.pdbqt", &temp_docked);
+					gen_new_pdbfile(mypars->ligandfile, "best.pdbqt", ligand_ref);
 			}
 
 		if (i < mypars->gen_pdbs) //if it is necessary, making new pdbqts for best entities
 		{
 			sprintf(name_ext_start, "_docked_run%d_entity%d.pdbqt", run_cnt+1, i+1); //name will be <original pdb filename>_docked_<number starting from 1>.pdb
-			gen_new_pdbfile(mypars->ligandfile, temp_filename, &temp_docked);
+			gen_new_pdbfile(mypars->ligandfile, temp_filename, ligand_ref);
 		}
 		if (mypars->gen_finalpop)
 		{
@@ -469,158 +484,16 @@ void make_resfiles(
 			fprintf(fp, " %8.3lf | \n", entity_rmsds);
 		}
 	}
+	// need to restore ligand_ref to original coordinates before we leave
+	memcpy(ligand_ref->atom_idxyzq, init_atom_idxyzq, sizeof(ligand_ref->atom_idxyzq));
 	if (mypars->gen_finalpop) fclose(fp);
 	free(temp_filename);
 }
 
-void cluster_analysis(
-                            Ligandresult myresults [],
-                            int          num_of_runs,
-                            char*        report_file_name,
-                      const Liganddata*  ligand_ref,
-                      const Dockpars*    mypars,
-                      const Gridinfo*    mygrid,
-                      const int*         argc,
-                            char**       argv,
-                      const double       docking_avg_runtime,
-                      const double program_runtime
-                     )
-// The function performs ranked cluster analisys similar to that of AutoDock and creates a file with report_file_name name, the result
-// will be written to it.
-{
-	int i,j;
-	Ligandresult temp_ligres;
-	int num_of_clusters;
-	int current_clust_center;
-	double temp_rmsd;
-	double cluster_tolerance = 2;
-	int result_clustered;
-	int subrank;
-	FILE* fp;
-	int cluster_sizes [1000];
-	double sum_energy [1000];
-	double best_energy [1000];
-
-	const double AD4_coeff_tors = mypars->coeffs.AD4_coeff_tors;
-	double torsional_energy;
-
-	// first of all, let's calculate the constant torsional free energy term
-	torsional_energy = AD4_coeff_tors * ligand_ref->true_ligand_rotbonds;
-
-	// arranging results according to energy, myresults [0] will be the best one (with lowest energy)
-	for (j=0; j<num_of_runs-1; j++)
-		for (i=num_of_runs-2; i>=j; i--) // arrange according to sum of inter- and intramolecular energies
-			if ((myresults [i]).interE /*+ (myresults [i]).intraE*/ > (myresults [i+1]).interE /*+ (myresults [i+1]).intraE*/) // mimics the behaviour of AD4 unbound_same_as_bound
-			//if ((myresults [i]).interE + (myresults [i]).intraE > (myresults [i+1]).interE + (myresults [i+1]).intraE)
-			{
-				temp_ligres = myresults [i];
-				myresults [i] = myresults [i+1];
-				myresults [i+1] = temp_ligres;
-			}
-
-	for (i=0; i<num_of_runs; i++)
-	{
-		(myresults [i]).clus_id = 0; // indicates that it hasn't been put into cluster yet
-	}
-
-	// the best result is the center of the first cluster
-	(myresults [0]).clus_id = 1;
-	(myresults [0]).rmsd_from_cluscent = 0;
-	num_of_clusters = 1;
-
-	for (i=1; i<num_of_runs; i++) // for each result
-	{
-		current_clust_center = 0;
-		result_clustered = 0;
-		for (j=0; j<i; j++) // results with lower id-s are clustered, look for cluster centers
-		{
-			if ((myresults [j]).clus_id > current_clust_center) // it is the center of a new cluster
-			{
-				current_clust_center = (myresults [j]).clus_id;
-				temp_rmsd = calc_rmsd(&((myresults [j]).reslig_realcoord), &((myresults [i]).reslig_realcoord), mypars->handle_symmetry); // comparing current result with cluster center
-				if (temp_rmsd <= cluster_tolerance) // in this case we put result i to cluster with center j
-				{
-					(myresults [i]).clus_id = current_clust_center;
-					(myresults [i]).rmsd_from_cluscent = temp_rmsd;
-					result_clustered = 1;
-					break;
-				}
-			}
-		}
-		if (result_clustered != 1) // if no suitable cluster was found, this is the center of a new one
-		{
-			num_of_clusters++;
-			(myresults [i]).clus_id = num_of_clusters; // new cluster id
-			(myresults [i]).rmsd_from_cluscent = 0;
-		}
-	}
-
-	for (i=1; i<=num_of_clusters; i++) // printing cluster info to file
-	{
-		subrank = 0;
-		cluster_sizes [i-1] = 0;
-		sum_energy [i-1] = 0;
-		for (j=0; j<num_of_runs; j++)
-			if (myresults [j].clus_id == i)
-			{
-				subrank++;
-				(cluster_sizes [i-1])++;
-				sum_energy [i-1] += (myresults [j]).interE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
-				(myresults [j]).clus_subrank = subrank;
-				if (subrank == 1)
-					best_energy [i-1] = (myresults [j]).interE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
-			}
-	}
-
-	fp = fopen(report_file_name, "w");
-
-	write_basic_info(fp, ligand_ref, mypars, mygrid, argc, argv); // Write basic information about docking and molecule parameters to file
-	fprintf(fp, "           RUN TIME INFO           \n");
-	fprintf(fp, "===================================\n\n");
-
-	fprintf(fp, "Average GPU run time for 1 run:           %lfs\n", docking_avg_runtime);
-	fprintf(fp, "Total GPU docking run time:               %fs\n", docking_avg_runtime*mypars->num_of_runs);
-
-	fprintf(fp, "Program run time:                          %lfs\n", program_runtime);
-	fprintf(fp, "\n\n");
-
-	fprintf(fp, "       CLUSTERING HISTOGRAM        \n");
-	fprintf(fp, "===================================\n\n");
-	fprintf(fp, " Cluster rank | Num in cluster |   Best energy   |   Mean energy   |    5    10   15   20   25   30   35\n");
-	fprintf(fp, "--------------+----------------+-----------------+-----------------+----+----+----+----+----+----+----+\n");
-
-	for (i=1; i<=num_of_clusters; i++)
-	{
-		fprintf(fp, "      %3d     |       %3d      | %15.3lf | %15.3lf |", i, cluster_sizes [i-1], best_energy [i-1], sum_energy [i-1]/cluster_sizes [i-1]);
-
-		for (j=0; j<cluster_sizes [i-1]; j++)
-			fprintf(fp, "#");
-
-		fprintf(fp, "\n");
-	}
-	fprintf(fp, "\n\n");
-
-	fprintf(fp, "              CLUSTERS             \n");
-	fprintf(fp, "===================================\n\n");
-	fprintf(fp, " Rank | Subrank | Run | Intermolecular E | Intramolecular E | Torsional energy |   Total energy   | Cluster RMSD | Reference RMSD |\n");
-	fprintf(fp, "------+---------+-----+------------------+------------------+------------------+------------------+--------------+----------------+\n");
-
-	for (i=1; i<=num_of_clusters; i++) // printing cluster info to file
-	{
-		for (j=0; j<num_of_runs; j++)
-			if (myresults [j].clus_id == i)
-			{
-				fprintf(fp, "  %3d |   %3d   | %3d |  %15.3lf |  %15.3lf |  %15.3lf |  %15.3lf |     %4.2lf     |      %4.2lf      |\n", (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number,
-				            (myresults [j]).interE, (myresults [j]).intraE, torsional_energy, (myresults [j]).interE + /*(myresults [j]).intraE +*/ torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref); // intraE can be commented when unbound_same_as_bound
-			}
-	}
-	fclose(fp);
-}
-
-void clusanal_gendlg(
+void generate_output(
                            Ligandresult  myresults [],
                            int           num_of_runs,
-                     const Liganddata*   ligand_ref,
+                           Liganddata*   ligand_ref,
                      const Dockpars*     mypars,
                      const Gridinfo*     mygrid,
                      const int*          argc,
@@ -848,7 +721,7 @@ void clusanal_gendlg(
 					fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[i].genotype[5]);
 				} else fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", myresults[i].genotype[3], myresults[i].genotype[4], myresults[i].genotype[5], myresults[i].genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1]);
 				fprintf(fp, "DOCKED: USER    NEWDPF dihe0");
-				for(j=0; j<myresults[i].reslig_realcoord.num_of_rotbonds; j++)
+				for(j=0; j<ligand_ref->num_of_rotbonds; j++)
 					fprintf(fp, " %.6f", myresults[i].genotype[6+j]);
 				fprintf(fp, "\n");
 			}
@@ -861,16 +734,18 @@ void clusanal_gendlg(
 			}
 			
 			curr_model = pdbqt_template;
-			for(atom_cnt = atom_data.size(); atom_cnt-->0;)
+			// inserting text from the end means prior text positions won't shift
+			// so there's less to keep track off ;-)
+			for(atom_cnt = ligand_ref->num_of_atoms; atom_cnt-->0;)
 			{
 				char* line = lineout;
-				line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][1]); // x
-				line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][2]); // y
-				line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][3]); // z
+				line += sprintf(line, "%8.3lf", myresults[i].atom_idxyzq[atom_cnt][1]); // x
+				line += sprintf(line, "%8.3lf", myresults[i].atom_idxyzq[atom_cnt][2]); // y
+				line += sprintf(line, "%8.3lf", myresults[i].atom_idxyzq[atom_cnt][3]); // z
 				line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw
 				line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec
-				line += sprintf(line, "    %+6.3lf ", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][4]); // q
-				line += sprintf(line, "%-2s\n", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]); // type
+				line += sprintf(line, "    %+6.3lf ", myresults[i].atom_idxyzq[atom_cnt][4]); // q
+				line += sprintf(line, "%-2s\n", ligand_ref->atom_types[((int)myresults[i].atom_idxyzq[atom_cnt][0])]); // type
 				curr_model.insert(atom_data[atom_cnt],lineout);
 			}
 			fprintf(fp, "%s", curr_model.c_str());
@@ -911,7 +786,7 @@ void clusanal_gendlg(
 				if (myresults[energy_order[j]].clus_id > current_clust_center) // it is the center of a new cluster
 				{
 					current_clust_center = myresults[energy_order[j]].clus_id;
-					temp_rmsd = calc_rmsd(&(myresults[energy_order[j]].reslig_realcoord), &(myresults[energy_order[i]].reslig_realcoord), mypars->handle_symmetry); // comparing current result with cluster center
+					temp_rmsd = calc_rmsd(myresults[energy_order[j]].atom_idxyzq, myresults[energy_order[i]].atom_idxyzq, ligand_ref->true_ligand_atoms, mypars->handle_symmetry); // comparing current result with cluster center
 					if (temp_rmsd <= cluster_tolerance) // in this case we put result i to cluster with center j
 					{
 						myresults[energy_order[i]].clus_id = current_clust_center;
@@ -1134,9 +1009,9 @@ void clusanal_gendlg(
 			phi = myresults[j].genotype[3]/180.0*PI;
 			theta = myresults[j].genotype[4]/180.0*PI;
 			fprintf(fp_xml, "\t\t\t<axisangle0>%.8f %.8f %.8f %.6f</axisangle0>\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[j].genotype[5]);
-			fprintf(fp_xml, "\t\t\t<ndihe>%d</ndihe>\n", myresults[j].reslig_realcoord.num_of_rotbonds);
+			fprintf(fp_xml, "\t\t\t<ndihe>%d</ndihe>\n", ligand_ref->num_of_rotbonds);
 			fprintf(fp_xml, "\t\t\t<dihe0>");
-			for(i=0; i<myresults[j].reslig_realcoord.num_of_rotbonds; i++)
+			for(i=0; i<ligand_ref->num_of_rotbonds; i++)
 				fprintf(fp_xml, "%s%.6f", (i>0)?" ":"", myresults[j].genotype[6+i]);
 			fprintf(fp_xml, "\n\t\t\t</dihe0>\n");
 			fprintf(fp_xml, "\t\t</run>\n");
@@ -1177,7 +1052,7 @@ void process_result(
                     const Gridinfo*        mygrid,
                     const float*           cpu_floatgrids,
                     const Dockpars*        mypars,
-                    const Liganddata*      myligand_init,
+                          Liganddata*      myligand_init,
                     const Liganddata*      myxrayligand,
                     const int*             argc,
                           char**           argv,
@@ -1211,8 +1086,8 @@ void process_result(
 		              &(cpu_result_ligands [run_cnt]));
 	}
 
-	// Do clustering analysis and generate dlg file
-	clusanal_gendlg(cpu_result_ligands.data(),
+	// Do analyses and generate dlg or xml output files
+	generate_output(cpu_result_ligands.data(),
 	                mypars->num_of_runs,
 	                myligand_init,
 	                mypars,

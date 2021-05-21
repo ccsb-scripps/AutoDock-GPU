@@ -233,7 +233,12 @@ void move_ligand(Liganddata*, const double [], const double []);
 
 void scale_ligand(Liganddata*, const double);
 
-double calc_rmsd(const Liganddata*, const Liganddata*, const bool);
+double calc_rmsd(
+                 const double       atom_idxyzq_ref [MAX_NUM_OF_ATOMS][5],
+                 const double       atom_idxyzq     [MAX_NUM_OF_ATOMS][5],
+                       unsigned int num_atoms,
+                 const bool         handle_symmetry
+                );
 
 double calc_ddd_Mehler_Solmajer(double);
 

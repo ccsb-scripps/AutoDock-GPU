@@ -1415,16 +1415,17 @@ void scale_ligand(
 
 	for (i=0; i < myligand->num_of_atoms; i++){
 		for (j=1; j<4; j++)
-			myligand->atom_idxyzq [i][j] = myligand->atom_idxyzq [i][j]*scale_factor;
+			myligand->atom_idxyzq [i][j] *= scale_factor;
 //		if(i>=myligand->true_ligand_atoms)
 //			printf("%i: (%f, %f, %f)\n",i-myligand->true_ligand_atoms+1,myligand->atom_idxyzq [i][1],myligand->atom_idxyzq [i][2],myligand->atom_idxyzq [i][3]);
 	}
 }
 
 double calc_rmsd(
-                 const Liganddata* myligand_ref,
-                 const Liganddata* myligand,
-                 const bool        handle_symmetry
+                 const double       atom_idxyzq_ref [MAX_NUM_OF_ATOMS][5],
+                 const double       atom_idxyzq     [MAX_NUM_OF_ATOMS][5],
+                       unsigned int num_atoms,
+                 const bool         handle_symmetry
                 )
 // The function calculates the RMSD value (root mean square deviation of the
 // atomic distances for two conformations of the same ligand) and returns it.
@@ -1439,31 +1440,25 @@ double calc_rmsd(
 	double sumdist2;
 	double mindist2;
 
-	if (myligand_ref->true_ligand_atoms != myligand->true_ligand_atoms)
-	{
-		printf("Warning: RMSD can't be calculated, atom number mismatch %d (ref) vs. %d!\n",myligand_ref->true_ligand_atoms,myligand->true_ligand_atoms);
-		return 100000; // returning unreasonable value
-	}
-
 	sumdist2 = 0;
 
 	if (!handle_symmetry)
 	{
-		for (i=0; i<myligand->true_ligand_atoms; i++)
+		for (i=0; i<num_atoms; i++)
 		{
-			double d2 = distance2(&(myligand->atom_idxyzq [i][1]), &(myligand_ref->atom_idxyzq [i][1]));
+			double d2 = distance2(&(atom_idxyzq [i][1]), &(atom_idxyzq_ref [i][1])); // coordinates start at [1]
 			sumdist2 += d2;
 		}
 	}
 	else // handling symmetry with the silly AutoDock method
 	{
-		for (i=0; i<myligand->true_ligand_atoms; i++)
+		for (i=0; i<num_atoms; i++)
 		{
 			mindist2 = 100000; // initial value should be high enough so that it is ensured that lower distances will be found
-			for (j=0; j<myligand_ref->num_of_atoms; j++) // looking for the closest atom with same type from the reference
+			for (j=0; j<num_atoms; j++) // looking for the closest atom with same type from the reference
 			{
-				if (myligand->atom_idxyzq [i][0] == myligand_ref->atom_idxyzq [j][0]){
-					double d2 = distance2(&(myligand->atom_idxyzq [i][1]), &(myligand_ref->atom_idxyzq [j][1]));
+				if (atom_idxyzq [i][0] == atom_idxyzq [j][0]){ // for same type:
+					double d2 = distance2(&(atom_idxyzq [i][1]), &(atom_idxyzq_ref [j][1]));
 					if (d2 < mindist2){
 						mindist2 = d2;
 					}
@@ -1473,7 +1468,7 @@ double calc_rmsd(
 		}
 	}
 
-	return (sqrt(sumdist2/myligand->true_ligand_atoms));
+	return (sqrt(sumdist2/num_atoms));
 }
 
 double calc_ddd_Mehler_Solmajer(double distance)
