@@ -48,14 +48,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "defines.h"
 #include "miscellaneous.h"
 
-#define getvalue_4Darr(mempoi, grinf, t, z, y, x)                  *(mempoi + 4*((grinf).size_xyz[0] * (y + (grinf).size_xyz[1] * (z + (grinf).size_xyz[2]*t)) + x))
-#define getvalue_4Darr_withsize(mempoi, gridsize_xyz, t, z, y, x)  *(mempoi + 4*(gridsize_xyz[0]*(y + gridsize_xyz[1] * (z + gridsize_xyz[2]*t)) + x))
-//The macro helps to access the grid point values
-//which were read from external files with get_gridvalues function.
-//The first parameter is a pointer which points to the memory area storing the data.
-//The second one is the corresponding grid info (parameter of get_gridinfo function).
-//The other parameters are the type index, z, y and x coordinates of the grid point.
-
 // Struct containing all the important information coming from .gpf and .xyz files.
 typedef struct _Gridinfo
 {

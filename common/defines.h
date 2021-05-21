@@ -48,6 +48,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 	#define NUM_OF_THREADS_PER_BLOCK 16
 #endif
 
+typedef enum
+{
+	idx_000 = 0,
+	idx_010 = 1,
+	idx_001 = 2,
+	idx_011 = 3,
+	idx_100 = 4,
+	idx_110 = 5,
+	idx_101 = 6,
+	idx_111 = 7
+} indices;
+
 enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.dat" or "AD4_parameters.dat" file.
 #define NUM_ENUM_ATOMTYPES 7 // this should be the length of the enumerated atom types above
 

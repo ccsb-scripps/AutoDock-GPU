@@ -71,12 +71,6 @@ typedef struct
 	double z;
 } Quaternion;
 
-// macro that calculates the trilinear interpolation,
-// the first parameter is a 2*2*2 array of the values of the function
-// in the vertices of the cube,
-// and the second one is a 2*2*2 array of the interpolation weights
-#define trilin_interpol(cube, weights) (cube[0][0][0]*weights[0][0][0] +cube[1][0][0]*weights[1][0][0] +cube[0][1][0]*weights[0][1][0] +cube[1][1][0]*weights[1][1][0] +cube[0][0][1]*weights[0][0][1] +cube[1][0][1]*weights[1][0][1] +cube[0][1][1]*weights[0][1][1] +cube[1][1][1]*weights[1][1][1])
-
 float map2float(const char* c);
 
 int float2fracint(double, int);
@@ -113,10 +107,6 @@ void rotate_shoemake(double [], const double [], const double [], int);
 double angle_of_vectors(const double [], const double []);
 
 void vec_crossprod(const double [], const double [], double []);
-
-void get_trilininterpol_weights(double [][2][2], const double*, const double*, const double*);
-
-void get_trilininterpol_weights_f(float [][2][2], const float*, const float*, const float*);
 
 void print_binary_string(unsigned long long);
 

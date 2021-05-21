@@ -43,38 +43,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // WARNING: it is supposed that unsigned int is 32 bit long
 #define MAX_UINT                4294967296.0f
 
-// Macro for capturing grid values
-	// Original
-	#define GETGRIDVALUE(mempoi,gridsize_x,gridsize_y,gridsize_z,t,z,y,x)   *(mempoi + gridsize_x*(y + gridsize_y*(z + gridsize_z*t)) + x)
-
-	// Optimization 1
-	// #define GETGRIDVALUE_OPT(mempoi,gridsize_x,gridsize_y,mul_tmp,z,y,x)   *(mempoi + gridsize_x*(y + gridsize_y*(z + mul_tmp)) + x)
-
-	// Optimization 2
-	// Implemented directly in the kernel code: calcenergy_fourkernels_intel.cl
-
-typedef enum
-{
-	idx_000 = 0,
-	idx_010 = 1,
-	idx_001 = 2,
-	idx_011 = 3,
-	idx_100 = 4,
-	idx_110 = 5,
-	idx_101 = 6,
-	idx_111 = 7
-} indices;
-
-// Macro for trilinear interpolation
-#define TRILININTERPOL(cube, weights) (cube[idx_000]*weights[idx_000] + \
-                                       cube[idx_010]*weights[idx_010] + \
-                                       cube[idx_001]*weights[idx_001] + \
-                                       cube[idx_011]*weights[idx_011] + \
-                                       cube[idx_100]*weights[idx_100] + \
-                                       cube[idx_110]*weights[idx_110] + \
-                                       cube[idx_101]*weights[idx_101] + \
-                                       cube[idx_111]*weights[idx_111])
-
 // Sticking to array boundaries
 #define stick_to_bounds(x,a,b) x + (x <= a)*(a-x) + (x >= b)*(b-x)
 

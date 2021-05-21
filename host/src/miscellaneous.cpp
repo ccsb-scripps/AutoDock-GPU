@@ -442,34 +442,6 @@ void vec_crossprod(const double vector1 [], const double vector2 [], double cros
 	crossprodvec [2] = vector1 [0]*vector2 [1] - vector1 [1]*vector2 [0];
 }
 
-void get_trilininterpol_weights(double weights [][2][2], const double* dx, const double* dy, const double* dz)
-// The function calculates the weights for trilinear interpolation based on the location of the point inside
-// the cube which is given by the second, third and fourth parameters.
-{
-	weights [0][0][0] = (1-(*dx))*(1-(*dy))*(1-(*dz));
-	weights [1][0][0] = (*dx)*(1-(*dy))*(1-(*dz));
-	weights [0][1][0] = (1-(*dx))*(*dy)*(1-(*dz));
-	weights [1][1][0] = (*dx)*(*dy)*(1-(*dz));
-	weights [0][0][1] = (1-(*dx))*(1-(*dy))*(*dz);
-	weights [1][0][1] = (*dx)*(1-(*dy))*(*dz);
-	weights [0][1][1] = (1-(*dx))*(*dy)*(*dz);
-	weights [1][1][1] = (*dx)*(*dy)*(*dz);
-}
-
-void get_trilininterpol_weights_f(float weights [][2][2], const float* dx, const float* dy, const float* dz)
-// The function calculates the weights for trilinear interpolation based on the location of the point inside
-// the cube which is given by the second, third and fourth parameters.
-{
-	weights [0][0][0] = (1-(*dx))*(1-(*dy))*(1-(*dz));
-	weights [1][0][0] = (*dx)*(1-(*dy))*(1-(*dz));
-	weights [0][1][0] = (1-(*dx))*(*dy)*(1-(*dz));
-	weights [1][1][0] = (*dx)*(*dy)*(1-(*dz));
-	weights [0][0][1] = (1-(*dx))*(1-(*dy))*(*dz);
-	weights [1][0][1] = (*dx)*(1-(*dy))*(*dz);
-	weights [0][1][1] = (1-(*dx))*(*dy)*(*dz);
-	weights [1][1][1] = (*dx)*(*dy)*(*dz);
-}
-
 void print_binary_string(unsigned long long to_print)
 // The function prints out the value of to_print parameter to the standart io as a binary number.
 {
