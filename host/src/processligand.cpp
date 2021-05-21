@@ -1775,10 +1775,9 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 		for(unsigned int rid=1; rid<=receptor_list[0]; rid++)
 		{
 			const ReceptorAtom* curr = &receptor_atoms[receptor_list[rid]];
-			double dist2 = (curr->x-x)*(curr->x-x)+(curr->y-y)*(curr->y-y)+(curr->z-z)*(curr->z-z);
 			if((myligand->acceptor[atom_cnt] && curr->donor) ||
 			   (myligand->donor[atom_cnt] && curr->acceptor)){
-				if(dist2 <= H_cutoff){
+				if((curr->x-x)*(curr->x-x)+(curr->y-y)*(curr->y-y)+(curr->z-z)*(curr->z-z) <= H_cutoff){
 					datum.type     = 1; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 					datum.lig_id   = atom_cnt+1;
 					datum.lig_name = myligand->atom_names[atom_cnt];
@@ -1793,7 +1792,7 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 				if((myligand->base_atom_types[atomtypeid][0]!='H') && (curr->atom_type[0]!='H') && // exclude Hydrogens,
 				   !myligand->acceptor[atom_cnt] && !myligand->donor[atom_cnt] &&                  // non-H-bond capable atoms on ligand
 				   !curr->acceptor && !curr->donor){                                               // ... and receptor
-					if(dist2 <= V_cutoff){
+					if((curr->x-x)*(curr->x-x)+(curr->y-y)*(curr->y-y)+(curr->z-z)*(curr->z-z) <= V_cutoff){
 						datum.type     = 2; // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 						datum.lig_id   = atom_cnt+1;
 						datum.lig_name = myligand->atom_names[atom_cnt];
