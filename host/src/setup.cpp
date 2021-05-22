@@ -37,13 +37,18 @@ int preload_gridsize(FileList& filelist)
 {
 	if(!filelist.used) return 0;
 	int gridsize=0;
-	for(unsigned int i_file=0; i_file<filelist.fld_files.size(); i_file++){
-		// Filling mygrid according to the gpf file
-		if (get_gridinfo(filelist.fld_files[i_file].c_str(), &filelist.mygrids[i_file]) != 0)
-			{printf("\n\nError in get_gridinfo, stopped job."); return 1;}
-		int curr_size = 4*filelist.mygrids[i_file].size_xyz[0]*filelist.mygrids[i_file].size_xyz[1]*filelist.mygrids[i_file].size_xyz[2];
-		if(curr_size>gridsize)
-			gridsize=curr_size;
+	for(unsigned int i=0; i<filelist.fld_files.size(); i++){
+		size_t grid_idx = filelist.fld_files[i].grid_idx;
+		if(grid_idx<filelist.mygrids.size()){
+			// Filling mygrid according to the gpf file
+			if (get_gridinfo(filelist.fld_files[i].name.c_str(), &filelist.mygrids[grid_idx]) != 0){
+				printf("\n\nError in get_gridinfo, stopped job.");
+				return 1;
+			}
+			int curr_size = 4*filelist.mygrids[grid_idx].size_xyz[0]*filelist.mygrids[grid_idx].size_xyz[1]*filelist.mygrids[grid_idx].size_xyz[2];
+			if(curr_size>gridsize)
+				gridsize=curr_size;
+		}
 	}
 	return gridsize;
 }
@@ -533,7 +538,7 @@ int load_all_maps(
 		}
 		if (fp.fail())
 		{
-			printf("Error: Can't open grid map %s!\n", fn.c_str());
+			printf("Error: Can't open grid map %s.\n", fn.c_str());
 			return 1;
 		}
 

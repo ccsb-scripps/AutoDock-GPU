@@ -149,7 +149,7 @@ int prepare_const_fields_for_gpu(
 
 	if (myligand_reference->num_of_intraE_contributors > MAX_INTRAE_CONTRIBUTORS)
 	{
-		printf("Error: number of intramolecular energy contributor is too high!\n");
+		printf("Error: Number of intramolecular energy contributor is larger than maximum (%d).\n",MAX_INTRAE_CONTRIBUTORS);
 		fflush(stdout);
 		return 1;
 	}
@@ -212,7 +212,7 @@ int prepare_const_fields_for_gpu(
 	// generate rotation list
 	if (gen_rotlist(myligand_reference, rotlist) != 0)
 	{
-		printf("Error: number of required rotations is too high!\n");
+		printf("Error: Number of required rotations is larger than maximum (%d).\n",MAX_NUM_OF_ROTATIONS);
 		return 1;
 	}
 
@@ -252,14 +252,14 @@ int prepare_const_fields_for_gpu(
 	}
 
 	for (i=0; i < myligand_reference->num_of_rotbonds; i++)
-	{	
+	{
 		// Pointing to the mem area corresponding to a given rotbond
 		intpoi = rotbonds_atoms + MAX_NUM_OF_ATOMS*i;
 
 		for (j=0; j < myligand_reference->num_of_atoms; j++)
 		{
 			/*
-			rotbonds_atoms [MAX_NUM_OF_ATOMS*i+j] = myligand_reference->atom_rotbonds [j][i]; // 
+			rotbonds_atoms [MAX_NUM_OF_ATOMS*i+j] = myligand_reference->atom_rotbonds [j][i];
 			*/
 			
 			// If an atom rotates with a rotbond, then
@@ -268,8 +268,8 @@ int prepare_const_fields_for_gpu(
 			if (myligand_reference->atom_rotbonds [j][i] == 1){
 				*intpoi = j;
 				intpoi++;
-				num_rotating_atoms_per_rotbond [i] ++;	
-			}	
+				num_rotating_atoms_per_rotbond [i] ++;
+			}
 
 		}
 	}

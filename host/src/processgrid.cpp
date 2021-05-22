@@ -66,7 +66,7 @@ int get_gridinfo(
 	fp.open(fldfilename);
 	if (fp.fail())
 	{
-		printf("Error: can't open fld file %s!\n", fldfilename);
+		printf("Error: Can't open fld file %s.\n", fldfilename);
 		return 1;
 	}
 
@@ -90,7 +90,7 @@ int get_gridinfo(
 			sscanf(&line.c_str()[8], "%lf", &(mygrid->spacing));
 			if (mygrid->spacing > 1)
 			{
-				printf("Error: grid spacing is too big!\n");
+				printf("Error: Grid spacing is larger than 1 Å.\n");
 				return 1;
 			}
 		}
@@ -107,7 +107,7 @@ int get_gridinfo(
 			// If the grid is too big, send message and change the value of truncated_size_xyz
 			if ((mygrid->size_xyz [0] > MAX_NUM_GRIDPOINTS) || (mygrid->size_xyz [1] > MAX_NUM_GRIDPOINTS) || (mygrid->size_xyz [2] > MAX_NUM_GRIDPOINTS))
 			{
-				printf("Error: each dimension of the grid must be below %i.\n", MAX_NUM_GRIDPOINTS);
+				printf("Error: Each dimension of the grid must be below %i.\n", MAX_NUM_GRIDPOINTS);
 				return 1;
 			}
 		}
@@ -146,7 +146,7 @@ int get_gridinfo(
 		{
 			size_t fidx = line.find("file=");
 			if(fidx==std::string::npos){
-				printf("Error: grid map file names cannot be read.\n");
+				printf("Error: Grid map file names cannot be read.\n");
 				return 1;
 			}
 			sscanf(&line.c_str()[fidx+5],"%255s", tempstr);
@@ -186,7 +186,7 @@ int get_gridvalues_f(
 	                                            (mygrid->size_xyz[2]));
 	if (*fgrids == NULL)
 	{
-		printf("Error: not enough memory!\n");
+		printf("Error: Not enough memory.\n");
 		return 1;
 	}
 	return get_gridvalues_f(mygrid, *fgrids);
@@ -251,7 +251,7 @@ int get_gridvalues_f(
 		}
 		if (fp.fail())
 		{
-			printf("Error: Can't open grid map %s!\n", fn.c_str());
+			printf("Error: Can't open grid map %s.\n", fn.c_str());
 			return 1;
 		}
 

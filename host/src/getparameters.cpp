@@ -166,7 +166,6 @@ int parse_dpf(
 		float paramA, paramB;
 		int m, n;
 		char typeA[4], typeB[4];
-		filelist.max_len = 256;
 		bool new_device = false; // indicate if current mypars has a new device requested
 		unsigned int run_cnt=0;
 		while(std::getline(file, line)) {
@@ -356,7 +355,11 @@ int parse_dpf(
 									printf("\nError: No map file on record yet. Please specify a map file before the first ligand.\n");
 									return 1;
 								}
-								filelist.fld_files.push_back(mypars->fldfile);
+								if(filelist.fld_files.size()>0){
+									// only add to fld_files if different from previous one
+									if(strcmp(mypars->fldfile,filelist.fld_files[filelist.fld_files.size()-1].name.c_str())!=0)
+										filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+								} else filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
 								mypars->list_nr++;
 								// If more than one unique protein, cant do map preloading yet
 								if (filelist.fld_files.size()>1){
@@ -690,9 +693,10 @@ int preparse_dpf(
 			mypars->pop_size=1;
 
 			if(prev_fld_file){ // unfortunately, some strcmp implementation segfault with NULL as input
+				// only add to fld_files if different from previous one
 				if(strcmp(prev_fld_file,mypars->fldfile) != 0)
-					filelist.fld_files.push_back(mypars->fldfile);
-			} else filelist.fld_files.push_back(mypars->fldfile);
+					filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+			} else filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
 
 			// If more than one unique protein, cant do map preloading yet
 			if (filelist.fld_files.size()>1)
@@ -757,37 +761,44 @@ int get_filelist(
 	                        // filelist.used may be true when dpf file is specified as it uses the filelist to store runs
 		std::ifstream file(filelist.filename);
 		if(file.fail()){
-			printf("\nError: Could not open filelist %s. Check path and permissions.\n",filelist.filename);
+			printf("\nError: Could not open file list %s. Check path and permissions.\n",filelist.filename);
 			return 1;
 		}
 		std::string line;
 		bool prev_line_was_fld=false;
+		int prev_fld_line;
 		unsigned int initial_res_count = filelist.resnames.size();
 		int len;
+		int last_fld_idx=0;
 		int line_count=0;
 		while(std::getline(file, line)) {
 			line_count++;
 			trim(line); // Remove leading and trailing whitespace
 			len = line.size();
-			if(len>filelist.max_len) filelist.max_len = len;
 			if (len>=4 && line.compare(len-4,4,".fld") == 0){
 				if (prev_line_was_fld){ // Overwrite the previous fld file if two in a row
-					filelist.fld_files[filelist.fld_files.size()-1] = line;
-					printf("\nWarning: using second listed .fld file in line %d\n",line_count);
+					filelist.fld_files.back() = {line,filelist.mygrids.size()};
+					printf("Warning: Fld file specified in line %d of the file list is superceded by line %d.\n\n",prev_fld_line,line_count);
 				} else {
-					// Add the .fld file
-					filelist.fld_files.push_back(line);
+					// Add the fld file if different from previous
+					if(filelist.fld_files.size()>0){
+						if(line.compare(filelist.fld_files.back().name)!=0)
+							filelist.fld_files.push_back({line,filelist.mygrids.size()});
+					} else filelist.fld_files.push_back({line,filelist.mygrids.size()});
 					prev_line_was_fld=true;
 
 					// If more than one unique protein, cant do map preloading yet
-					if (filelist.fld_files.size()>1){
+					if (filelist.fld_files.size()>0){
 						filelist.preload_maps=false;
 					}
 				}
+				prev_fld_line=line_count;
+				// Keep mypars->fldfile current (need new char* block to preserve previous one)
+				mypars->fldfile = strdup(filelist.fld_files.back().name.c_str());
 				// Filling mygrid according to the specified fld file
-				if (get_gridinfo(filelist.fld_files[filelist.fld_files.size()-1].c_str(), mygrid) != 0)
+				if (get_gridinfo(mypars->fldfile, mygrid) != 0)
 				{
-					printf("\nError: get_gridinfo failed with fld file specified in filelist.\n");
+					printf("Error: get_gridinfo failed with fld file specified in file list.\n");
 					return 1;
 				}
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
@@ -795,8 +806,11 @@ int get_filelist(
 				filelist.ligand_files.push_back(line);
 				mypars->list_nr++;
 				// Before pushing parameters and grids back make sure
-				// the filename pointers are unique
-				if(filelist.mypars.size()>0){ // mypars and mygrids have same size
+				// the filename pointers are unique in the filelist
+				if(filelist.mypars.size()>0){
+					if((filelist.mypars.back().fldfile) &&
+					   (filelist.mypars.back().fldfile==mypars->fldfile))
+						mypars->fldfile=strdup(mypars->fldfile);
 					if((filelist.mypars.back().flexresfile) &&
 					   (filelist.mypars.back().flexresfile==mypars->flexresfile))
 						mypars->flexresfile=strdup(mypars->flexresfile);
@@ -804,23 +818,22 @@ int get_filelist(
 					   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
 						mypars->xrayligandfile=strdup(mypars->xrayligandfile);
 				}
+				// Keep track of fld files
+				if (filelist.fld_files.size()==0){
+					if(mygrid->fld_name.length()>0){ // already read a map file in with dpf import
+						printf("Using map file from dpf import.\n\n");
+						filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+					} else{
+						printf("Error: No map file on record yet. Please specify a .fld file before the first ligand (%s).\n",line.c_str());
+						return 1;
+					}
+				}
 				// Add the parameter block
 				filelist.mypars.push_back(*mypars);
 				// Add the grid info
 				filelist.mygrids.push_back(*mygrid);
-				if (filelist.fld_files.size()==0){
-					if(mygrid->fld_name.size()){ // already read a map file in with dpf import
-						printf("\nUsing map file from dpf import.\n");
-						filelist.fld_files.push_back(mypars->fldfile);
-					} else{
-						printf("\nError: No map file on record yet. Please specify a .fld file before the first ligand (%s).\n",line.c_str());
-						return 1;
-					}
-				}
-				if (filelist.ligand_files.size()>filelist.fld_files.size()){
-					// If this ligand doesnt have a protein preceding it, use the previous protein
-					filelist.fld_files.push_back(filelist.fld_files[filelist.fld_files.size()-1]);
-				}
+				// Keep track of fld lines actually used
+				last_fld_idx = filelist.fld_files.size();
 				prev_line_was_fld=false;
 			} else if (len>0) {
 				// Anything else in the file is assumed to be the resname
@@ -831,12 +844,12 @@ int get_filelist(
 		filelist.nfiles = filelist.ligand_files.size();
 
 		if (filelist.ligand_files.size()==0){
-			printf("\nError: No ligands, through lines ending with the .pdbqt suffix, have been specified.\n");
+			printf("Error: No ligands, through lines ending with the .pdbqt suffix, have been specified.\n");
 			return 1;
 		}
 		if (filelist.ligand_files.size() != filelist.resnames.size()){
 			if(filelist.resnames.size()-initial_res_count>0){ // make sure correct number of resnames were specified when they were specified
-				printf("\nError: Inconsistent number of resnames (%lu) compared to ligands (%lu)!\n",filelist.resnames.size(),filelist.ligand_files.size());
+				printf("Error: Inconsistent number of resnames (%lu) compared to ligands (%lu)!\n",filelist.resnames.size(),filelist.ligand_files.size());
 			} else{ // otherwise add default resname (ligand basename)
 				for(unsigned int i=filelist.resnames.size(); i<filelist.ligand_files.size(); i++)
 					filelist.resnames.push_back(filelist.ligand_files[i].substr(0,filelist.ligand_files[i].size()-6));
@@ -844,8 +857,6 @@ int get_filelist(
 			return 1;
 		}
 		for(unsigned int i=initial_res_count; i<filelist.ligand_files.size(); i++){
-			if(filelist.mypars[i].fldfile) free(filelist.mypars[i].fldfile);
-			filelist.mypars[i].fldfile = strdup(filelist.fld_files[i].c_str());
 			if(filelist.mypars[i].ligandfile) free(filelist.mypars[i].ligandfile);
 			filelist.mypars[i].ligandfile = strdup(filelist.ligand_files[i].c_str());
 			if(filelist.mypars[i].resname) free(filelist.mypars[i].resname);

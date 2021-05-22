@@ -418,7 +418,7 @@ int main(int argc, char* argv[])
 	
 #ifndef _WIN32
 	// Total time measurement
-	printf("\nRun time of entire job set (%d file%s): %.3f sec\n", n_files, n_files>1?"s":"", seconds_since(time_start));
+	printf("Run time of entire job set (%d file%s): %.3f sec\n", n_files, n_files>1?"s":"", seconds_since(time_start));
 #ifdef USE_PIPELINE
 	if(n_files>1){
 		printf("Savings from multithreading: %.3f sec\n",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
@@ -428,7 +428,7 @@ int main(int argc, char* argv[])
 			profiler.write_profiles_to_file((filelist.filename!=NULL) ? filelist.filename : initial_pars.dpffile);
 	} else printf("Processing time: %.3f sec\n",total_processing_time);
 #else
-	printf("\nProcessing time: %.3f sec\n",total_processing_time);
+	printf("Processing time: %.3f sec\n",total_processing_time);
 #endif
 #endif
 	if(!initial_pars.xml2dlg)

@@ -81,9 +81,9 @@ int init_liganddata(
 		if (fp.fail())
 		{
 			if(l==0)
-				printf("Error: can't open ligand data file %s!\n", ligfilename);
+				printf("Error: Can't open ligand data file %s.\n", ligfilename);
 			else
-				printf("Error: can't open flexibe residue data file %s!\n", flexresfilename);
+				printf("Error: Can't open flexibe residue data file %s.\n", flexresfilename);
 			return 1;
 		}
 		// reading the whole ligand pdbqt file
@@ -112,7 +112,7 @@ int init_liganddata(
 					// checking if atom type number doesn't exceed 14
 					if (num_of_atypes >= MAX_NUM_OF_ATYPES)
 					{
-						printf("Error: too many types of ligand atoms!\n");
+						printf("Error: Too many ligand atom types (more than %d).\n",MAX_NUM_OF_ATYPES);
 						return 1;
 					}
 
@@ -217,7 +217,7 @@ int set_liganddata_typeid(
 	}
 	else // if typeof_new_atom hasn't been found
 	{
-		printf("Error: no grid for ligand atom type %s!\n", typeof_new_atom);
+		printf("Error: No grid map for ligand atom type %s.\n", typeof_new_atom);
 		return 1;
 	}
 }
@@ -649,7 +649,9 @@ int get_bonds(Liganddata* myligand)
 
 			if ((atom_nameid1 == ATYPE_GETBONDS) || (atom_nameid2 == ATYPE_GETBONDS))
 			{
-				printf("Error: Ligand includes atom with unknown type: %s or %s!\n", myligand->base_atom_types[atom_typeid1], myligand->base_atom_types[atom_typeid2]);
+				if(atom_nameid1+atom_nameid2==2*ATYPE_GETBONDS){
+					printf("Error: Ligand includes atom with unknown types: %s and %s.\n", myligand->base_atom_types[atom_typeid1], myligand->base_atom_types[atom_typeid2]);
+				} else printf("Error: Ligand includes atom with unknown type: %s.\n", (atom_nameid1==ATYPE_GETBONDS) ? myligand->base_atom_types[atom_typeid1] : myligand->base_atom_types[atom_typeid2]);
 				return 1;
 			}
 
@@ -919,13 +921,13 @@ int get_VWpars(
 
 			if (VWid_atype1 == MAX_NUM_OF_ATYPES)
 			{
-				printf("Error: Ligand includes atom with unknown type 1: %s!\n", myligand->atom_types [atom_typeid1]);
+				printf("Error: Ligand includes atom with unknown type 1: %s.\n", myligand->atom_types [atom_typeid1]);
 				return 1;
 			}
 
 			if  (VWid_atype2 == MAX_NUM_OF_ATYPES)
 			{
-				printf("Error: Ligand includes atom with unknown type 2: %s!\n", myligand->atom_types [atom_typeid2]);
+				printf("Error: Ligand includes atom with unknown type 2: %s.\n", myligand->atom_types [atom_typeid2]);
 				return 1;
 			}
 
@@ -1062,7 +1064,7 @@ int get_moving_and_unit_vectors(Liganddata* myligand)
 		dist = distance(pointA, pointB);
 
 		if (dist==0.0){
-			printf("Error: Two atoms have the same XYZ coordinates!\n");
+			printf("Error: Atoms #%d and #%d have the same XYZ coordinates.\n",atom_id_pointA+1,atom_id_pointB+1);
                 	return 1;
 		}
 
@@ -1143,8 +1145,8 @@ int parse_liganddata(
 			{
 				if (atom_counter > MAX_NUM_OF_ATOMS-1)
 				{
-					printf("Error: ligand consists of too many atoms'\n");
-					printf("Maximal allowed number of atoms is %d!\n", MAX_NUM_OF_ATOMS);
+					printf("Error: System consists of too many atoms.'\n");
+					printf("       Maximum number of atoms is %d.\n", MAX_NUM_OF_ATOMS);
 					return 1;
 				}
 				sscanf(&line.c_str()[30], "%lf %lf %lf", &(myligand->atom_idxyzq [atom_counter][1]), &(myligand->atom_idxyzq [atom_counter][2]), &(myligand->atom_idxyzq [atom_counter][3]));
@@ -1207,10 +1209,9 @@ int parse_liganddata(
 				if (branch_counter >= MAX_NUM_OF_ROTBONDS)
 				{
 					if(l==0)
-						printf("Error: ligand includes too many rotatable bonds.\n");
+						printf("Error: Ligand includes too many rotatable bonds (more than %d).\n",MAX_NUM_OF_ROTBONDS);
 					else
-						printf("Error: ligand and flexible residue include too many rotatable bonds.\n");
-					printf("Maximal allowed number is %d.\n", MAX_NUM_OF_ROTBONDS);
+						printf("Error: Ligand and flexible residue(s) include too many rotatable bonds (more than %d).\n",MAX_NUM_OF_ROTBONDS);
 					return 1;
 				}
 				sscanf(&line.c_str()[6], "%d %d", &(branches [branch_counter][0]), &(branches [branch_counter][1]));
@@ -1295,14 +1296,14 @@ int gen_new_pdbfile(
 	fp_old = fopen(oldpdb, "rb"); // fp_old = fopen(oldpdb, "r");
 	if (fp_old == NULL)
 	{
-		printf("Error: can't open old pdb file %s!\n", oldpdb);
+		printf("Error: Can't open file %s.\n", oldpdb);
 		return 1;
 	}
 
 	fp_new = fopen(newpdb, "w");
 	if (fp_new == NULL)
 	{
-		printf("Error: can't create new pdb file %s!\n", newpdb);
+		printf("Error: Can't create file %s.\n", newpdb);
 		fclose(fp_old);
 		return 1;
 	}
@@ -1314,7 +1315,7 @@ int gen_new_pdbfile(
 		{
 			if (acnt_oldlig >= myligand->num_of_atoms)
 			{
-				printf("Error: ligand in old pdb file includes more atoms than new one.\n");
+				printf("Error: Ligand in file %s includes more atoms than current ligand.\n",oldpdb);
 				fclose(fp_old);
 				fclose(fp_new);
 				return 1;
@@ -2332,12 +2333,11 @@ int map_to_all_maps(
 			// which is only OK for G-type
 			if(strncmp(mygrid->ligand_grid_types[type_idx],"G",1)==0)
 				continue;
-			printf("\nERROR: Did not map to all_maps correctly.");
+			printf("\nError: Could not find stored grid map for atom type %s.",mygrid->ligand_grid_types[type_idx]);
 			return 1;
 		}
 
 		myligand->atom_map_to_fgrids[i_atom] = map_idx;
-//		printf("\nMapping atom %d (type %d, %s) in the ligand to map #%d (%s)",i_atom,type_idx,mygrid->ligand_grid_types[type_idx],map_idx,all_maps[map_idx].atype.c_str());
 	}
 
 	return 0;
