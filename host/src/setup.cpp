@@ -354,12 +354,14 @@ int setup(
 		}
 	} else {
 		// read receptor in case contact analysis is requested and we haven't done so already (in the preload case above)
-		std::string receptor_name=mygrid.grid_file_path;
-		if(strlen(mygrid.grid_file_path)>0) receptor_name+="/";
-		receptor_name += mygrid.receptor_name;
-		receptor_name += ".pdbqt";
-		mypars.receptor_atoms = read_receptor(receptor_name.c_str(),&mygrid,mypars.receptor_map,mypars.receptor_map_list);
-		mypars.nr_receptor_atoms = mypars.receptor_atoms.size();
+		if(mypars.contact_analysis){
+			std::string receptor_name=mygrid.grid_file_path;
+			if(strlen(mygrid.grid_file_path)>0) receptor_name+="/";
+			receptor_name += mygrid.receptor_name;
+			receptor_name += ".pdbqt";
+			mypars.receptor_atoms = read_receptor(receptor_name.c_str(),&mygrid,mypars.receptor_map,mypars.receptor_map_list);
+			mypars.nr_receptor_atoms = mypars.receptor_atoms.size();
+		}
 		// Reading the grid files and storing values in the memory region pointed by floatgrids
 		if (get_gridvalues_f(&mygrid,
 		                     floatgrids.data(),
