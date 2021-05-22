@@ -138,12 +138,24 @@ typedef struct _Dockpars
 	bool                      calc_clustering                 = true; // wether clustering will be calculated and output
 } Dockpars;
 
-inline bool add_deriv_atype(
-                            Dockpars* mypars,
-                            char*     name,
-                            int       length
-                           )
+inline int add_deriv_atype(
+                           Dockpars* mypars,
+                           char*     name,
+                           int       length,
+                           bool      ignore_doublets = false
+                          )
 {
+	// name is too long
+	if(length>=4) return 0;
+	// make sure name hasn't already been used
+	for(int i=0; i<mypars->nr_deriv_atypes; i++){
+		if (strncmp(mypars->deriv_atypes[i].deriv_name, name, length) == 0){
+			if(ignore_doublets) return -i-1; // return doublet index starting from -1
+			printf("Error: -derivtype type name \"%s\" has already been used.\n",mypars->deriv_atypes[i].deriv_name);
+			exit(2);
+		}
+	}
+	// add new type name
 	mypars->nr_deriv_atypes++;
 	mypars->deriv_atypes=(deriv_atype*)realloc(mypars->deriv_atypes,mypars->nr_deriv_atypes*sizeof(deriv_atype));
 	if(mypars->deriv_atypes==NULL){
@@ -151,18 +163,9 @@ inline bool add_deriv_atype(
 		exit(1);
 	}
 	mypars->deriv_atypes[mypars->nr_deriv_atypes-1].nr=mypars->nr_deriv_atypes;
-	if(length<4){
-		strncpy(mypars->deriv_atypes[mypars->nr_deriv_atypes-1].deriv_name,name,length);
-		mypars->deriv_atypes[mypars->nr_deriv_atypes-1].deriv_name[length]='\0';
-	} else return false; // name is too long
-	// make sure name hasn't already been used
-	for(int i=0; i<mypars->nr_deriv_atypes-1; i++){
-		if (strcmp(mypars->deriv_atypes[i].deriv_name, mypars->deriv_atypes[mypars->nr_deriv_atypes-1].deriv_name) == 0){
-			printf("Error: -derivtype type name \"%s\" has already been used.\n",mypars->deriv_atypes[i].deriv_name);
-			exit(2);
-		}
-	}
-	return true;
+	strncpy(mypars->deriv_atypes[mypars->nr_deriv_atypes-1].deriv_name,name,length);
+	mypars->deriv_atypes[mypars->nr_deriv_atypes-1].deriv_name[length]='\0';
+	return 1;
 }
 
 bool argcmp(

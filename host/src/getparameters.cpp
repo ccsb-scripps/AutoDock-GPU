@@ -161,7 +161,7 @@ int parse_dpf(
 		char ltypes[4*MAX_NUM_OF_ATYPES][4];
 		memset(ltypes,0,16*MAX_NUM_OF_ATYPES*sizeof(char));
 		std::string map_fn;
-		unsigned int idx;
+		int idx;
 		pair_mod* curr_pair;
 		float paramA, paramB;
 		int m, n;
@@ -263,15 +263,24 @@ int parse_dpf(
 									return 1;
 								}
 							}
-							if(!add_deriv_atype(mypars,ltypes[mtype_nr],strlen(ltypes[mtype_nr]))){
+							idx = add_deriv_atype(mypars,ltypes[mtype_nr],strlen(ltypes[mtype_nr]),true);
+							if(idx == 0){
 								printf("Error: Derivative (ligand type %s) names can only be upto 3 characters long.\n",ltypes[mtype_nr]);
 								return 1;
 							}
-							idx = mypars->nr_deriv_atypes-1;
-							strcpy(mypars->deriv_atypes[idx].base_name,argstr);
+							if(idx>0){
+								idx = mypars->nr_deriv_atypes-1;
+								strcpy(mypars->deriv_atypes[idx].base_name,argstr);
 #ifdef DERIVTYPE_INFO
-							printf("%i: %s=%s\n",mypars->deriv_atypes[idx].nr,mypars->deriv_atypes[idx].deriv_name,mypars->deriv_atypes[idx].base_name);
+								printf("%i: %s=%s\n",mypars->deriv_atypes[idx].nr,mypars->deriv_atypes[idx].deriv_name,mypars->deriv_atypes[idx].base_name);
 #endif
+							} else{ // same derived type name - make sure base type is the same
+								idx++; // idx is -type idx-1
+								if(strcmp(mypars->deriv_atypes[-idx].base_name,argstr)){
+									printf("Error: Redefinition of ligand type %s with different map types.\n",ltypes[mtype_nr]);
+									return 1;
+								}
+							}
 						}
 						mtype_nr++;
 						break;

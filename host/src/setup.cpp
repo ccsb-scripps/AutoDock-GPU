@@ -92,6 +92,7 @@ int setup(
 				bool base_exists=false;
 				char* start_block=tmp;
 				int nr_start=mypars.nr_deriv_atypes;
+				int redefine=0;
 				// count nr of derivative atom types first
 				while((*tmp!='\0') && (*tmp!='/')){ // do one block at a time
 					if(*(tmp++)==','){ // this works here as the first character is not a ','
@@ -101,11 +102,15 @@ int setup(
 							break;
 						}
 						if(tmp-start_block-1>0){ // make sure there is a name (at least one char, we'll test later if it's taken already)
-							if(!add_deriv_atype(&mypars,start_block,tmp-start_block-1)){
+							int idx = add_deriv_atype(&mypars,start_block,tmp-start_block-1,true);
+							if(idx==0){
 								printf("Error in --derivtype (-T) %s: derivative names can only be upto 3 characters long.\n",argv[i+1]);
 								success=false;
 								break;
 							}
+							// err out for first case of redefined doublets
+							// - need to wait for the base type to be certain
+							if(idx<0 && (redefine==0)) redefine=idx;
 							start_block=tmp;
 						} else{
 							printf("Error in --derivtype (-T) %s: derivative names have to be at least one character long.\n",argv[i+1]);
@@ -115,11 +120,15 @@ int setup(
 					}
 					if((*tmp=='=') && ((*(tmp+1)!='\0') || (*(tmp+1)!='/'))){
 						if(tmp-start_block>0){ // make sure there is a name (at least one char, we'll test later if it's taken already)
-							if(!add_deriv_atype(&mypars,start_block,tmp-start_block)){
+							int idx = add_deriv_atype(&mypars,start_block,tmp-start_block,true);
+							if(idx==0){
 								printf("Error in --derivtype (-T) %s: derivative names can only be upto 3 characters long.\n",argv[i+1]);
 								success=false;
 								break;
 							}
+							// err out for first case of redefined doublets
+							// - need to wait for the base type to be certain
+							if(idx<0 && (redefine==0)) redefine=idx;
 						} else{
 							printf("Error in --derivtype (-T) %s: derivative names have to be at least one character long.\n",argv[i+1]);
 							success=false;
@@ -129,16 +138,24 @@ int setup(
 						base_exists=true;
 					}
 				}
-				for(int idx=nr_start; idx<mypars.nr_deriv_atypes; idx++){
-					int length=tmp-start_block;
-					if(length<4){
-						strncpy(mypars.deriv_atypes[idx].base_name,start_block,length);
-						mypars.deriv_atypes[idx].base_name[length]='\0';
-					} else{
-						printf("Error in --derivtype (-T) %s: base names can only be upto 3 characters long.\n",argv[i+1]);
+				int length=tmp-start_block;
+				if(length>=4){
+					printf("Error in --derivtype (-T) %s: base names can only be upto 3 characters long.\n",argv[i+1]);
+					success=false;
+					break;
+				}
+				if(redefine!=0){
+					redefine++; // redefine is -i-1 in case of doublet -> i = -(redefine+1)
+					redefine=-redefine;
+					if(strncmp(start_block,mypars.deriv_atypes[redefine].base_name,length)!=0){
+						printf("Error in --derivtype (-T) %s: redefinition of type %s with different base name.\n",argv[i+1],mypars.deriv_atypes[redefine].deriv_name);
 						success=false;
 						break;
 					}
+				}
+				for(int idx=nr_start; idx<mypars.nr_deriv_atypes; idx++){
+					strncpy(mypars.deriv_atypes[idx].base_name,start_block,length);
+					mypars.deriv_atypes[idx].base_name[length]='\0';
 #ifdef DERIVTYPE_INFO
 					printf("%i: %s=%s\n",mypars.deriv_atypes[idx].nr,mypars.deriv_atypes[idx].deriv_name,mypars.deriv_atypes[idx].base_name);
 #endif
@@ -338,11 +355,13 @@ int setup(
 		}
 	} else {
 		// read receptor in case contact analysis is requested and we haven't done so already (in the preload case above)
-		std::string receptor_name=mygrid.grid_file_path;
-		if(mygrid.grid_file_path.size()>0) receptor_name+="/";
-		receptor_name += mygrid.receptor_name + ".pdbqt";
-		mypars.receptor_atoms = read_receptor(receptor_name.c_str(),&mygrid,mypars.receptor_map,mypars.receptor_map_list);
-		mypars.nr_receptor_atoms = mypars.receptor_atoms.size();
+		if(mypars.contact_analysis){
+			std::string receptor_name=mygrid.grid_file_path;
+			if(mygrid.grid_file_path.size()>0) receptor_name+="/";
+			receptor_name += mygrid.receptor_name + ".pdbqt";
+			mypars.receptor_atoms = read_receptor(receptor_name.c_str(),&mygrid,mypars.receptor_map,mypars.receptor_map_list);
+			mypars.nr_receptor_atoms = mypars.receptor_atoms.size();
+		}
 		// Reading the grid files and storing values in the memory region pointed by floatgrids
 		if (get_gridvalues_f(&mygrid,
 		                     floatgrids.data()) != 0)
