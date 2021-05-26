@@ -1015,9 +1015,9 @@ void print_options(
 	printf("--elecmindist          | Min. electrostatic potential distance (w/ dpf: 0.5 Å) | 0.01 (Å)\n");
 	printf("--modqp                | Use modified QASP from VirtualDrug or AD4 original    | 0 (no, use AD4)\n");
 
-	printf("\nAutodock-GPU requires a ligand and a set of grid maps as well as optionally a flexible residue to\n");
-	printf("perform a docking calculation. These could be specified directly (--lfile, --ffile, and --flexres),\n");
-	printf("as part of a filelist text file (see README.md for format), or as an AD4-style dpf.\n");
+	printf("\nAutoDock-GPU requires a ligand and a set of grid maps to perform a docking calculation. Optionally,\n");
+	printf("one or multiple flexible residues may be provided. These inputs could be specified directly (--lfile,\n");
+	printf("--ffile, and --flexres), as part of a file list text file (see README.md), or in an AD4-style dpf.\n");
 
 	printf("\nExamples:\n");
 	printf("   * Dock ligand.pdbqt to receptor.maps.fld using 50 LGA runs:\n");
