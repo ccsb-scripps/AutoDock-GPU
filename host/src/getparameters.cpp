@@ -1769,7 +1769,6 @@ int get_commandpars(
 			free(mypars->xrayligandfile);
 			mypars->xrayligandfile = strdup(argv[i+1]);
 			mypars->given_xrayligandfile = true;
-			printf("Info: Using --xraylfile (-R) as reference ligand.\n");
 		}
 		// ----------------------------------
 
