@@ -72,7 +72,7 @@ int setup(
 
 	//------------------------------------------------------------
 	// Testing command line arguments for xml2dlg mode,
-	// erived atom types, and modified atom type pairs
+	// derived atom types, and modified atom type pairs
 	// since they will be needed at ligand and grid creation
 	//------------------------------------------------------------
 	for (int i=1; i<argc-1; i+=2)

@@ -217,7 +217,7 @@ int get_gridvalues_f(
 		// find corresponding fld entry
 		ti=-1;
 		for (x=0; x<(mygrid->grid_mapping.size()/2); x++){
-			if(mygrid->grid_mapping[x].find(mygrid->ligand_grid_types[t]) == 0){
+			if(strcmp(mygrid->grid_mapping[x].c_str(),mygrid->ligand_grid_types[t]) == 0){
 				ti=x+mygrid->grid_mapping.size()/2; // found
 				break;
 			}
@@ -247,6 +247,7 @@ int get_gridvalues_f(
 		}
 		if(mygrid->fld_relative){
 			fn=mygrid->grid_file_path+"/"+mygrid->grid_mapping[ti];
+//			printf("Atom type %s uses map: %s\n",mygrid->ligand_grid_types[t],fn.c_str());
 			fp.open(fn);
 		}
 		if (fp.fail())
@@ -264,7 +265,7 @@ int get_gridvalues_f(
 			for (y=0; y < mygrid->size_xyz[1]; y++)
 				for (x=0; x < mygrid->size_xyz[0]; x++)
 				{
-					std::getline(fp, line);// sscanf(line.c_str(), "%f", mypoi);
+					std::getline(fp, line); // sscanf(line.c_str(), "%f", mypoi);
 					*mypoi = map2float(line.c_str());
 					// fill in duplicate data for linearized memory access in kernel
 					if(y>0) *(mypoi-4*g1+1) = *mypoi;
