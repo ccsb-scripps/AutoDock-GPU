@@ -1819,8 +1819,11 @@ std::vector<ReceptorAtom> read_receptor_atoms(
 		sscanf(line.c_str(),"%255s",tempstr);
 		if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 		{
+			line.insert(38,1,' '); // add spaces to make reading coordinates easier
+			line.insert(47,1,' ');
 			sscanf(&line.c_str()[30], "%f %f %f", &(current.x), &(current.y), &(current.z));
-			sscanf(&line.c_str()[77], "%3s", current.atom_type);
+			// moved by the two spaces above
+			sscanf(&line.c_str()[79], "%3s", current.atom_type);
 			line[27]='\0';
 			sscanf(line.c_str(), "%*s %d %4s %3s %1s %d", &(current.id), current.name, current.res_name, current.chain_id, &(current.res_id));
 			// assign H-bond acceptors (is going to fail for flexres with modified atom types)

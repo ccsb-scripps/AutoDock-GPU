@@ -164,6 +164,13 @@ int get_gridinfo(
 	mygrid->size_xyz_angstr[1] = (mygrid->size_xyz[1]-1)*(mygrid->spacing);
 	mygrid->size_xyz_angstr[2] = (mygrid->size_xyz[2]-1)*(mygrid->spacing);
 
+	if((center[0] + 0.5f * mygrid->size_xyz_angstr[0] > 9999.0f) || (center[0] - 0.5f * mygrid->size_xyz_angstr[0] < -999.0f) ||
+	   (center[1] + 0.5f * mygrid->size_xyz_angstr[1] > 9999.0f) || (center[1] - 0.5f * mygrid->size_xyz_angstr[1] < -999.0f) ||
+	   (center[2] + 0.5f * mygrid->size_xyz_angstr[2] > 9999.0f) || (center[2] - 0.5f * mygrid->size_xyz_angstr[2] < -999.0f)){
+		printf("Error: Grid box needs to be within [-999,9999] Å for each dimension to ensure result ligand coordinates are compatible with the pdbqt format.\n");
+		return 1;
+	}
+
 	// calculating coordinates of origo
 	mygrid->origo_real_xyz[0] = center[0] - (((double) gpoints_even[0])*0.5*(mygrid->spacing));
 	mygrid->origo_real_xyz[1] = center[1] - (((double) gpoints_even[1])*0.5*(mygrid->spacing));

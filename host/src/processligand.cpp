@@ -1149,9 +1149,12 @@ int parse_liganddata(
 					printf("       Maximum number of atoms is %d.\n", MAX_NUM_OF_ATOMS);
 					return 1;
 				}
+				line.insert(38,1,' '); // add spaces to make reading coordinates easier
+				line.insert(47,1,' ');
 				sscanf(&line.c_str()[30], "%lf %lf %lf", &(myligand->atom_idxyzq [atom_counter][1]), &(myligand->atom_idxyzq [atom_counter][2]), &(myligand->atom_idxyzq [atom_counter][3]));
-				sscanf(&line.c_str()[70], "%lf", &(myligand->atom_idxyzq [atom_counter][4])); // reading charge
-				sscanf(&line.c_str()[77], "%3s", tempstr); // reading atom type
+				// the last two are shifted by two chars (the two spaces we added above)
+				sscanf(&line.c_str()[72], "%lf", &(myligand->atom_idxyzq [atom_counter][4])); // reading charge
+				sscanf(&line.c_str()[79], "%3s", tempstr); // reading atom type
 				tempstr[3]='\0';
 				if (set_liganddata_typeid(myligand, atom_counter, tempstr) != 0) // the function sets the type index
 					return 1;
