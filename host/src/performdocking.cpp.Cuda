@@ -109,6 +109,27 @@ void copy_map_to_gpu(
 	}
 }
 
+std::vector<int> get_gpu_pool()
+{
+	int gpuCount=0;
+	cudaError_t status;
+	status = cudaGetDeviceCount(&gpuCount);
+	RTERROR(status, "cudaGetDeviceCount failed");
+	std::vector<int> result(gpuCount);
+	cudaDeviceProp props;
+	for(unsigned int i=0; i<gpuCount; i++){
+		RTERROR(cudaGetDeviceProperties(&props,cData.devnum),"cudaGetDeviceProperties failed");
+		if(props.major>=3) result.push_back(i);
+	}
+	if (result.size() == 0)
+	{
+		printf("No CUDA devices with compute capability >= 3.0 found, exiting.\n");
+		cudaDeviceReset();
+		exit(-1);
+	}
+	return result;
+}
+
 void setup_gpu_for_docking(
                            GpuData& cData,
                            GpuTempData& tData
@@ -141,9 +162,10 @@ void setup_gpu_for_docking(
 	cudaDeviceProp props;
 	RTERROR(cudaGetDevice(&(cData.devnum)),"cudaGetDevice failed");
 	RTERROR(cudaGetDeviceProperties(&props,cData.devnum),"cudaGetDeviceProperties failed");
-	printf("Cuda device:                              %s",props.name);
-	if(gpuCount>1) printf(" (#%d / %d)",cData.devnum+1,gpuCount);
-	printf("\n");
+	tData.device_name = (char*) malloc(strlen(props.name)+32); // make sure array is large enough to hold device number text too
+	strcpy(tData.device_name, props.name);
+	if(gpuCount>1) sprintf(&tData.device_name[strlen(props.name)], " (#%d / %d)",cData.devnum+1,gpuCount);
+	printf("Cuda device:                              %s\n",tData.device_name);
 	RTERROR(cudaMemGetInfo(&freemem,&totalmem), "cudaGetMemInfo failed");
 	printf("Available memory on device:               %lu MB (total: %lu MB)\n",(freemem>>20),(totalmem>>20));
 	cData.devnum=-2;
@@ -283,6 +305,7 @@ void finish_gpu_from_docking(
 	RTERROR(status, "cudaFree: error freeing pMem_gpu_evals_of_runs");
 	status = cudaFree(tData.pMem_prng_states);
 	RTERROR(status, "cudaFree: error freeing pMem_prng_states");
+	free(tData.device_name);
 }
 
 int docking_with_gpu(
@@ -297,7 +320,8 @@ int docking_with_gpu(
                            SimulationState& sim_state,
                            GpuData&         cData,
                            GpuTempData&     tData,
-                           bool             floatgrids_preloaded
+                           bool             floatgrids_preloaded,
+                           std::string*     output
                     )
 /* The function performs the docking algorithm and generates the corresponding result files.
 parameter mygrid:

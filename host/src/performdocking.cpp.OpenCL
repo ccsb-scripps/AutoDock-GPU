@@ -123,6 +123,30 @@ void copy_map_to_gpu(
 	}
 }
 
+std::vector<int> get_gpu_pool()
+{
+	cl_platform_id*  platform_id;
+	cl_device_id*    device_ids;
+	cl_uint platformCount;
+	cl_uint deviceCount;
+	std::vector<int> result;
+
+	// Get all available platforms
+	if (getPlatforms(&platform_id,&platformCount) == CL_SUCCESS)
+		for(unsigned int platform_nr=0; platform_nr<platformCount; platform_nr++)
+			// Get all devices of the given platform
+			if (getDevices(platform_id[platform_nr],platformCount,&device_ids,&deviceCount) == CL_SUCCESS)
+				for(unsigned int i=0; i<deviceCount; i++)
+					result.push_back(i+(platform_nr<<8));
+
+	if (result.size() == 0)
+	{
+		printf("No suitable OpenCL devices found, exiting.\n");
+		exit(-1);
+	}
+	return result;
+}
+
 void setup_gpu_for_docking(
                            GpuData& cData,
                            GpuTempData& tData
@@ -229,14 +253,11 @@ void setup_gpu_for_docking(
 	device_id=device_ids[cData.devnum];
 	size_t dev_name_size;
 	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, 0, NULL, &dev_name_size);
-	char* device_name = (char*) malloc(dev_name_size);
-	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, dev_name_size, device_name, NULL);
-	printf("OpenCL device:                           %s",device_name);
-	if(deviceCount>1) printf(" (#%d / %d)",cData.devnum+1,deviceCount);
-	printf("\n");
+	tData.device_name = (char*) malloc(dev_name_size+32); // make sure array is large enough to hold device number text too
+	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, dev_name_size, tData.device_name, NULL);
+	if(deviceCount>1) sprintf(&tData.device_name[dev_name_size-1], " (#%d / %d)",cData.devnum+1,deviceCount);
+	printf("OpenCL device:                           %s\n",tData.device_name);
 	cData.devnum=-2;
-
-	free(device_name);
 
 	// Create context from first platform
 	if (createContext(platform_id[platform_nr],1,&device_id,&tData.context) != 0) exit(-1);
@@ -353,6 +374,7 @@ void finish_gpu_from_docking(
 	clReleaseProgram(tData.program);
 	clReleaseCommandQueue(tData.command_queue);
 	clReleaseContext(tData.context);
+	free(tData.device_name);
 }
 
 int docking_with_gpu(
@@ -367,7 +389,8 @@ int docking_with_gpu(
                            SimulationState& sim_state,
                            GpuData&         cData,
                            GpuTempData&     tData,
-                           bool             floatgrids_preloaded
+                           bool             floatgrids_preloaded,
+                           std::string*     output
                     )
 /* The function performs the docking algorithm and generates the corresponding result files.
 parameter mygrid:
@@ -389,6 +412,9 @@ parameters argc and argv:
 		are the corresponding command line arguments parameter
 */
 {
+	char* outbuf;
+	if(output!=NULL) outbuf = (char*)malloc(256*sizeof(char));
+
 	// Times
 	cl_ulong time_start_kernel;
 	cl_ulong time_end_kernel;
@@ -625,7 +651,7 @@ parameters argc and argv:
 //			heur_evals = (unsigned long)ceil(1000 * pow(2.0,0.5 * myligand_init->num_of_rotbonds + 6.0));
 			heur_evals = (unsigned long)ceil(64000 * pow(2.0, (0.5 - 0.2 * myligand_init->num_of_rotbonds/(20.0f + myligand_init->num_of_rotbonds)) * myligand_init->num_of_rotbonds));
 			} else{
-				printf("\nError: LS method \"%s\" is not supported by heuristics.\n       Please choose Solis-Wets (sw), Adadelta (ad),\n       or switch off the heuristics.\n",mypars->ls_method);
+				para_printf("\nError: LS method \"%s\" is not supported by heuristics.\n       Please choose Solis-Wets (sw), Adadelta (ad),\n       or switch off the heuristics.\n",mypars->ls_method);
 				exit(-1);
 			}
 		}
@@ -636,9 +662,9 @@ parameters argc and argv:
 		// => e = 1/19*hm
 		// at hm = 50 M => e0 = 2.63 M where e becomes less than 95% (about 11 torsions)
 		mypars->num_of_energy_evals = (unsigned long)ceil(heur_evals*(float)mypars->heuristics_max/(mypars->heuristics_max+heur_evals));
-		printf("    Using heuristics: (capped) number of evaluations set to %lu\n",mypars->num_of_energy_evals);
+		para_printf("    Using heuristics: (capped) number of evaluations set to %lu\n",mypars->num_of_energy_evals);
 		if (mypars->nev_provided && (mypars->num_of_energy_evals>nev)){
-			printf("    Overriding heuristics, setting number of evaluations to --nev = %lu instead.\n",nev);
+			para_printf("    Overriding heuristics, setting number of evaluations to --nev = %lu instead.\n",nev);
 			mypars->num_of_energy_evals = nev;
 			profile.capped = true;
 		}
@@ -648,14 +674,14 @@ parameters argc and argv:
 		float min_frac = a/(1+cap_fraction*cap_fraction*(a/(a-1.0f)-1.0f))+1.0f-a;
 		min_as_evals = (unsigned long)ceil(mypars->num_of_energy_evals*min_frac)*mypars->num_of_runs;
 		if(cap_fraction<0.5f){
-			printf("    Warning: The set number of evals is %.2f%% of the uncapped heuristics estimate of %lu evals.\n",cap_fraction*100.0f,heur_evals);
-			printf("             This means this docking may not be able to converge. Increasing ");
+			para_printf("    Warning: The set number of evals is %.2f%% of the uncapped heuristics estimate of %lu evals.\n",cap_fraction*100.0f,heur_evals);
+			para_printf("             This means this docking may not be able to converge. Increasing ");
 			if (mypars->nev_provided && (mypars->num_of_energy_evals>nev))
-				printf("--nev");
+				para_printf("--nev");
 			else
-				printf("--heurmax");
-			printf(" may improve\n             convergence but will also increase runtime.\n");
-			if(mypars->autostop) printf("             AutoStop will not stop before %.2f%% (%lu) of the set number of evaluations.\n",min_frac*100.0f,min_as_evals/mypars->num_of_runs);
+				para_printf("--heurmax");
+			para_printf(" may improve\n             convergence but will also increase runtime.\n");
+			if(mypars->autostop) para_printf("             AutoStop will not stop before %.2f%% (%lu) of the set number of evaluations.\n",min_frac*100.0f,min_as_evals/mypars->num_of_runs);
 		}
 	}
 	
@@ -673,13 +699,13 @@ parameters argc and argv:
 		strcpy(method_chosen,"ADADELTA (ad)");
 	}
 	else{
-		printf("\nError: LS method %s is not (yet) supported in the OpenCL version.\n",mypars->ls_method);
+		para_printf("\nError: LS method %s is not (yet) supported in the OpenCL version.\n",mypars->ls_method);
 		exit(-1);
 	}
-	printf("    Local-search chosen method is: %s\n", (dockpars.lsearch_rate == 0.0f)? "GA" : method_chosen);
+	para_printf("    Local-search chosen method is: %s\n", (dockpars.lsearch_rate == 0.0f)? "GA" : method_chosen);
 
 	if((mypars->initial_sw_generations>0) && (strcmp(mypars->ls_method, "sw") != 0))
-		printf("    Using Solis-Wets (sw) for the first %d generations.\n",mypars->initial_sw_generations);
+		para_printf("    Using Solis-Wets (sw) for the first %d generations.\n",mypars->initial_sw_generations);
 
         // Get profile for timing
 	profile.adadelta=(strcmp(mypars->ls_method, "ad")==0);
@@ -688,14 +714,14 @@ parameters argc and argv:
 	profile.num_rotbonds = myligand_init->num_of_rotbonds;
 
 	/*
-	printf("dockpars.num_of_intraE_contributors:%u\n", dockpars.num_of_intraE_contributors);
-	printf("dockpars.rotbondlist_length:%u\n", dockpars.rotbondlist_length);
+	para_printf("dockpars.num_of_intraE_contributors:%u\n", dockpars.num_of_intraE_contributors);
+	para_printf("dockpars.rotbondlist_length:%u\n", dockpars.rotbondlist_length);
 	*/
 
 	clock_start_docking = clock();
 
 #ifdef DOCK_DEBUG
-	printf("\n");
+	para_printf("\n");
 	// Main while-loop iterarion counter
 	unsigned int ite_cnt = 0;
 #endif
@@ -706,10 +732,10 @@ parameters argc and argv:
 			  intrapair_cnt<dockpars.num_of_intraE_contributors;
 			  intrapair_cnt++) {
 		if (intrapair_cnt == 0) {
-			printf("%-10s %-10s %-10s\n", "#pair", "#atom1", "#atom2");
+			para_printf("%-10s %-10s %-10s\n", "#pair", "#atom1", "#atom2");
 		}
 
-		printf ("%-10u %-10u %-10u\n", intrapair_cnt,
+		para_printf ("%-10u %-10u %-10u\n", intrapair_cnt,
 					    KerConst.intraE_contributors_const[3*intrapair_cnt],
 					    KerConst.intraE_contributors_const[3*intrapair_cnt+1]);
 	}
@@ -746,7 +772,7 @@ parameters argc and argv:
 	kernel1_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
 	kernel1_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "K_INIT", "gSize: ", kernel1_gxsize, "lSize: ", kernel1_lxsize); fflush(stdout);
+	para_printf("%-25s %10s %8u %10s %4u\n", "K_INIT", "gSize: ", kernel1_gxsize, "lSize: ", kernel1_lxsize); fflush(stdout);
 #endif
 	// End of Kernel1
 
@@ -757,7 +783,7 @@ parameters argc and argv:
 	kernel2_gxsize = blocksPerGridForEachRun * threadsPerBlock;
 	kernel2_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "K_EVAL", "gSize: ", kernel2_gxsize, "lSize: ",  kernel2_lxsize); fflush(stdout);
+	para_printf("%-25s %10s %8u %10s %4u\n", "K_EVAL", "gSize: ", kernel2_gxsize, "lSize: ",  kernel2_lxsize); fflush(stdout);
 #endif
 	// End of Kernel2
 
@@ -802,7 +828,7 @@ parameters argc and argv:
 	kernel4_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
 	kernel4_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "K_GA_GENERATION", "gSize: ",  kernel4_gxsize, "lSize: ", kernel4_lxsize); fflush(stdout);
+	para_printf("%-25s %10s %8u %10s %4u\n", "K_GA_GENERATION", "gSize: ",  kernel4_gxsize, "lSize: ", kernel4_lxsize); fflush(stdout);
 #endif
 	// End of Kernel4
 
@@ -851,7 +877,7 @@ parameters argc and argv:
 			kernel3_gxsize = blocksPerGridForEachLSEntity * threadsPerBlock;
 			kernel3_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_LS_SOLISWETS", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
+			para_printf("%-25s %10s %8u %10s %4u\n", "K_LS_SOLISWETS", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel3
 		}
@@ -901,7 +927,7 @@ parameters argc and argv:
 			kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
 			kernel5_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_SDESCENT", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
+			para_printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_SDESCENT", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel5
 		}
@@ -949,7 +975,7 @@ parameters argc and argv:
 			kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
 			kernel6_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_FIRE", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
+			para_printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_FIRE", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel6
 		}
@@ -998,7 +1024,7 @@ parameters argc and argv:
 			kernel7_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
 			kernel7_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_ADADELTA", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
+			para_printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_ADADELTA", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel7
 		}
@@ -1006,22 +1032,22 @@ parameters argc and argv:
 
 	// Kernel1
 	#ifdef DOCK_DEBUG
-		printf("\nExecution starts:\n\n");
-		printf("%-25s", "\tK_INIT");fflush(stdout);
+		para_printf("\nExecution starts:\n\n");
+		para_printf("%-25s", "\tK_INIT");fflush(stdout);
 	#endif
 	runKernel1D(tData.command_queue,tData.kernel1,kernel1_gxsize,kernel1_lxsize,&time_start_kernel,&time_end_kernel);
 	#ifdef DOCK_DEBUG
-		printf("%15s" ," ... Finished\n");fflush(stdout);
+		para_printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 	// End of Kernel1
 
 	// Kernel2
 	#ifdef DOCK_DEBUG
-		printf("%-25s", "\tK_EVAL");fflush(stdout);
+		para_printf("%-25s", "\tK_EVAL");fflush(stdout);
 	#endif
 	runKernel1D(tData.command_queue,tData.kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
 	#ifdef DOCK_DEBUG
-		printf("%15s" ," ... Finished\n");fflush(stdout);
+		para_printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 	// End of Kernel2
 	// ===============================================================================
@@ -1040,7 +1066,7 @@ parameters argc and argv:
 	generation_cnt = 0;
 	unsigned long total_evals;
 	// print progress bar
-	AutoStop autostop(mypars->pop_size, mypars->num_of_runs, mypars->stopstd, mypars->as_frequency);
+	AutoStop autostop(mypars->pop_size, mypars->num_of_runs, mypars->stopstd, mypars->as_frequency, output);
 #ifndef DOCK_DEBUG
 	if (mypars->autostop)
 	{
@@ -1048,9 +1074,9 @@ parameters argc and argv:
 	}
 	else
 	{
-		printf("\nExecuting docking runs:\n");
-		printf("        20%%        40%%       60%%       80%%       100%%\n");
-		printf("---------+---------+---------+---------+---------+\n");
+		para_printf("\nExecuting docking runs:\n");
+		para_printf("        20%%        40%%       60%%       80%%       100%%\n");
+		para_printf("---------+---------+---------+---------+---------+\n");
 	}
 #endif
 	curr_progress_cnt = 0;
@@ -1079,7 +1105,7 @@ parameters argc and argv:
 		{
 #ifdef DOCK_DEBUG
 			ite_cnt++;
-			printf("\nLGA iteration # %u\n", ite_cnt);
+			para_printf("\nLGA iteration # %u\n", ite_cnt);
 			fflush(stdout);
 #endif
 			// update progress bar (bar length is 50)
@@ -1089,59 +1115,59 @@ parameters argc and argv:
 			while (curr_progress_cnt < new_progress_cnt) {
 				curr_progress_cnt++;
 #ifndef DOCK_DEBUG
-				printf("*");
+				para_printf("*");
 #endif
 				fflush(stdout);
 			}
 		}
 		// Kernel4
 		#ifdef DOCK_DEBUG
-			printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
+			para_printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 		#endif
 		runKernel1D(tData.command_queue,tData.kernel4,kernel4_gxsize,kernel4_lxsize,&time_start_kernel,&time_end_kernel);
 		#ifdef DOCK_DEBUG
-			printf("%15s", " ... Finished\n");fflush(stdout);
+			para_printf("%15s", " ... Finished\n");fflush(stdout);
 		#endif
 		// End of Kernel4
 		if (dockpars.lsearch_rate != 0.0f) {
 			if ((strcmp(mypars->ls_method, "sw") == 0) || ((strcmp(mypars->ls_method, "ad") == 0) && (generation_cnt<mypars->initial_sw_generations))) {
 				// Kernel3
 				#ifdef DOCK_DEBUG
-					printf("%-25s", "\tK_LS_SOLISWETS");fflush(stdout);
+					para_printf("%-25s", "\tK_LS_SOLISWETS");fflush(stdout);
 				#endif
 				runKernel1D(tData.command_queue,tData.kernel3,kernel3_gxsize,kernel3_lxsize,&time_start_kernel,&time_end_kernel);
 				#ifdef DOCK_DEBUG
-					printf("%15s" ," ... Finished\n");fflush(stdout);
+					para_printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
 				// End of Kernel3
 			} else if (strcmp(mypars->ls_method, "sd") == 0) {
 				// Kernel5
 				#ifdef DOCK_DEBUG
-					printf("%-25s", "\tK_LS_GRAD_SDESCENT");fflush(stdout);
+					para_printf("%-25s", "\tK_LS_GRAD_SDESCENT");fflush(stdout);
 				#endif
 				runKernel1D(tData.command_queue,tData.kernel5,kernel5_gxsize,kernel5_lxsize,&time_start_kernel,&time_end_kernel);
 				#ifdef DOCK_DEBUG
-					printf("%15s" ," ... Finished\n");fflush(stdout);
+					para_printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
 				// End of Kernel5
 			} else if (strcmp(mypars->ls_method, "fire") == 0) {
 				// Kernel6
 				#ifdef DOCK_DEBUG
-					printf("%-25s", "\tK_LS_GRAD_FIRE");fflush(stdout);
+					para_printf("%-25s", "\tK_LS_GRAD_FIRE");fflush(stdout);
 				#endif
 				runKernel1D(tData.command_queue,tData.kernel6,kernel6_gxsize,kernel6_lxsize,&time_start_kernel,&time_end_kernel);
 				#ifdef DOCK_DEBUG
-					printf("%15s" ," ... Finished\n");fflush(stdout);
+					para_printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
 				// End of Kernel6
 			} else if (strcmp(mypars->ls_method, "ad") == 0) {
 				// Kernel7
 				#ifdef DOCK_DEBUG
-					printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
+					para_printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
 				#endif
 				runKernel1D(tData.command_queue,tData.kernel7,kernel7_gxsize,kernel7_lxsize,&time_start_kernel,&time_end_kernel);
 				#ifdef DOCK_DEBUG
-					printf("%15s" ," ... Finished\n");fflush(stdout);
+					para_printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
 				// End of Kernel7
 			}
@@ -1153,11 +1179,11 @@ parameters argc and argv:
 		// -------- Replacing with memory maps! ------------
 		// Kernel2
 		#ifdef DOCK_DEBUG
-			printf("%-25s", "\tK_EVAL");fflush(stdout);
+			para_printf("%-25s", "\tK_EVAL");fflush(stdout);
 		#endif
 		runKernel1D(tData.command_queue,tData.kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
 		#ifdef DOCK_DEBUG
-			printf("%15s" ," ... Finished\n");fflush(stdout);
+			para_printf("%15s" ," ... Finished\n");fflush(stdout);
 		#endif
 		// End of Kernel2
 		// ===============================================================================
@@ -1236,7 +1262,7 @@ parameters argc and argv:
 		}
 		// ----------------------------------------------------------------------
 		#ifdef DOCK_DEBUG
-			printf("\tProgress %.3f %%\n", progress);
+			para_printf("\tProgress %.3f %%\n", progress);
 			fflush(stdout);
 		#endif
 	} // End of while-loop
@@ -1251,7 +1277,7 @@ parameters argc and argv:
 		//update progress bar (bar length is 50)mem_num_of_rotatingatoms_per_rotbond_const
 		while (curr_progress_cnt < 50) {
 			curr_progress_cnt++;
-			printf("*");
+			para_printf("*");
 			fflush(stdout);
 		}
 	}
@@ -1272,12 +1298,12 @@ parameters argc and argv:
 	// Final autostop statistics output
 	if (mypars->autostop) autostop.output_final_stddev(generation_cnt, sim_state.cpu_energies.data(), total_evals);
 
-	printf("\n");
+	para_printf("\n");
 #if defined (DOCK_DEBUG)
 	for (int cnt_pop=0;cnt_pop<size_populations/sizeof(float);cnt_pop++)
-		printf("total_num_pop: %u, cpu_final_populations[%u]: %f\n",(unsigned int)(size_populations/sizeof(float)),cnt_pop,cpu_final_populations[cnt_pop]);
+		para_printf("total_num_pop: %u, cpu_final_populations[%u]: %f\n",(unsigned int)(size_populations/sizeof(float)),cnt_pop,cpu_final_populations[cnt_pop]);
 	for (int cnt_pop=0;cnt_pop<size_energies/sizeof(float);cnt_pop++)
-		printf("total_num_energies: %u, sim_state.cpu_energies.data()[%u]: %f\n",    (unsigned int)(size_energies/sizeof(float)),cnt_pop,sim_state.cpu_energies.data()[cnt_pop]);
+		para_printf("total_num_energies: %u, sim_state.cpu_energies.data()[%u]: %f\n",    (unsigned int)(size_energies/sizeof(float)),cnt_pop,sim_state.cpu_energies.data()[cnt_pop]);
 #endif
 	// ===============================================================================
 	// Assign simulation results to sim_state
@@ -1295,6 +1321,7 @@ parameters argc and argv:
 	clReleaseMemObject(mem_gpu_evals_of_runs);
 
 	free(cpu_prng_seeds);
+	if(output!=NULL) free(outbuf);
 
 	return 0;
 }

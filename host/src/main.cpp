@@ -115,6 +115,61 @@ int main(int argc, char* argv[])
 			filelist.mypars[i].dlg2stdout = false;
 	}
 #endif
+	int devnum=-1;
+	// Get device number to run on
+	for (int i=1; i<argc-1; i+=2)
+	{
+		if (argcmp("xml2dlg", argv[i], 'X'))
+			i+=initial_pars.xml_files-1; // skip ahead in case there are multiple entries here
+		
+		if (argcmp("devnum", argv [i], 'D'))
+		{
+			if(stricmp(argv[i+1],"all")==0){
+				initial_pars.dev_pool.clear();
+				initial_pars.dev_pool = get_gpu_pool();
+				devnum = -1;
+			} else if(stricmp(argv[i+1],"auto")==0){
+				initial_pars.dev_pool.clear();
+				devnum = -1;
+			} else{
+				initial_pars.dev_pool.clear();
+				unsigned int tempint;
+				char* val=argv[i+1];
+				bool multiple=false;
+				do{
+					sscanf(val, "%d", &tempint);
+					if ((tempint >= 1) && (tempint <= 65536)){
+						devnum = (unsigned long) tempint-1;
+					} else{
+						printf("Error: Value(s) of --devnum (-D) argument must be an integer between 1 and 65536 (examples: -D 2 or -D 1,3,5).\n");
+						exit(-1);
+					}
+					val=strchr(val,','); // find next entry
+					if(val){
+						val++; // move past the comma
+						multiple=true;
+					}
+					if(multiple) initial_pars.dev_pool.push_back(devnum);
+				} while(val);
+				if(multiple) devnum=-1; // needed to automatically load the right values from the pool
+			}
+		}
+	}
+	int nr_devices=initial_pars.dev_pool.size();
+	if(devnum>=0){ // user-specified argument on command line has precedence
+		if(initial_pars.dev_pool.size()>1)
+			printf("Using (single GPU) --devnum (-D) specified as command line option.\n\n");
+		nr_devices=1;
+		initial_pars.dev_pool.clear();
+	} else devnum=initial_pars.devnum;
+
+	if(nr_devices<1){
+		nr_devices=1;
+		initial_pars.dev_pool.clear();
+	}
+#ifndef USE_PIPELINE
+	if(nr_devices>1) printf("Info: Parallelization over multiple GPUs is only available if OVERLAP=ON is specified when AD-GPU is build.\n\n");
+#endif
 	if(initial_pars.xml2dlg){
 		if(initial_pars.contact_analysis)
 			printf("Analyzing ");
@@ -129,6 +184,7 @@ int main(int argc, char* argv[])
 	} else{
 		printf("Running %d docking calculation",n_files);
 		if(n_files>1) printf("s");
+		if(nr_devices>1) printf(" on %d devices",nr_devices);
 		if(initial_pars.contact_analysis)
 			printf(" (contact analysis cutoffs: R=%.1f Å, H=%.1f Å, V=%.1f Å)\n", initial_pars.R_cutoff, initial_pars.H_cutoff, initial_pars.V_cutoff);
 		else
@@ -140,44 +196,24 @@ int main(int argc, char* argv[])
 	// Setup master map set (one for now, nthreads-1 for general case)
 	std::vector<Map> all_maps;
 
-	int devnum=-1;
-	int nr_devices=initial_pars.devices_requested;
-	// Get device number to run on
-	for (int i=1; i<argc-1; i+=2)
-	{
-		if (argcmp("xml2dlg", argv[i], 'X'))
-			i+=initial_pars.xml_files-1; // skip ahead in case there are multiple entries here
-		
-		if (argcmp("devnum", argv [i], 'D'))
-		{
-			unsigned int tempint;
-			sscanf(argv [i+1], "%d", &tempint);
-			if ((tempint >= 1) && (tempint <= 65536)){
-				devnum = (unsigned long) tempint-1;
-			} else{
-				printf("Error: Value of --devnum (-D) argument must be an integer between 1 and 65536.\n");
-				exit(-1);
-			}
-			break;
-		}
-	}
-	if(devnum>=0){ // user-specified argument on command line has precedence
-		if(initial_pars.devices_requested>1)
-			printf("Using (single GPU) --devnum (-D) specified as command line option.\n");
-		nr_devices=1;
-	} else devnum=initial_pars.devnum;
-
-	if(nr_devices<1) nr_devices=1;
-#ifndef USE_PIPELINE
-	if(nr_devices>1) printf("Info: Parallelization over multiple GPUs is only available if OVERLAP=ON is specified when AD-GPU is build.\n");
-#endif
 	// Objects that are arguments of docking_with_gpu
 	GpuData cData[nr_devices];
 	GpuTempData tData[nr_devices];
-	
+#ifdef USE_PIPELINE
+	omp_lock_t gpu_locks[nr_devices];
+#endif
 	for(int i=0; i<nr_devices; i++){
 		filelist.load_maps_gpu.push_back(true);
+		if(initial_pars.dev_pool.size()>0)
+			cData[i].devnum=initial_pars.dev_pool[i];
+		else
+			cData[i].devnum=devnum;
+		cData[i].preload_gridsize = pl_gridsize;
 		tData[i].pMem_fgrids=NULL; // in case setup fails this is needed to make sure we don't segfault trying to deallocate it
+		tData[i].device_busy=false;
+#ifdef USE_PIPELINE
+		omp_init_lock(&gpu_locks[i]);
+#endif
 	}
 	
 	// Set up run profiles for timing
@@ -191,13 +227,8 @@ int main(int argc, char* argv[])
 	// Error flag for each ligand
 	std::vector<int> err(n_files,0);
 
-	if(!initial_pars.xml2dlg){
-		if(nr_devices==1){
-			cData[0].devnum = devnum;
-			cData[0].preload_gridsize = pl_gridsize;
-			setup_gpu_for_docking(cData[0],tData[0]);
-		}
-	}
+	if(!initial_pars.xml2dlg && (nr_devices==1))
+		setup_gpu_for_docking(cData[0],tData[0]);
 
 	total_setup_time+=seconds_since(time_start);
 	
@@ -211,6 +242,7 @@ int main(int argc, char* argv[])
 #ifdef USE_PIPELINE
 	#pragma omp parallel
 	{
+		char outbuf[256];
 		int t_id = omp_get_thread_num();
 #else
 	{
@@ -256,12 +288,20 @@ int main(int argc, char* argv[])
 #endif
 				{
 					if(nr_devices>1){
-						dev_nr = mypars.devices_requested-1;
-						if(cData[dev_nr].devnum>-2){
-							cData[dev_nr].devnum = mypars.devnum;
-							cData[dev_nr].preload_gridsize = pl_gridsize;
-							setup_gpu_for_docking(cData[dev_nr],tData[dev_nr]);
-						}
+						if(mypars.dev_pool_nr<0){ // assign next available GPU
+							dev_nr=-1;
+							for(unsigned int i=0; i<nr_devices; i++){
+								if(!tData[i].device_busy){ // found an available GPU
+									dev_nr=i;
+									break;
+								}
+							}
+							// if no GPU is available, assign one based on the job nr
+							if(dev_nr<0) dev_nr = i_job % nr_devices;
+						} else dev_nr = mypars.dev_pool_nr; // this is set when specific GPU is requested
+						tData[dev_nr].device_busy = true;
+						setup_gpu_for_docking(cData[dev_nr],tData[dev_nr]);
+						fflush(stdout);
 					}
 				}
 			}
@@ -270,15 +310,20 @@ int main(int argc, char* argv[])
 			if (setup(all_maps, mygrid, floatgrids, mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv) != 0) {
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
 				// Keep in setup stage rather than moving to launch stage so a different job will be set up
-				printf("\nError in setup of Job #%d", i_job+1);
-				if (filelist.used){
-					printf(":\n");
-					printf("(   Grid map file: %s )\n",  mypars.fldfile);
-					printf("(   Ligand file: %s )\n", mypars.ligandfile); fflush(stdout);
-					if(mypars.flexresfile)
-						printf("(   Flexible residue: %s )\n", mypars.flexresfile);
-					fflush(stdout);
-				} else printf("\n");
+#ifdef USE_PIPELINE
+				#pragma omp critical
+#endif
+				{
+					printf("\nError in setup of Job #%d", i_job+1);
+					if (filelist.used){
+						printf(":\n");
+						printf("(   Grid map file: %s )\n",  mypars.fldfile);
+						printf("(   Ligand file: %s )\n", mypars.ligandfile); fflush(stdout);
+						if(mypars.flexresfile)
+							printf("(   Flexible residue: %s )\n", mypars.flexresfile);
+						fflush(stdout);
+					} else printf("\n");
+				}
 				err[i_job] = 1;
 				continue;
 			} else { // Successful setup
@@ -289,19 +334,20 @@ int main(int argc, char* argv[])
 				// Copy preloaded maps to GPU
 				if(!mypars.xml2dlg){
 #ifdef USE_PIPELINE
-					#pragma omp critical
+					omp_set_lock(&gpu_locks[dev_nr]);
 #endif
-					{
-						start_timer(setup_timer);
-						if(filelist.preload_maps && filelist.load_maps_gpu[dev_nr]){
-							int size_of_one_map = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
-							for (unsigned int t=0; t < all_maps.size(); t++){
-								copy_map_to_gpu(tData[dev_nr],all_maps,t,size_of_one_map);
-							}
-							filelist.load_maps_gpu[dev_nr]=false;
+					start_timer(setup_timer);
+					if(filelist.preload_maps && filelist.load_maps_gpu[dev_nr]){
+						int size_of_one_map = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
+						for (unsigned int t=0; t < all_maps.size(); t++){
+							copy_map_to_gpu(tData[dev_nr],all_maps,t,size_of_one_map);
 						}
-						total_setup_time+=seconds_since(setup_timer);
+						filelist.load_maps_gpu[dev_nr]=false;
 					}
+					total_setup_time+=seconds_since(setup_timer);
+#ifdef USE_PIPELINE
+					omp_unset_lock(&gpu_locks[dev_nr]);
+#endif
 				}
 			}
 			
@@ -337,34 +383,37 @@ int main(int argc, char* argv[])
 				total_setup_time+=seconds_since(setup_timer);
 			} else{
 				int error_in_docking;
-				// Critical section to only let one thread access GPU at a time
+				// Lock to only let one thread access a given GPU at a time
+				std::string* output = NULL;
 #ifdef USE_PIPELINE
-				#pragma omp critical
+				omp_set_lock(&gpu_locks[dev_nr]);
+				if(nr_devices>1) output = new std::string;
 #endif
-				{
-					printf("\nRunning Job #%d", i_job+1);
-					if (filelist.used){
-						printf(":\n");
-						printf("    Grid map file: %s\n",  mypars.fldfile);
-						printf("    Ligand file: %s\n", mypars.ligandfile); fflush(stdout);
-						if(mypars.flexresfile)
-							printf("    Flexible residue: %s\n", mypars.flexresfile);
-						fflush(stdout);
-					} else printf("\n");
-					// End idling timer, start exec timer
-					sim_state.idle_time = seconds_since(idle_timer);
-					start_timer(exec_timer);
-					// Dock
-					error_in_docking = docking_with_gpu(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), profiler.p[(get_profiles ? i_job : 0)], &argc, argv, sim_state, cData[dev_nr], tData[dev_nr], filelist.preload_maps);
-					// End exec timer, start idling timer
-					sim_state.exec_time = seconds_since(exec_timer);
-					start_timer(idle_timer);
-				}
-
+				para_printf("\nRunning Job #%d", i_job+1);
+				if (filelist.used){
+					para_printf(":\n");
+					para_printf("    Device: %s\n", tData[dev_nr].device_name);
+					para_printf("    Grid map file: %s\n",  mypars.fldfile);
+					para_printf("    Ligand file: %s\n", mypars.ligandfile); fflush(stdout);
+					if(mypars.flexresfile)
+						para_printf("    Flexible residue: %s\n", mypars.flexresfile);
+					fflush(stdout);
+				} else para_printf("\n");
+				// End idling timer, start exec timer
+				sim_state.idle_time = seconds_since(idle_timer);
+				start_timer(exec_timer);
+				// Dock
+				error_in_docking = docking_with_gpu(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), profiler.p[(get_profiles ? i_job : 0)], &argc, argv, sim_state, cData[dev_nr], tData[dev_nr], filelist.preload_maps, output);
+				// End exec timer, start idling timer
+				sim_state.exec_time = seconds_since(exec_timer);
+				start_timer(idle_timer);
+#ifdef USE_PIPELINE
+				omp_unset_lock(&gpu_locks[dev_nr]);
+#endif
 				if (error_in_docking!=0){
 					// If error encountered: Set error flag to 1; Add to count of finished jobs
 					// Set back to setup stage rather than moving to processing stage so a different job will be set up
-					printf("\nError in docking_with_gpu, stopped Job #%d.\n",i_job+1);
+					para_printf("\nError in docking_with_gpu, stopped Job #%d.\n",i_job+1);
 					err[i_job] = 1;
 					continue;
 				} else { // Successful run
@@ -373,18 +422,29 @@ int main(int argc, char* argv[])
 					#pragma omp atomic update
 #endif
 					total_exec_time+=sim_state.exec_time;
-					printf("\nJob #%d took %.3f sec after waiting %.3f sec for setup\n\n", i_job+1, sim_state.exec_time, sim_state.idle_time);
+					para_printf("\nJob #%d took %.3f sec after waiting %.3f sec for setup\n\n", i_job+1, sim_state.exec_time, sim_state.idle_time);
 					if (get_profiles && filelist.used){
 						// Detailed timing information to .timing
 						profiler.p[i_job].exec_time = sim_state.exec_time;
 					}
 #endif
 				}
+#ifdef USE_PIPELINE
+				if(nr_devices>1){
+					#pragma omp critical
+					{
+						printf("%s", output->c_str());
+						fflush(stdout);
+					}
+					delete output;
+				}
+#endif
 			}
 
 			// Post-processing
 #ifdef USE_PIPELINE
 			if(!mypars.xml2dlg){
+				if(nr_devices>1) tData[dev_nr].device_busy = false;
 				printf ("(Thread %d is processing Job #%d)\n",t_id,i_job+1); fflush(stdout);
 			}
 #endif
@@ -432,9 +492,13 @@ int main(int argc, char* argv[])
 	printf("Processing time: %.3f sec\n",total_processing_time);
 #endif
 #endif
-	if(!initial_pars.xml2dlg)
-		for(int i=0; i<nr_devices; i++)
+	for(int i=0; i<nr_devices; i++){
+#ifdef USE_PIPELINE
+		omp_destroy_lock(&gpu_locks[i]);
+#endif
+		if(!initial_pars.xml2dlg)
 			finish_gpu_from_docking(cData[i],tData[i]);
+	}
 
 	// Alert user to ligands that failed to complete
 	int n_errors=0;

@@ -47,6 +47,12 @@ inline unsigned int processid() { return getpid(); }
 
 #define PHI 0x9e3779b9
 
+#ifdef USE_PIPELINE
+#define para_printf(f_, ...) do { if(output==NULL){ printf((f_), ##__VA_ARGS__); } else { snprintf(outbuf, 256, (f_), ##__VA_ARGS__); *output += outbuf; } } while(false)
+#else
+#define para_printf(f_, ...) printf((f_), ##__VA_ARGS__)
+#endif
+
 typedef struct
 {
 	int  nr;            // this number starts at 1 and will be used to extend the base atom type nr

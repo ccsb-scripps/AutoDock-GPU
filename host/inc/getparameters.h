@@ -65,8 +65,9 @@ constexpr AD4_free_energy_coeffs unbound_models[3] = {
 // Struct which contains the docking parameters (partly parameters for fpga)
 typedef struct _Dockpars
 {                                                                 // default values
-	int                       devnum                          = -1;
-	int                       devices_requested               = 1; // this is AD-GPU ...
+	int                       devnum                          = -1; // actual device number (-1 means not set, grab first)
+	std::vector<int>          dev_pool;
+	int                       dev_pool_nr                     = -1; // number in pool of many devices (-1 means none set, grab first)
 	uint32_t                  seed[3]                         = {(uint32_t)time(NULL),(uint32_t)processid(),0};
 	unsigned long             num_of_energy_evals             = 2500000;
 	unsigned long             num_of_generations              = 42000;

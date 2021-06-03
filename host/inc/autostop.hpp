@@ -30,6 +30,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <cmath>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
+#include "miscellaneous.h"
 
 class AutoStop{
 	      bool               first_time;
@@ -51,6 +53,8 @@ class AutoStop{
 	const unsigned int       as_frequency;
 	      float              delta_energy;
 	      float              overall_best_energy;
+	      char*              outbuf;
+	      std::string*       output;
 
 	inline float average(float* average_sd2_N)
 	{
@@ -123,7 +127,8 @@ class AutoStop{
 	         int pop_size_in,
 	         int num_of_runs_in,
 	         float stopstd_in,
-	         int as_frequency_in
+	         int as_frequency_in,
+	         std::string* out_in
 	        )
 		: rolling(4*4, 0), // Initialize to zero
 		  average_sd2_N((pop_size_in+1)*3),
@@ -132,7 +137,8 @@ class AutoStop{
 		  Ntop(pop_size_in),
 		  Ncream(pop_size_in / 10),
 		  stopstd(stopstd_in),
-		  as_frequency(as_frequency_in)
+		  as_frequency(as_frequency_in),
+		  output(out_in)
 	{
 		first_time = true;
 		autostopped = false;
@@ -145,13 +151,19 @@ class AutoStop{
 		bestN = 1;
 		delta_energy = 2.0 * thres_stddev / Ntop;
 		overall_best_energy = 1<<24;
+		if(output!=NULL) outbuf = (char*)malloc(256*sizeof(char));
+	}
+
+	~AutoStop()
+	{
+		if(output!=NULL) free(outbuf);
 	}
 
 	inline void print_intro(unsigned long num_of_generations, unsigned long num_of_energy_evals)
 	{
-		printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation of\nthe best molecules of the last 4 * %u generations, %lu generations, or %lu evaluations:\n\n",stopstd,as_frequency,num_of_generations,num_of_energy_evals);
-		printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
-		printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
+		para_printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation of\nthe best molecules of the last 4 * %u generations, %lu generations, or %lu evaluations:\n\n",stopstd,as_frequency,num_of_generations,num_of_energy_evals);
+		para_printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
+		para_printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
 	}
 
 	inline bool check_if_satisfactory(int generation_cnt, const float* energies, unsigned long total_evals)
@@ -183,7 +195,7 @@ class AutoStop{
 				delta_energy = 2.0 * thres_stddev / (Ntop-1);
 			}
 		}
-		printf("%11u | %12lu |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/num_of_runs,threshold_used,curr_avg,curr_std,bestN,overall_best_energy);
+		para_printf("%11u | %12lu |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/num_of_runs,threshold_used,curr_avg,curr_std,bestN,overall_best_energy);
 		fflush(stdout);
 		rolling[4*roll_count] = curr_avg * bestN;
 		rolling[4*roll_count+1] = (curr_std*curr_std + curr_avg*curr_avg)*bestN;
@@ -208,17 +220,17 @@ class AutoStop{
 
 	inline void output_final_stddev(int generation_cnt, const float* energies, unsigned long total_evals){
 		if (autostopped){
-			printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
-			printf("\n%43s evaluation after reaching\n%40.2f +/-%8.2f kcal/mol combined.\n%34i samples, best energy %8.2f kcal/mol.\n","Finished",average(&average_sd2_N[0]),stddev(&average_sd2_N[0]),(unsigned int)average_sd2_N[2],overall_best_energy);
+			para_printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
+			para_printf("\n%43s evaluation after reaching\n%40.2f +/-%8.2f kcal/mol combined.\n%34i samples, best energy %8.2f kcal/mol.\n","Finished",average(&average_sd2_N[0]),stddev(&average_sd2_N[0]),(unsigned int)average_sd2_N[2],overall_best_energy);
 		} else {
 			// Stopped without autostop; output stddev statistics regardless
 
 			tabulate_energies(energies);  // Fills average_sd2_N and overall_best_energy
 			set_stats(); // set curr_avg, curr_std, bestN, average_sd2_N
 
-			printf("%11u | %12lu |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/num_of_runs,threshold,curr_avg,curr_std,bestN,overall_best_energy);
-			printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
-			printf("\n%43s evaluation after reaching\n%33lu evaluations. Best energy %8.2f kcal/mol.\n","Finished",total_evals/num_of_runs,overall_best_energy);
+			para_printf("%11u | %12lu |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/num_of_runs,threshold,curr_avg,curr_std,bestN,overall_best_energy);
+			para_printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
+			para_printf("\n%43s evaluation after reaching\n%33lu evaluations. Best energy %8.2f kcal/mol.\n","Finished",total_evals/num_of_runs,overall_best_energy);
 		}
 		fflush(stdout);
 	}

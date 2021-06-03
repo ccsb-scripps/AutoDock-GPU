@@ -57,6 +57,8 @@ struct GpuTempData {
 	cl_kernel        kernel6;
 	cl_kernel        kernel7;
 	cl_mem           pMem_fgrids;
+	char*            device_name;
+	bool             device_busy;
 };
 #endif
 

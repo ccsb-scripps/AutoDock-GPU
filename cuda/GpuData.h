@@ -146,6 +146,8 @@ struct GpuTempData {
 	int*        pMem_evals_of_new_entities;
 	int*        pMem_gpu_evals_of_runs;
 	uint32_t*   pMem_prng_states;
+	char*       device_name;
+	bool        device_busy;
 };
 #endif
 

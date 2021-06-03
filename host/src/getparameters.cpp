@@ -376,7 +376,10 @@ int parse_dpf(
 									mypars->resname[len]='\0';
 								} else mypars->resname = strdup("docking"); // Fallback to old default
 								filelist.resnames.push_back(mypars->resname);
-								if(new_device) mypars->devices_requested++;
+								if(new_device){
+									mypars->dev_pool_nr=mypars->dev_pool.size();
+									mypars->dev_pool.push_back(mypars->devnum);
+								}
 								// Before pushing parameters and grids back make sure
 								// the filename pointers are unique
 								if(filelist.mypars.size()>0){ // mypars and mygrids have same size
@@ -533,10 +536,12 @@ int parse_dpf(
 							}
 							// count GPUs in case we set a different one
 							if(argcmp("devnum",tempstr,'D')){
-								new_device=false;
-								for(i=0; (i<(int)filelist.mypars.size())&&!new_device; i++){
-									if(mypars->devnum==filelist.mypars[i].devnum){
-										new_device=true;
+								new_device=true;
+								for(i=0; i<mypars->dev_pool.size(); i++){
+									if(mypars->devnum==mypars->dev_pool[i]){
+										new_device=false;
+										mypars->dev_pool_nr=i;
+										break;
 									}
 								}
 							}
@@ -1526,8 +1531,12 @@ int get_commandpars(
 		{
 			arg_recognized = 1;
 			arg_set = 0;
-			if(!late_call){
+			if(!late_call){ // this means when this is called during dpf file reading
 				arg_set = 1;
+				if(strchr(argv[i+1], ',')){ // only allowed from command line
+					printf("Error: Value of --devnum (-D) is expected to be a single device number here.\n");
+					return -1;
+				}
 				sscanf(argv [i+1], "%d", &tempint);
 				if ((tempint >= 1) && (tempint <= 65536)){
 					mypars->devnum = (unsigned long) tempint-1;
