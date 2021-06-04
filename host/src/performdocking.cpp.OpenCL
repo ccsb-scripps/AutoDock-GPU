@@ -344,6 +344,8 @@ void finish_gpu_from_docking(
                              GpuTempData& tData
                             )
 {
+	if(cData.devnum>-2) return; // device not set up
+	
 	clReleaseMemObject(cData.mem_interintra_const);
 	clReleaseMemObject(cData.mem_intracontrib_const);
 	clReleaseMemObject(cData.mem_intra_const);

@@ -260,6 +260,8 @@ void finish_gpu_from_docking(
                              GpuTempData& tData
                             )
 {
+	if(cData.devnum>-2) return; // device not set up
+	
 	cudaError_t status;
 	// Release all CUDA objects
 	// Constant objects
