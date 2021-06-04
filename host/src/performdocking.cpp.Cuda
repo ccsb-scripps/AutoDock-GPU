@@ -115,7 +115,7 @@ std::vector<int> get_gpu_pool()
 	cudaError_t status;
 	status = cudaGetDeviceCount(&gpuCount);
 	RTERROR(status, "cudaGetDeviceCount failed");
-	std::vector<int> result(gpuCount);
+	std::vector<int> result;
 	cudaDeviceProp props;
 	for(unsigned int i=0; i<gpuCount; i++){
 		RTERROR(cudaGetDeviceProperties(&props,i),"cudaGetDeviceProperties failed");
