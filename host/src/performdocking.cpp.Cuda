@@ -118,7 +118,7 @@ std::vector<int> get_gpu_pool()
 	std::vector<int> result(gpuCount);
 	cudaDeviceProp props;
 	for(unsigned int i=0; i<gpuCount; i++){
-		RTERROR(cudaGetDeviceProperties(&props,cData.devnum),"cudaGetDeviceProperties failed");
+		RTERROR(cudaGetDeviceProperties(&props,i),"cudaGetDeviceProperties failed");
 		if(props.major>=3) result.push_back(i);
 	}
 	if (result.size() == 0)
@@ -781,7 +781,7 @@ parameters argc and argv:
 	printf("\nRest of Setup time %fs\n", elapsed_seconds(t1 ,t2));
 
 	//print progress bar
-	AutoStop autostop(mypars->pop_size, mypars->num_of_runs, mypars->stopstd, mypars->as_frequency);
+	AutoStop autostop(mypars->pop_size, mypars->num_of_runs, mypars->stopstd, mypars->as_frequency, output);
 #ifndef DOCK_DEBUG
 	if (mypars->autostop)
 	{
