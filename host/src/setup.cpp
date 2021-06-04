@@ -67,8 +67,10 @@ int setup(
          )
 {
 	// Filling the filename and coeffs fields of mypars according to command line arguments
-	if (get_filenames_and_ADcoeffs(&argc, argv, &mypars, filelist.used) != 0)
-		{printf("\nError in get_filenames_and_ADcoeffs, stopped job.\n"); return 1;}
+	if (get_filenames_and_ADcoeffs(&argc, argv, &mypars, filelist.used) != 0){
+		printf("\nError in get_filenames_and_ADcoeffs, stopped job.\n");
+		return 1;
+	}
 
 	//------------------------------------------------------------
 	// Testing command line arguments for xml2dlg mode,
@@ -77,6 +79,9 @@ int setup(
 	//------------------------------------------------------------
 	for (int i=1; i<argc-1; i+=2)
 	{
+		if (argcmp("filelist", argv[i], 'B'))
+			i+=mypars.filelist_files-1; // skip ahead in case there are multiple entries here
+
 		if (argcmp("xml2dlg", argv[i], 'X'))
 			i+=mypars.xml_files-1; // skip ahead in case there are multiple entries here
 
@@ -379,24 +384,21 @@ int setup(
 	//------------------------------------------------------------
 	// Capturing algorithm parameters (command line args)
 	//------------------------------------------------------------
-	char* orig_resn = mypars.resname;
+	char* orig_resname = strdup(mypars.resname); // need to copy it since it might get free'd in the next line
 	if(get_commandpars(&argc, argv, &(mygrid.spacing), &mypars)<0)
 		return 1;
 
 	// command-line specified resname with more than one file
 	if (!mypars.xml2dlg){ // if the user specified an xml file, that's the one we want to use
-		if ((orig_resn!=mypars.resname) && (filelist.nfiles>1)){ // add an index to existing name distinguish the files
-			char* tmp = strdup(mypars.resname);
-			char* nrtmp = strdup(std::to_string(i_file+1).c_str());
-			if(mypars.resname) free(mypars.resname);
-			mypars.resname = (char*)malloc((strlen(tmp)+strlen(nrtmp)+2)*sizeof(char));
-			strcpy(mypars.resname, tmp);
-			strcat(mypars.resname,"_");
-			strcat(mypars.resname, nrtmp);
-			free(tmp);
-			free(nrtmp);
+		if ((orig_resname!=mypars.resname) && (filelist.nfiles>1)){ // use resname as prefix
+			char* tmp = (char*)malloc(strlen(mypars.resname)+strlen(orig_resname)+1);
+			strcpy(tmp, mypars.resname);
+			strcat(tmp, orig_resname);
+			free(mypars.resname);
+			mypars.resname = tmp;
 		}
 	}
+	free(orig_resname);
 
 	Gridinfo mydummygrid;
 	// if -lxrayfile provided, then read xray ligand data

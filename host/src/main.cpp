@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
 	printf("AutoDock-GPU version: %s\n\n", VERSION);
 	// Print help screen if no parameters were specified
 	// (or if last parameter is "-help"; parameters in
-	//  between will be caught in preparse_dpf later)
+	//  between will be caught in initial_commandpars later)
 	if((argc<2) || (argcmp("help", argv[argc-1], 'h')))
 		print_options(argv[0]);
 	// Timer initializations
@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
 	FileList filelist;
 	Dockpars initial_pars;
 	Gridinfo initial_grid;
-	if (preparse_dpf(&argc, argv, &initial_pars, &initial_grid, filelist) != 0)
+	if (initial_commandpars(&argc, argv, &initial_pars, &initial_grid, filelist) != 0)
 		return 1;
 	if (get_filelist(&argc, argv, &initial_pars, &initial_grid, filelist) != 0)
 		return 1;
@@ -119,6 +119,9 @@ int main(int argc, char* argv[])
 	// Get device number to run on
 	for (int i=1; i<argc-1; i+=2)
 	{
+		if (argcmp("filelist", argv[i], 'B'))
+			i+=initial_pars.filelist_files-1; // skip ahead in case there are multiple entries here
+		
 		if (argcmp("xml2dlg", argv[i], 'X'))
 			i+=initial_pars.xml_files-1; // skip ahead in case there are multiple entries here
 		

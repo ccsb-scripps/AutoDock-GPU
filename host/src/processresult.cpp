@@ -123,8 +123,21 @@ void write_basic_info(
 		fprintf(fp, "LOAD FROM FILE (%s)\n",mypars->load_xml);
 
 	fprintf(fp, "\n\nProgram call in command line was:          ");
-	for (i=0; i<*argc; i++)
+	for (i=0; i<*argc; i++){
 		fprintf(fp, "%s ", argv [i]);
+		if (argcmp("filelist", argv[i], 'B')){
+			if(mypars->filelist_files>1){
+				fprintf(fp, "%s ", mypars->ligandfile);
+				i+=mypars->filelist_files; // skip ahead in case there are multiple entries here
+			}
+		}
+		if (argcmp("xml2dlg", argv[i], 'X')){
+			if(mypars->xml_files>1){
+				fprintf(fp, "%s ", mypars->load_xml);
+				i+=mypars->xml_files; // skip ahead in case there are multiple entries here
+			}
+		}
+	}
 	fprintf(fp, "\n\n\n");
 
 	// Writing out receptor parameters
@@ -237,12 +250,23 @@ void write_basic_info_dlg(
 
 	fprintf(fp, "RMSD tolerance:                            %lfA\n\n", mypars->rmsd_tolerance);
 
-	if(!mypars->xml2dlg){ // This is necessary to avoid excruciatingly long command line outputs with wild cards (like *.xml)
-		fprintf(fp, "Program call in command line was:          ");
-		for (i=0; i<*argc; i++)
-			fprintf(fp, "%s ", argv [i]);
-		fprintf(fp, "\n\n\n");
+	fprintf(fp, "Program call in command line was:          ");
+	for (i=0; i<*argc; i++){
+		fprintf(fp, "%s ", argv [i]);
+		if (argcmp("filelist", argv[i], 'B')){
+			if(mypars->filelist_files>1){
+				fprintf(fp, "%s ", mypars->ligandfile);
+				i+=mypars->filelist_files; // skip ahead in case there are multiple entries here
+			}
+		}
+		if (argcmp("xml2dlg", argv[i], 'X')){
+			if(mypars->xml_files>1){
+				fprintf(fp, "%s ", mypars->load_xml);
+				i+=mypars->xml_files; // skip ahead in case there are multiple entries here
+			}
+		}
 	}
+	fprintf(fp, "\n\n\n");
 
 	// Writing out receptor parameters
 

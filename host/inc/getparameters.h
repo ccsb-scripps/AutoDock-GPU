@@ -108,6 +108,7 @@ typedef struct _Dockpars
 	float                     H_cutoff                        = 3.7;
 	float                     V_cutoff                        = 4.0;
 	unsigned int              xml_files                       = 0;
+	unsigned int              filelist_files                  = 0;
 	bool                      dlg2stdout                      = false;
 	int                       gen_pdbs                        = 0;
 	char*                     dpffile                         = NULL;
@@ -175,13 +176,13 @@ bool argcmp(
             const char shortarg = '\0'
            );
 
-int preparse_dpf(
-                 const int*      argc,
-                       char**    argv,
-                       Dockpars* mypars,
-                       Gridinfo* mygrid,
-                       FileList& filelist
-                );
+int initial_commandpars(
+                        const int*      argc,
+                              char**    argv,
+                              Dockpars* mypars,
+                              Gridinfo* mygrid,
+                              FileList& filelist
+                       );
 
 int get_filelist(
                  const int*      argc,
@@ -195,7 +196,8 @@ int get_filenames_and_ADcoeffs(
                                const int*,
                                      char**,
                                      Dockpars*,
-                               const bool
+                               const bool,
+                               const bool = true
                               );
 
 void print_options(

@@ -561,13 +561,13 @@ int parse_dpf(
 	return 0;
 }
 
-int preparse_dpf(
-                 const int*      argc,
-                       char**    argv,
-                       Dockpars* mypars,
-                       Gridinfo* mygrid,
-                       FileList& filelist
-                )
+int initial_commandpars(
+                        const int*      argc,
+                              char**    argv,
+                              Dockpars* mypars,
+                              Gridinfo* mygrid,
+                              FileList& filelist
+                       )
 // This function checks if a dpf file is used and, if runs are specified, map and ligand information
 // is stored in the filelist; flexres information and which location in the dpf parameters are in each
 // run is stored separately to allow logical parsing with the correct parameters initialized per run
@@ -599,11 +599,16 @@ int preparse_dpf(
 				}
 			}
 			mypars->dpffile = strdup(argv[i+1]);
+			i++;
 		}
 		
 		// Argument: load initial data from xml file and reconstruct dlg, then finish
 		if (argcmp("xml2dlg", argv [i], 'X'))
 		{
+			if(mypars->xml_files>0){
+				printf("Error: Only one --xml2dlg (-X) argument is allowed.\n");
+				return 1;
+			}
 			mypars->load_xml = strdup(argv[i+1]);
 			read_more_xml_files = true;
 			mypars->xml2dlg = true;
@@ -629,6 +634,7 @@ int preparse_dpf(
 				sscanf(argv[i+1], "%f,%f,%f", &(mypars->R_cutoff), &(mypars->H_cutoff), &(mypars->V_cutoff));
 				mypars->contact_analysis = true;
 			}
+			i++;
 		}
 		
 		// Argument: print dlg output to stdout instead of to a file
@@ -639,6 +645,7 @@ int preparse_dpf(
 				mypars->dlg2stdout = false;
 			else
 				mypars->dlg2stdout = true;
+			i++;
 		}
 	}
 	
@@ -744,23 +751,85 @@ int get_filelist(
 		filelist.preload_maps&=filelist.used;
 		return 0;
 	}
-	bool output_multiple_warning = true;
-	for (int i=1; i<(*argc)-1; i++)
+	bool read_ligands = false;
+	std::vector<char*> ligands;
+	for (int i=1; i<(*argc)-1+(read_ligands); i+=1+(!read_ligands))
 	{
+		// wildcards for -filelist are allowed (or multiple file names)
+		// - one file specified is the filelist containing file
+		// - more than one file will be multiple ligands
+		// the test below is to stop reading arguments as filenames when another argument starts with "-"
+		if (read_ligands && (argv[i][0]=='-')){
+			read_ligands = false;
+			if(i>=(*argc)-1) break; // ignore last argument if there is no parameter specified
+		} else if (read_ligands) ligands.push_back(argv[i]); // copy argument into xml_files when read_more_xml_files is true
+		
+		if (argcmp("xml2dlg", argv[i], 'X'))
+			i+=mypars->xml_files-1; // skip ahead in case there are multiple entries here
+		
 		// Argument: file name that contains list of files.
 		if (argcmp("filelist", argv[i], 'B'))
 		{
-			filelist.used = true;
+			if(ligands.size()>0){
+				printf("Error: Only one --filelist (-B) argument is allowed.\n");
+				return 1;
+			}
 			if(filelist.filename){
 				free(filelist.filename);
-				if(output_multiple_warning){
-					printf("Warning: Multiple --filelist (-B) arguments, only the last one will be used.");
-					output_multiple_warning = false;
-				}
+				filelist.filename = NULL;
 			}
-			filelist.filename = strdup(argv[i+1]);
+			read_ligands=true;
 		}
 	}
+	mypars->filelist_files = ligands.size();
+	if(ligands.size()>0){
+		// Need to setup file names from command line in case they weren't set with a dpf
+		if (get_filenames_and_ADcoeffs(argc, argv, mypars, filelist.used, false) != 0){
+			return 1;
+		}
+		// use current (aka last specified) fld file to for this file list
+		if(mypars->fldfile==NULL){
+			printf("Error: Argument --filelist (-B) with ligand files needs a grid file. Please specify through --ffile (-M) or --import_dpf (-I).\n");
+			return 1;
+		}
+		filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+		// Filling mygrid according to the specified fld file
+		if (get_gridinfo(mypars->fldfile, mygrid) != 0)
+		{
+			printf("Error: get_gridinfo failed with fld file specified in file list.\n");
+			return 1;
+		}
+		for(unsigned int i=0; i<ligands.size(); i++){
+			// Need new mypars->fldfile char* block to preserve previous one
+			if(filelist.mypars.size()>0){
+				if((filelist.mypars.back().fldfile) &&
+				   (filelist.mypars.back().fldfile==mypars->fldfile))
+					mypars->fldfile=strdup(mypars->fldfile);
+				if((filelist.mypars.back().flexresfile) &&
+				   (filelist.mypars.back().flexresfile==mypars->flexresfile))
+					mypars->flexresfile=strdup(mypars->flexresfile);
+				if((filelist.mypars.back().xrayligandfile) &&
+				   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
+					mypars->xrayligandfile=strdup(mypars->xrayligandfile);
+			}
+			mypars->ligandfile = strdup(ligands[i]);
+			filelist.ligand_files.push_back(ligands[i]);
+			mypars->list_nr++;
+			int len = strrchr(ligands[i],'.')-ligands[i];
+			if(len<1) len=strlen(ligands[i]);
+			filelist.resnames.push_back(filelist.ligand_files[i].substr(0,len));
+			mypars->resname=strdup(filelist.resnames[i].c_str());
+			// Add the parameter block
+			filelist.mypars.push_back(*mypars);
+			// Add the grid info
+			filelist.mygrids.push_back(*mygrid);
+		}
+		filelist.nfiles = filelist.ligand_files.size();
+		if(filelist.nfiles>0) filelist.used = true;
+		
+		filelist.preload_maps&=filelist.used;
+		return 0;
+	} else if(ligands.size()==1) filelist.filename = strdup(ligands[0]);
 
 	if (filelist.filename){ // true when -filelist specifies a filename
 	                        // filelist.used may be true when dpf file is specified as it uses the filelist to store runs
@@ -847,6 +916,7 @@ int get_filelist(
 		}
 
 		filelist.nfiles = filelist.ligand_files.size();
+		if(filelist.nfiles>0) filelist.used = true;
 
 		if (filelist.ligand_files.size()==0){
 			printf("Error: No ligands, through lines ending with the .pdbqt suffix, have been specified.\n");
@@ -856,8 +926,12 @@ int get_filelist(
 			if(filelist.resnames.size()-initial_res_count>0){ // make sure correct number of resnames were specified when they were specified
 				printf("Error: Inconsistent number of resnames (%lu) compared to ligands (%lu)!\n",filelist.resnames.size(),filelist.ligand_files.size());
 			} else{ // otherwise add default resname (ligand basename)
-				for(unsigned int i=filelist.resnames.size(); i<filelist.ligand_files.size(); i++)
-					filelist.resnames.push_back(filelist.ligand_files[i].substr(0,filelist.ligand_files[i].size()-6));
+				for(unsigned int i=filelist.resnames.size(); i<filelist.ligand_files.size(); i++){
+					const char* ln = filelist.ligand_files[i].c_str();
+					int len = strrchr(ln,'.')-ln;
+					if(len<1) len=strlen(ln);
+					filelist.resnames.push_back(filelist.ligand_files[i].substr(0,len));
+				}
 			}
 			return 1;
 		}
@@ -877,7 +951,8 @@ int get_filenames_and_ADcoeffs(
                                const int*      argc,
                                      char**    argv,
                                      Dockpars* mypars,
-                               const bool      multiple_files
+                               const bool      multiple_files,
+                               const bool      missing_error
                               )
 // The function fills the file name and coeffs fields of mypars parameter
 // according to the proper command line arguments.
@@ -889,8 +964,14 @@ int get_filenames_and_ADcoeffs(
 	ffile_given = (mypars->fldfile!=NULL);
 	lfile_given = (mypars->ligandfile!=NULL);
 	
-	for (i=1; i<(*argc)-1; i++)
+	for (i=1; i<(*argc)-1; i+=2)
 	{
+		if (argcmp("filelist", argv[i], 'B'))
+			i+=mypars->filelist_files-1; // skip ahead in case there are multiple entries here
+		
+		if (argcmp("xml2dlg", argv[i], 'X'))
+			i+=mypars->xml_files-1; // skip ahead in case there are multiple entries here
+		
 		if (!multiple_files){
 			// Argument: grid parameter file name.
 			if (argcmp("ffile", argv[i], 'M'))
@@ -939,18 +1020,16 @@ int get_filenames_and_ADcoeffs(
 		}
 	}
 
-	if (ffile_given == 0 && !multiple_files)
+	if (ffile_given == 0 && !multiple_files && missing_error)
 	{
 		printf("Error: grid fld file was not defined. Use --ffile (-M) argument!\n");
 		print_options(argv[0]);
-		return 1; // we'll never get here - but we might in the future again ...
 	}
 
-	if (lfile_given == 0 && !multiple_files)
+	if (lfile_given == 0 && !multiple_files && missing_error)
 	{
 		printf("Error: ligand pdbqt file was not defined. Use --lfile (-L) argument!\n");
 		print_options(argv[0]);
-		return 1; // we'll never get here - but we might in the future again ...
 	}
 
 	return 0;
@@ -1464,11 +1543,13 @@ int get_commandpars(
 		// UPDATED in : get_filelist()
 		// ---------------------------------
 		// Argument: name of file containing file list
-		if (argcmp("filelist", argv [i], 'B'))
+		if (argcmp("filelist", argv [i], 'B')){
 			arg_recognized = 1;
+			i+=mypars->filelist_files-1; // skip ahead in case there are multiple entries here
+		}
 
 		// ---------------------------------
-		// UPDATED in : preparse_dpf()
+		// UPDATED in : initial_commandpars()
 		// ---------------------------------
 		// Argument: name of file containing file list
 		if (argcmp("import_dpf", argv [i], 'I'))
