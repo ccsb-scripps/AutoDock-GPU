@@ -384,7 +384,12 @@ int setup(
 	//------------------------------------------------------------
 	// Capturing algorithm parameters (command line args)
 	//------------------------------------------------------------
-	char* orig_resname = strdup(mypars.resname); // need to copy it since it might get free'd in the next line
+	char* orig_resname;
+	if(mypars.resname)
+		orig_resname = strdup(mypars.resname); // need to copy it since it might get free'd in the next line
+	else
+		orig_resname = strdup(""); // need an empty string for later if no resname has been specified
+
 	if(get_commandpars(&argc, argv, &(mygrid.spacing), &mypars)<0)
 		return 1;
 
