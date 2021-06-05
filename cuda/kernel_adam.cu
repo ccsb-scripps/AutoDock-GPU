@@ -410,7 +410,7 @@ void gpu_gradient_minAdam(
                           float* pMem_energies_next
 )
 {
-	size_t sz_shared = (6 * cpuData.dockpars.num_of_atoms + 5 * cpuData.dockpars.num_of_genes) * sizeof(float);
+	size_t sz_shared = (8 * cpuData.dockpars.num_of_atoms + 5 * cpuData.dockpars.num_of_genes) * sizeof(float);
 	gpu_gradient_minAdam_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
 	LAUNCHERROR("gpu_gradient_minAdam_kernel");
 #if 0

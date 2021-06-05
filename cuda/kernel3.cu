@@ -321,7 +321,7 @@ void gpu_perform_LS(
                     float*   pMem_energies_next
                    )
 {
-	size_t sz_shared = (3 * cpuData.dockpars.num_of_atoms + 4 * cpuData.dockpars.num_of_genes) * sizeof(float);
+	size_t sz_shared = (4 * cpuData.dockpars.num_of_atoms + 4 * cpuData.dockpars.num_of_genes) * sizeof(float);
 	gpu_perform_LS_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
 	LAUNCHERROR("gpu_perform_LS_kernel");
 #if 0

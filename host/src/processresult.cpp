@@ -950,13 +950,13 @@ void generate_output(
 				fprintf(fp_xml, "%s%s", (i>1)?" ":"", argv[i]);
 				if (argcmp("filelist", argv[i], 'B')){
 					if(mypars->filelist_files>1){
-						fprintf(fp, " %s", mypars->ligandfile);
+						fprintf(fp_xml, " %s", mypars->ligandfile);
 						i+=mypars->filelist_files; // skip ahead in case there are multiple entries here
 					}
 				}
 				if (argcmp("xml2dlg", argv[i], 'X')){
 					if(mypars->xml_files>1){
-						fprintf(fp, " %s", mypars->load_xml);
+						fprintf(fp_xml, " %s", mypars->load_xml);
 						i+=mypars->xml_files; // skip ahead in case there are multiple entries here
 					}
 				}

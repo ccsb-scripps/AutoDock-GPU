@@ -111,6 +111,7 @@ typedef struct
 
 struct GpuData {
 	int                             devnum;
+	int                             devid;
 	int                             preload_gridsize;
 	GpuDockparameters               dockpars;
 	
