@@ -946,8 +946,21 @@ void generate_output(
 		fprintf(fp_xml, "\t<version>%s</version>\n",VERSION);
 		if((*argc)>1){
 			fprintf(fp_xml, "\t<arguments>");
-			for(i=1; i<(*argc); i++)
+			for(i=1; i<(*argc); i++){
 				fprintf(fp_xml, "%s%s", (i>1)?" ":"", argv[i]);
+				if (argcmp("filelist", argv[i], 'B')){
+					if(mypars->filelist_files>1){
+						fprintf(fp, " %s", mypars->ligandfile);
+						i+=mypars->filelist_files; // skip ahead in case there are multiple entries here
+					}
+				}
+				if (argcmp("xml2dlg", argv[i], 'X')){
+					if(mypars->xml_files>1){
+						fprintf(fp, " %s", mypars->load_xml);
+						i+=mypars->xml_files; // skip ahead in case there are multiple entries here
+					}
+				}
+			}
 			fprintf(fp_xml, "</arguments>\n");
 		}
 		if(mypars->dpffile)
