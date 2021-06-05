@@ -92,22 +92,22 @@ gpu_gradient_minAD_kernel(
 	// Gradient of the intermolecular energy per each ligand atom
 	// Also used to store the accummulated gradient per each ligand atom
 #ifdef FLOAT_GRADIENTS
-	float3* cartesian_gradient = (float3*)(calc_coords + cData.dockpars.num_of_atoms);
+	float3* cartesian_gradient = (float3*)(calc_coords + MAX_NUM_OF_ATOMS);
 #else
-	int3* cartesian_gradient = (int3*)(calc_coords + cData.dockpars.num_of_atoms);
+	int3* cartesian_gradient = (int3*)(calc_coords + MAX_NUM_OF_ATOMS);
 #endif
 	// Genotype pointers
-	float* genotype = (float*)(cartesian_gradient + cData.dockpars.num_of_atoms);
-	float* best_genotype = genotype + cData.dockpars.num_of_genes;
+	float* genotype = (float*)(cartesian_gradient + MAX_NUM_OF_ATOMS); // so far used 3*2*MAX_NUM_OF_ATOMS
+	float* best_genotype = genotype + ACTUAL_GENOTYPE_LENGTH;
 
 	// Partial results of the gradient step
-	float* gradient = best_genotype + cData.dockpars.num_of_genes;
+	float* gradient = best_genotype + ACTUAL_GENOTYPE_LENGTH;
 
 	// Squared updates E[dx^2]
-	float* square_delta = gradient + cData.dockpars.num_of_genes;
+	float* square_delta = gradient + ACTUAL_GENOTYPE_LENGTH;
 
 	// Vector for storing squared gradients E[g^2]
-	float* square_gradient = square_delta + cData.dockpars.num_of_genes;
+	float* square_gradient = square_delta + ACTUAL_GENOTYPE_LENGTH; // so far used 5*ACTUAL_GENOTYPE_LENGTH
 
 	// Iteration counter for the minimizer
 	uint32_t iteration_cnt = 0;
@@ -407,7 +407,7 @@ void gpu_gradient_minAD(
                         float*   pMem_energies_next
                        )
 {
-	size_t sz_shared = (8 * cpuData.dockpars.num_of_atoms + 5 * cpuData.dockpars.num_of_genes) * sizeof(float);
+	size_t sz_shared = (6 * MAX_NUM_OF_ATOMS + 5 * ACTUAL_GENOTYPE_LENGTH) * sizeof(float);
 	gpu_gradient_minAD_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
 	LAUNCHERROR("gpu_gradient_minAD_kernel");
 #if 0
