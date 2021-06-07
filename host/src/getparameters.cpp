@@ -782,7 +782,7 @@ int get_filelist(
 		}
 	}
 	mypars->filelist_files = ligands.size();
-	if(ligands.size()>0){
+	if(ligands.size()>1){
 		// Need to setup file names from command line in case they weren't set with a dpf
 		if (get_filenames_and_ADcoeffs(argc, argv, mypars, filelist.used, false) != 0){
 			return 1;
@@ -828,6 +828,13 @@ int get_filelist(
 		if(filelist.nfiles>0) filelist.used = true;
 		
 		filelist.preload_maps&=filelist.used;
+		if(mypars->contact_analysis && filelist.preload_maps){
+			std::string receptor_name=mygrid->grid_file_path;
+			if(mygrid->grid_file_path.size()>0) receptor_name+="/";
+			receptor_name += mygrid->receptor_name + ".pdbqt";
+			mypars->receptor_atoms = read_receptor(receptor_name.c_str(),mygrid,mypars->receptor_map,mypars->receptor_map_list);
+			mypars->nr_receptor_atoms = mypars->receptor_atoms.size();
+		}
 		return 0;
 	} else if(ligands.size()==1) filelist.filename = strdup(ligands[0]);
 
@@ -943,6 +950,13 @@ int get_filelist(
 		}
 	}
 	filelist.preload_maps&=filelist.used;
+	if(mypars->contact_analysis && filelist.preload_maps){
+		std::string receptor_name=mygrid->grid_file_path;
+		if(mygrid->grid_file_path.size()>0) receptor_name+="/";
+		receptor_name += mygrid->receptor_name + ".pdbqt";
+		mypars->receptor_atoms = read_receptor(receptor_name.c_str(),mygrid,mypars->receptor_map,mypars->receptor_map_list);
+		mypars->nr_receptor_atoms = mypars->receptor_atoms.size();
+	}
 
 	return 0;
 }

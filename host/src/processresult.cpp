@@ -439,7 +439,7 @@ void make_resfiles(
 		}
 
 		scale_ligand(ligand_ref, mygrid->spacing);
-		
+
 		// the interaction between flex res and ligand is stored in accurate_interflexE
 		if(mypars->contact_analysis && (i==0))
 			accurate_intraE = calc_intraE_f(ligand_ref, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, &(best_result->analysis), mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
