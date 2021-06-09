@@ -828,11 +828,11 @@ int get_filelist(
 		if (filelist.ligand_files.size() != filelist.resnames.size()){
 			if(filelist.resnames.size()-initial_res_count>0){ // make sure correct number of resnames were specified when they were specified
 				printf("\nError: Inconsistent number of resnames (%lu) compared to ligands (%lu)!\n",filelist.resnames.size(),filelist.ligand_files.size());
+				return 1;
 			} else{ // otherwise add default resname (ligand basename)
 				for(unsigned int i=filelist.resnames.size(); i<filelist.ligand_files.size(); i++)
 					filelist.resnames.push_back(filelist.ligand_files[i].substr(0,filelist.ligand_files[i].size()-6));
 			}
-			return 1;
 		}
 		for(unsigned int i=initial_res_count; i<filelist.ligand_files.size(); i++){
 			if(filelist.mypars[i].fldfile) free(filelist.mypars[i].fldfile);
