@@ -395,10 +395,19 @@ int setup(
 
 	// command-line specified resname with more than one file
 	if (!mypars.xml2dlg){ // if the user specified an xml file, that's the one we want to use
-		if ((orig_resname!=mypars.resname) && (filelist.nfiles>1)){ // use resname as prefix
+		if ((strcmp(orig_resname,mypars.resname)!=0) && (filelist.nfiles>1)){ // use resname as prefix
 			char* tmp = (char*)malloc(strlen(mypars.resname)+strlen(orig_resname)+1);
-			strcpy(tmp, mypars.resname);
-			strcat(tmp, orig_resname);
+			// take care of potential directory path
+			int dir = strrchr(orig_resname,'/')-orig_resname+1;
+			if(dir>0){
+				strncpy(tmp, orig_resname, dir);
+				tmp[dir]='\0';
+				strcat(tmp, mypars.resname);
+				strcat(tmp, &orig_resname[dir]);
+			} else{
+				strcpy(tmp, mypars.resname);
+				strcat(tmp, orig_resname);
+			}
 			free(mypars.resname);
 			mypars.resname = tmp;
 		}
