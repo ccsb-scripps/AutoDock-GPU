@@ -815,7 +815,7 @@ int get_filelist(
 			mypars->ligandfile = strdup(ligands[i]);
 			filelist.ligand_files.push_back(ligands[i]);
 			mypars->list_nr++;
-			int len = strrchr(ligands[i],'.')-ligands[i];
+			long long len = strrchr(ligands[i],'.')-ligands[i];
 			if(len<1) len=strlen(ligands[i]);
 			filelist.resnames.push_back(filelist.ligand_files[i].substr(0,len));
 			mypars->resname=strdup(filelist.resnames[i].c_str());
@@ -936,7 +936,7 @@ int get_filelist(
 			} else{ // otherwise add default resname (ligand basename)
 				for(unsigned int i=filelist.resnames.size(); i<filelist.ligand_files.size(); i++){
 					const char* ln = filelist.ligand_files[i].c_str();
-					int len = strrchr(ln,'.')-ln;
+					long long len = strrchr(ln,'.')-ln;
 					if(len<1) len=strlen(ln);
 					filelist.resnames.push_back(filelist.ligand_files[i].substr(0,len));
 				}

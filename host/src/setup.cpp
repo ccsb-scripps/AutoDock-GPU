@@ -398,7 +398,7 @@ int setup(
 		if ((strcmp(orig_resname,mypars.resname)!=0) && (filelist.nfiles>1)){ // use resname as prefix
 			char* tmp = (char*)malloc(strlen(mypars.resname)+strlen(orig_resname)+1);
 			// take care of potential directory path
-			int dir = strrchr(orig_resname,'/')-orig_resname+1;
+			long long dir = strrchr(orig_resname,'/')-orig_resname+1;
 			if(dir>0){
 				strncpy(tmp, orig_resname, dir);
 				tmp[dir]='\0';
