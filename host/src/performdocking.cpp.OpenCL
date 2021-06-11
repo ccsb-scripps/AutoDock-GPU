@@ -319,8 +319,8 @@ void setup_gpu_for_docking(
 	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_theta_const,    false,  &dependence_on_theta,    1000*sizeof(float));
 	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_rotangle_const, false,  &dependence_on_rotangle, 1000*sizeof(float));
 
-	if(cData.allocated_gridsize>0)
-		mallocBufferObject(tData.context,CL_MEM_READ_ONLY,cData.allocated_gridsize*sizeof(float),&(tData.pMem_fgrids));
+	if(cData.preallocated_gridsize>0)
+		mallocBufferObject(tData.context,CL_MEM_READ_ONLY,cData.preallocated_gridsize*sizeof(float),&(tData.pMem_fgrids));
 }
 
 void finish_gpu_from_docking(
@@ -539,6 +539,8 @@ parameters argc and argv:
 	cl_mem mem_gpu_evals_of_runs;
 	cl_mem mem_dockpars_prng_states;
 
+	if(cData.preallocated_gridsize==0)
+		mallocBufferObject(tData.context,CL_MEM_READ_ONLY,mygrid->grids.size()*sizeof(float), &tData.pMem_fgrids);
 	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_populations, &mem_dockpars_conformations_current);
 	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_energies,    &mem_dockpars_energies_current);
 	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_populations, &mem_dockpars_conformations_next);

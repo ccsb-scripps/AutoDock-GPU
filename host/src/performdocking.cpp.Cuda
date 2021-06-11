@@ -219,8 +219,8 @@ void setup_gpu_for_docking(
 	RTERROR(status, "cData.pMem_dependence_on_rotangle_const: failed to upload to GPU memory.\n");
 
 	// Allocate temporary data - JL TODO - Are these sizes correct?
-	if(cData.allocated_gridsize>0){
-		status = cudaMalloc((void**)&(tData.pMem_fgrids), cData.allocated_gridsize*sizeof(float));
+	if(cData.preallocated_gridsize>0){
+		status = cudaMalloc((void**)&(tData.pMem_fgrids), cData.preallocated_gridsize*sizeof(float));
 		RTERROR(status, "pMem_fgrids: failed to allocate GPU memory.\n");
 	}
 	size_t size_populations = MAX_NUM_OF_RUNS * MAX_POPSIZE * GENOTYPE_LENGTH_IN_GLOBMEM*sizeof(float);
@@ -461,9 +461,12 @@ parameters argc and argv:
 	cudaMemcpy(cData.pMem_num_rotating_atoms_per_rotbond_const, KerConst_grads.num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pMem_num_rotating_atoms_per_rotbond_const failed to upload to GPU memory.\n");
 
-	// allocating GPU memory for populations, energies,
+	// allocating GPU memory for grids, populations, energies,
 	// evaluation counters and random number generator states
-
+	if(cData.preallocated_gridsize==0){
+		status = cudaMalloc((void**)&(tData.pMem_fgrids), mygrid->grids.size()*sizeof(float));
+		RTERROR(status, "pMem_fgrids: failed to allocate GPU memory.\n");
+	}
 	// Flippable pointers
 	float* pMem_conformations_current = tData.pMem_conformations1;
 	float* pMem_conformations_next = tData.pMem_conformations2;

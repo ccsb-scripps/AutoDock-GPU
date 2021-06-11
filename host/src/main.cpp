@@ -196,7 +196,7 @@ int main(int argc, char* argv[])
 			printf("\n");
 	}
 	printf("\n");
-	int max_gridsize = allocated_gridsize(filelist);
+	int max_preallocated_gridsize = preallocated_gridsize(filelist);
 
 	// Objects that are arguments of docking_with_gpu
 	GpuData cData[nr_devices];
@@ -210,7 +210,7 @@ int main(int argc, char* argv[])
 			cData[i].devnum=initial_pars.dev_pool[i];
 		else
 			cData[i].devnum=devnum;
-		cData[i].allocated_gridsize = max_gridsize;
+		cData[i].preallocated_gridsize = max_preallocated_gridsize;
 		tData[i].pMem_fgrids=NULL; // in case setup fails this is needed to make sure we don't segfault trying to deallocate it
 		tData[i].device_busy=false;
 #ifdef USE_PIPELINE

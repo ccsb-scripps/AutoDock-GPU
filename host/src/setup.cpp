@@ -33,7 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "getparameters.h"
 #include "setup.hpp"
 
-int allocated_gridsize(FileList& filelist)
+int preallocated_gridsize(FileList& filelist)
 {
 	if(!filelist.used) return 0;
 	int gridsize=0;
