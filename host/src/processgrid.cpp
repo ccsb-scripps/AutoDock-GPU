@@ -182,42 +182,26 @@ int get_gridinfo(
 	return 0;
 }
 
-int get_gridvalues_f(
-                     const Gridinfo* mygrid,
-                           float**   fgrids
-                    )
-{
-	*fgrids = (float*) malloc(4*(sizeof(float))*(mygrid->num_of_atypes+2)*
-	                                            (mygrid->size_xyz[0])*
-	                                            (mygrid->size_xyz[1])*
-	                                            (mygrid->size_xyz[2]));
-	if (*fgrids == NULL)
-	{
-		printf("Error: Not enough memory.\n");
-		return 1;
-	}
-	return get_gridvalues_f(mygrid, *fgrids);
-}
-
-int get_gridvalues_f(
-                     const Gridinfo* mygrid,
-                           float*    fgrids
-                    )
+int get_gridvalues(Gridinfo* mygrid)
 // The function reads the grid point values from the .map files
 // that correspond to the receptor given by the first parameter.
-// It allocates the proper amount of memory and stores the data there,
-// which can be accessed with the fgrids pointer.
+// It allocates the proper amount of memory and stores the data
+// in mygrid->grids
 // If there are any errors, it returns 1, otherwise
 // the return value is 0.
 {
+	if(mygrid->grids.size()>0) return 0; // we already read the grid maps
+	mygrid->grids.resize(4*(mygrid->num_of_atypes+2)*
+	                       (mygrid->size_xyz[0])*
+	                       (mygrid->size_xyz[1])*
+	                       (mygrid->size_xyz[2]));
 	int t, ti, x, y, z;
 	std::ifstream fp;
 	std::string fn, line;
-	float* mypoi;
+	float* mypoi = mygrid->grids.data();
 
 	unsigned int g1 = mygrid->size_xyz[0];
 	unsigned int g2 = g1*mygrid->size_xyz[1];
-	mypoi = fgrids;
 
 	for (t=0; t < mygrid->num_of_atypes+2; t++)
 	{

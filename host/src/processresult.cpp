@@ -330,7 +330,6 @@ void make_resfiles(
                          int           evals_performed,
                          int           generations_used,
                    const Gridinfo*     mygrid,
-                   const float*        grids,
                    const int*          argc,
                          char**        argv,
                          int           debug,
@@ -430,9 +429,9 @@ void make_resfiles(
 		
 		// the map interaction of flex res atoms is stored in accurate_intraflexE
 		if (i == 0)
-			accurate_interE = calc_interE_f(mygrid, ligand_ref, grids, 0.0005, debug, accurate_intraflexE, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec); // calculate intermolecular and per atom energies
+			accurate_interE = calc_interE_f(mygrid, ligand_ref, 0.0005, debug, accurate_intraflexE, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec); // calculate intermolecular and per atom energies
 		else
-			accurate_interE = calc_interE_f(mygrid, ligand_ref, grids, 0.0005, debug, accurate_intraflexE); // calculating the intermolecular energy
+			accurate_interE = calc_interE_f(mygrid, ligand_ref, 0.0005, debug, accurate_intraflexE); // calculating the intermolecular energy
 
 		if (mypars->contact_analysis && (i==0)){
 			best_result->analysis = analyze_ligand_receptor(mygrid, ligand_ref, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, debug, mypars->H_cutoff, mypars->V_cutoff);
@@ -1087,7 +1086,6 @@ void generate_output(
 
 void process_result(
                     const Gridinfo*        mygrid,
-                    const float*           cpu_floatgrids,
                     const Dockpars*        mypars,
                           Liganddata*      myligand_init,
                     const Liganddata*      myxrayligand,
@@ -1114,7 +1112,6 @@ void process_result(
 		              sim_state.cpu_evals_of_runs[run_cnt],
 		              sim_state.generation_cnt,
 		              mygrid,
-		              cpu_floatgrids,
 		              argc,
 		              argv,
 		              /*1*/0,

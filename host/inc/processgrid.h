@@ -64,6 +64,7 @@ typedef struct _Gridinfo
 	int         num_of_map_atypes;
 	double      origo_real_xyz     [3];
 	std::vector<std::string> grid_mapping; // stores the atom types and associated map filenames from the fld file
+	std::vector<float> grids;
 } Gridinfo;
 
 struct Map
@@ -74,18 +75,10 @@ struct Map
 };
 
 int get_gridinfo(
-                 const char*,
-                       Gridinfo*
+                 const char*     fldfilename,
+                       Gridinfo* mygrid
                 );
 
-int get_gridvalues_f(
-                     const Gridinfo* mygrid,
-                           float**   fgrids
-                    );
-
-int get_gridvalues_f(
-                     const Gridinfo* mygrid,
-                           float*    fgrids
-                    );
+int get_gridvalues(Gridinfo* mygrid);
 
 #endif /* PROCESSGRID_H_ */

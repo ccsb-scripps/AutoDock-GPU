@@ -196,10 +196,7 @@ int main(int argc, char* argv[])
 			printf("\n");
 	}
 	printf("\n");
-	int pl_gridsize = preload_gridsize(filelist);
-
-	// Setup master map set (one for now, nthreads-1 for general case)
-	std::vector<Map> all_maps;
+	int max_gridsize = allocated_gridsize(filelist);
 
 	// Objects that are arguments of docking_with_gpu
 	GpuData cData[nr_devices];
@@ -213,7 +210,7 @@ int main(int argc, char* argv[])
 			cData[i].devnum=initial_pars.dev_pool[i];
 		else
 			cData[i].devnum=devnum;
-		cData[i].preload_gridsize = pl_gridsize;
+		cData[i].allocated_gridsize = max_gridsize;
 		tData[i].pMem_fgrids=NULL; // in case setup fails this is needed to make sure we don't segfault trying to deallocate it
 		tData[i].device_busy=false;
 #ifdef USE_PIPELINE
@@ -256,7 +253,6 @@ int main(int argc, char* argv[])
 		Liganddata myligand_init;
 		Gridinfo   mygrid = initial_grid;
 		Liganddata myxrayligand;
-		std::vector<float> floatgrids;
 		SimulationState sim_state;
 		int dev_nr = 0;
 #ifndef _WIN32
@@ -312,7 +308,7 @@ int main(int argc, char* argv[])
 			}
 			start_timer(setup_timer);
 			// Load files, read inputs, prepare arrays for docking stage
-			if (setup(all_maps, mygrid, floatgrids, mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv) != 0) {
+			if (setup(mygrid, mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv) != 0) {
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
 				// Keep in setup stage rather than moving to launch stage so a different job will be set up
 #ifdef USE_PIPELINE
@@ -335,25 +331,7 @@ int main(int argc, char* argv[])
 #ifdef USE_PIPELINE
 				#pragma omp atomic update
 #endif
-				total_setup_time+=seconds_since(setup_timer); // can't count waiting to enter the critical section -AT
-				// Copy preloaded maps to GPU
-				if(!mypars.xml2dlg){
-#ifdef USE_PIPELINE
-					omp_set_lock(&gpu_locks[dev_nr]);
-#endif
-					start_timer(setup_timer);
-					if(filelist.preload_maps && filelist.load_maps_gpu[dev_nr]){
-						int size_of_one_map = 4*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2];
-						for (unsigned int t=0; t < all_maps.size(); t++){
-							copy_map_to_gpu(tData[dev_nr],all_maps,t,size_of_one_map);
-						}
-						filelist.load_maps_gpu[dev_nr]=false;
-					}
-					total_setup_time+=seconds_since(setup_timer);
-#ifdef USE_PIPELINE
-					omp_unset_lock(&gpu_locks[dev_nr]);
-#endif
-				}
+				total_setup_time+=seconds_since(setup_timer);
 			}
 			
 			// Starting Docking or loading results
@@ -408,7 +386,7 @@ int main(int argc, char* argv[])
 				sim_state.idle_time = seconds_since(idle_timer);
 				start_timer(exec_timer);
 				// Dock
-				error_in_docking = docking_with_gpu(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), profiler.p[(get_profiles ? i_job : 0)], &argc, argv, sim_state, cData[dev_nr], tData[dev_nr], filelist.preload_maps, output);
+				error_in_docking = docking_with_gpu(&(mygrid), &(mypars), &(myligand_init), &(myxrayligand), profiler.p[(get_profiles ? i_job : 0)], &argc, argv, sim_state, cData[dev_nr], tData[dev_nr], output);
 				// End exec timer, start idling timer
 				sim_state.exec_time = seconds_since(exec_timer);
 				start_timer(idle_timer);
@@ -454,7 +432,7 @@ int main(int argc, char* argv[])
 			}
 #endif
 			start_timer(processing_timer);
-			process_result(&(mygrid), floatgrids.data(), &(mypars), &(myligand_init), &(myxrayligand), &argc,argv, sim_state);
+			process_result(&(mygrid), &(mypars), &(myligand_init), &(myxrayligand), &argc,argv, sim_state);
 #ifdef USE_PIPELINE
 			#pragma omp atomic update
 #endif

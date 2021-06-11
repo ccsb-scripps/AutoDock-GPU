@@ -107,22 +107,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "stringify.h"
 #include "correct_grad_axisangle.h"
 
-void copy_map_to_gpu(
-                     GpuTempData&      tData,
-                     std::vector<Map>& all_maps,
-                     int               t,
-                     int               size_of_one_map
-                    )
-{
-	cl_int err;
-	err = clEnqueueWriteBuffer(tData.command_queue,tData.pMem_fgrids,true,t*size_of_one_map*sizeof(float),size_of_one_map*sizeof(float),all_maps[t].grid.data(),0,NULL,NULL);
-	if (err != CL_SUCCESS){
-		printf("pMem_fgrids: failed to upload maps to GPU memory. %d\n", err);
-		fflush(stdout);
-		exit(-1);
-	}
-}
-
 std::vector<int> get_gpu_pool()
 {
 	cl_platform_id*  platform_id;
@@ -335,8 +319,8 @@ void setup_gpu_for_docking(
 	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_theta_const,    false,  &dependence_on_theta,    1000*sizeof(float));
 	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_rotangle_const, false,  &dependence_on_rotangle, 1000*sizeof(float));
 
-	if(cData.preload_gridsize>0)
-		mallocBufferObject(tData.context,CL_MEM_READ_ONLY,cData.preload_gridsize* (sizeof(float)) * (ATYPE_NUM+2),&(tData.pMem_fgrids));
+	if(cData.allocated_gridsize>0)
+		mallocBufferObject(tData.context,CL_MEM_READ_ONLY,cData.allocated_gridsize*sizeof(float),&(tData.pMem_fgrids));
 }
 
 void finish_gpu_from_docking(
@@ -381,7 +365,6 @@ void finish_gpu_from_docking(
 
 int docking_with_gpu(
                      const Gridinfo*        mygrid,
-                     /*const*/ float*       cpu_floatgrids,
                            Dockpars*        mypars,
                      const Liganddata*      myligand_init,
                      const Liganddata*      myxrayligand,
@@ -391,16 +374,12 @@ int docking_with_gpu(
                            SimulationState& sim_state,
                            GpuData&         cData,
                            GpuTempData&     tData,
-                           bool             floatgrids_preloaded,
                            std::string*     output
                     )
 /* The function performs the docking algorithm and generates the corresponding result files.
 parameter mygrid:
 		describes the grid
 		filled with get_gridinfo()
-parameter cpu_floatgrids:
-		points to the memory region containing the grids
-		filled with get_gridvalues_f()
 parameter mypars:
 		describes the docking parameters
 		filled with get_commandpars()
@@ -440,7 +419,6 @@ parameters argc and argv:
 	unsigned int* cpu_prng_seeds;
 
 	Dockparameters dockpars;
-	size_t size_floatgrids;
 	size_t size_populations;
 	size_t size_energies;
 	size_t size_prng_seeds;
@@ -550,9 +528,8 @@ parameters argc and argv:
 
 	// ----------------------------------------------------------------------
 
- 	// allocating GPU memory for populations, floatgirds,
+	// allocating GPU memory for populations, floatgirds,
 	// energies, evaluation counters and random number generator states
-	size_floatgrids = 4 * (sizeof(float)) * (mygrid->num_of_atypes+2) * (mygrid->size_xyz[0]) * (mygrid->size_xyz[1]) * (mygrid->size_xyz[2]);
 
 	cl_mem mem_dockpars_conformations_current;
 	cl_mem mem_dockpars_energies_current;
@@ -562,8 +539,6 @@ parameters argc and argv:
 	cl_mem mem_gpu_evals_of_runs;
 	cl_mem mem_dockpars_prng_states;
 
-	if(cData.preload_gridsize==0)
-		mallocBufferObject(tData.context,CL_MEM_READ_ONLY,size_floatgrids, &tData.pMem_fgrids);
 	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_populations, &mem_dockpars_conformations_current);
 	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_energies,    &mem_dockpars_energies_current);
 	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_populations, &mem_dockpars_conformations_next);
@@ -580,8 +555,7 @@ parameters argc and argv:
 
 	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_prng_seeds, &mem_dockpars_prng_states);
 
-	if(!floatgrids_preloaded)
-		memcopyBufferObjectToDevice(tData.command_queue,tData.pMem_fgrids,          false, cpu_floatgrids,                     size_floatgrids);
+	memcopyBufferObjectToDevice(tData.command_queue,tData.pMem_fgrids,                  false, mygrid->grids.data(),               mygrid->grids.size()*sizeof(float));
 	memcopyBufferObjectToDevice(tData.command_queue,mem_dockpars_conformations_current, false, cpu_init_populations,               size_populations);
 	memcopyBufferObjectToDevice(tData.command_queue,mem_gpu_evals_of_runs,              false, sim_state.cpu_evals_of_runs.data(), size_evals_of_runs);
 	memcopyBufferObjectToDevice(tData.command_queue,mem_dockpars_prng_states,           false, cpu_prng_seeds,                     size_prng_seeds);

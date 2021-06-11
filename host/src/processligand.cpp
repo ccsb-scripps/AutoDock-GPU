@@ -1528,7 +1528,6 @@ void print_ref_lig_energies_f(
                                     Liganddata myligand,
                               const float      smooth,
                                     Gridinfo   mygrid,
-                              const float*     fgrids,
                               const float      scaled_AD4_coeff_elec,
                               const float      elec_min_distance,
                               const float      AD4_coeff_desolv,
@@ -1554,7 +1553,7 @@ void print_ref_lig_energies_f(
 	scale_ligand(&myligand, (double) 1.0/mygrid.spacing);
 
 	printf("Intermolecular energy of reference ligand: %lf\n",
-	       calc_interE_f(&mygrid, &myligand, fgrids, 0, 0, tmp));
+	       calc_interE_f(&mygrid, &myligand, 0, 0, tmp));
 }
 
 //////////////////////////////////
@@ -1813,7 +1812,6 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 float calc_interE_f(
                     const Gridinfo*   mygrid,
                     const Liganddata* myligand,
-                    const float*      fgrids,
                           float       outofgrid_tolerance,
                           int         debug,
                           float&      intraflexE,
@@ -1822,12 +1820,11 @@ float calc_interE_f(
                           float*      peratom_elec
                    )
 // The function calculates the intermolecular energy of a ligand (given by myligand parameter),
-// and a receptor (represented as a grid). The grid point values must be stored at the location
-// which starts at fgrids, the memory content can be generated with get_gridvalues funciton.
-// The mygrid parameter must be the corresponding grid informtaion. If an atom is outside the
-// grid, the coordinates will be changed with the value of outofgrid_tolerance, if it remains
-// outside, a very high value will be added to the current energy as a penality. If the fifth
-// parameter is one, debug messages will be printed to the screen during calculation.
+// and a receptor (represented as a grid). The grid point values must be stored in mygrid->grids
+// with get_gridvalues function.
+// If an atom is outside the grid, coordinates will be changed by at most the value of
+// outofgrid_tolerance, if it remains outside, a very large value will be added to the current
+// energy as a penality.
 {
 	float interE;
 	int atom_cnt;
@@ -1928,7 +1925,7 @@ float calc_interE_f(
 		float z_low  = floor(z);
 
 		// Grid value at 000
-		const float* grid_value_000 = fgrids + ((unsigned long)(x_low  + y_low*g1  + z_low*g2)<<2);
+		const float* grid_value_000 = mygrid->grids.data() + ((unsigned long)(x_low  + y_low*g1  + z_low*g2)<<2);
 
 		float dx = x - x_low;
 		float omdx = 1.0f - dx;
@@ -2314,34 +2311,4 @@ float calc_intraE_f(
 		return (vW + el + desolv);
 	else
 		return (vW + el);
-}
-
-int map_to_all_maps(
-                    Gridinfo*         mygrid,
-                    Liganddata*       myligand,
-                    std::vector<Map>& all_maps
-                   )
-{
-	for (int i_atom = 0; i_atom<myligand->num_of_atoms;i_atom++){
-		int type = myligand->atom_idxyzq[i_atom][0];
-		int type_idx = myligand->base_type_idx[type];
-		int map_idx = -1;
-		for (unsigned int i_map = 0; i_map<all_maps.size(); i_map++){
-			if (strcmp(all_maps[i_map].atype.c_str(),mygrid->ligand_grid_types[type_idx])==0){
-				map_idx = i_map;
-				break;
-			}
-		}
-		if (map_idx == -1){ // didn't find the map
-			// which is only OK for G-type
-			if(strncmp(mygrid->ligand_grid_types[type_idx],"G",1)==0)
-				continue;
-			printf("\nError: Could not find stored grid map for atom type %s.",mygrid->ligand_grid_types[type_idx]);
-			return 1;
-		}
-
-		myligand->atom_map_to_fgrids[i_atom] = map_idx;
-	}
-
-	return 0;
 }

@@ -250,16 +250,15 @@ bool is_H_bond(
               );
 
 void print_ref_lig_energies_f(
-                                    Liganddata,
-                              const float,
-                                    Gridinfo,
-                              const float*,
-                              const float,
-                              const float,
-                              const float,
-                              const float,
-                                    int,
-                                    pair_mod*
+                                    Liganddata myligand,
+                              const float      smooth,
+                                    Gridinfo   mygrid,
+                              const float      scaled_AD4_coeff_elec,
+                              const float      elec_min_distance,
+                              const float      AD4_coeff_desolv,
+                              const float      qasp,
+                                    int        nr_mod_atype_pairs,
+                                    pair_mod*  mod_atype_pairs
                              );
 
 //////////////////////////////////
@@ -312,7 +311,6 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 float calc_interE_f(
                     const Gridinfo*   mygrid,
                     const Liganddata* myligand,
-                    const float*      fgrids,
                           float       outofgrid_tolerance,
                           int         debug,
                           float&      intraflexE,
@@ -377,12 +375,6 @@ float calc_intraE_f(
                           float                     R_cutoff = 2.1,
                           float                     H_cutoff = 3.7,
                           float                     V_cutoff = 4.2
-                   );
-
-int map_to_all_maps(
-                    Gridinfo*         mygrid,
-                    Liganddata*       myligand,
-                    std::vector<Map>& all_maps
                    );
 
 #endif /* PROCESSLIGAND_H_ */

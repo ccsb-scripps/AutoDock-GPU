@@ -112,7 +112,7 @@ typedef struct
 struct GpuData {
 	int                             devnum;
 	int                             devid;
-	int                             preload_gridsize;
+	int                             allocated_gridsize;
 	GpuDockparameters               dockpars;
 	
 	// Consolidated constants and memory pointers to reduce kernel launch overhead

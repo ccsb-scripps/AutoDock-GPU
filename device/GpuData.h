@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 struct GpuData {
 	int devnum;
-	int preload_gridsize;
+	int allocated_gridsize;
 	// Consolidated constants and memory pointers to reduce kernel launch overhead
 	// dynamic
 	cl_mem mem_interintra_const;

@@ -33,7 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "getparameters.h"
 #include "setup.hpp"
 
-int preload_gridsize(FileList& filelist)
+int allocated_gridsize(FileList& filelist)
 {
 	if(!filelist.used) return 0;
 	int gridsize=0;
@@ -45,7 +45,10 @@ int preload_gridsize(FileList& filelist)
 				printf("\n\nError in get_gridinfo, stopped job.");
 				return 1;
 			}
-			int curr_size = 4*filelist.mygrids[grid_idx].size_xyz[0]*filelist.mygrids[grid_idx].size_xyz[1]*filelist.mygrids[grid_idx].size_xyz[2];
+			int curr_size = 4*filelist.mygrids[grid_idx].size_xyz[0]*
+			                  filelist.mygrids[grid_idx].size_xyz[1]*
+			                  filelist.mygrids[grid_idx].size_xyz[2]*
+			                  filelist.mygrids[grid_idx].grid_mapping.size();
 			if(curr_size>gridsize)
 				gridsize=curr_size;
 		}
@@ -54,9 +57,7 @@ int preload_gridsize(FileList& filelist)
 }
 
 int setup(
-          std::vector<Map>&   all_maps,
           Gridinfo&           mygrid,
-          std::vector<float>& floatgrids,
           Dockpars&           mypars,
           Liganddata&         myligand_init,
           Liganddata&         myxrayligand,
@@ -306,79 +307,36 @@ int setup(
 		return 1;
 	}
 
-	// Adding receptor atom information needed for analysis
-	if (mypars.contact_analysis && (mypars.flexresfile!=NULL)){
-		std::vector<ReceptorAtom> flexresatoms = read_receptor_atoms(mypars.flexresfile);
-		mypars.receptor_atoms.insert(mypars.receptor_atoms.end(), flexresatoms.begin(), flexresatoms.end());
-		for(int i=myligand_init.true_ligand_atoms; i<myligand_init.num_of_atoms; i++){
-			mypars.receptor_atoms[mypars.nr_receptor_atoms+i-myligand_init.true_ligand_atoms].acceptor=myligand_init.acceptor[i];
-			mypars.receptor_atoms[mypars.nr_receptor_atoms+i-myligand_init.true_ligand_atoms].donor=myligand_init.donor[i];
-		}
-	}
-
-	// Resize grid
-	floatgrids.resize(4*(mygrid.num_of_atypes+2)*mygrid.size_xyz[0]*mygrid.size_xyz[1]*mygrid.size_xyz[2]);
-
-	if (filelist.preload_maps){
-		if (!filelist.maps_are_loaded) { // maps not yet loaded
-			bool got_error = false;
-#ifdef USE_PIPELINE
-			#pragma omp critical
-#endif
-			{
-				if (!filelist.maps_are_loaded) { // maps not yet loaded (but in critical, so only one thread will ever enter this)
-					// Load maps to all_maps
-					if (load_all_maps(mypars.fldfile,
-					                  &mygrid,
-					                  all_maps) != 0)
-					{
-						got_error = true;
-					}
-					filelist.maps_are_loaded = true;
-				}
-			}
-			// Return must be outside pragma
-			if (got_error) {
-				printf("\nError in load_all_maps, stopped job.\n");
-				return 1;
-			}
-		}
-
-		// Copy maps from all_maps
-		if (copy_from_all_maps(&mygrid,
-		                       floatgrids.data(),
-		                       all_maps) != 0)
-		{
-			printf("\nError in copy_from_all_maps, stopped job.\n");
-			return 1;
-		}
-
-		// Specify total number of maps that will be on GPU
-		mygrid.num_of_map_atypes = all_maps.size()-2; // For the two extra maps
-		// Map atom_types used for ligand processing to all_maps so all the maps can stay on GPU
-		if (map_to_all_maps(&mygrid,
-		                    &myligand_init,
-		                    all_maps) !=0)
-		{
-			printf("\nError in map_to_all_maps, stopped job.\n");
-			return 1;
-		}
-	} else {
-		// read receptor in case contact analysis is requested and we haven't done so already (in the preload case above)
-		if(mypars.contact_analysis){
+	if (mypars.contact_analysis){
+		// read receptor in case contact analysis is requested and we haven't done so already
+		if(!filelist.preload_maps){
 			std::string receptor_name=mygrid.grid_file_path;
 			if(mygrid.grid_file_path.size()>0) receptor_name+="/";
 			receptor_name += mygrid.receptor_name + ".pdbqt";
 			mypars.receptor_atoms = read_receptor(receptor_name.c_str(),&mygrid,mypars.receptor_map,mypars.receptor_map_list);
 			mypars.nr_receptor_atoms = mypars.receptor_atoms.size();
 		}
-		// Reading the grid files and storing values in the memory region pointed by floatgrids
-		if (get_gridvalues_f(&mygrid,
-		                     floatgrids.data()) != 0)
-		{
-			printf("\nError in get_gridvalues_f, stopped job.\n");
-			return 1;
+		// Adding flex res atom information needed for analysis
+		if(mypars.flexresfile!=NULL){
+			std::vector<ReceptorAtom> flexresatoms = read_receptor_atoms(mypars.flexresfile);
+			mypars.receptor_atoms.insert(mypars.receptor_atoms.end(), flexresatoms.begin(), flexresatoms.end());
+			for(int i=myligand_init.true_ligand_atoms; i<myligand_init.num_of_atoms; i++){
+				mypars.receptor_atoms[mypars.nr_receptor_atoms+i-myligand_init.true_ligand_atoms].acceptor=myligand_init.acceptor[i];
+				mypars.receptor_atoms[mypars.nr_receptor_atoms+i-myligand_init.true_ligand_atoms].donor=myligand_init.donor[i];
+			}
 		}
+	}
+
+	// Reading the grid files and storing values if not already done
+	int grid_status;
+#ifdef USE_PIPELINE
+	#pragma omp critical
+#endif
+	grid_status = get_gridvalues(&mygrid);
+	if(grid_status!=0)
+	{
+		printf("\nError in get_gridvalues, stopped job.\n");
+		return 1;
 	}
 
 	//------------------------------------------------------------
@@ -449,165 +407,12 @@ int setup(
 		print_ref_lig_energies_f(myligand_init,
 		                         mypars.smooth,
 		                         mygrid,
-		                         floatgrids.data(),
 		                         mypars.coeffs.scaled_AD4_coeff_elec,
 		                         mypars.elec_min_distance,
 		                         mypars.coeffs.AD4_coeff_desolv,
 		                         mypars.qasp,
 		                         mypars.nr_mod_atype_pairs,
 		                         mypars.mod_atype_pairs);
-	}
-
-	return 0;
-}
-
-int fill_maplist(
-                 const char*             fldfilename,
-                       std::vector<Map>& all_maps)
-{
-	std::ifstream file(fldfilename);
-	if(file.fail()){
-		printf("\nError: Could not open %s. Check path and permissions.",fldfilename);
-		return 1;
-	}
-	std::string line;
-	while(std::getline(file, line)) {
-		std::stringstream sline(line.c_str());
-		// Split line by spaces:
-		std::string word;
-		bool is_variable_line=false;
-		while(std::getline(sline, word, ' ')){
-			// Check if first word is "variable"
-			if (word.compare("variable") == 0) is_variable_line=true;
-			int len = word.size();
-                        if (is_variable_line && len>=4 && word.compare(len-4,4,".map") == 0){ // Found a word that ends in "map"
-				// Split the map into segments e.g. protein.O.map -> "protein", "O", "map"
-				std::stringstream mapword(word.c_str());
-				std::string segment;
-				std::vector<std::string> seglist;
-				while(std::getline(mapword, segment, '.')) seglist.push_back(segment);
-
-				// Create a new map with the atom name
-				all_maps.push_back(Map(seglist[seglist.size()-2]));
-			}
-		}
-	}
-	return 0;
-}
-
-int load_all_maps(
-                  const char*             fldfilename,
-                  const Gridinfo*         mygrid,
-                        std::vector<Map>& all_maps
-                 )
-{
-	// First, parse .fld file to get map names
-	if(fill_maplist(fldfilename,all_maps)==1) return 1;
-
-	// Now fill the maps
-	int ti, x, y, z;
-	std::ifstream fp;
-	std::string fn, line;
-	int size_of_one_map = 4*mygrid->size_xyz[0]*mygrid->size_xyz[1]*mygrid->size_xyz[2];
-
-	unsigned int g1 = mygrid->size_xyz[0];
-	unsigned int g2 = g1*mygrid->size_xyz[1];
-
-	for (unsigned int t=0; t < all_maps.size(); t++)
-	{
-		all_maps[t].grid.resize(size_of_one_map);
-		float* mypoi = all_maps[t].grid.data();
-		// find corresponding fld entry
-		ti=-1;
-		for (x=0; x<(mygrid->grid_mapping.size()/2); x++){
-			if(mygrid->grid_mapping[x].find(all_maps[t].atype) == 0){
-				ti=x+mygrid->grid_mapping.size()/2; // found
-				break;
-			}
-		}
-		if(ti<0){
-			 // if no G-map is specified, none is used and the corresponding map is set to zeroes
-			 // - parse_ligand() will exclude those atoms from contributing to interE
-			if(strncmp(all_maps[t].atype.c_str(),"G",1)==0){
-				for (z=0; z < mygrid->size_xyz[2]; z++)
-					for (y=0; y < mygrid->size_xyz[1]; y++)
-						for (x=0; x < mygrid->size_xyz[0]; x++)
-						{
-							*mypoi = 0.0f;
-							// fill in duplicate data for linearized memory access in kernel
-							if(y>0) *(mypoi-4*g1+1) = *mypoi;
-							if(z>0) *(mypoi-4*g2+2) = *mypoi;
-							if(y>0 && z>0) *(mypoi-4*(g2+g1)+3) = *mypoi;
-							mypoi+=4;
-						}
-				continue;
-			} else{
-				printf("Error: No map file specified for atom type in fld and no derived type (--derivtype, -T) either.\n");
-				if (strncmp(all_maps[t].atype.c_str(),"CG",2)==0)
-					printf("       Expecting a derived type for each CGx (x=0..9) atom type (i.e. --derivtype CG0,CG1=C).\n");
-				return 1;
-			}
-		}
-		if(mygrid->fld_relative){
-			fn=mygrid->grid_file_path + "/" + mygrid->grid_mapping[ti];
-			fp.open(fn);
-		}
-		if (fp.fail())
-		{
-			printf("Error: Can't open grid map %s.\n", fn.c_str());
-			return 1;
-		}
-
-		// seeking to first data
-		do std::getline(fp, line);
-		while (line.find("CENTER") != 0);
-
-		// reading values
-		for (z=0; z < mygrid->size_xyz[2]; z++)
-			for (y=0; y < mygrid->size_xyz[1]; y++)
-				for (x=0; x < mygrid->size_xyz[0]; x++)
-				{
-					std::getline(fp, line);// sscanf(line.c_str(), "%f", mypoi);
-					*mypoi = map2float(line.c_str());
-					// fill in duplicate data for linearized memory access in kernel
-					if(y>0) *(mypoi-4*g1+1) = *mypoi;
-					if(z>0) *(mypoi-4*g2+2) = *mypoi;
-					if(y>0 && z>0) *(mypoi-4*(g2+g1)+3) = *mypoi;
-					mypoi+=4;
-				}
-		fp.close();
-	}
-	return 0;
-}
-
-int copy_from_all_maps(
-                       const Gridinfo*         mygrid,
-                             float*            fgrids,
-                             std::vector<Map>& all_maps
-                      )
-{
-	int size_of_one_map = 4*mygrid->size_xyz[0]*mygrid->size_xyz[1]*mygrid->size_xyz[2];
-	for (int t=0; t < mygrid->num_of_atypes+2; t++) {
-		// Look in all_maps for desired map
-		int i_map = -1;
-		for (unsigned int i_atype=0; i_atype < all_maps.size(); i_atype++){
-			if (strcmp(mygrid->ligand_grid_types[t],all_maps[i_atype].atype.c_str())==0){
-				i_map = i_atype; // Found the map!
-				break;
-			}
-		}
-		if (i_map == -1){ // Didnt find the map
-			// which is only OK for G-type
-			if(strncmp(mygrid->ligand_grid_types[t],"G",1)==0)
-				continue;
-			printf("Error: The %s map needed for the ligand was not found in the fld file and no derived type (--derivtype, -T) was specified either.\n", mygrid->ligand_grid_types[t]);
-			if (strncmp(mygrid->ligand_grid_types[t],"CG",2)==0)
-				printf("       Expecting a derived type for each CGx (x=0..9) atom type (i.e. --derivtype CG0,CG1=C).\n");
-			return 1;
-		}
-
-		// Copy from all_maps into fgrids
-		memcpy(fgrids+t*size_of_one_map,all_maps[i_map].grid.data(),sizeof(float)*all_maps[i_map].grid.size());
 	}
 
 	return 0;

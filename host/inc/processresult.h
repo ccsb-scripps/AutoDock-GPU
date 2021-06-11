@@ -92,7 +92,6 @@ void make_resfiles(
                          int           evals_performed,
                          int           generations_used,
                    const Gridinfo*     mygrid,
-                   const float*        grids,
                    const int*          argc,
                          char**        argv,
                          int           debug,
@@ -118,7 +117,6 @@ void generate_output(
 
 void process_result(
                     const Gridinfo*        mygrid,
-                    const float*           cpu_floatgrids,
                     const Dockpars*        mypars,
                           Liganddata*      myligand_init,
                     const Liganddata*      myxrayligand,
