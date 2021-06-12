@@ -109,6 +109,7 @@ typedef struct _Dockpars
 	float                     V_cutoff                        = 4.0;
 	unsigned int              xml_files                       = 0;
 	unsigned int              filelist_files                  = 0;
+	unsigned int              filelist_grid_idx               = 0;
 	bool                      dlg2stdout                      = false;
 	int                       gen_pdbs                        = 0;
 	char*                     dpffile                         = NULL;

@@ -77,7 +77,9 @@ int get_gridinfo(
 	} else{
 		mygrid->map_base_name = fldfilename;
 	}
-
+	
+	bool have_e=false;
+	bool have_d=false;
 	while(std::getline(fp, line))
 	{
 		sscanf(line.c_str(),"%255s",tempstr);
@@ -138,6 +140,8 @@ int get_gridinfo(
 				tempstr[1]='\0'; // tempstr is now either E(lectrostatics) or D(esolvation)
 				tempstr[0]=tolower(tempstr[0]); // lower-case it
 			}
+			if(tempstr[0]=='e') have_e=true;
+			if(tempstr[0]=='d') have_d=true;
 			mygrid->grid_mapping.push_back(tempstr);
 			grid_types++;
 		}
@@ -158,6 +162,15 @@ int get_gridinfo(
 		printf("Error: Number of grid map labels (%d) and filenames (%d) mismatched in fld file.\n", grid_types, mygrid->grid_mapping.size()-grid_types);
 		return 1;
 	}
+	if(!have_e){
+		printf("Error: Grid map does not contain an (e)lectrostatics map.\n");
+		return 1;
+	}
+	if(!have_d){
+		printf("Error: Grid map does not contain a (d)esolvation map.\n");
+		return 1;
+	}
+	mygrid->num_of_map_atypes = grid_types-2; // w/o e and d maps
 
 	// calculating grid size
 	mygrid->size_xyz_angstr[0] = (mygrid->size_xyz[0]-1)*(mygrid->spacing);
@@ -191,10 +204,10 @@ int get_gridvalues(Gridinfo* mygrid)
 // the return value is 0.
 {
 	if(mygrid->grids.size()>0) return 0; // we already read the grid maps
-	mygrid->grids.resize(4*(mygrid->num_of_atypes+2)*
-	                       (mygrid->size_xyz[0])*
-	                       (mygrid->size_xyz[1])*
-	                       (mygrid->size_xyz[2]));
+	mygrid->grids.resize(2*mygrid->grid_mapping.size()*
+	                      (mygrid->size_xyz[0])*
+	                      (mygrid->size_xyz[1])*
+	                      (mygrid->size_xyz[2]));
 	int t, ti, x, y, z;
 	std::ifstream fp;
 	std::string fn, line;
@@ -203,42 +216,12 @@ int get_gridvalues(Gridinfo* mygrid)
 	unsigned int g1 = mygrid->size_xyz[0];
 	unsigned int g2 = g1*mygrid->size_xyz[1];
 
-	for (t=0; t < mygrid->num_of_atypes+2; t++)
+	for (t=0; t < mygrid->grid_mapping.size()/2; t++)
 	{
-		// find corresponding fld entry
-		ti=-1;
-		for (x=0; x<(mygrid->grid_mapping.size()/2); x++){
-			if(strcmp(mygrid->grid_mapping[x].c_str(),mygrid->ligand_grid_types[t]) == 0){
-				ti=x+mygrid->grid_mapping.size()/2; // found
-				break;
-			}
-		}
-		if(ti<0){
-			 // if no G-map is specified, none is used and the corresponding map is set to zeroes
-			 // - parse_ligand() will exclude those atoms from contributing to interE
-			if(strncmp(mygrid->ligand_grid_types[t],"G",1)==0){
-				for (z=0; z < mygrid->size_xyz[2]; z++)
-					for (y=0; y < mygrid->size_xyz[1]; y++)
-						for (x=0; x < mygrid->size_xyz[0]; x++)
-						{
-							*mypoi = 0.0f;
-							// fill in duplicate data for linearized memory access in kernel
-							if(y>0) *(mypoi-4*g1+1) = *mypoi;
-							if(z>0) *(mypoi-4*g2+2) = *mypoi;
-							if(y>0 && z>0) *(mypoi-4*(g2+g1)+3) = *mypoi;
-							mypoi+=4;
-						}
-				continue;
-			} else{
-				printf("Error: No map file specified for atom type in fld and no derived type (--derivtype, -T) either.\n");
-				if (strncmp(mygrid->ligand_grid_types[t],"CG",2)==0)
-					printf("       Expecting a derived type for each CGx (x=0..9) atom type (i.e. --derivtype CG0,CG1=C).\n");
-				return 1;
-			}
-		}
-		if(mygrid->fld_relative){
+		ti = t + mygrid->grid_mapping.size()/2;
+		if(mygrid->fld_relative){ // this is always true (unless changed)
 			fn=mygrid->grid_file_path+"/"+mygrid->grid_mapping[ti];
-//			printf("Atom type %s uses map: %s\n",mygrid->ligand_grid_types[t],fn.c_str());
+//			printf("Atom type %d (%s) uses map: %s\n",t,mygrid->grid_mapping[t].c_str(),fn.c_str());
 			fp.open(fn);
 		}
 		if (fp.fail())

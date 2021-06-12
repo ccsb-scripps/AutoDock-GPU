@@ -57,8 +57,8 @@ int preallocated_gridsize(FileList& filelist)
 }
 
 int setup(
-          Gridinfo&           mygrid,
-          Dockpars&           mypars,
+          Gridinfo*           mygrid,
+          Dockpars*           mypars,
           Liganddata&         myligand_init,
           Liganddata&         myxrayligand,
           FileList&           filelist,
@@ -68,7 +68,7 @@ int setup(
          )
 {
 	// Filling the filename and coeffs fields of mypars according to command line arguments
-	if (get_filenames_and_ADcoeffs(&argc, argv, &mypars, filelist.used) != 0){
+	if (get_filenames_and_ADcoeffs(&argc, argv, mypars, filelist.used) != 0){
 		printf("\nError in get_filenames_and_ADcoeffs, stopped job.\n");
 		return 1;
 	}
@@ -81,17 +81,17 @@ int setup(
 	for (int i=1; i<argc-1; i+=2)
 	{
 		if (argcmp("filelist", argv[i], 'B'))
-			i+=mypars.filelist_files-1; // skip ahead in case there are multiple entries here
+			i+=mypars->filelist_files-1; // skip ahead in case there are multiple entries here
 
 		if (argcmp("xml2dlg", argv[i], 'X'))
-			i+=mypars.xml_files-1; // skip ahead in case there are multiple entries here
+			i+=mypars->xml_files-1; // skip ahead in case there are multiple entries here
 
 		// Argument: derivate atom types
 		if (argcmp("derivtype", argv [i], 'T'))
 		{
-			if(mypars.nr_deriv_atypes==0){
-				mypars.deriv_atypes=(deriv_atype*)malloc(sizeof(deriv_atype));
-				if(mypars.deriv_atypes==NULL){
+			if(mypars->nr_deriv_atypes==0){
+				mypars->deriv_atypes=(deriv_atype*)malloc(sizeof(deriv_atype));
+				if(mypars->deriv_atypes==NULL){
 					printf("Error: Cannot allocate memory for --derivtype (-T).\n");
 					exit(1);
 				}
@@ -102,7 +102,7 @@ int setup(
 			while(success && (*tmp!='\0')){
 				bool base_exists=false;
 				char* start_block=tmp;
-				int nr_start=mypars.nr_deriv_atypes;
+				int nr_start=mypars->nr_deriv_atypes;
 				int redefine=0;
 				// count nr of derivative atom types first
 				while((*tmp!='\0') && (*tmp!='/')){ // do one block at a time
@@ -113,7 +113,7 @@ int setup(
 							break;
 						}
 						if(tmp-start_block-1>0){ // make sure there is a name (at least one char, we'll test later if it's taken already)
-							int idx = add_deriv_atype(&mypars,start_block,tmp-start_block-1,true);
+							int idx = add_deriv_atype(mypars,start_block,tmp-start_block-1,true);
 							if(idx==0){
 								printf("Error in --derivtype (-T) %s: derivative names can only be upto 3 characters long.\n",argv[i+1]);
 								success=false;
@@ -131,7 +131,7 @@ int setup(
 					}
 					if((*tmp=='=') && ((*(tmp+1)!='\0') || (*(tmp+1)!='/'))){
 						if(tmp-start_block>0){ // make sure there is a name (at least one char, we'll test later if it's taken already)
-							int idx = add_deriv_atype(&mypars,start_block,tmp-start_block,true);
+							int idx = add_deriv_atype(mypars,start_block,tmp-start_block,true);
 							if(idx==0){
 								printf("Error in --derivtype (-T) %s: derivative names can only be upto 3 characters long.\n",argv[i+1]);
 								success=false;
@@ -158,17 +158,17 @@ int setup(
 				if(redefine!=0){
 					redefine++; // redefine is -i-1 in case of doublet -> i = -(redefine+1)
 					redefine=-redefine;
-					if(strncmp(start_block,mypars.deriv_atypes[redefine].base_name,length)!=0){
-						printf("Error in --derivtype (-T) %s: redefinition of type %s with different base name.\n",argv[i+1],mypars.deriv_atypes[redefine].deriv_name);
+					if(strncmp(start_block,mypars->deriv_atypes[redefine].base_name,length)!=0){
+						printf("Error in --derivtype (-T) %s: redefinition of type %s with different base name.\n",argv[i+1],mypars->deriv_atypes[redefine].deriv_name);
 						success=false;
 						break;
 					}
 				}
-				for(int idx=nr_start; idx<mypars.nr_deriv_atypes; idx++){
-					strncpy(mypars.deriv_atypes[idx].base_name,start_block,length);
-					mypars.deriv_atypes[idx].base_name[length]='\0';
+				for(int idx=nr_start; idx<mypars->nr_deriv_atypes; idx++){
+					strncpy(mypars->deriv_atypes[idx].base_name,start_block,length);
+					mypars->deriv_atypes[idx].base_name[length]='\0';
 #ifdef DERIVTYPE_INFO
-					printf("%i: %s=%s\n",mypars.deriv_atypes[idx].nr,mypars.deriv_atypes[idx].deriv_name,mypars.deriv_atypes[idx].base_name);
+					printf("%i: %s=%s\n",mypars->deriv_atypes[idx].nr,mypars->deriv_atypes[idx].deriv_name,mypars->deriv_atypes[idx].base_name);
 #endif
 				}
 				if(*tmp=='/') // need to go to next char otherwise the two loops will infinite loop (ask me how I knooooooooooooooooooooooooooooooooooooooo
@@ -187,16 +187,16 @@ int setup(
 			char* tmp=argv[i+1];
 			
 			while(success && (*tmp!='\0')){
-				mypars.nr_mod_atype_pairs++;
-				if(mypars.nr_mod_atype_pairs==1)
-					mypars.mod_atype_pairs=(pair_mod*)malloc(sizeof(pair_mod));
+				mypars->nr_mod_atype_pairs++;
+				if(mypars->nr_mod_atype_pairs==1)
+					mypars->mod_atype_pairs=(pair_mod*)malloc(sizeof(pair_mod));
 				else
-					mypars.mod_atype_pairs=(pair_mod*)realloc(mypars.mod_atype_pairs, mypars.nr_mod_atype_pairs*sizeof(pair_mod));
-				if(mypars.mod_atype_pairs==NULL){
+					mypars->mod_atype_pairs=(pair_mod*)realloc(mypars->mod_atype_pairs, mypars->nr_mod_atype_pairs*sizeof(pair_mod));
+				if(mypars->mod_atype_pairs==NULL){
 					printf("Error: Cannot allocate memory for --modpair (-P).\n");
 					exit(1);
 				}
-				pair_mod* curr_pair=&mypars.mod_atype_pairs[mypars.nr_mod_atype_pairs-1];
+				pair_mod* curr_pair=&mypars->mod_atype_pairs[mypars->nr_mod_atype_pairs-1];
 				// find atom type pair to modify
 				char* first_comma=strchr(tmp,',');
 				if(first_comma==NULL){
@@ -258,7 +258,7 @@ int setup(
 				if(*tmp=='/') // need to go to next char otherwise the two loops will infinite loop (ask me how I knooooooooooooooooooooooooooooooooooooooo
 					tmp++;
 #ifdef MODPAIR_INFO
-				printf("%i: %s:%s",mypars.nr_mod_atype_pairs,curr_pair->A,curr_pair->B);
+				printf("%i: %s:%s",mypars->nr_mod_atype_pairs,curr_pair->A,curr_pair->B);
 				for(unsigned int idx=0; idx<curr_pair->nr_parameters; idx++)
 					printf(",%f",curr_pair->parameters[idx]);
 				printf("\n");
@@ -276,19 +276,19 @@ int setup(
 	//------------------------------------------------------------
 
 	// Filling mygrid according to the fld file
-	if (get_gridinfo(mypars.fldfile, &mygrid) != 0)
+	if (get_gridinfo(mypars->fldfile, mygrid) != 0)
 	{
 		printf("\nError in get_gridinfo, stopped job.\n");
 		return 1;
 	}
 
 	// Filling the atom types field of myligand according to the grid types
-	if (init_liganddata(mypars.ligandfile,
-	                    mypars.flexresfile,
+	if (init_liganddata(mypars->ligandfile,
+	                    mypars->flexresfile,
 	                    &myligand_init,
-	                    &mygrid,
-	                    mypars.nr_deriv_atypes,
-	                    mypars.deriv_atypes) != 0)
+	                    mygrid,
+	                    mypars->nr_deriv_atypes,
+	                    mypars->deriv_atypes) != 0)
 	{
 		printf("\nError in init_liganddata, stopped job.\n");
 		return 1;
@@ -296,33 +296,34 @@ int setup(
 
 	// Filling myligand according to the pdbqt file
 	if (parse_liganddata(&myligand_init,
-	                     mypars.coeffs.AD4_coeff_vdW,
-	                     mypars.coeffs.AD4_coeff_hb,
-	                     mypars.nr_deriv_atypes,
-	                     mypars.deriv_atypes,
-	                     mypars.nr_mod_atype_pairs,
-	                     mypars.mod_atype_pairs) != 0)
+	                     mygrid,
+	                     mypars->coeffs.AD4_coeff_vdW,
+	                     mypars->coeffs.AD4_coeff_hb,
+	                     mypars->nr_deriv_atypes,
+	                     mypars->deriv_atypes,
+	                     mypars->nr_mod_atype_pairs,
+	                     mypars->mod_atype_pairs) != 0)
 	{
 		printf("\nError in parse_liganddata, stopped job.\n");
 		return 1;
 	}
 
-	if (mypars.contact_analysis){
+	if (mypars->contact_analysis){
 		// read receptor in case contact analysis is requested and we haven't done so already
 		if(!filelist.preload_maps){
-			std::string receptor_name=mygrid.grid_file_path;
-			if(mygrid.grid_file_path.size()>0) receptor_name+="/";
-			receptor_name += mygrid.receptor_name + ".pdbqt";
-			mypars.receptor_atoms = read_receptor(receptor_name.c_str(),&mygrid,mypars.receptor_map,mypars.receptor_map_list);
-			mypars.nr_receptor_atoms = mypars.receptor_atoms.size();
+			std::string receptor_name=mygrid->grid_file_path;
+			if(mygrid->grid_file_path.size()>0) receptor_name+="/";
+			receptor_name += mygrid->receptor_name + ".pdbqt";
+			mypars->receptor_atoms = read_receptor(receptor_name.c_str(),mygrid,mypars->receptor_map,mypars->receptor_map_list);
+			mypars->nr_receptor_atoms = mypars->receptor_atoms.size();
 		}
 		// Adding flex res atom information needed for analysis
-		if(mypars.flexresfile!=NULL){
-			std::vector<ReceptorAtom> flexresatoms = read_receptor_atoms(mypars.flexresfile);
-			mypars.receptor_atoms.insert(mypars.receptor_atoms.end(), flexresatoms.begin(), flexresatoms.end());
+		if(mypars->flexresfile!=NULL){
+			std::vector<ReceptorAtom> flexresatoms = read_receptor_atoms(mypars->flexresfile);
+			mypars->receptor_atoms.insert(mypars->receptor_atoms.end(), flexresatoms.begin(), flexresatoms.end());
 			for(int i=myligand_init.true_ligand_atoms; i<myligand_init.num_of_atoms; i++){
-				mypars.receptor_atoms[mypars.nr_receptor_atoms+i-myligand_init.true_ligand_atoms].acceptor=myligand_init.acceptor[i];
-				mypars.receptor_atoms[mypars.nr_receptor_atoms+i-myligand_init.true_ligand_atoms].donor=myligand_init.donor[i];
+				mypars->receptor_atoms[mypars->nr_receptor_atoms+i-myligand_init.true_ligand_atoms].acceptor=myligand_init.acceptor[i];
+				mypars->receptor_atoms[mypars->nr_receptor_atoms+i-myligand_init.true_ligand_atoms].donor=myligand_init.donor[i];
 			}
 		}
 	}
@@ -332,7 +333,7 @@ int setup(
 #ifdef USE_PIPELINE
 	#pragma omp critical
 #endif
-	grid_status = get_gridvalues(&mygrid);
+	grid_status = get_gridvalues(mygrid);
 	if(grid_status!=0)
 	{
 		printf("\nError in get_gridvalues, stopped job.\n");
@@ -343,40 +344,40 @@ int setup(
 	// Capturing algorithm parameters (command line args)
 	//------------------------------------------------------------
 	char* orig_resname;
-	if(mypars.resname)
-		orig_resname = strdup(mypars.resname); // need to copy it since it might get free'd in the next line
+	if(mypars->resname)
+		orig_resname = strdup(mypars->resname); // need to copy it since it might get free'd in the next line
 	else
 		orig_resname = strdup(""); // need an empty string for later if no resname has been specified
 
-	if(get_commandpars(&argc, argv, &(mygrid.spacing), &mypars)<0)
+	if(get_commandpars(&argc, argv, &(mygrid->spacing), mypars)<0)
 		return 1;
 
 	// command-line specified resname with more than one file
-	if (!mypars.xml2dlg){ // if the user specified an xml file, that's the one we want to use
-		if ((strcmp(orig_resname,mypars.resname)!=0) && (filelist.nfiles>1)){ // use resname as prefix
-			char* tmp = (char*)malloc(strlen(mypars.resname)+strlen(orig_resname)+1);
+	if (!mypars->xml2dlg){ // if the user specified an xml file, that's the one we want to use
+		if ((strcmp(orig_resname,mypars->resname)!=0) && (filelist.nfiles>1)){ // use resname as prefix
+			char* tmp = (char*)malloc(strlen(mypars->resname)+strlen(orig_resname)+1);
 			// take care of potential directory path
 			long long dir = strrchr(orig_resname,'/')-orig_resname+1;
 			if(dir>0){
 				strncpy(tmp, orig_resname, dir);
 				tmp[dir]='\0';
-				strcat(tmp, mypars.resname);
+				strcat(tmp, mypars->resname);
 				strcat(tmp, &orig_resname[dir]);
 			} else{
-				strcpy(tmp, mypars.resname);
+				strcpy(tmp, mypars->resname);
 				strcat(tmp, orig_resname);
 			}
-			free(mypars.resname);
-			mypars.resname = tmp;
+			free(mypars->resname);
+			mypars->resname = tmp;
 		}
 	}
 	free(orig_resname);
 
 	Gridinfo mydummygrid;
 	// if -lxrayfile provided, then read xray ligand data
-	if (mypars.given_xrayligandfile)
+	if (mypars->given_xrayligandfile)
 	{
-		if (init_liganddata(mypars.xrayligandfile,
+		if (init_liganddata(mypars->xrayligandfile,
 		                    "\0",
 		                    &myxrayligand,
 		                    &mydummygrid,
@@ -388,12 +389,13 @@ int setup(
 		}
 
 		if (parse_liganddata(&myxrayligand,
-		                     mypars.coeffs.AD4_coeff_vdW,
-		                     mypars.coeffs.AD4_coeff_hb,
-		                     mypars.nr_deriv_atypes,
-		                     mypars.deriv_atypes,
-		                     mypars.nr_mod_atype_pairs,
-		                     mypars.mod_atype_pairs) != 0)
+		                     &mydummygrid,
+		                     mypars->coeffs.AD4_coeff_vdW,
+		                     mypars->coeffs.AD4_coeff_hb,
+		                     mypars->nr_deriv_atypes,
+		                     mypars->deriv_atypes,
+		                     mypars->nr_mod_atype_pairs,
+		                     mypars->mod_atype_pairs) != 0)
 		{
 			printf("\nError in parse_liganddata, stopped job.\n");
 			return 1;
@@ -403,16 +405,16 @@ int setup(
 	//------------------------------------------------------------
 	// Calculating energies of reference ligand if required
 	//------------------------------------------------------------
-	if (mypars.reflig_en_required) {
+	if (mypars->reflig_en_required) {
 		print_ref_lig_energies_f(myligand_init,
-		                         mypars.smooth,
+		                         mypars->smooth,
 		                         mygrid,
-		                         mypars.coeffs.scaled_AD4_coeff_elec,
-		                         mypars.elec_min_distance,
-		                         mypars.coeffs.AD4_coeff_desolv,
-		                         mypars.qasp,
-		                         mypars.nr_mod_atype_pairs,
-		                         mypars.mod_atype_pairs);
+		                         mypars->coeffs.scaled_AD4_coeff_elec,
+		                         mypars->elec_min_distance,
+		                         mypars->coeffs.AD4_coeff_desolv,
+		                         mypars->qasp,
+		                         mypars->nr_mod_atype_pairs,
+		                         mypars->mod_atype_pairs);
 	}
 
 	return 0;

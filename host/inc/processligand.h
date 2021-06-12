@@ -185,9 +185,10 @@ int init_liganddata(
                    );
 
 int set_liganddata_typeid(
-                                Liganddata*,
-                                int,
-                          const char*
+                                Liganddata* myligand,
+                                Gridinfo*   mygrid,
+                                int         atom_id,
+                          const char*       typeof_new_atom
                          );
 
 void get_intraE_contributors(Liganddata*);
@@ -214,9 +215,10 @@ int get_VWpars(
 int get_moving_and_unit_vectors(Liganddata*);
 
 int parse_liganddata(
-                           Liganddata*,
-                     const double,
-                     const double,
+                           Liganddata*  myligand,
+                           Gridinfo*    mygrid,
+                     const double       AD4_coeff_vdW,
+                     const double       AD4_coeff_hb,
                            int          nr_deriv_atypes,
                            deriv_atype* deriv_atypes,
                            int          nr_mod_atype_pairs,
@@ -252,7 +254,7 @@ bool is_H_bond(
 void print_ref_lig_energies_f(
                                     Liganddata myligand,
                               const float      smooth,
-                                    Gridinfo   mygrid,
+                                    Gridinfo*  mygrid,
                               const float      scaled_AD4_coeff_elec,
                               const float      elec_min_distance,
                               const float      AD4_coeff_desolv,

@@ -426,7 +426,6 @@ void make_resfiles(
 		} else{
 			change_conform_f(ligand_ref, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, debug);
 		}
-		
 		// the map interaction of flex res atoms is stored in accurate_intraflexE
 		if (i == 0)
 			accurate_interE = calc_interE_f(mygrid, ligand_ref, 0.0005, debug, accurate_intraflexE, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec); // calculate intermolecular and per atom energies

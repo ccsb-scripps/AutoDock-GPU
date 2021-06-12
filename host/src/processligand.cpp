@@ -150,8 +150,6 @@ int init_liganddata(
 		// copying field to ligand and grid data
 		if(l==0) myligand->ligand_line_count = myligand->file_content.size();
 		myligand->num_of_atypes = num_of_atypes;
-		mygrid->num_of_atypes   = num_of_base_atypes;
-		mygrid->num_of_map_atypes   = num_of_base_atypes;
 		fp.close();
 	}
 #ifdef TYPE_INFO
@@ -189,6 +187,7 @@ int init_liganddata(
 
 int set_liganddata_typeid(
                                 Liganddata* myligand,
+                                Gridinfo*   mygrid,
                                 int         atom_id,
                           const char*       typeof_new_atom
                          )
@@ -212,7 +211,22 @@ int set_liganddata_typeid(
 	if (type < myligand->num_of_atypes)
 	{
 		myligand->atom_idxyzq[atom_id][0] = type;
-		myligand->atom_map_to_fgrids[atom_id] = myligand->base_type_idx[type];
+		myligand->atom_map_to_fgrids[atom_id] = -1;
+		for (i=0; i<(mygrid->grid_mapping.size()/2-2); i++){
+			if(strcmp(mygrid->grid_mapping[i].c_str(),mygrid->ligand_grid_types[myligand->base_type_idx[type]]) == 0){
+				myligand->atom_map_to_fgrids[atom_id]=i; // found
+				break;
+			}
+		}
+		if(myligand->atom_map_to_fgrids[atom_id]<0){
+			// raise map error unless base G-map is specified (which ignores map by default)
+			if(strncmp(mygrid->ligand_grid_types[myligand->base_type_idx[type]],"G",1)!=0){
+				printf("Error: No map file specified for atom type in fld and no derived type (--derivtype, -T) either.\n");
+				if (strncmp(mygrid->ligand_grid_types[myligand->base_type_idx[type]],"CG",2)==0)
+					printf("       Expecting a derived type for each CGx (x=0..9) atom type (i.e. --derivtype CG0,CG1=C).\n");
+				return 1;
+			}
+		}
 		return 0;
 	}
 	else // if typeof_new_atom hasn't been found
@@ -1092,6 +1106,7 @@ int get_moving_and_unit_vectors(Liganddata* myligand)
 
 int parse_liganddata(
                            Liganddata*  myligand,
+                           Gridinfo*    mygrid,
                      const double       AD4_coeff_vdW,
                      const double       AD4_coeff_hb,
                            int          nr_deriv_atypes,
@@ -1156,10 +1171,10 @@ int parse_liganddata(
 				sscanf(&line.c_str()[72], "%lf", &(myligand->atom_idxyzq [atom_counter][4])); // reading charge
 				sscanf(&line.c_str()[79], "%3s", tempstr); // reading atom type
 				tempstr[3]='\0';
-				if (set_liganddata_typeid(myligand, atom_counter, tempstr) != 0) // the function sets the type index
+				if (set_liganddata_typeid(myligand, mygrid, atom_counter, tempstr) != 0) // the function sets the type index
 					return 1;
 				if(tempstr[0]=='G'){ // G-type are ignored for inter calc unless there is a map specified (checked above)
-					if(myligand->atom_idxyzq[atom_counter][0]==myligand->atom_map_to_fgrids[atom_counter])
+					if(myligand->atom_idxyzq[atom_counter][0]==myligand->base_type_idx[(int)myligand->atom_idxyzq[atom_counter][0]])
 						myligand->ignore_inter[atom_counter] = true;
 				}
 				atom_counter++;
@@ -1527,7 +1542,7 @@ bool is_H_bond(
 void print_ref_lig_energies_f(
                                     Liganddata myligand,
                               const float      smooth,
-                                    Gridinfo   mygrid,
+                                    Gridinfo*  mygrid,
                               const float      scaled_AD4_coeff_elec,
                               const float      elec_min_distance,
                               const float      AD4_coeff_desolv,
@@ -1547,13 +1562,13 @@ void print_ref_lig_energies_f(
 	       calc_intraE_f(&myligand, 8, smooth, 0, elec_min_distance, &tables, 0, tmp));
 
 	for (i=0; i<3; i++)
-		temp_vec [i] = -1*mygrid.origo_real_xyz [i];
+		temp_vec [i] = -1*mygrid->origo_real_xyz [i];
 
 	move_ligand(&myligand, temp_vec);
-	scale_ligand(&myligand, (double) 1.0/mygrid.spacing);
+	scale_ligand(&myligand, (double) 1.0/mygrid->spacing);
 
 	printf("Intermolecular energy of reference ligand: %lf\n",
-	       calc_interE_f(&mygrid, &myligand, 0, 0, tmp));
+	       calc_interE_f(mygrid, &myligand, 0, 0, tmp));
 }
 
 //////////////////////////////////
@@ -1861,7 +1876,7 @@ float calc_interE_f(
 			}
 			continue;
 		}
-		mul_tmp = myligand->base_type_idx[(int)myligand->atom_idxyzq [atom_cnt][0]]*g3_4;
+		mul_tmp = myligand->atom_map_to_fgrids[atom_cnt] * g3_4;
 		x = myligand->atom_idxyzq [atom_cnt][1];
 		y = myligand->atom_idxyzq [atom_cnt][2];
 		z = myligand->atom_idxyzq [atom_cnt][3];
@@ -1990,7 +2005,7 @@ float calc_interE_f(
 			printf("interpolated value = %f\n\n", v);
 
 		// energy contribution of the electrostatic grid
-		mul_tmp = mygrid->num_of_atypes*g3_4; // relative address of electrostatics map
+		mul_tmp = mygrid->num_of_map_atypes*g3_4; // relative address of electrostatics map
 		cube[0] = *(grid_value_000+mul_tmp);
 		cube[1] = *(grid_value_000+mul_tmp+1);
 		cube[2] = *(grid_value_000+mul_tmp+2);

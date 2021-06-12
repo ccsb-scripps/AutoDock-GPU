@@ -60,7 +60,6 @@ typedef struct _Gridinfo
 	double      size_xyz_angstr    [3];
 	char        ligand_grid_types  [MAX_NUM_OF_ATYPES+2][4]; // The additional two are the electrostatic and the desolvation types
 	bool        fld_relative       = true; // By default (and until further notice) map file names are relative to the fld file
-	int         num_of_atypes;
 	int         num_of_map_atypes;
 	double      origo_real_xyz     [3];
 	std::vector<std::string> grid_mapping; // stores the atom types and associated map filenames from the fld file

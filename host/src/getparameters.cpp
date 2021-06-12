@@ -357,10 +357,17 @@ int parse_dpf(
 								}
 								if(filelist.fld_files.size()>0){
 									// only add to fld_files if different from previous one
-									if(strcmp(mypars->fldfile,filelist.fld_files[filelist.fld_files.size()-1].name.c_str())!=0)
+									if(strcmp(mypars->fldfile,filelist.fld_files.back().name.c_str())!=0){
 										filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
-								} else filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+										// Also add the grid
+										filelist.mygrids.push_back(*mygrid);
+									}
+								} else{
+									filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+									filelist.mygrids.push_back(*mygrid);
+								}
 								mypars->list_nr++;
+								mypars->filelist_grid_idx=filelist.fld_files.back().grid_idx;
 								// If more than one unique protein, cant do map preloading yet
 								if (filelist.fld_files.size()>1){
 									filelist.preload_maps=false;
@@ -392,8 +399,6 @@ int parse_dpf(
 								}
 								// Add the parameter block now that resname is set
 								filelist.mypars.push_back(*mypars);
-								// Also add the grid
-								filelist.mygrids.push_back(*mygrid);
 							}
 						} else{
 							if(token_id!=DPF_RUNS) run_cnt++;
@@ -706,9 +711,15 @@ int initial_commandpars(
 
 			if(prev_fld_file){ // unfortunately, some strcmp implementation segfault with NULL as input
 				// only add to fld_files if different from previous one
-				if(strcmp(prev_fld_file,mypars->fldfile) != 0)
+				if(strcmp(prev_fld_file,mypars->fldfile) != 0){
 					filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
-			} else filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+					filelist.mygrids.push_back(*mygrid);
+				}
+			} else{
+				filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+				filelist.mygrids.push_back(*mygrid);
+			}
+			mypars->filelist_grid_idx=filelist.fld_files.back().grid_idx;
 
 			// If more than one unique protein, cant do map preloading yet
 			if (filelist.fld_files.size()>1)
@@ -717,7 +728,6 @@ int initial_commandpars(
 			// Add the ligand filename in the xml to the filelist
 			filelist.ligand_files.push_back(mypars->ligandfile);
 			filelist.mypars.push_back(*mypars);
-			filelist.mygrids.push_back(*mygrid);
 		}
 		if(mypars->xml_files>100) printf("\n\n");
 		filelist.nfiles = mypars->xml_files;
@@ -793,12 +803,15 @@ int get_filelist(
 			return 1;
 		}
 		filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+		mypars->filelist_grid_idx=filelist.fld_files.back().grid_idx;
 		// Filling mygrid according to the specified fld file
 		if (get_gridinfo(mypars->fldfile, mygrid) != 0)
 		{
 			printf("Error: get_gridinfo failed with fld file specified in file list.\n");
 			return 1;
 		}
+		// Add the grid info
+		filelist.mygrids.push_back(*mygrid);
 		for(unsigned int i=0; i<ligands.size(); i++){
 			// Need new mypars->fldfile char* block to preserve previous one
 			if(filelist.mypars.size()>0){
@@ -821,8 +834,6 @@ int get_filelist(
 			mypars->resname=strdup(filelist.resnames[i].c_str());
 			// Add the parameter block
 			filelist.mypars.push_back(*mypars);
-			// Add the grid info
-			filelist.mygrids.push_back(*mygrid);
 		}
 		filelist.nfiles = filelist.ligand_files.size();
 		if(filelist.nfiles>0) filelist.used = true;
@@ -857,14 +868,19 @@ int get_filelist(
 			trim(line); // Remove leading and trailing whitespace
 			len = line.size();
 			if (len>=4 && line.compare(len-4,4,".fld") == 0){
+				bool new_grid=true;
 				if (prev_line_was_fld){ // Overwrite the previous fld file if two in a row
+					filelist.mygrids.pop_back(); // previous map is invalid now and will be overwritten by new one
 					filelist.fld_files.back() = {line,filelist.mygrids.size()};
 					printf("Warning: Fld file specified in line %d of the file list is superceded by line %d.\n\n",prev_fld_line,line_count);
 				} else {
 					// Add the fld file if different from previous
 					if(filelist.fld_files.size()>0){
-						if(line.compare(filelist.fld_files.back().name)!=0)
+						new_grid=false;
+						if(line.compare(filelist.fld_files.back().name)!=0){
 							filelist.fld_files.push_back({line,filelist.mygrids.size()});
+							new_grid=true;
+						}
 					} else filelist.fld_files.push_back({line,filelist.mygrids.size()});
 					prev_line_was_fld=true;
 
@@ -873,6 +889,7 @@ int get_filelist(
 						filelist.preload_maps=false;
 					}
 				}
+				mypars->filelist_grid_idx = filelist.fld_files.back().grid_idx;
 				prev_fld_line=line_count;
 				// Keep mypars->fldfile current (need new char* block to preserve previous one)
 				mypars->fldfile = strdup(filelist.fld_files.back().name.c_str());
@@ -882,6 +899,8 @@ int get_filelist(
 					printf("Error: get_gridinfo failed with fld file specified in file list.\n");
 					return 1;
 				}
+				// Add the grid info
+				if(new_grid) filelist.mygrids.push_back(*mygrid);
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
 				// Add the .pdbqt
 				filelist.ligand_files.push_back(line);
@@ -903,7 +922,6 @@ int get_filelist(
 				if (filelist.fld_files.size()==0){
 					if(mygrid->fld_name.length()>0){ // already read a map file in with dpf import
 						printf("Using map file from dpf import.\n\n");
-						filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
 					} else{
 						printf("Error: No map file on record yet. Please specify a .fld file before the first ligand (%s).\n",line.c_str());
 						return 1;
@@ -911,8 +929,6 @@ int get_filelist(
 				}
 				// Add the parameter block
 				filelist.mypars.push_back(*mypars);
-				// Add the grid info
-				filelist.mygrids.push_back(*mygrid);
 				// Keep track of fld lines actually used
 				last_fld_idx = filelist.fld_files.size();
 				prev_line_was_fld=false;

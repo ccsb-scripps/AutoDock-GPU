@@ -38,8 +38,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 int preallocated_gridsize(FileList& filelist);
 
 int setup(
-          Gridinfo&           mygrid,
-          Dockpars&           mypars,
+          Gridinfo*           mygrid,
+          Dockpars*           mypars,
           Liganddata&         myligand_init,
           Liganddata&         myxrayligand,
           FileList&           filelist,

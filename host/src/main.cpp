@@ -251,7 +251,7 @@ int main(int argc, char* argv[])
 #endif
 		Dockpars   mypars = initial_pars;
 		Liganddata myligand_init;
-		Gridinfo   mygrid = initial_grid;
+		Gridinfo*  mygrid = &initial_grid;
 		Liganddata myxrayligand;
 		SimulationState sim_state;
 		int dev_nr = 0;
@@ -267,7 +267,7 @@ int main(int argc, char* argv[])
 			// Setup the next file in the queue
 			if(filelist.used){
 				mypars = filelist.mypars[i_job];
-				mygrid = filelist.mygrids[i_job];
+				mygrid = &filelist.mygrids[mypars.filelist_grid_idx];
 			}
 			if(mypars.contact_analysis){
 				if(filelist.preload_maps){ // use preloaded data for receptor
@@ -308,7 +308,7 @@ int main(int argc, char* argv[])
 			}
 			start_timer(setup_timer);
 			// Load files, read inputs, prepare arrays for docking stage
-			if (setup(mygrid, mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv) != 0) {
+			if (setup(mygrid, &mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv) != 0) {
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
 				// Keep in setup stage rather than moving to launch stage so a different job will be set up
 #ifdef USE_PIPELINE
@@ -340,7 +340,7 @@ int main(int argc, char* argv[])
 				// allocating CPU memory for initial populations
 				mypars.output_xml = false;
 				int nrot;
-				sim_state.cpu_populations = read_xml_genomes(mypars.load_xml, mygrid.spacing, nrot, true);
+				sim_state.cpu_populations = read_xml_genomes(mypars.load_xml, mygrid->spacing, nrot, true);
 				if(nrot!=myligand_init.num_of_rotbonds){
 					printf("\nError: XML genome contains %d rotatable bonds but current ligand has %d.\n",nrot,myligand_init.num_of_rotbonds);
 					exit(2);
@@ -350,9 +350,9 @@ int main(int argc, char* argv[])
 				get_movvec_to_origo(&(sim_state.myligand_reference), movvec_to_origo);
 				double flex_vec[3];
 				for (unsigned int i=0; i<3; i++)
-					flex_vec [i] = -mygrid.origo_real_xyz [i];
+					flex_vec [i] = -mygrid->origo_real_xyz [i];
 				move_ligand(&(sim_state.myligand_reference), movvec_to_origo, flex_vec);
-				scale_ligand(&(sim_state.myligand_reference), 1.0/mygrid.spacing);
+				scale_ligand(&(sim_state.myligand_reference), 1.0/mygrid->spacing);
 				get_moving_and_unit_vectors(&(sim_state.myligand_reference));
 				mypars.pop_size = 1;
 				mypars.num_of_runs = sim_state.cpu_populations.size()/GENOTYPE_LENGTH_IN_GLOBMEM;
@@ -386,7 +386,7 @@ int main(int argc, char* argv[])
 				sim_state.idle_time = seconds_since(idle_timer);
 				start_timer(exec_timer);
 				// Dock
-				error_in_docking = docking_with_gpu(&(mygrid), &(mypars), &(myligand_init), &(myxrayligand), profiler.p[(get_profiles ? i_job : 0)], &argc, argv, sim_state, cData[dev_nr], tData[dev_nr], output);
+				error_in_docking = docking_with_gpu(mygrid, &(mypars), &(myligand_init), &(myxrayligand), profiler.p[(get_profiles ? i_job : 0)], &argc, argv, sim_state, cData[dev_nr], tData[dev_nr], output);
 				// End exec timer, start idling timer
 				sim_state.exec_time = seconds_since(exec_timer);
 				start_timer(idle_timer);
@@ -432,7 +432,7 @@ int main(int argc, char* argv[])
 			}
 #endif
 			start_timer(processing_timer);
-			process_result(&(mygrid), &(mypars), &(myligand_init), &(myxrayligand), &argc,argv, sim_state);
+			process_result(mygrid, &(mypars), &(myligand_init), &(myxrayligand), &argc,argv, sim_state);
 #ifdef USE_PIPELINE
 			#pragma omp atomic update
 #endif
@@ -465,7 +465,6 @@ int main(int argc, char* argv[])
 #ifdef USE_PIPELINE
 	if(n_files>1){
 		printf("Savings from multithreading: %.3f sec\n",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
-		//if (filelist.preload_maps) printf("\nSavings from receptor reuse: %.3f sec * avg_maps_used/n_maps",receptor_reuse_time*n_files);
 		if(!initial_pars.xml2dlg) // in xml2dlg mode, there's only "idle time" (aka overlapped processing)
 			printf("Idle time of execution thread: %.3f sec\n",seconds_since(time_start) - total_exec_time);
 		if (get_profiles && filelist.used && !initial_pars.xml2dlg) // output profile with filelist name or dpf file name (depending on what is available)
