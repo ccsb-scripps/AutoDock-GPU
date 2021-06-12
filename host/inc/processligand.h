@@ -67,6 +67,8 @@ typedef struct _Liganddata
 	char           base_atom_names       [MAX_NUM_OF_ATOMS][4];
 // atom_map_to_fgrids:    Maps each moving atom to a (pre-loaded) map id
 	int            atom_map_to_fgrids    [MAX_NUM_OF_ATOMS];
+// ligand grid types
+	char           ligand_grid_types     [MAX_NUM_OF_ATYPES+2][4]; // The additional two are the electrostatic and the desolvation types
 // atom_idxyzq:           Each row describes one atom of the ligand.
 //                        The columns (second index) contain the atom type code, x, y and z coordinate
 //                        (in Angstroms) and electrical charge  of the atom.

@@ -58,7 +58,6 @@ typedef struct _Gridinfo
 	int         size_xyz           [3];
 	double      spacing;
 	double      size_xyz_angstr    [3];
-	char        ligand_grid_types  [MAX_NUM_OF_ATYPES+2][4]; // The additional two are the electrostatic and the desolvation types
 	bool        fld_relative       = true; // By default (and until further notice) map file names are relative to the fld file
 	int         num_of_map_atypes;
 	double      origo_real_xyz     [3];
