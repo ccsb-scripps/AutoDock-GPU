@@ -709,9 +709,9 @@ int initial_commandpars(
 			}
 			mypars->pop_size=1;
 
-			if(prev_fld_file){ // unfortunately, some strcmp implementation segfault with NULL as input
+			if(filelist.fld_files.size()>0){
 				// only add to fld_files if different from previous one
-				if(strcmp(prev_fld_file,mypars->fldfile) != 0){
+				if(strcmp(mypars->fldfile,filelist.fld_files.back().name.c_str())!=0){
 					filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
 					filelist.mygrids.push_back(*mygrid);
 				}
