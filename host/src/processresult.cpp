@@ -470,7 +470,7 @@ void make_resfiles(
 				// sort by analysis type
 				for(unsigned int j=0; j<best_result->analysis.size(); j++)
 					for(unsigned int k=0; k<best_result->analysis.size()-j-1; k++)
-						if(best_result->analysis[k].type>best_result->analysis[k+1].type)
+						if(best_result->analysis[k].type>best_result->analysis[k+1].type) // percolate larger types numbers up
 							std::swap(best_result->analysis[k], best_result->analysis[k+1]);
 			}
 		}
@@ -788,7 +788,7 @@ void generate_output(
 	// sorting the indices instead of copying the results around will be faster
 	for(i=0; i<num_of_runs-1; i++)
 		for(j=0; j<num_of_runs-i-1; j++)
-			if(energies[energy_order[j]]>energies[energy_order[j+1]]) // swap indices
+			if(energies[energy_order[j]]>energies[energy_order[j+1]]) // swap indices to percolate larger energies up
 				std::swap(energy_order[j], energy_order[j+1]);
 	// PERFORM CLUSTERING
 	if(mypars->calc_clustering){
@@ -798,21 +798,23 @@ void generate_output(
 		myresults[energy_order[0]].rmsd_from_cluscent = 0;
 		num_of_clusters = 1;
 
-		for (i=1; i<num_of_runs; i++) // for each result
+		for (int w=1; w<num_of_runs; w++) // for each result
 		{
+			i=energy_order[w];
 			current_clust_center = 0;
 			result_clustered = 0;
 
-			for (j=0; j<i; j++) // results with lower id-s are clustered, look for cluster centers
+			for (int u=0; u<w; u++) // results with lower id-s are clustered, look for cluster centers
 			{
-				if (myresults[energy_order[j]].clus_id > current_clust_center) // it is the center of a new cluster
+				j=energy_order[u];
+				if (myresults[j].clus_id > current_clust_center) // it is the center of a new cluster
 				{
-					current_clust_center = myresults[energy_order[j]].clus_id;
-					temp_rmsd = calc_rmsd(myresults[energy_order[j]].atom_idxyzq, myresults[energy_order[i]].atom_idxyzq, ligand_ref->true_ligand_atoms, mypars->handle_symmetry); // comparing current result with cluster center
+					current_clust_center = myresults[j].clus_id;
+					temp_rmsd = calc_rmsd(myresults[j].atom_idxyzq, myresults[i].atom_idxyzq, ligand_ref->true_ligand_atoms, mypars->handle_symmetry); // comparing current result with cluster center
 					if (temp_rmsd <= cluster_tolerance) // in this case we put result i to cluster with center j
 					{
-						myresults[energy_order[i]].clus_id = current_clust_center;
-						myresults[energy_order[i]].rmsd_from_cluscent = temp_rmsd;
+						myresults[i].clus_id = current_clust_center;
+						myresults[i].rmsd_from_cluscent = temp_rmsd;
 						result_clustered = 1;
 						break;
 					}
@@ -822,8 +824,8 @@ void generate_output(
 			if (result_clustered != 1) // if no suitable cluster was found, this is the center of a new one
 			{
 				num_of_clusters++;
-				myresults[energy_order[i]].clus_id = num_of_clusters; // new cluster id
-				myresults[energy_order[i]].rmsd_from_cluscent = 0;
+				myresults[i].clus_id = num_of_clusters; // new cluster id
+				myresults[i].rmsd_from_cluscent = 0;
 			}
 		}
 

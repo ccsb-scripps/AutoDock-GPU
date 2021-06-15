@@ -364,6 +364,9 @@ int main(int argc, char* argv[])
 				sim_state.cpu_evals_of_runs.resize(size_evals_of_runs);
 				memset(sim_state.cpu_evals_of_runs.data(), 0, size_evals_of_runs);
 				total_setup_time+=seconds_since(setup_timer);
+				sim_state.idle_time = 0.0;
+				sim_state.exec_time = 0.0;
+
 			} else{
 				int error_in_docking;
 				// Lock to only let one thread access a given GPU at a time
