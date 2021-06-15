@@ -335,7 +335,7 @@ int unmemMap(
 	                              NULL
 	                             );
 	if (err != CL_SUCCESS){
-		printf("Error: clEnqueueUnmapMemObjetc() %d\n", err);
+		printf("Error: clEnqueueUnmapMemObject() %d\n", err);
 		fflush(stdout);
 		return EXIT_FAILURE;
 	}

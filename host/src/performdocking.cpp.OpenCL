@@ -482,12 +482,6 @@ parameters argc and argv:
 	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotbonds_atoms_const,                 false, KerConst_grads->rotbonds_atoms,                 sizeof(KerConst_grads->rotbonds_atoms));
 	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_num_rotating_atoms_per_rotbond_const, false, KerConst_grads->num_rotating_atoms_per_rotbond, sizeof(KerConst_grads->num_rotating_atoms_per_rotbond));
 
-	delete KerConst_interintra;
-	delete KerConst_intracontrib;
-	delete KerConst_intra;
-	delete KerConst_rotlist;
-	delete KerConst_conform;
-	delete KerConst_grads;
 
 	// ----------------------------------------------------------------------
 
@@ -503,27 +497,27 @@ parameters argc and argv:
 	cl_mem mem_dockpars_prng_states;
 
 	if(cData.preallocated_gridsize==0)
-		mallocBufferObject(tData.context,CL_MEM_READ_ONLY,mygrid->grids.size()*sizeof(float), &tData.pMem_fgrids);
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_populations, &mem_dockpars_conformations_current);
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_energies,    &mem_dockpars_energies_current);
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_populations, &mem_dockpars_conformations_next);
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_energies,    &mem_dockpars_energies_next);
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,mypars->pop_size*mypars->num_of_runs*sizeof(int), &mem_dockpars_evals_of_new_entities);
+		mallocBufferObject(tData.context, CL_MEM_READ_ONLY, mygrid->grids.size()*sizeof(float), &tData.pMem_fgrids);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, size_populations, &mem_dockpars_conformations_current);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, size_energies,    &mem_dockpars_energies_current);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, size_populations, &mem_dockpars_conformations_next);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, size_energies,    &mem_dockpars_energies_next);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, mypars->pop_size*mypars->num_of_runs*sizeof(int), &mem_dockpars_evals_of_new_entities);
 
 	// -------- Replacing with memory maps! ------------
 #if defined (MAPPED_COPY)
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR ,size_evals_of_runs, &mem_gpu_evals_of_runs);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR , size_evals_of_runs, &mem_gpu_evals_of_runs);
 #else
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_evals_of_runs, &mem_gpu_evals_of_runs);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, size_evals_of_runs, &mem_gpu_evals_of_runs);
 #endif
 	// -------- Replacing with memory maps! ------------
 
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_prng_seeds, &mem_dockpars_prng_states);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, size_prng_seeds, &mem_dockpars_prng_states);
 
-	memcopyBufferObjectToDevice(tData.command_queue,tData.pMem_fgrids,                  false, mygrid->grids.data(),               mygrid->grids.size()*sizeof(float));
-	memcopyBufferObjectToDevice(tData.command_queue,mem_dockpars_conformations_current, false, cpu_init_populations,               size_populations);
-	memcopyBufferObjectToDevice(tData.command_queue,mem_gpu_evals_of_runs,              false, sim_state.cpu_evals_of_runs.data(), size_evals_of_runs);
-	memcopyBufferObjectToDevice(tData.command_queue,mem_dockpars_prng_states,           false, cpu_prng_seeds,                     size_prng_seeds);
+	memcopyBufferObjectToDevice(tData.command_queue, tData.pMem_fgrids,                  false, mygrid->grids.data(),               mygrid->grids.size()*sizeof(float));
+	memcopyBufferObjectToDevice(tData.command_queue, mem_dockpars_conformations_current, false, cpu_init_populations,               size_populations);
+	memcopyBufferObjectToDevice(tData.command_queue, mem_gpu_evals_of_runs,              false, sim_state.cpu_evals_of_runs.data(), size_evals_of_runs);
+	memcopyBufferObjectToDevice(tData.command_queue, mem_dockpars_prng_states,           false, cpu_prng_seeds,                     size_prng_seeds);
 
 	// preparing parameter struct
 	dockpars.num_of_atoms      = ((int)  myligand_reference.num_of_atoms);
@@ -1238,6 +1232,11 @@ parameters argc and argv:
 	sim_state.sec_per_run = ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs;
 	sim_state.total_evals = total_evals;
 
+#if defined (MAPPED_COPY)
+	unmemMap(tData.command_queue,mem_gpu_evals_of_runs,map_cpu_evals_of_runs);
+#endif
+	clFinish(tData.command_queue);
+
 	clReleaseMemObject(mem_dockpars_conformations_current);
 	clReleaseMemObject(mem_dockpars_energies_current);
 	clReleaseMemObject(mem_dockpars_conformations_next);
@@ -1245,6 +1244,13 @@ parameters argc and argv:
 	clReleaseMemObject(mem_dockpars_evals_of_new_entities);
 	clReleaseMemObject(mem_dockpars_prng_states);
 	clReleaseMemObject(mem_gpu_evals_of_runs);
+
+	delete KerConst_interintra;
+	delete KerConst_intracontrib;
+	delete KerConst_intra;
+	delete KerConst_rotlist;
+	delete KerConst_conform;
+	delete KerConst_grads;
 
 	free(cpu_prng_seeds);
 	if(output!=NULL) free(outbuf);

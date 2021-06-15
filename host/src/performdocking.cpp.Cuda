@@ -418,13 +418,6 @@ parameters argc and argv:
 	cudaMemcpy(cData.pMem_num_rotating_atoms_per_rotbond_const, KerConst_grads->num_rotating_atoms_per_rotbond, sizeof(KerConst_grads->num_rotating_atoms_per_rotbond), cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pMem_num_rotating_atoms_per_rotbond_const failed to upload to GPU memory.\n");
 
-	delete KerConst_interintra;
-	delete KerConst_intracontrib;
-	delete KerConst_intra;
-	delete KerConst_rotlist;
-	delete KerConst_conform;
-	delete KerConst_grads;
-
 	// allocating GPU memory for grids, populations, energies,
 	// evaluation counters and random number generator states
 	if(cData.preallocated_gridsize==0){
@@ -940,6 +933,13 @@ parameters argc and argv:
 	sim_state.total_evals = total_evals;
 
 	free(cpu_prng_seeds);
+
+	delete KerConst_interintra;
+	delete KerConst_intracontrib;
+	delete KerConst_intra;
+	delete KerConst_rotlist;
+	delete KerConst_conform;
+	delete KerConst_grads;
 
 	auto const t4 = std::chrono::steady_clock::now();
 	para_printf("\nShutdown time %fs\n", elapsed_seconds(t3, t4));
