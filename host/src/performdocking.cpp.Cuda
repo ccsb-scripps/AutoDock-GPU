@@ -163,37 +163,17 @@ void setup_gpu_for_docking(
 #endif
 	auto const t1 = std::chrono::steady_clock::now();
 	printf("\nCUDA Setup time %fs\n", elapsed_seconds(t0 ,t1));
-	size_t sz_interintra_const      = MAX_NUM_OF_ATOMS*sizeof(float) +
-	                                  MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
-	                                  MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
-	                                  MAX_NUM_OF_ATOMS*sizeof(char);
 
-	size_t sz_intracontrib_const    = 2*MAX_INTRAE_CONTRIBUTORS*sizeof(uint32_t);
-
-	size_t sz_intra_const           = MAX_NUM_OF_ATYPES*sizeof(unsigned int) +
-	                                  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(unsigned short int) +
-	                                  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                                  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                                  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                                  MAX_NUM_OF_ATYPES*sizeof(float) +
-	                                  MAX_NUM_OF_ATYPES*sizeof(float);
-
-	size_t sz_rotlist_const         = MAX_NUM_OF_ROTATIONS*sizeof(int);
-
-	size_t sz_conform_const         = 3*MAX_NUM_OF_ATOMS*sizeof(float) +
-	                                  3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                                  3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                                  4*MAX_NUM_OF_RUNS*sizeof(float);
 	// Allocate kernel constant GPU memory
-	status = cudaMalloc((void**)&cData.pKerconst_interintra, sz_interintra_const);
+	status = cudaMalloc((void**)&cData.pKerconst_interintra, sizeof(kernelconstant_interintra));
 	RTERROR(status, "cData.pKerconst_interintra: failed to allocate GPU memory.\n");
-	status = cudaMalloc((void**)&cData.pKerconst_intracontrib, sz_intracontrib_const);
+	status = cudaMalloc((void**)&cData.pKerconst_intracontrib, sizeof(kernelconstant_intracontrib));
 	RTERROR(status, "cData.pKerconst_intracontrib: failed to allocate GPU memory.\n");
-	status = cudaMalloc((void**)&cData.pKerconst_intra, sz_intra_const);
+	status = cudaMalloc((void**)&cData.pKerconst_intra, sizeof(kernelconstant_intra));
 	RTERROR(status, "cData.pKerconst_intra: failed to allocate GPU memory.\n");
-	status = cudaMalloc((void**)&cData.pKerconst_rotlist, sz_rotlist_const);
+	status = cudaMalloc((void**)&cData.pKerconst_rotlist, sizeof(kernelconstant_rotlist));
 	RTERROR(status, "cData.pKerconst_rotlist: failed to allocate GPU memory.\n");
-	status = cudaMalloc((void**)&cData.pKerconst_conform, sz_conform_const);
+	status = cudaMalloc((void**)&cData.pKerconst_conform, sizeof(kernelconstant_conform));
 	RTERROR(status, "cData.pKerconst_conform: failed to allocate GPU memory.\n");
 
 	// Allocate mem data
@@ -420,43 +400,22 @@ parameters argc and argv:
 		return 1;
 	}
 
-	size_t sz_interintra_const      = MAX_NUM_OF_ATOMS*sizeof(float) +
-	                                  MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
-	                                  MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
-	                                  MAX_NUM_OF_ATOMS*sizeof(char);
-
-	size_t sz_intracontrib_const    = 2*MAX_INTRAE_CONTRIBUTORS*sizeof(uint32_t);
-
-	size_t sz_intra_const           = MAX_NUM_OF_ATYPES*sizeof(unsigned int) +
-	                                  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(unsigned short int) +
-	                                  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                                  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                                  MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                                  MAX_NUM_OF_ATYPES*sizeof(float) +
-	                                  MAX_NUM_OF_ATYPES*sizeof(float);
-
-	size_t sz_rotlist_const         = MAX_NUM_OF_ROTATIONS*sizeof(int);
-
-	size_t sz_conform_const         = 3*MAX_NUM_OF_ATOMS*sizeof(float) +
-	                                  3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                                  3*MAX_NUM_OF_ROTBONDS*sizeof(float);
-
 	// Upload kernel constant data - JL FIXME - Can these be moved once?
-	status = cudaMemcpy(cData.pKerconst_interintra, KerConst_interintra, sz_interintra_const, cudaMemcpyHostToDevice);
+	status = cudaMemcpy(cData.pKerconst_interintra, KerConst_interintra, sizeof(kernelconstant_interintra), cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pKerconst_interintra: failed to upload to GPU memory.\n");
-	status = cudaMemcpy(cData.pKerconst_intracontrib, KerConst_intracontrib, sz_intracontrib_const, cudaMemcpyHostToDevice);
+	status = cudaMemcpy(cData.pKerconst_intracontrib, KerConst_intracontrib, sizeof(kernelconstant_intracontrib), cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pKerconst_intracontrib: failed to upload to GPU memory.\n");
-	status = cudaMemcpy(cData.pKerconst_intra, KerConst_intra, sz_intra_const, cudaMemcpyHostToDevice);
+	status = cudaMemcpy(cData.pKerconst_intra, KerConst_intra, sizeof(kernelconstant_intra), cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pKerconst_intra: failed to upload to GPU memory.\n");
-	status = cudaMemcpy(cData.pKerconst_rotlist, KerConst_rotlist, sz_rotlist_const, cudaMemcpyHostToDevice);
+	status = cudaMemcpy(cData.pKerconst_rotlist, KerConst_rotlist, sizeof(kernelconstant_rotlist), cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pKerconst_rotlist: failed to upload to GPU memory.\n");
-	status = cudaMemcpy(cData.pKerconst_conform, KerConst_conform, sz_conform_const, cudaMemcpyHostToDevice);
+	status = cudaMemcpy(cData.pKerconst_conform, KerConst_conform, sizeof(kernelconstant_conform), cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pKerconst_conform: failed to upload to GPU memory.\n");
-	cudaMemcpy(cData.pMem_rotbonds_const, KerConst_grads->rotbonds, 2*MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(cData.pMem_rotbonds_const, KerConst_grads->rotbonds, sizeof(KerConst_grads->rotbonds), cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pMem_rotbonds_const: failed to upload to GPU memory.\n");
-	cudaMemcpy(cData.pMem_rotbonds_atoms_const, KerConst_grads->rotbonds_atoms, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(cData.pMem_rotbonds_atoms_const, KerConst_grads->rotbonds_atoms, sizeof(KerConst_grads->rotbonds_atoms), cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pMem_rotbonds_atoms_const: failed to upload to GPU memory.\n");
-	cudaMemcpy(cData.pMem_num_rotating_atoms_per_rotbond_const, KerConst_grads->num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(cData.pMem_num_rotating_atoms_per_rotbond_const, KerConst_grads->num_rotating_atoms_per_rotbond, sizeof(KerConst_grads->num_rotating_atoms_per_rotbond), cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pMem_num_rotating_atoms_per_rotbond_const failed to upload to GPU memory.\n");
 
 	delete KerConst_interintra;

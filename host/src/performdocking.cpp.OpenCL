@@ -276,40 +276,18 @@ void setup_gpu_for_docking(
 // End of OpenCL Host Setup
 // =======================================================================
 
-	size_t sz_interintra_const   = MAX_NUM_OF_ATOMS*sizeof(float) + 
-	                               MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
-	                               MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
-	                               MAX_NUM_OF_ATOMS*sizeof(char);
-
-	size_t sz_intracontrib_const = 2*MAX_INTRAE_CONTRIBUTORS*sizeof(uint32_t);
-
-	size_t sz_intra_const        = MAX_NUM_OF_ATYPES*sizeof(unsigned int) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(unsigned short) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*sizeof(float);
-
-	size_t sz_rotlist_const      = MAX_NUM_OF_ROTATIONS*sizeof(int);
-
-	size_t sz_conform_const      = 3*MAX_NUM_OF_ATOMS*sizeof(float) +
-	                               3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                               3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                               4*MAX_NUM_OF_RUNS*sizeof(float);
-
 	// These constants are allocated in global memory since
 	// there is a limited number of constants that can be passed
 	// as arguments to kernel
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,sz_interintra_const,        &cData.mem_interintra_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,sz_intracontrib_const,      &cData.mem_intracontrib_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,sz_intra_const,             &cData.mem_intra_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,sz_rotlist_const,           &cData.mem_rotlist_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,sz_conform_const,           &cData.mem_conform_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_interintra),        &cData.mem_interintra_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_intracontrib),      &cData.mem_intracontrib_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_intra),             &cData.mem_intra_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_rotlist),           &cData.mem_rotlist_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_conform),           &cData.mem_conform_const);
 
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,2*MAX_NUM_OF_ROTBONDS*sizeof(int),                &cData.mem_rotbonds_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int), &cData.mem_rotbonds_atoms_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,MAX_NUM_OF_ROTBONDS*sizeof(int),                  &cData.mem_num_rotating_atoms_per_rotbond_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, 2*MAX_NUM_OF_ROTBONDS*sizeof(int),                &cData.mem_rotbonds_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int), &cData.mem_rotbonds_atoms_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, MAX_NUM_OF_ROTBONDS*sizeof(int),                  &cData.mem_num_rotating_atoms_per_rotbond_const);
 
 	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,1000*sizeof(float),&cData.mem_angle_const);
 	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,1000*sizeof(float),&cData.mem_dependence_on_theta_const);
@@ -494,36 +472,15 @@ parameters argc and argv:
 		return 1;
 	}
 
-	size_t sz_interintra_const   = MAX_NUM_OF_ATOMS*sizeof(float) +
-	                               MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
-	                               MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
-	                               MAX_NUM_OF_ATOMS*sizeof(char);
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_interintra_const,   false, KerConst_interintra,   sizeof(kernelconstant_interintra));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intracontrib_const, false, KerConst_intracontrib, sizeof(kernelconstant_intracontrib));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intra_const,        false, KerConst_intra,        sizeof(kernelconstant_intra));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotlist_const,      false, KerConst_rotlist,      sizeof(kernelconstant_rotlist));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_conform_const,      false, KerConst_conform,      sizeof(kernelconstant_conform));
 
-	size_t sz_intracontrib_const = 2*MAX_INTRAE_CONTRIBUTORS*sizeof(uint32_t);
-
-	size_t sz_intra_const        = MAX_NUM_OF_ATYPES*sizeof(unsigned int) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(unsigned short) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*sizeof(float);
-
-	size_t sz_rotlist_const      = MAX_NUM_OF_ROTATIONS*sizeof(int);
-
-	size_t sz_conform_const      = 3*MAX_NUM_OF_ATOMS*sizeof(float) +
-	                               3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                               3*MAX_NUM_OF_ROTBONDS*sizeof(float);
-
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_interintra_const,   false, KerConst_interintra,   sz_interintra_const);
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intracontrib_const, false, KerConst_intracontrib, sz_intracontrib_const);
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intra_const,        false, KerConst_intra,        sz_intra_const);
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotlist_const,      false, KerConst_rotlist,      sz_rotlist_const);
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_conform_const,      false, KerConst_conform,      sz_conform_const);
-
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotbonds_const,                       false, KerConst_grads->rotbonds,                       2*MAX_NUM_OF_ROTBONDS*sizeof(int));
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotbonds_atoms_const,                 false, KerConst_grads->rotbonds_atoms,                 MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_num_rotating_atoms_per_rotbond_const, false, KerConst_grads->num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotbonds_const,                       false, KerConst_grads->rotbonds,                       sizeof(KerConst_grads->rotbonds));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotbonds_atoms_const,                 false, KerConst_grads->rotbonds_atoms,                 sizeof(KerConst_grads->rotbonds_atoms));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_num_rotating_atoms_per_rotbond_const, false, KerConst_grads->num_rotating_atoms_per_rotbond, sizeof(KerConst_grads->num_rotating_atoms_per_rotbond));
 
 	delete KerConst_interintra;
 	delete KerConst_intracontrib;
