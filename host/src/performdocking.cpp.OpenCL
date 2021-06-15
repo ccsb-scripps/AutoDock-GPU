@@ -477,20 +477,20 @@ parameters argc and argv:
 	memset(sim_state.cpu_evals_of_runs.data(), 0, size_evals_of_runs);
 
 	// preparing the constant data fields for the GPU
-	kernelconstant_interintra	KerConst_interintra;
-	kernelconstant_intracontrib	KerConst_intracontrib;
-	kernelconstant_intra		KerConst_intra;
-	kernelconstant_rotlist		KerConst_rotlist;
-	kernelconstant_conform		KerConst_conform;
-	kernelconstant_grads		KerConst_grads;
+	kernelconstant_interintra*	KerConst_interintra = new kernelconstant_interintra;
+	kernelconstant_intracontrib*	KerConst_intracontrib = new kernelconstant_intracontrib;
+	kernelconstant_intra*		KerConst_intra = new kernelconstant_intra;
+	kernelconstant_rotlist*		KerConst_rotlist = new kernelconstant_rotlist;
+	kernelconstant_conform*		KerConst_conform = new kernelconstant_conform;
+	kernelconstant_grads*		KerConst_grads = new kernelconstant_grads;
 
 	if (prepare_const_fields_for_gpu(&myligand_reference, mypars,
-	                                 &KerConst_interintra,
-	                                 &KerConst_intracontrib,
-	                                 &KerConst_intra,
-	                                 &KerConst_rotlist,
-	                                 &KerConst_conform,
-	                                 &KerConst_grads) == 1) {
+	                                 KerConst_interintra,
+	                                 KerConst_intracontrib,
+	                                 KerConst_intra,
+	                                 KerConst_rotlist,
+	                                 KerConst_conform,
+	                                 KerConst_grads) == 1) {
 		return 1;
 	}
 
@@ -513,18 +513,24 @@ parameters argc and argv:
 
 	size_t sz_conform_const      = 3*MAX_NUM_OF_ATOMS*sizeof(float) +
 	                               3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                               3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                               4*MAX_NUM_OF_RUNS*sizeof(float);
+	                               3*MAX_NUM_OF_ROTBONDS*sizeof(float);
 
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_interintra_const,   false, &KerConst_interintra,   sz_interintra_const);
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intracontrib_const, false, &KerConst_intracontrib, sz_intracontrib_const);
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intra_const,        false, &KerConst_intra,        sz_intra_const);
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotlist_const,      false, &KerConst_rotlist,      sz_rotlist_const);
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_conform_const,      false, &KerConst_conform,      sz_conform_const);
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_interintra_const,   false, KerConst_interintra,   sz_interintra_const);
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intracontrib_const, false, KerConst_intracontrib, sz_intracontrib_const);
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intra_const,        false, KerConst_intra,        sz_intra_const);
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotlist_const,      false, KerConst_rotlist,      sz_rotlist_const);
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_conform_const,      false, KerConst_conform,      sz_conform_const);
 
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotbonds_const,                       false, &KerConst_grads.rotbonds,                       2*MAX_NUM_OF_ROTBONDS*sizeof(int));
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotbonds_atoms_const,                 false, &KerConst_grads.rotbonds_atoms,                 MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_num_rotating_atoms_per_rotbond_const, false, &KerConst_grads.num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotbonds_const,                       false, KerConst_grads->rotbonds,                       2*MAX_NUM_OF_ROTBONDS*sizeof(int));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotbonds_atoms_const,                 false, KerConst_grads->rotbonds_atoms,                 MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_num_rotating_atoms_per_rotbond_const, false, KerConst_grads->num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int));
+
+	delete KerConst_interintra;
+	delete KerConst_intracontrib;
+	delete KerConst_intra;
+	delete KerConst_rotlist;
+	delete KerConst_conform;
+	delete KerConst_grads;
 
 	// ----------------------------------------------------------------------
 
@@ -703,21 +709,6 @@ parameters argc and argv:
 	// Main while-loop iterarion counter
 	unsigned int ite_cnt = 0;
 #endif
-
-	/*
-	// Added for printing intracontributor_pairs (autodockdevpy)
-	for (unsigned int intrapair_cnt=0; 
-			  intrapair_cnt<dockpars.num_of_intraE_contributors;
-			  intrapair_cnt++) {
-		if (intrapair_cnt == 0) {
-			para_printf("%-10s %-10s %-10s\n", "#pair", "#atom1", "#atom2");
-		}
-
-		para_printf ("%-10u %-10u %-10u\n", intrapair_cnt,
-					    KerConst.intraE_contributors_const[3*intrapair_cnt],
-					    KerConst.intraE_contributors_const[3*intrapair_cnt+1]);
-	}
-	*/
 
 	// Kernel1
 	setKernelArg(tData.kernel1,0, sizeof(dockpars.num_of_atoms),                  &dockpars.num_of_atoms);

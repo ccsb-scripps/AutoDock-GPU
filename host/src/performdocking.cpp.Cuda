@@ -402,22 +402,21 @@ parameters argc and argv:
 	sim_state.cpu_evals_of_runs.resize(size_evals_of_runs);
 	memset(sim_state.cpu_evals_of_runs.data(), 0, size_evals_of_runs);
 
-	//preparing the constant data fields for the GPU
-	kernelconstant_interintra   KerConst_interintra;
-	kernelconstant_intracontrib KerConst_intracontrib;
-	kernelconstant_intra        KerConst_intra;
-	kernelconstant_rotlist      KerConst_rotlist;
-	kernelconstant_conform      KerConst_conform;
-	kernelconstant_grads        KerConst_grads;
+	// preparing the constant data fields for the GPU
+	kernelconstant_interintra*	KerConst_interintra = new kernelconstant_interintra;
+	kernelconstant_intracontrib*	KerConst_intracontrib = new kernelconstant_intracontrib;
+	kernelconstant_intra*		KerConst_intra = new kernelconstant_intra;
+	kernelconstant_rotlist*		KerConst_rotlist = new kernelconstant_rotlist;
+	kernelconstant_conform*		KerConst_conform = new kernelconstant_conform;
+	kernelconstant_grads*		KerConst_grads = new kernelconstant_grads;
 
 	if (prepare_const_fields_for_gpu(&myligand_reference, mypars,
-	                                 &KerConst_interintra,
-	                                 &KerConst_intracontrib,
-	                                 &KerConst_intra,
-	                                 &KerConst_rotlist,
-	                                 &KerConst_conform,
-	                                 &KerConst_grads) == 1)
-	{
+	                                 KerConst_interintra,
+	                                 KerConst_intracontrib,
+	                                 KerConst_intra,
+	                                 KerConst_rotlist,
+	                                 KerConst_conform,
+	                                 KerConst_grads) == 1) {
 		return 1;
 	}
 
@@ -440,26 +439,32 @@ parameters argc and argv:
 
 	size_t sz_conform_const         = 3*MAX_NUM_OF_ATOMS*sizeof(float) +
 	                                  3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                                  3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                                  4*MAX_NUM_OF_RUNS*sizeof(float);
+	                                  3*MAX_NUM_OF_ROTBONDS*sizeof(float);
 
 	// Upload kernel constant data - JL FIXME - Can these be moved once?
-	status = cudaMemcpy(cData.pKerconst_interintra, &KerConst_interintra, sz_interintra_const, cudaMemcpyHostToDevice);
+	status = cudaMemcpy(cData.pKerconst_interintra, KerConst_interintra, sz_interintra_const, cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pKerconst_interintra: failed to upload to GPU memory.\n");
-	status = cudaMemcpy(cData.pKerconst_intracontrib, &KerConst_intracontrib, sz_intracontrib_const, cudaMemcpyHostToDevice);
+	status = cudaMemcpy(cData.pKerconst_intracontrib, KerConst_intracontrib, sz_intracontrib_const, cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pKerconst_intracontrib: failed to upload to GPU memory.\n");
-	status = cudaMemcpy(cData.pKerconst_intra, &KerConst_intra, sz_intra_const, cudaMemcpyHostToDevice);
+	status = cudaMemcpy(cData.pKerconst_intra, KerConst_intra, sz_intra_const, cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pKerconst_intra: failed to upload to GPU memory.\n");
-	status = cudaMemcpy(cData.pKerconst_rotlist, &KerConst_rotlist, sz_rotlist_const, cudaMemcpyHostToDevice);
+	status = cudaMemcpy(cData.pKerconst_rotlist, KerConst_rotlist, sz_rotlist_const, cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pKerconst_rotlist: failed to upload to GPU memory.\n");
-	status = cudaMemcpy(cData.pKerconst_conform, &KerConst_conform, sz_conform_const, cudaMemcpyHostToDevice);
+	status = cudaMemcpy(cData.pKerconst_conform, KerConst_conform, sz_conform_const, cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pKerconst_conform: failed to upload to GPU memory.\n");
-	cudaMemcpy(cData.pMem_rotbonds_const, KerConst_grads.rotbonds, 2*MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(cData.pMem_rotbonds_const, KerConst_grads->rotbonds, 2*MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pMem_rotbonds_const: failed to upload to GPU memory.\n");
-	cudaMemcpy(cData.pMem_rotbonds_atoms_const, KerConst_grads.rotbonds_atoms, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(cData.pMem_rotbonds_atoms_const, KerConst_grads->rotbonds_atoms, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pMem_rotbonds_atoms_const: failed to upload to GPU memory.\n");
-	cudaMemcpy(cData.pMem_num_rotating_atoms_per_rotbond_const, KerConst_grads.num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(cData.pMem_num_rotating_atoms_per_rotbond_const, KerConst_grads->num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int), cudaMemcpyHostToDevice);
 	RTERROR(status, "cData.pMem_num_rotating_atoms_per_rotbond_const failed to upload to GPU memory.\n");
+
+	delete KerConst_interintra;
+	delete KerConst_intracontrib;
+	delete KerConst_intra;
+	delete KerConst_rotlist;
+	delete KerConst_conform;
+	delete KerConst_grads;
 
 	// allocating GPU memory for grids, populations, energies,
 	// evaluation counters and random number generator states
