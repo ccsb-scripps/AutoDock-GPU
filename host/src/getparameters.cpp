@@ -580,6 +580,10 @@ int initial_commandpars(
 	bool output_multiple_warning = true;
 	std::vector<std::string> xml_files;
 	bool read_more_xml_files = false;
+#ifdef XML2DLG_ONLY
+	mypars->xml2dlg = true;
+	read_more_xml_files = true;
+#endif
 	int error;
 	for (int i=1; i<(*argc)-1+(read_more_xml_files); i++)
 	{
@@ -652,6 +656,9 @@ int initial_commandpars(
 				mypars->dlg2stdout = true;
 			i++;
 		}
+#ifdef XML2DLG_ONLY
+		read_more_xml_files = true;
+#endif
 	}
 	
 	bool specified_dpf = (mypars->dpffile!=NULL);
@@ -732,6 +739,11 @@ int initial_commandpars(
 		if(mypars->xml_files>100) printf("\n\n");
 		filelist.nfiles = mypars->xml_files;
 	} else{
+#ifdef XML2DLG_ONLY
+		printf("Error: No xml files specified.\n\n");
+		print_options(argv[0]);
+		return 1;
+#endif
 		filelist.nfiles = filelist.ligand_files.size();
 	}
 	if(filelist.nfiles>0){
@@ -1072,6 +1084,7 @@ void print_options(
 	printf("Command line options:\n\n");
 	printf("Arguments              | Description                                           | Default value\n");
 	printf("-----------------------+-------------------------------------------------------+------------------\n");
+#ifndef XML2DLG_ONLY
 	printf("\nINPUT\n");
 	printf("--lfile             -L | Ligand pdbqt file                                     | no default\n");
 	printf("--ffile             -M | Grid map files descriptor fld file                    | no default\n");
@@ -1081,6 +1094,7 @@ void print_options(
 	printf("--xraylfile         -R | reference ligand file for RMSD analysis               | ligand file\n");
 	printf("\nCONVERSION\n");
 	printf("--xml2dlg           -X | One (or many) AD-GPU xml file(s) to convert to dlg(s) | no default\n");
+#endif
 	printf("\nOUTPUT\n");
 	printf("--resnam            -N | Name for docking output log                           | ligand basename\n");
 	printf("--contact_analysis  -C | Perform distance-based analysis (description below)   | 0 (no)\n");
@@ -1094,6 +1108,7 @@ void print_options(
 	printf("--clustering           | Output clustering analysis in dlg and/or xml file     | 1 (yes)\n");
 	printf("--hsym                 | Handle symmetry in RMSD calc.                         | 1 (yes)\n");
 	printf("--rmstol               | RMSD clustering tolerance                             | 2 (Å)\n");
+#ifndef XML2DLG_ONLY
 	printf("\nSETUP\n");
 	printf("--devnum            -D | OpenCL/Cuda device number (counting starts at 1)      | 1\n");
 	printf("--loadxml           -c | Load initial population from xml results file         | no default\n");
@@ -1121,6 +1136,7 @@ void print_options(
 	printf("--cslim                | Solis-Wets cons. success/failure limit to adjust rho  | 4\n");
 	printf("--stopstd              | AutoStop energy standard deviation tolerance          | 0.15 (kcal/mol)\n");
 	printf("--initswgens           | Initial # generations of Solis-Wets instead of -lsmet | 0 (no)\n");
+#endif
 	printf("\nSCORING\n");
 	printf("--derivtype         -T | Derivative atom types (e.g. C1,C2,C3=C/S4=S/H5=HD)    | no default\n");
 	printf("--modpair           -P | Modify vdW pair params (e.g. C1:S4,1.60,1.200,13,7)   | no default\n");
@@ -1128,21 +1144,34 @@ void print_options(
 	printf("--smooth               | Smoothing parameter for vdW interactions              | 0.5 (Å)\n");
 	printf("--elecmindist          | Min. electrostatic potential distance (w/ dpf: 0.5 Å) | 0.01 (Å)\n");
 	printf("--modqp                | Use modified QASP from VirtualDrug or AD4 original    | 0 (no, use AD4)\n");
-
+#ifndef XML2DLG_ONLY
 	printf("\nAutoDock-GPU requires a ligand and a set of grid maps to perform a docking calculation. Optionally,\n");
 	printf("one or multiple flexible residues may be provided. These inputs could be specified directly (--lfile,\n");
 	printf("--ffile, and --flexres), as part of a file list text file (see README.md), or in an AD4-style dpf.\n");
-
+#endif
 	printf("\nExamples:\n");
+#ifndef XML2DLG_ONLY
 	printf("   * Dock ligand.pdbqt to receptor.maps.fld using 50 LGA runs:\n");
 	printf("        %s --lfile ligand.pdbqt --ffile receptor.maps.fld --nrun 50\n",program_name);
+#endif
+	printf("   * Convert all xml files to their respective dlg and perform contact analysis:\n");
+#ifndef XML2DLG_ONLY
+	printf("        %s --xml2dlg *.xml --contact_analysis 1\n",program_name);
+#else
+	printf("        %s --contact_analysis 1 *.xml\n",program_name);
+#endif
 	printf("   * Convert ligand.xml to dlg, perform contact analysis, and output dlg to stdout:\n");
+#ifndef XML2DLG_ONLY
 	printf("        %s --xml2dlg ligand.xml --contact_analysis 1 --dlg2stdout 1\n",program_name);
+#else
+	printf("        %s -C 1 -2 1 ligand.xml\n",program_name);
+#endif
+#ifndef XML2DLG_ONLY
 	printf("   * Dock ligands and map specified in file.lst with flexres flex.pdbqt:\n");
 	printf("        %s --filelist file.lst --flexres flex.pdbqt\n",program_name);
 	printf("   * Dock ligands, map, and (optional) flexres specified in docking.dpf on device #2:\n");
 	printf("        %s --import_dpf docking.dpf --devnum 2\n\n",program_name);
-	
+#endif
 	exit(0);
 }
 
@@ -1209,10 +1238,16 @@ int get_commandpars(
 	}
 
 	// overwriting values which were defined as a command line argument
+#ifndef XML2DLG_ONLY
 	for (i=1; i<(*argc)-1; i+=2)
+#else
+	for (i=1; i<(*argc); i++)
+#endif
 	{
 		arg_recognized = 0;
-
+#ifdef XML2DLG_ONLY
+		if(argv[i][0]!='-') arg_recognized=1;
+#endif
 		// Argument: number of energy evaluations. Must be a positive integer.
 		if (argcmp("nev", argv[i], 'e'))
 		{
@@ -1897,6 +1932,9 @@ int get_commandpars(
 			print_options(argv[0]);
 			return -1; // we won't get here - maybe we will in the future though ...
 		}
+#ifdef XML2DLG_ONLY
+		else i++;
+#endif
 	}
 
 	// validating some settings

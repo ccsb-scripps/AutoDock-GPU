@@ -33,13 +33,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "processgrid.h"
 #include "processligand.h"
+#include "processresult.h"
 #include "getparameters.h"
+
+#ifndef XML2DLG_ONLY
 #include "performdocking.h"
+#endif
+
 #include "filelist.hpp"
 #include "setup.hpp"
 #include "profile.hpp"
 #include "simulation_state.hpp"
+
+#ifndef XML2DLG_ONLY
 #include "GpuData.h"
+#endif
 
 #ifndef _WIN32
 // Time measurement
@@ -115,6 +123,13 @@ int main(int argc, char* argv[])
 			filelist.mypars[i].dlg2stdout = false;
 	}
 #endif
+#ifdef XML2DLG_ONLY
+	if(!initial_pars.xml2dlg){
+		printf("Error: Code has been compiled without GPU support and only supports xml2dlg mode.\n");
+		exit(-1);
+	}
+	int nr_devices=0;
+#else
 	int devnum=-1;
 	// Get device number to run on
 	for (int i=1; i<argc-1; i+=2)
@@ -173,6 +188,7 @@ int main(int argc, char* argv[])
 #ifndef USE_PIPELINE
 	if(nr_devices>1) printf("Info: Parallelization over multiple GPUs is only available if OVERLAP=ON is specified when AD-GPU is build.\n\n");
 #endif
+#endif
 	if(initial_pars.xml2dlg){
 		if(initial_pars.contact_analysis)
 			printf("Analyzing ");
@@ -198,6 +214,7 @@ int main(int argc, char* argv[])
 	printf("\n");
 	int max_preallocated_gridsize = preallocated_gridsize(filelist);
 
+#ifndef XML2DLG_ONLY
 	// Objects that are arguments of docking_with_gpu
 	GpuData cData[nr_devices];
 	GpuTempData tData[nr_devices];
@@ -217,7 +234,7 @@ int main(int argc, char* argv[])
 		omp_init_lock(&gpu_locks[i]);
 #endif
 	}
-	
+#endif
 	// Set up run profiles for timing
 	bool get_profiles = true; // hard-coded switch to use ALS's job profiler
 	Profiler profiler;
@@ -229,9 +246,10 @@ int main(int argc, char* argv[])
 	// Error flag for each ligand
 	std::vector<int> err(n_files,0);
 
+#ifndef XML2DLG_ONLY
 	if(!initial_pars.xml2dlg && (nr_devices==1))
 		setup_gpu_for_docking(cData[0],tData[0]);
-
+#endif
 	total_setup_time+=seconds_since(time_start);
 	
 	if(initial_pars.xml2dlg && !initial_pars.dlg2stdout){
@@ -282,7 +300,10 @@ int main(int argc, char* argv[])
 					if((50*(i_job+1)) % n_files < 50){
 						printf("*"); fflush(stdout);
 					}
-			} else{
+			}
+#ifndef XML2DLG_ONLY
+			else
+			{
 #ifdef USE_PIPELINE
 				printf ("(Thread %d is setting up Job #%d)\n",t_id,i_job+1); fflush(stdout);
 				#pragma omp critical
@@ -306,6 +327,7 @@ int main(int argc, char* argv[])
 					}
 				}
 			}
+#endif
 			start_timer(setup_timer);
 			// Load files, read inputs, prepare arrays for docking stage
 			if (setup(mygrid, &mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv) != 0) {
@@ -367,7 +389,10 @@ int main(int argc, char* argv[])
 				sim_state.idle_time = 0.0;
 				sim_state.exec_time = 0.0;
 
-			} else{
+			}
+#ifndef XML2DLG_ONLY
+			else
+			{
 				int error_in_docking;
 				// Lock to only let one thread access a given GPU at a time
 				std::string* output = NULL;
@@ -426,11 +451,13 @@ int main(int argc, char* argv[])
 				}
 #endif
 			}
-
+#endif
 			// Post-processing
 #ifdef USE_PIPELINE
 			if(!mypars.xml2dlg){
+#ifndef XML2DLG_ONLY
 				if(nr_devices>1) tData[dev_nr].device_busy = false;
+#endif
 				printf ("(Thread %d is processing Job #%d)\n",t_id,i_job+1); fflush(stdout);
 			}
 #endif
@@ -477,6 +504,7 @@ int main(int argc, char* argv[])
 	printf("Processing time: %.3f sec\n",total_processing_time);
 #endif
 #endif
+#ifndef XML2DLG_ONLY
 	for(int i=0; i<nr_devices; i++){
 #ifdef USE_PIPELINE
 		omp_destroy_lock(&gpu_locks[i]);
@@ -484,7 +512,7 @@ int main(int argc, char* argv[])
 		if(!initial_pars.xml2dlg)
 			finish_gpu_from_docking(cData[i],tData[i]);
 	}
-
+#endif
 	// Alert user to ligands that failed to complete
 	int n_errors=0;
 	for (int i=0; i<n_files; i++){

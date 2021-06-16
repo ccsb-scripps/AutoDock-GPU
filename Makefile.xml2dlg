@@ -1,0 +1,90 @@
+# AutoDock-GPU OpenCL Makefile
+
+# ------------------------------------------------------
+# Note that environment variables must be defined
+# before compiling
+# DEVICE?
+# if DEVICE=CPU: CPU_INCLUDE_PATH?, CPU_LIBRARY_PATH?
+# if DEVICE=GPU: GPU_INCLUDE_PATH?, GPU_LIBRARY_PATH?
+
+# ------------------------------------------------------
+# Choose OpenCL device
+# Valid values: CPU, GPU
+
+CPP = g++
+
+# ------------------------------------------------------
+# Project directories
+# opencl_lvs: wrapper for OpenCL APIs
+COMMON_DIR=./common
+HOST_INC_DIR=./host/inc
+HOST_SRC_DIR=./host/src
+KCMN_DIR=$(COMMON_DIR)
+BIN_DIR=./bin
+
+$(shell rm -f $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp)
+
+# Host sources
+SRC=$(wildcard $(HOST_SRC_DIR)/*.cpp)
+
+IFLAGS=-I$(COMMON_DIR) -I$(HOST_INC_DIR)
+LFLAGS=
+CFLAGS=-std=c++11 $(IFLAGS) $(LFLAGS)
+
+TARGET := adgpu_xml2dlg
+
+ifeq ($(OVERLAP), ON)
+	PIPELINE=-DUSE_PIPELINE -fopenmp
+endif
+
+BIN := $(wildcard $(TARGET)*)
+
+# ------------------------------------------------------
+# Configuration
+# FDEBUG (full) : enables debugging on both host + device
+# LDEBUG (light): enables debugging on host
+# RELEASE
+CONFIG=RELEASE
+#CONFIG=FDEBUG
+
+ifeq ($(CONFIG),FDEBUG)
+	OPT =-O0 -g3 -Wall
+else ifeq ($(CONFIG),LDEBUG)
+	OPT =-O0 -g3 -Wall
+else ifeq ($(CONFIG),RELEASE)
+	OPT =-O3
+else
+	OPT =
+endif
+
+# ------------------------------------------------------
+# Reproduce results (remove randomness)
+REPRO=NO
+
+ifeq ($(REPRO),YES)
+	REP =-DREPRO
+else
+	REP =
+endif
+# ------------------------------------------------------
+
+all: otool
+
+# ------------------------------------------------------
+# Priting out its git version hash
+
+GIT_VERSION := $(shell ./version_string.sh)
+
+CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
+
+# ------------------------------------------------------
+
+otool:
+	$(CPP) \
+	$(SRC) \
+	$(CFLAGS) \
+	-o$(BIN_DIR)/$(TARGET) \
+	$(PIPELINE) $(OPT) -DXML2DLG_ONLY $(REP)
+
+clean:
+	rm -f $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
