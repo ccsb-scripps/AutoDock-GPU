@@ -37,11 +37,7 @@ override DEVICE:=GPU
 export
 include Makefile.Cuda
 else
-ifeq ($(DEVICE),OCLGPU)
-override DEVICE:=GPU
-export
-include Makefile.OpenCL
-else
+ifeq ($(DEVICE),)
 $(info ******************************************************* )
 $(info * No DEVICE(=CPU,GPU,CUDA,OCLGPU) variable specified. * )
 $(info * Compiling standalone adgpu_xml2dlg tool to convert  * )
@@ -49,5 +45,11 @@ $(info * and analyze AutoDock-GPU xml results files which    * )
 $(info * does not need OpenCL or Cuda to compile and run     * )
 $(info ******************************************************* )
 include Makefile.xml2dlg
+else
+ifeq ($(DEVICE),OCLGPU)
+override DEVICE:=GPU
+export
+endif
+include Makefile.OpenCL
 endif
 endif
