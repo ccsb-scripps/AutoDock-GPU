@@ -122,6 +122,7 @@ void write_basic_info(
 	else
 		fprintf(fp, "LOAD FROM FILE (%s)\n",mypars->load_xml);
 
+#ifndef XML2DLG_ONLY
 	fprintf(fp, "\n\nProgram call in command line was:          ");
 	for (i=0; i<*argc; i++){
 		fprintf(fp, "%s ", argv [i]);
@@ -138,7 +139,9 @@ void write_basic_info(
 			}
 		}
 	}
-	fprintf(fp, "\n\n\n");
+	fprintf(fp, "\n\n");
+#endif
+	fprintf(fp, "\n");
 
 	// Writing out receptor parameters
 
@@ -250,6 +253,7 @@ void write_basic_info_dlg(
 
 	fprintf(fp, "RMSD tolerance:                            %lfA\n\n", mypars->rmsd_tolerance);
 
+#ifndef XML2DLG_ONLY
 	fprintf(fp, "Program call in command line was:          ");
 	for (i=0; i<*argc; i++){
 		fprintf(fp, "%s ", argv [i]);
@@ -266,7 +270,9 @@ void write_basic_info_dlg(
 			}
 		}
 	}
-	fprintf(fp, "\n\n\n");
+	fprintf(fp, "\n\n");
+#endif
+	fprintf(fp, "\n");
 
 	// Writing out receptor parameters
 
