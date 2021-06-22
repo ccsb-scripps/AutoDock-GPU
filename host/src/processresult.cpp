@@ -122,7 +122,7 @@ void write_basic_info(
 	else
 		fprintf(fp, "LOAD FROM FILE (%s)\n",mypars->load_xml);
 
-#ifndef XML2DLG_ONLY
+#ifndef TOOLMODE
 	fprintf(fp, "\n\nProgram call in command line was:          ");
 	for (i=0; i<*argc; i++){
 		fprintf(fp, "%s ", argv [i]);
@@ -253,7 +253,7 @@ void write_basic_info_dlg(
 
 	fprintf(fp, "RMSD tolerance:                            %lfA\n\n", mypars->rmsd_tolerance);
 
-#ifndef XML2DLG_ONLY
+#ifndef TOOLMODE
 	fprintf(fp, "Program call in command line was:          ");
 	for (i=0; i<*argc; i++){
 		fprintf(fp, "%s ", argv [i]);
@@ -518,10 +518,130 @@ void make_resfiles(
 	free(temp_filename);
 }
 
+void ligand_calc_output(
+                              FILE*         fp,
+                        const char*         prefix,
+                              IntraTables*  tables,
+                        const Liganddata*   ligand,
+                        const Dockpars*     mypars,
+                        const Gridinfo*     mygrid,
+                              bool          output_analysis,
+                              bool          output_energy
+                       )
+{
+	Liganddata calc_lig = *ligand;
+	Ligandresult calc;
+	double orig_vec[3];
+	for (unsigned int i=0; i<3; i++)
+		orig_vec [i] = -mygrid->origo_real_xyz [i];
+	move_ligand(&calc_lig, orig_vec, orig_vec); //moving it according to grid location
+	scale_ligand(&calc_lig, 1.0/mygrid->spacing);
+	calc.interE = calc_interE_f(mygrid, &calc_lig, 0.0005, 0, calc.intraflexE, &(calc.interE_elec), calc.peratom_vdw, calc.peratom_elec); // calculate intermolecular and per atom energies
+	if (output_analysis){
+		calc.analysis = analyze_ligand_receptor(mygrid, &calc_lig, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, 0, mypars->H_cutoff, mypars->V_cutoff);
+	}
+	scale_ligand(&calc_lig, mygrid->spacing);
+	// the interaction between flex res and ligand is stored in accurate_interflexE
+	if(output_analysis)
+		calc.intraE = calc_intraE_f(&calc_lig, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, 0, calc.interflexE, &(calc.analysis), mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
+	else
+		calc.intraE = calc_intraE_f(&calc_lig, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, 0, calc.interflexE);
+	move_ligand(&calc_lig, mygrid->origo_real_xyz, mygrid->origo_real_xyz); //moving it according to grid location
+	if (output_analysis){
+		// sort by analysis type
+		for(unsigned int j=0; j<calc.analysis.size(); j++)
+			for(unsigned int k=0; k<calc.analysis.size()-j-1; k++)
+				if(calc.analysis[k].type>calc.analysis[k+1].type) // percolate larger types numbers up
+					std::swap(calc.analysis[k], calc.analysis[k+1]);
+		if(calc.analysis.size()>0){
+			fprintf(fp, "ANALYSIS: COUNT %lu\n", calc.analysis.size());
+			std::string types    = "TYPE    {";
+			std::string lig_id   = "LIGID   {";
+			std::string ligname  = "LIGNAME {";
+			std::string rec_id   = "RECID   {";
+			std::string rec_name = "RECNAME {";
+			std::string residue  = "RESIDUE {";
+			std::string res_id   = "RESID   {";
+			std::string chain    = "CHAIN   {";
+			char item[8], pad[8];
+			for(unsigned int j=0; j<calc.analysis.size(); j++){
+				if(j>0){
+					types    += ",";
+					lig_id   += ",";
+					ligname  += ",";
+					rec_id   += ",";
+					rec_name += ",";
+					residue  += ",";
+					res_id   += ",";
+					chain    += ",";
+				}
+				switch(calc.analysis[j].type){
+					case 0: types += "   \"R\"";
+					        break;
+					case 1: types += "   \"H\"";
+					        break;
+					default:
+					case 2: types += "   \"V\"";
+					        break;
+				}
+				sprintf(item, "%5d ", calc.analysis[j].lig_id);   lig_id+=item;
+				sprintf(item, "\"%s\"", calc.analysis[j].lig_name); sprintf(pad, "%6s", item); ligname+=pad;
+				sprintf(item, "%5d ", calc.analysis[j].rec_id);   rec_id+=item;
+				sprintf(item, "\"%s\"", calc.analysis[j].rec_name); sprintf(pad, "%6s", item); rec_name+=pad;
+				sprintf(item, "\"%s\"", calc.analysis[j].residue); sprintf(pad, "%6s", item);  residue+=pad;
+				sprintf(item, "%5d ", calc.analysis[j].res_id);   res_id+=item;
+				sprintf(item, "\"%s\"", calc.analysis[j].chain); sprintf(pad, "%6s", item);    chain+=pad;
+			}
+			fprintf(fp, "ANALYSIS: %s}\n", types.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n", lig_id.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n", ligname.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n", rec_id.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n", rec_name.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n", residue.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n", res_id.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n\n", chain.c_str());
+		}
+	}
+	if(output_energy){
+		double torsional_energy = mypars->coeffs.AD4_coeff_tors * calc_lig.true_ligand_rotbonds;
+		fprintf(fp, "%s    Estimated Free Energy of Binding    =", prefix);
+		PRINT1000(fp, ((float) (calc.interE + calc.interflexE + torsional_energy)));
+		fprintf(fp, " kcal/mol  [=(1)+(2)+(3)-(4)]\n");
+		fprintf(fp, "%s\n", prefix);
+		fprintf(fp, "%s    (1) Final Intermolecular Energy     =", prefix);
+		PRINT1000(fp, ((float) (calc.interE + calc.interflexE)));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s        vdW + Hbond + desolv Energy     =", prefix);
+		PRINT1000(fp, ((float) (calc.interE - calc.interE_elec)));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s        Electrostatic Energy            =", prefix);
+		PRINT1000(fp, ((float) calc.interE_elec));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s        Moving Ligand-Fixed Receptor    =", prefix);
+		PRINT1000(fp, ((float) calc.interE));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s        Moving Ligand-Moving Receptor   =", prefix);
+		PRINT1000(fp, ((float) calc.interflexE));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s    (2) Final Total Internal Energy     =", prefix);
+		PRINT1000(fp, ((float) (calc.intraE + calc.intraflexE)));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s    (3) Torsional Free Energy           =", prefix);
+		PRINT1000(fp, ((float) torsional_energy));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s    (4) Unbound System's Energy         =", prefix);
+		PRINT1000(fp, ((float) (calc.intraE + calc.intraflexE)));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s\n", prefix);
+	}
+}
+
 void generate_output(
                            Ligandresult  myresults [],
                            int           num_of_runs,
+                           IntraTables*  tables,
                            Liganddata*   ligand_ref,
+                     const Liganddata*   ligand_xray,
                      const Dockpars*     mypars,
                      const Gridinfo*     mygrid,
                      const int*          argc,
@@ -550,11 +670,9 @@ void generate_output(
 	char tempstr [256];
 
 	double cluster_tolerance = mypars->rmsd_tolerance;
-	const double AD4_coeff_tors = mypars->coeffs.AD4_coeff_tors;
-	double torsional_energy;
 
 	// first of all, let's calculate the constant torsional free energy term
-	torsional_energy = AD4_coeff_tors * ligand_ref->true_ligand_rotbonds;
+	double torsional_energy = mypars->coeffs.AD4_coeff_tors * ligand_ref->true_ligand_rotbonds;
 
 	int len = strlen(mypars->resname) + 4 + 1;
 	
@@ -572,8 +690,8 @@ void generate_output(
 		write_basic_info_dlg(fp, ligand_ref, mypars, mygrid, argc, argv);
 
 		if(!mypars->xml2dlg){
-			fprintf(fp, "           COUNTER STATES           \n");
-			fprintf(fp, "___________________________________\n\n");
+			fprintf(fp, "    COUNTER STATES\n");
+			fprintf(fp, "    ________________________\n\n\n");
 			fprintf(fp, "Number of energy evaluations performed:    %lu\n", evals_performed);
 			fprintf(fp, "Number of generations used:                %lu\n", generations_used);
 			fprintf(fp, "\n\n");
@@ -582,8 +700,25 @@ void generate_output(
 		std::string pdbqt_template;
 		std::vector<unsigned int> atom_data;
 		char lineout [264];
+		bool output_ref_calcs = mypars->reflig_en_required;
+		if(mypars->given_xrayligandfile){
+			// writing xray ligand pdbqt file
+			fprintf(fp, "    XRAY LIGAND PDBQT FILE:\n");
+			fprintf(fp, "    ________________________\n\n\n");
+			ligand_calc_output(fp, "XRAY-LIGAND-PDBQT: USER", tables, ligand_xray, mypars, mygrid, mypars->contact_analysis, output_ref_calcs);
+			if(output_ref_calcs) output_ref_calcs=false;
+			unsigned int line_count = 0;
+			while (line_count < ligand_xray->ligand_line_count)
+			{
+				strcpy(tempstr,ligand_xray->file_content[line_count].c_str());
+				line_count++;
+				fprintf(fp, "XRAY-LIGAND-PDBQT: %s", tempstr);
+			}
+			fprintf(fp, "\n\n");
+		}
 		// writing input pdbqt file
 		fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
+		ligand_calc_output(fp, "INPUT-LIGAND-PDBQT: USER", tables, ligand_ref, mypars, mygrid, mypars->contact_analysis, output_ref_calcs);
 		unsigned int line_count = 0;
 		while (line_count < ligand_ref->ligand_line_count)
 		{
@@ -1130,7 +1265,9 @@ void process_result(
 	// Do analyses and generate dlg or xml output files
 	generate_output(cpu_result_ligands.data(),
 	                mypars->num_of_runs,
+	                &tables,
 	                myligand_init,
+	                myxrayligand,
 	                mypars,
 	                mygrid,
 	                argc,

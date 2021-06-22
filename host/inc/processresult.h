@@ -100,10 +100,23 @@ void make_resfiles(
                          Ligandresult* best_result
                   );
 
+void ligand_calc_output(
+                              FILE*         fp,
+                        const char*         prefix,
+                              IntraTables*  tables,
+                        const Liganddata*   ligand,
+                        const Dockpars*     mypars,
+                        const Gridinfo*     mygrid,
+                              bool          output_analysis,
+                              bool          output_energy
+                       );
+
 void generate_output(
                            Ligandresult  myresults [],
                            int           num_of_runs,
+                           IntraTables*  tables,
                            Liganddata*   ligand_ref,
+                     const Liganddata*   ligand_xray,
                      const Dockpars*     mypars,
                      const Gridinfo*     mygrid,
                      const int*          argc,

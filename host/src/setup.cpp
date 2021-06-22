@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "filelist.hpp"
 #include "processgrid.h"
 #include "processligand.h"
+#include "processresult.h"
 #include "getparameters.h"
 #include "setup.hpp"
 
@@ -377,19 +378,21 @@ int setup(
 	// if -lxrayfile provided, then read xray ligand data
 	if (mypars->given_xrayligandfile)
 	{
+
 		if (init_liganddata(mypars->xrayligandfile,
-		                    "\0",
+		                    mypars->flexresfile,
 		                    &myxrayligand,
-		                    &mydummygrid,
-		                    0,
-		                    NULL) != 0)
+		                    mygrid,
+		                    mypars->nr_deriv_atypes,
+		                    mypars->deriv_atypes) != 0)
 		{
 			printf("\nError in init_liganddata, stopped job.\n");
 			return 1;
 		}
 
+		// Filling myligand according to the pdbqt file
 		if (parse_liganddata(&myxrayligand,
-		                     &mydummygrid,
+		                     mygrid,
 		                     mypars->coeffs.AD4_coeff_vdW,
 		                     mypars->coeffs.AD4_coeff_hb,
 		                     mypars->nr_deriv_atypes,
@@ -406,15 +409,43 @@ int setup(
 	// Calculating energies of reference ligand if required
 	//------------------------------------------------------------
 	if (mypars->reflig_en_required) {
-		print_ref_lig_energies_f(myligand_init,
-		                         mypars->smooth,
-		                         mygrid,
-		                         mypars->coeffs.scaled_AD4_coeff_elec,
-		                         mypars->elec_min_distance,
-		                         mypars->coeffs.AD4_coeff_desolv,
-		                         mypars->qasp,
-		                         mypars->nr_mod_atype_pairs,
-		                         mypars->mod_atype_pairs);
+		IntraTables tables(&myligand_init, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
+		printf("\n");
+		if(mypars->given_xrayligandfile)
+			printf("Reference");
+		else
+			printf("Input");
+		printf(" ligand energies");
+#ifdef TOOLMODE
+		if(mypars->contact_analysis) printf(" and contact analysis");
+#endif
+		printf(":\n");
+		if (mypars->given_xrayligandfile)
+			ligand_calc_output(stdout,
+			                   "",
+			                   &tables,
+			                   &myxrayligand,
+			                   mypars,
+			                   mygrid,
+#ifdef TOOLMODE
+			                   mypars->contact_analysis,
+#else
+			                   false,
+#endif
+			                   true);
+		else
+			ligand_calc_output(stdout,
+			                   "",
+			                   &tables,
+			                   &myligand_init,
+			                   mypars,
+			                   mygrid,
+#ifdef TOOLMODE
+			                   mypars->contact_analysis,
+#else
+			                   false,
+#endif
+			                   true);
 	}
 
 	return 0;

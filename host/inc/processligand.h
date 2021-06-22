@@ -253,18 +253,6 @@ bool is_H_bond(
                const char* atype2
               );
 
-void print_ref_lig_energies_f(
-                                    Liganddata myligand,
-                              const float      smooth,
-                                    Gridinfo*  mygrid,
-                              const float      scaled_AD4_coeff_elec,
-                              const float      elec_min_distance,
-                              const float      AD4_coeff_desolv,
-                              const float      qasp,
-                                    int        nr_mod_atype_pairs,
-                                    pair_mod*  mod_atype_pairs
-                             );
-
 //////////////////////////////////
 //float functions
 

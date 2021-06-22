@@ -36,7 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "processresult.h"
 #include "getparameters.h"
 
-#ifndef XML2DLG_ONLY
+#ifndef TOOLMODE
 #include "performdocking.h"
 #endif
 
@@ -45,7 +45,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "profile.hpp"
 #include "simulation_state.hpp"
 
-#ifndef XML2DLG_ONLY
+#ifndef TOOLMODE
 #include "GpuData.h"
 #endif
 
@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
 			filelist.mypars[i].dlg2stdout = false;
 	}
 #endif
-#ifdef XML2DLG_ONLY
+#ifdef TOOLMODE
 	if(!initial_pars.xml2dlg){
 		printf("Error: Code has been compiled without GPU support and only supports xml2dlg mode.\n");
 		exit(-1);
@@ -214,7 +214,7 @@ int main(int argc, char* argv[])
 	printf("\n");
 	int max_preallocated_gridsize = preallocated_gridsize(filelist);
 
-#ifndef XML2DLG_ONLY
+#ifndef TOOLMODE
 	// Objects that are arguments of docking_with_gpu
 	GpuData cData[nr_devices];
 	GpuTempData tData[nr_devices];
@@ -246,7 +246,7 @@ int main(int argc, char* argv[])
 	// Error flag for each ligand
 	std::vector<int> err(n_files,0);
 
-#ifndef XML2DLG_ONLY
+#ifndef TOOLMODE
 	if(!initial_pars.xml2dlg && (nr_devices==1))
 		setup_gpu_for_docking(cData[0],tData[0]);
 #endif
@@ -301,7 +301,7 @@ int main(int argc, char* argv[])
 						printf("*"); fflush(stdout);
 					}
 			}
-#ifndef XML2DLG_ONLY
+#ifndef TOOLMODE
 			else
 			{
 #ifdef USE_PIPELINE
@@ -390,7 +390,7 @@ int main(int argc, char* argv[])
 				sim_state.exec_time = 0.0;
 
 			}
-#ifndef XML2DLG_ONLY
+#ifndef TOOLMODE
 			else
 			{
 				int error_in_docking;
@@ -455,7 +455,7 @@ int main(int argc, char* argv[])
 			// Post-processing
 #ifdef USE_PIPELINE
 			if(!mypars.xml2dlg){
-#ifndef XML2DLG_ONLY
+#ifndef TOOLMODE
 				if(nr_devices>1) tData[dev_nr].device_busy = false;
 #endif
 				printf ("(Thread %d is processing Job #%d)\n",t_id,i_job+1); fflush(stdout);
@@ -504,7 +504,7 @@ int main(int argc, char* argv[])
 	printf("Processing time: %.3f sec\n",total_processing_time);
 #endif
 #endif
-#ifndef XML2DLG_ONLY
+#ifndef TOOLMODE
 	for(int i=0; i<nr_devices; i++){
 #ifdef USE_PIPELINE
 		omp_destroy_lock(&gpu_locks[i]);

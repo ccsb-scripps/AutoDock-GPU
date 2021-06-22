@@ -1539,38 +1539,6 @@ bool is_H_bond(
 		return false;
 }
 
-void print_ref_lig_energies_f(
-                                    Liganddata myligand,
-                              const float      smooth,
-                                    Gridinfo*  mygrid,
-                              const float      scaled_AD4_coeff_elec,
-                              const float      elec_min_distance,
-                              const float      AD4_coeff_desolv,
-                              const float      qasp,
-                                    int        nr_mod_atype_pairs,
-                                    pair_mod*  mod_atype_pairs
-                            )
-// The function calculates the energies of the ligand given in the first parameter,
-// and prints them to the screen.
-{
-	double temp_vec [3];
-	float tmp;
-	int i;
-
-	IntraTables tables(&myligand, scaled_AD4_coeff_elec, AD4_coeff_desolv, qasp, nr_mod_atype_pairs, mod_atype_pairs);
-	printf("Intramolecular energy of reference ligand: %lf\n",
-	       calc_intraE_f(&myligand, 8, smooth, 0, elec_min_distance, &tables, 0, tmp));
-
-	for (i=0; i<3; i++)
-		temp_vec [i] = -1*mygrid->origo_real_xyz [i];
-
-	move_ligand(&myligand, temp_vec);
-	scale_ligand(&myligand, (double) 1.0/mygrid->spacing);
-
-	printf("Intermolecular energy of reference ligand: %lf\n",
-	       calc_interE_f(mygrid, &myligand, 0, 0, tmp));
-}
-
 //////////////////////////////////
 //float functions
 
