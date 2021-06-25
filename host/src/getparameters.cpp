@@ -913,6 +913,10 @@ int get_filelist(
 				}
 				// Add the grid info
 				if(new_grid) filelist.mygrids.push_back(*mygrid);
+			} else if (len>=7 && line.compare(len-7,7,".pdbqt*") == 0){
+				// Add the reference (xray) ligand file
+				mypars->xrayligandfile = strndup(line.c_str(),len-1);
+				mypars->given_xrayligandfile = true;
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
 				// Add the .pdbqt
 				filelist.ligand_files.push_back(line);
@@ -1216,7 +1220,8 @@ int get_commandpars(
 		// default values
 		mypars->abs_max_dmov        = 6.0/(*spacing);             // +/-6A
 		mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);   // 2 A
-		mypars->xrayligandfile      = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
+		if(mypars->xrayligandfile==NULL)
+			mypars->xrayligandfile      = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
 		if(mypars->xml2dlg){
 			if(strlen(mypars->load_xml)>4){ // .xml = 4 chars
 				i=strlen(mypars->load_xml)-4;
