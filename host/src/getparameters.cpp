@@ -1998,7 +1998,6 @@ std::vector<ReceptorAtom> read_receptor_atoms(
 			if((heavy=='O') || (heavy=='N') || (heavy=='S')) heavy_ids.push_back(atoms.size());
 			atoms.push_back(current);
 		}
-		if(strcmp(tempstr, "TER") == 0) break;
 	}
 	ReceptorAtom heavy, HD;
 	// assign H-donor heavy atoms
