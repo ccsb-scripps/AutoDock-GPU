@@ -1185,11 +1185,11 @@ int parse_liganddata(
 		if(l==0){
 			myligand->true_ligand_atoms = atom_counter;
 			atom_counter = 0; // this looks wrong but is correct as it's increment below again (like above)
-			branch_start=0;
+			branch_start = 0;
 		} else{ // example counts 4 - 3 - 6 (lig - flex res - flex res)
 			unsigned int tmp = delta_count; // l=1: = 0 ; l=2: = 3
-			delta_count = atom_counter - myligand->true_ligand_atoms; // l=1: 7 - 4 = 3 ; l=2: 13 - 4 = 9
-			atom_counter -= delta_count - tmp; // l=1: = 7 - (3-0) = 4 ; l=2: 13 - (9-3) = 7
+			delta_count    = atom_counter - myligand->true_ligand_atoms; // l=1: 7 - 4 = 3 ; l=2: 13 - 4 = 9
+			atom_counter  -= delta_count - tmp; // l=1: = 7 - (3-0) = 4 ; l=2: 13 - (9-3) = 7
 			atom_rot_start = atom_counter;
 			branch_start=branch_counter;
 		}
@@ -1205,6 +1205,8 @@ int parse_liganddata(
 			sscanf(line.c_str(),"%255s",tempstr);
 			if ((l>0) && (strcmp(tempstr, "ROOT") == 0)){
 				flex_root = atom_counter;
+				atom_rot_start = atom_counter;
+				branch_start = branch_counter;
 			}
 			if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0)) // if new atom, looking for open rotatable bonds
 			{
