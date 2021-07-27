@@ -1196,6 +1196,8 @@ int parse_liganddata(
 		
 		line_count = fp_start;
 		unsigned int flex_root = atom_rot_start; // takes care of multiple flexible residues in the same file
+		int atom_count_offset = 1; // counting usually starts at 1
+		bool first_atom = true;
 		
 		// reading data for rotbonds and atom_rotbonds fields
 		while (line_count < endline)
@@ -1207,9 +1209,14 @@ int parse_liganddata(
 				flex_root = atom_counter;
 				atom_rot_start = atom_counter;
 				branch_start = branch_counter;
+				first_atom = true;
 			}
 			if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0)) // if new atom, looking for open rotatable bonds
 			{
+				if (first_atom){
+					sscanf(&line.c_str()[6], "%d", &atom_count_offset); // reading first atom index
+					first_atom = false;
+				}
 				for (i=branch_start; i<branch_counter; i++) // for all branches found until now
 					if (branches [i][2] == 1) // if it is open, the atom has to be rotated
 						atom_rotbonds_temp [atom_counter][i] = 1; // modifying atom_rotbonds_temp
@@ -1235,8 +1242,8 @@ int parse_liganddata(
 					return 1;
 				}
 				sscanf(&line.c_str()[6], "%d %d", &(branches [branch_counter][0]), &(branches [branch_counter][1]));
-				branches [branch_counter][0] += atom_rot_start-1; // atom IDs start from 0 instead of 1
-				branches [branch_counter][1] += atom_rot_start-1;
+				branches [branch_counter][0] += atom_rot_start-atom_count_offset; // atom IDs start from 0 instead of 1
+				branches [branch_counter][1] += atom_rot_start-atom_count_offset;
 	
 				branches [branch_counter][2] = 1; // 1 means the branch is open, atoms will be rotated
 	
@@ -1249,8 +1256,8 @@ int parse_liganddata(
 			if (strcmp(tempstr, "ENDBRANCH") == 0)
 			{
 				sscanf(&line.c_str()[9], "%d %d", &(myligand->rotbonds [endbranch_counter][0]), &(myligand->rotbonds [endbranch_counter][1])); // rotatable bonds have to be stored in the order of endbranches
-				myligand->rotbonds [endbranch_counter][0] += atom_rot_start-1;
-				myligand->rotbonds [endbranch_counter][1] += atom_rot_start-1;
+				myligand->rotbonds [endbranch_counter][0] += atom_rot_start-atom_count_offset;
+				myligand->rotbonds [endbranch_counter][1] += atom_rot_start-atom_count_offset;
 				for (i=branch_start; i<branch_counter; i++) // the branch have to be closed
 					if ((branches [i][0] == myligand->rotbonds [endbranch_counter][0]) &&
 					    (branches [i][1] == myligand->rotbonds [endbranch_counter][1]))
