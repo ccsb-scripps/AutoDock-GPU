@@ -34,11 +34,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <cstring>
 #include <limits>
 #include <cstdint>
+#include <string>
 
 #ifdef _WIN32
 #include <processthreadsapi.h>
 inline unsigned int processid() { return GetProcessId(); }
 #else
+// libgen.h contains basename() and dirname() from a fullpath name
+// Specific: to open correctly grid map field fiels and associated files
+// http://ask.systutorials.com/681/get-the-directory-path-and-file-name-from-absolute-path-linux
+#include <libgen.h>
 #include <unistd.h>
 inline unsigned int processid() { return getpid(); }
 #endif
@@ -92,6 +97,8 @@ double distance2(const double [], const double []);
 void vec_point2line(const double [], const double [], const double [], double []);
 
 void rotate(double [], const double [], const double [], const double*, int);
+
+std::string get_filepath(const char* filename);
 
 #if 0
 // -------------------------------------------------------------------

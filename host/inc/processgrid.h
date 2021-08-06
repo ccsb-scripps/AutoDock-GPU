@@ -36,15 +36,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <fstream>
 #include <sstream>
 
-#ifndef _WIN32
-
-#include <libgen.h>
-
-// libgen.h contains basename() and dirname() from a fullpath name
-// Specific: to open correctly grid map field fiels and associated files
-// http://ask.systutorials.com/681/get-the-directory-path-and-file-name-from-absolute-path-linux
-#endif
-
 #include "defines.h"
 #include "miscellaneous.h"
 

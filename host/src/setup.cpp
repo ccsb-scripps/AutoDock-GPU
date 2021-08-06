@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
+#include <sys/stat.h>
 
 #include "filelist.hpp"
 #include "processgrid.h"
@@ -373,6 +374,13 @@ int setup(
 		}
 	}
 	free(orig_resname);
+	
+	struct stat res_stat;
+	int res_int = stat(get_filepath(mypars->resname).c_str(), &res_stat);
+	if ((res_int != 0) || !(res_stat.st_mode & S_IFDIR)){
+		printf("\nError: Specified directory \"%s\" for output files (e.g. with `--resnam`) does not exist.\n",get_filepath(mypars->resname).c_str());
+		exit(11);
+	}
 
 	Gridinfo mydummygrid;
 	// if -lxrayfile provided, then read xray ligand data

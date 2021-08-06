@@ -47,19 +47,7 @@ int get_gridinfo(
 	// ----------------------------------------------------
 	// Getting full path fo the grid file
 	// Getting father directory name
-	//char* dir = dirname(ts1);
-	//char* filename = basename(ts1);
-
-	#ifndef _WIN32
-	char* ts1 = strdup(fldfilename);
-	mygrid->grid_file_path = dirname(ts1);
-	free(ts1);
-	#else
-	char drive_tmp[_MAX_DRIVE];
-	char path_tmp[_MAX_DIR];
-	_splitpath(fldfilename, drive_tmp, path_tmp, NULL, NULL);
-	mygrid->grid_file_path = drive_tmp + path_tmp;
-	#endif
+	mygrid->grid_file_path = get_filepath(fldfilename);
 	// ----------------------------------------------------
 
 	// Processing fld file
