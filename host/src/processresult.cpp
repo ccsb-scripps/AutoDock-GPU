@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 
 #include <stdio.h>
+#include <errno.h>
 #include "processresult.h"
 
 
@@ -372,6 +373,10 @@ void make_resfiles(
 	if (mypars->gen_finalpop) // if final population files are not required, no file will be opened.
 	{
 		fp = fopen(temp_filename, "w");
+		if(fp==NULL){
+			printf("Error: Cannot create file %s for output of final population: %s\n",temp_filename,strerror(errno));
+			exit(5);
+		}
 
 		write_basic_info(fp, ligand_ref, mypars, mygrid, argc, argv); // Write basic information about docking and molecule parameters to file
 
@@ -683,6 +688,10 @@ void generate_output(
 			strcpy(report_file_name, mypars->resname);
 			strcat(report_file_name, ".dlg");
 			fp = fopen(report_file_name, "w");
+			if(fp==NULL){
+				printf("Error: Cannot create dlg output file %s: %s\n",report_file_name,strerror(errno));
+				exit(7);
+			}
 			free(report_file_name);
 		}
 
@@ -1081,6 +1090,10 @@ void generate_output(
 		strcpy(xml_file_name, mypars->resname);
 		strcat(xml_file_name, ".xml");
 		fp_xml = fopen(xml_file_name, "w");
+		if(fp==NULL){
+			printf("Error: Cannot create xml output file %s: %s\n",xml_file_name,strerror(errno));
+			exit(9);
+		}
 
 		fprintf(fp_xml, "<?xml version=\"1.0\" ?>\n");
 		fprintf(fp_xml, "<autodock_gpu>\n");
