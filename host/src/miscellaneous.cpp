@@ -25,6 +25,51 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "miscellaneous.h"
 
+float map2float(const char* c)
+// This function converts what we typically find in an autogrid map file into a
+// floating point number - just a bit quicker than the usual sscanf()
+// -> due to using 32-bit integers this function is limited to 9 digits for both
+//    the whole number and the fractional part - a safety check is performed with
+//    sscanf() used as the fallback
+{
+	float result;
+	bool negative = false;                       // example: -123.456
+	if(*c == '-'){                               // *c = '-'
+		negative = true;                     // => negative = true
+		c++;
+	}
+	// safety check
+	int len = strlen(c);
+	if(len>9){ // no potential issues at or below 9 digits in total
+		const char* dp = strchr(c,'.');
+		if(dp){
+			int d = dp-c;
+			if((d>9) || (len-d>9)){ // fall back to sscanf() if numbers are going to be too big for integers
+				sscanf(c, "%f", &result);
+				if(negative) return -result;
+				return result;
+			}
+		}
+	}
+	int number = 0;                              // 1. *c = '1': number = 0*10  + 1 = 1
+	while((*c >= '0') && (*c <= '9')){           // 2. *c = '2': number = 1*10  + 2 = 12
+		number = number * 10 + (*c - '0');   // 3. *c = '3': number = 12*10 + 3 = 123
+		c++;                                 // 4. *c = ','
+	}
+	if(*c == '.') c++; // jump over decimal point
+	int decimal = 0;
+	int denom = 1;
+	while((*c >= '0') && (*c <= '9')){           // 1. *c = '4': decimal = 0*10  + 4 = 4,   denom = 10
+		decimal = decimal * 10 + (*c - '0'); // 2. *c = '5': decimal = 4*10  + 5 = 45,  denom = 100
+		denom *= 10;                         // 3. *c = '6': decimal = 45*10 + 6 = 456, denom = 1000
+		c++;
+	}
+	// use more expensive division only once
+	result = (float)number + (float)decimal/((float)denom);
+	if(negative) return -result;
+	return result;
+}
+
 int float2fracint(double toconv, int frac)
 // The function converts a float value to a fixed pont fractional number in (32-frac).frac format,
 // and returns it as an integer.
@@ -55,6 +100,18 @@ double distance(const double point1 [], const double point2 [])
 	sub2 = point1 [1] - point2 [1];
 	sub3 = point1 [2] - point2 [2];
 	return sqrt(sub1*sub1 + sub2*sub2 + sub3*sub3);
+}
+
+double distance2(const double point1 [], const double point2 [])
+// Returns the square distance between point1 and point2.
+// The arrays have to store the x, y and z coordinates of the
+// point, respectively.
+{
+	double sub1, sub2, sub3;
+	sub1 = point1 [0] - point2 [0];
+	sub2 = point1 [1] - point2 [1];
+	sub3 = point1 [2] - point2 [2];
+	return sub1*sub1 + sub2*sub2 + sub3*sub3;
 }
 
 void vec_point2line(const double point [], const double line_pointA [], const double line_pointB [], double vec [])
@@ -198,6 +255,21 @@ void rotate(double point [], const double movvec [], const double normvec [], co
 	if (debug == 1)
 		printf("rotated point (x,y,z): %lf, %lf, %lf\n\n",
 		        point [0], point [1], point [2]);
+}
+
+std::string get_filepath(const char* filename)
+{
+	#ifndef _WIN32
+	char* ts1 = strdup(filename);
+	std::string result = dirname(ts1);
+	free(ts1);
+	return result;
+	#else
+	char drive_tmp[_MAX_DRIVE];
+	char path_tmp[_MAX_DIR];
+	_splitpath(filename, drive_tmp, path_tmp, NULL, NULL);
+	return drive_tmp + path_tmp;
+	#endif
 }
 
 #if 0
@@ -362,13 +434,13 @@ double angle_of_vectors(const double vector1 [], const double vector2 [])
 
 	scalmul = 0;
 
-	len_vec1 = distance(vector1, zerovec);
-	len_vec2 = distance(vector2, zerovec);
+	len_vec1 = distance2(vector1, zerovec);
+	len_vec2 = distance2(vector2, zerovec);
 
 	for (i=0; i<3; i++)
 		scalmul += vector1 [i]*vector2 [i];
 
-	temp = scalmul/(len_vec1*len_vec2);
+	temp = scalmul/sqrt(len_vec1*len_vec2);
 
 	if (temp > 1)  temp =  1;
 	if (temp < -1) temp = -1;
@@ -383,34 +455,6 @@ void vec_crossprod(const double vector1 [], const double vector2 [], double cros
 	crossprodvec [0] = vector1 [1]*vector2 [2] - vector1 [2]*vector2 [1];
 	crossprodvec [1] = vector1 [2]*vector2 [0] - vector1 [0]*vector2 [2];
 	crossprodvec [2] = vector1 [0]*vector2 [1] - vector1 [1]*vector2 [0];
-}
-
-void get_trilininterpol_weights(double weights [][2][2], const double* dx, const double* dy, const double* dz)
-// The function calculates the weights for trilinear interpolation based on the location of the point inside
-// the cube which is given by the second, third and fourth parameters.
-{
-	weights [0][0][0] = (1-(*dx))*(1-(*dy))*(1-(*dz));
-	weights [1][0][0] = (*dx)*(1-(*dy))*(1-(*dz));
-	weights [0][1][0] = (1-(*dx))*(*dy)*(1-(*dz));
-	weights [1][1][0] = (*dx)*(*dy)*(1-(*dz));
-	weights [0][0][1] = (1-(*dx))*(1-(*dy))*(*dz);
-	weights [1][0][1] = (*dx)*(1-(*dy))*(*dz);
-	weights [0][1][1] = (1-(*dx))*(*dy)*(*dz);
-	weights [1][1][1] = (*dx)*(*dy)*(*dz);
-}
-
-void get_trilininterpol_weights_f(float weights [][2][2], const float* dx, const float* dy, const float* dz)
-// The function calculates the weights for trilinear interpolation based on the location of the point inside
-// the cube which is given by the second, third and fourth parameters.
-{
-	weights [0][0][0] = (1-(*dx))*(1-(*dy))*(1-(*dz));
-	weights [1][0][0] = (*dx)*(1-(*dy))*(1-(*dz));
-	weights [0][1][0] = (1-(*dx))*(*dy)*(1-(*dz));
-	weights [1][1][0] = (*dx)*(*dy)*(1-(*dz));
-	weights [0][0][1] = (1-(*dx))*(1-(*dy))*(*dz);
-	weights [1][0][1] = (*dx)*(1-(*dy))*(*dz);
-	weights [0][1][1] = (1-(*dx))*(*dy)*(*dz);
-	weights [1][1][1] = (*dx)*(*dy)*(*dz);
 }
 
 void print_binary_string(unsigned long long to_print)

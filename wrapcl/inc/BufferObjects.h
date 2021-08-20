@@ -47,7 +47,7 @@ int memcopyBufferObjectToDevice(
                                 cl_command_queue cmd_queue,
                                 cl_mem           dest,
                                 bool             blocking,
-                                void*            src,
+                                const void*      src,
                                 size_t           size
                                );
 

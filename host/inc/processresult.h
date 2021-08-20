@@ -40,14 +40,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 typedef struct
 {
 	float*                    genotype; // a pointer here is sufficient and saves lots of memory copies
-	Liganddata                reslig_realcoord;
+	double                    atom_idxyzq         [MAX_NUM_OF_ATOMS][5]; // type id .. 0, x .. 1, y .. 2, z .. 3, q ... 4
 	float                     interE;
 	float                     interflexE;
 	float                     interE_elec;
 	float                     intraE;
 	float                     intraflexE;
-	float                     peratom_vdw  [MAX_NUM_OF_ATOMS];
-	float                     peratom_elec [MAX_NUM_OF_ATOMS];
+	float                     peratom_vdw         [MAX_NUM_OF_ATOMS];
+	float                     peratom_elec        [MAX_NUM_OF_ATOMS];
 	float                     rmsd_from_ref;
 	float                     rmsd_from_cluscent;
 	int                       clus_id;
@@ -65,7 +65,7 @@ void arrange_result(
 
 void write_basic_info(
                             FILE*       fp,
-                      const Liganddata* ligand_ref,
+                            Liganddata* ligand_ref,
                       const Dockpars*   mypars,
                       const Gridinfo*   mygrid,
                       const int*        argc,
@@ -74,7 +74,7 @@ void write_basic_info(
 
 void write_basic_info_dlg(
                                 FILE*       fp,
-                          const Liganddata* ligand_ref,
+                                Liganddata* ligand_ref,
                           const Dockpars*   mypars,
                           const Gridinfo*   mygrid,
                           const int*        argc,
@@ -84,14 +84,14 @@ void write_basic_info_dlg(
 void make_resfiles(
                          float*        final_population,
                          float*        energies,
-                   const Liganddata*   ligand_ref,
-                   const Liganddata*   ligand_from_pdb,
+                         IntraTables*  tables,
+                         Liganddata*   ligand_ref,
+                         Liganddata*   ligand_from_pdb,
                    const Liganddata*   ligand_xray,
                    const Dockpars*     mypars,
                          int           evals_performed,
                          int           generations_used,
                    const Gridinfo*     mygrid,
-                   const float*        grids,
                    const int*          argc,
                          char**        argv,
                          int           debug,
@@ -100,23 +100,23 @@ void make_resfiles(
                          Ligandresult* best_result
                   );
 
-void cluster_analysis(
-                            Ligandresult myresults [],
-                            int          num_of_runs,
-                            char*        report_file_name,
-                      const Liganddata*  ligand_ref,
-                      const Dockpars*    mypars,
-                      const Gridinfo*    mygrid,
-                      const int*         argc,
-                            char**       argv,
-                      const double       docking_avg_runtime,
-                      const double       program_runtime
-                     );
+void ligand_calc_output(
+                              FILE*         fp,
+                        const char*         prefix,
+                              IntraTables*  tables,
+                        const Liganddata*   ligand,
+                        const Dockpars*     mypars,
+                        const Gridinfo*     mygrid,
+                              bool          output_analysis,
+                              bool          output_energy
+                       );
 
-void clusanal_gendlg(
+void generate_output(
                            Ligandresult  myresults [],
                            int           num_of_runs,
-                     const Liganddata*   ligand_ref,
+                           IntraTables*  tables,
+                           Liganddata*   ligand_ref,
+                     const Liganddata*   ligand_xray,
                      const Dockpars*     mypars,
                      const Gridinfo*     mygrid,
                      const int*          argc,
@@ -130,9 +130,8 @@ void clusanal_gendlg(
 
 void process_result(
                     const Gridinfo*        mygrid,
-                    const float*           cpu_floatgrids,
                     const Dockpars*        mypars,
-                    const Liganddata*      myligand_init,
+                          Liganddata*      myligand_init,
                     const Liganddata*      myxrayligand,
                     const int*             argc,
                           char**           argv,

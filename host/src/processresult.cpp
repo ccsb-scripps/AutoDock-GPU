@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 
 #include <stdio.h>
+#include <errno.h>
 #include "processresult.h"
 
 
@@ -59,7 +60,7 @@ void arrange_result(
 
 void write_basic_info(
                             FILE*       fp,
-                      const Liganddata* ligand_ref,
+                            Liganddata* ligand_ref,
                       const Dockpars*   mypars,
                       const Gridinfo*   mygrid,
                       const int*        argc,
@@ -122,17 +123,33 @@ void write_basic_info(
 	else
 		fprintf(fp, "LOAD FROM FILE (%s)\n",mypars->load_xml);
 
+#ifndef TOOLMODE
 	fprintf(fp, "\n\nProgram call in command line was:          ");
-	for (i=0; i<*argc; i++)
+	for (i=0; i<*argc; i++){
 		fprintf(fp, "%s ", argv [i]);
-	fprintf(fp, "\n\n\n");
+		if (argcmp("filelist", argv[i], 'B')){
+			if(mypars->filelist_files>1){
+				fprintf(fp, "%s ", mypars->ligandfile);
+				i+=mypars->filelist_files; // skip ahead in case there are multiple entries here
+			}
+		}
+		if (argcmp("xml2dlg", argv[i], 'X')){
+			if(mypars->xml_files>1){
+				fprintf(fp, "%s ", mypars->load_xml);
+				i+=mypars->xml_files; // skip ahead in case there are multiple entries here
+			}
+		}
+	}
+	fprintf(fp, "\n\n");
+#endif
+	fprintf(fp, "\n");
 
 	// Writing out receptor parameters
 
 	fprintf(fp, "        RECEPTOR PARAMETERS        \n");
 	fprintf(fp, "===================================\n\n");
 
-	fprintf(fp, "Receptor name:                             %s\n", mygrid->receptor_name);
+	fprintf(fp, "Receptor name:                             %s\n", mygrid->receptor_name.c_str());
 	fprintf(fp, "Number of grid points (x, y, z):           %d, %d, %d\n", mygrid->size_xyz [0], mygrid->size_xyz [1], mygrid->size_xyz [2]);
 	fprintf(fp, "Grid size (x, y, z):                       %lf, %lf, %lfA\n", mygrid->size_xyz_angstr [0], mygrid->size_xyz_angstr [1], mygrid->size_xyz_angstr [2]);
 	fprintf(fp, "Grid spacing:                              %lfA\n", mygrid->spacing);
@@ -172,7 +189,7 @@ void write_basic_info(
 
 void write_basic_info_dlg(
                                 FILE*       fp,
-                          const Liganddata* ligand_ref,
+                                Liganddata* ligand_ref,
                           const Dockpars*   mypars,
                           const Gridinfo*   mygrid,
                           const int*        argc,
@@ -237,19 +254,33 @@ void write_basic_info_dlg(
 
 	fprintf(fp, "RMSD tolerance:                            %lfA\n\n", mypars->rmsd_tolerance);
 
-	if(!mypars->xml2dlg){ // This is necessary to avoid excruciatingly long command line outputs with wild cards (like *.xml)
-		fprintf(fp, "Program call in command line was:          ");
-		for (i=0; i<*argc; i++)
-			fprintf(fp, "%s ", argv [i]);
-		fprintf(fp, "\n\n\n");
+#ifndef TOOLMODE
+	fprintf(fp, "Program call in command line was:          ");
+	for (i=0; i<*argc; i++){
+		fprintf(fp, "%s ", argv [i]);
+		if (argcmp("filelist", argv[i], 'B')){
+			if(mypars->filelist_files>1){
+				fprintf(fp, "%s ", mypars->ligandfile);
+				i+=mypars->filelist_files; // skip ahead in case there are multiple entries here
+			}
+		}
+		if (argcmp("xml2dlg", argv[i], 'X')){
+			if(mypars->xml_files>1){
+				fprintf(fp, "%s ", mypars->load_xml);
+				i+=mypars->xml_files; // skip ahead in case there are multiple entries here
+			}
+		}
 	}
+	fprintf(fp, "\n\n");
+#endif
+	fprintf(fp, "\n");
 
 	// Writing out receptor parameters
 
 	fprintf(fp, "    GRID PARAMETERS\n");
 	fprintf(fp, "    ________________________\n\n\n");
 
-	fprintf(fp, "Receptor name:                             %s\n", mygrid->receptor_name);
+	fprintf(fp, "Receptor name:                             %s\n", mygrid->receptor_name.c_str());
 	fprintf(fp, "Number of grid points (x, y, z):           %d, %d, %d\n", mygrid->size_xyz [0],
 			mygrid->size_xyz [1], mygrid->size_xyz [2]);
 	fprintf(fp, "Grid size (x, y, z):                       %lf, %lf, %lfA\n", mygrid->size_xyz_angstr [0],
@@ -288,7 +319,7 @@ void write_basic_info_dlg(
 		fprintf(fp, "    ________________________\n\n\n");
 		fprintf(fp, "DPF> outlev 1\n");
 		fprintf(fp, "DPF> ga_run %lu\n", mypars->num_of_runs);
-		fprintf(fp, "DPF> fld %s.maps.fld\n", mygrid->receptor_name);
+		fprintf(fp, "DPF> fld %s.maps.fld\n", mygrid->receptor_name.c_str());
 		fprintf(fp, "DPF> move %s\n", mypars->ligandfile);
 		if(flexres) fprintf(fp, "DPF> flexres %s\n", mypars->flexresfile);
 		fprintf(fp, "\n\n");
@@ -298,14 +329,14 @@ void write_basic_info_dlg(
 void make_resfiles(
                          float*        final_population,
                          float*        energies,
-                   const Liganddata*   ligand_ref,
-                   const Liganddata*   ligand_from_pdb,
+                         IntraTables*  tables,
+                         Liganddata*   ligand_ref,
+                         Liganddata*   ligand_from_pdb,
                    const Liganddata*   ligand_xray,
                    const Dockpars*     mypars,
                          int           evals_performed,
                          int           generations_used,
                    const Gridinfo*     mygrid,
-                   const float*        grids,
                    const int*          argc,
                          char**        argv,
                          int           debug,
@@ -317,7 +348,7 @@ void make_resfiles(
 // as well as different parameters about the docking, the receptor and the ligand to a file called fdock_report.txt in a
 // readable and understandable format. The ligand_from_pdb parametere must be the Liganddata which includes the original
 // ligand conformation as the result conformations will be compared to this one. The structs containing the grid informations
-// and docking parameters are requrided as well as the number and values of command line arguments. The ligand_ref parameter
+// and docking parameters are required as well as the number and values of command line arguments. The ligand_ref parameter
 // describes the ligand with the reference orientation (gene values of final_population refer to this one, that is, this can
 // be moved and rotated according to the genotype values). The function returns some information about the best result wich
 // was found with the best_result parameter.
@@ -325,11 +356,11 @@ void make_resfiles(
 	FILE* fp = stdout; // takes care of compile warning down below (and serves as a visual bug tracker in case fp is written to accidentally)
 	int i,j;
 	double entity_rmsds;
-	Liganddata temp_docked;
+	double init_atom_idxyzq[MAX_NUM_OF_ATOMS][5]; // type id .. 0, x .. 1, y .. 2, z .. 3, q ... 4
+	memcpy(init_atom_idxyzq, ligand_ref->atom_idxyzq, sizeof(ligand_ref->atom_idxyzq));
 	int len = strlen(mypars->ligandfile) - 6 + 24 + 10 + 10; // length with added bits for things below (numbers below 11 digits should be a safe enough threshold)
 	char* temp_filename = (char*)malloc((len+1)*sizeof(char)); // +\0 at the end
 	char* name_ext_start;
-	std::vector<AnalysisData> analysis;
 	float accurate_interE;
 	float accurate_intraflexE;
 	float accurate_intraE;
@@ -342,6 +373,10 @@ void make_resfiles(
 	if (mypars->gen_finalpop) // if final population files are not required, no file will be opened.
 	{
 		fp = fopen(temp_filename, "w");
+		if(fp==NULL){
+			printf("Error: Cannot create file %s for output of final population: %s\n",temp_filename,strerror(errno));
+			exit(5);
+		}
 
 		write_basic_info(fp, ligand_ref, mypars, mygrid, argc, argv); // Write basic information about docking and molecule parameters to file
 
@@ -369,10 +404,24 @@ void make_resfiles(
 	strcpy(temp_filename, mypars->ligandfile);
 	name_ext_start = temp_filename + strlen(mypars->ligandfile) - 6; // without .pdbqt
 
-	IntraTables tables(ligand_ref, mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp);
+	bool rmsd_valid = true;
+	if (mypars->given_xrayligandfile == true) {
+		if(!((ligand_xray->num_of_atoms == ligand_ref->num_of_atoms) || (ligand_xray->num_of_atoms == ligand_ref->true_ligand_atoms))){
+			printf("Warning: RMSD can't be calculated, atom number mismatch %d (ref) vs. %d!\n",ligand_xray->true_ligand_atoms,ligand_ref->true_ligand_atoms);
+			rmsd_valid = false;
+		}
+	}
+	else {
+		if(ligand_from_pdb->true_ligand_atoms != ligand_ref->true_ligand_atoms){
+			printf("Warning: RMSD can't be calculated, atom number mismatch %d (ref) vs. %d!\n",ligand_xray->true_ligand_atoms,ligand_ref->true_ligand_atoms);
+			rmsd_valid = false;
+		}
+	}
+
 	for (i=0; i<pop_size; i++)
 	{
-		temp_docked = *ligand_ref;
+		// start from original coordinates
+		memcpy(ligand_ref->atom_idxyzq, init_atom_idxyzq, sizeof(ligand_ref->atom_idxyzq));
 		
 		if(mypars->xml2dlg){
 			double axisangle[4];
@@ -384,39 +433,37 @@ void make_resfiles(
 			axisangle[1] = genotype[4];
 			axisangle[2] = genotype[5];
 			axisangle[3] = genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1];
-			change_conform(&temp_docked, mygrid, genotype, axisangle, debug);
+			change_conform(ligand_ref, mygrid, genotype, axisangle, debug);
 		} else{
-			change_conform_f(&temp_docked, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, debug);
+			change_conform_f(ligand_ref, mygrid, final_population+i*GENOTYPE_LENGTH_IN_GLOBMEM, debug);
 		}
-		
 		// the map interaction of flex res atoms is stored in accurate_intraflexE
-		accurate_interE = calc_interE_f(mygrid, &temp_docked, grids, 0.0005, debug, accurate_intraflexE);	//calculating the intermolecular energy
+		if (i == 0)
+			accurate_interE = calc_interE_f(mygrid, ligand_ref, 0.0005, debug, accurate_intraflexE, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec); // calculate intermolecular and per atom energies
+		else
+			accurate_interE = calc_interE_f(mygrid, ligand_ref, 0.0005, debug, accurate_intraflexE); // calculating the intermolecular energy
 
 		if (mypars->contact_analysis && (i==0)){
-			analysis = analyze_ligand_receptor(mygrid, &temp_docked, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, debug, mypars->H_cutoff, mypars->V_cutoff);
+			best_result->analysis = analyze_ligand_receptor(mygrid, ligand_ref, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, debug, mypars->H_cutoff, mypars->V_cutoff);
 		}
 
-		if (i == 0) // additional calculations for ADT-compatible result file, only in case of best conformation
-			calc_interE_peratom_f(mygrid, &temp_docked, grids, 0.0005, &(best_result->interE_elec), best_result->peratom_vdw, best_result->peratom_elec, debug);
+		scale_ligand(ligand_ref, mygrid->spacing);
 
-		scale_ligand(&temp_docked, mygrid->spacing);
-		
 		// the interaction between flex res and ligand is stored in accurate_interflexE
 		if(mypars->contact_analysis && (i==0))
-			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs, &analysis, mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
+			accurate_intraE = calc_intraE_f(ligand_ref, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, &(best_result->analysis), mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
 		else
-			accurate_intraE = calc_intraE_f(&temp_docked, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
+			accurate_intraE = calc_intraE_f(ligand_ref, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, debug, accurate_interflexE);
 
-		move_ligand(&temp_docked, mygrid->origo_real_xyz, mygrid->origo_real_xyz); //moving it according to grid location
+		move_ligand(ligand_ref, mygrid->origo_real_xyz, mygrid->origo_real_xyz); //moving it according to grid location
 
-//		for (unsigned int atom_id=0; atom_id < temp_docked.num_of_atoms; atom_id++)
-//			printf("%i: %lf, %lf, %lf\n", atom_id+1, temp_docked.atom_idxyzq [atom_id][1], temp_docked.atom_idxyzq [atom_id][2], temp_docked.atom_idxyzq [atom_id][3]);
-
-		if (mypars->given_xrayligandfile == true) {
-			entity_rmsds = calc_rmsd(ligand_xray, &temp_docked, mypars->handle_symmetry); //calculating rmds compared to original xray file
-		}
-		else {
-			entity_rmsds = calc_rmsd(ligand_from_pdb, &temp_docked, mypars->handle_symmetry); //calculating rmds compared to original pdb file
+		if ((mypars->gen_finalpop) || (i==0)){ // rmsd value is only needed in either of those cases
+			if (rmsd_valid){
+				if (mypars->given_xrayligandfile)
+					entity_rmsds = calc_rmsd(ligand_xray->atom_idxyzq, ligand_ref->atom_idxyzq, ligand_xray->num_of_atoms, mypars->handle_symmetry); //calculating rmds compared to original xray file
+				else
+					entity_rmsds = calc_rmsd(ligand_from_pdb->atom_idxyzq, ligand_ref->atom_idxyzq, ligand_from_pdb->true_ligand_atoms, mypars->handle_symmetry); //calculating rmds compared to original pdb file
+			} else entity_rmsds = 100000;
 		}
 
 		// copying best result to output parameter
@@ -427,10 +474,16 @@ void make_resfiles(
 			best_result->interflexE = accurate_interflexE;
 			best_result->intraE = accurate_intraE;
 			best_result->intraflexE = accurate_intraflexE;
-			best_result->reslig_realcoord = temp_docked;
+			memcpy(best_result->atom_idxyzq, ligand_ref->atom_idxyzq, sizeof(ligand_ref->atom_idxyzq));
 			best_result->rmsd_from_ref = entity_rmsds;
 			best_result->run_number = run_cnt+1;
-			if(mypars->contact_analysis) best_result->analysis = analysis;
+			if(mypars->contact_analysis){
+				// sort by analysis type
+				for(unsigned int j=0; j<best_result->analysis.size(); j++)
+					for(unsigned int k=0; k<best_result->analysis.size()-j-1; k++)
+						if(best_result->analysis[k].type>best_result->analysis[k+1].type) // percolate larger types numbers up
+							std::swap(best_result->analysis[k], best_result->analysis[k+1]);
+			}
 		}
 
 		// generating best.pdbqt
@@ -440,13 +493,13 @@ void make_resfiles(
 				best_energy_of_all = accurate_interE + accurate_intraE;
 
 				if (mypars->gen_best)
-					gen_new_pdbfile(mypars->ligandfile, "best.pdbqt", &temp_docked);
+					gen_new_pdbfile(mypars->ligandfile, "best.pdbqt", ligand_ref);
 			}
 
 		if (i < mypars->gen_pdbs) //if it is necessary, making new pdbqts for best entities
 		{
 			sprintf(name_ext_start, "_docked_run%d_entity%d.pdbqt", run_cnt+1, i+1); //name will be <original pdb filename>_docked_<number starting from 1>.pdb
-			gen_new_pdbfile(mypars->ligandfile, temp_filename, &temp_docked);
+			gen_new_pdbfile(mypars->ligandfile, temp_filename, ligand_ref);
 		}
 		if (mypars->gen_finalpop)
 		{
@@ -464,158 +517,136 @@ void make_resfiles(
 			fprintf(fp, " %8.3lf | \n", entity_rmsds);
 		}
 	}
+	// need to restore ligand_ref to original coordinates before we leave
+	memcpy(ligand_ref->atom_idxyzq, init_atom_idxyzq, sizeof(ligand_ref->atom_idxyzq));
 	if (mypars->gen_finalpop) fclose(fp);
 	free(temp_filename);
 }
 
-void cluster_analysis(
-                            Ligandresult myresults [],
-                            int          num_of_runs,
-                            char*        report_file_name,
-                      const Liganddata*  ligand_ref,
-                      const Dockpars*    mypars,
-                      const Gridinfo*    mygrid,
-                      const int*         argc,
-                            char**       argv,
-                      const double       docking_avg_runtime,
-                      const double program_runtime
-                     )
-// The function performs ranked cluster analisys similar to that of AutoDock and creates a file with report_file_name name, the result
-// will be written to it.
+void ligand_calc_output(
+                              FILE*         fp,
+                        const char*         prefix,
+                              IntraTables*  tables,
+                        const Liganddata*   ligand,
+                        const Dockpars*     mypars,
+                        const Gridinfo*     mygrid,
+                              bool          output_analysis,
+                              bool          output_energy
+                       )
 {
-	int i,j;
-	Ligandresult temp_ligres;
-	int num_of_clusters;
-	int current_clust_center;
-	double temp_rmsd;
-	double cluster_tolerance = 2;
-	int result_clustered;
-	int subrank;
-	FILE* fp;
-	int cluster_sizes [1000];
-	double sum_energy [1000];
-	double best_energy [1000];
-
-	const double AD4_coeff_tors = mypars->coeffs.AD4_coeff_tors;
-	double torsional_energy;
-
-	// first of all, let's calculate the constant torsional free energy term
-	torsional_energy = AD4_coeff_tors * ligand_ref->true_ligand_rotbonds;
-
-	// arranging results according to energy, myresults [0] will be the best one (with lowest energy)
-	for (j=0; j<num_of_runs-1; j++)
-		for (i=num_of_runs-2; i>=j; i--) // arrange according to sum of inter- and intramolecular energies
-			if ((myresults [i]).interE /*+ (myresults [i]).intraE*/ > (myresults [i+1]).interE /*+ (myresults [i+1]).intraE*/) // mimics the behaviour of AD4 unbound_same_as_bound
-			//if ((myresults [i]).interE + (myresults [i]).intraE > (myresults [i+1]).interE + (myresults [i+1]).intraE)
-			{
-				temp_ligres = myresults [i];
-				myresults [i] = myresults [i+1];
-				myresults [i+1] = temp_ligres;
-			}
-
-	for (i=0; i<num_of_runs; i++)
-	{
-		(myresults [i]).clus_id = 0; // indicates that it hasn't been put into cluster yet
+	Liganddata calc_lig = *ligand;
+	Ligandresult calc;
+	double orig_vec[3];
+	for (unsigned int i=0; i<3; i++)
+		orig_vec [i] = -mygrid->origo_real_xyz [i];
+	move_ligand(&calc_lig, orig_vec, orig_vec); //moving it according to grid location
+	scale_ligand(&calc_lig, 1.0/mygrid->spacing);
+	calc.interE = calc_interE_f(mygrid, &calc_lig, 0.0005, 0, calc.intraflexE, &(calc.interE_elec), calc.peratom_vdw, calc.peratom_elec); // calculate intermolecular and per atom energies
+	if (output_analysis){
+		calc.analysis = analyze_ligand_receptor(mygrid, &calc_lig, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, 0, mypars->H_cutoff, mypars->V_cutoff);
 	}
-
-	// the best result is the center of the first cluster
-	(myresults [0]).clus_id = 1;
-	(myresults [0]).rmsd_from_cluscent = 0;
-	num_of_clusters = 1;
-
-	for (i=1; i<num_of_runs; i++) // for each result
-	{
-		current_clust_center = 0;
-		result_clustered = 0;
-		for (j=0; j<i; j++) // results with lower id-s are clustered, look for cluster centers
-		{
-			if ((myresults [j]).clus_id > current_clust_center) // it is the center of a new cluster
-			{
-				current_clust_center = (myresults [j]).clus_id;
-				temp_rmsd = calc_rmsd(&((myresults [j]).reslig_realcoord), &((myresults [i]).reslig_realcoord), mypars->handle_symmetry); // comparing current result with cluster center
-				if (temp_rmsd <= cluster_tolerance) // in this case we put result i to cluster with center j
-				{
-					(myresults [i]).clus_id = current_clust_center;
-					(myresults [i]).rmsd_from_cluscent = temp_rmsd;
-					result_clustered = 1;
-					break;
+	scale_ligand(&calc_lig, mygrid->spacing);
+	// the interaction between flex res and ligand is stored in accurate_interflexE
+	if(output_analysis)
+		calc.intraE = calc_intraE_f(&calc_lig, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, 0, calc.interflexE, &(calc.analysis), mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
+	else
+		calc.intraE = calc_intraE_f(&calc_lig, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, 0, calc.interflexE);
+	move_ligand(&calc_lig, mygrid->origo_real_xyz, mygrid->origo_real_xyz); //moving it according to grid location
+	if (output_analysis){
+		// sort by analysis type
+		for(unsigned int j=0; j<calc.analysis.size(); j++)
+			for(unsigned int k=0; k<calc.analysis.size()-j-1; k++)
+				if(calc.analysis[k].type>calc.analysis[k+1].type) // percolate larger types numbers up
+					std::swap(calc.analysis[k], calc.analysis[k+1]);
+		if(calc.analysis.size()>0){
+			fprintf(fp, "ANALYSIS: COUNT %lu\n", calc.analysis.size());
+			std::string types    = "TYPE    {";
+			std::string lig_id   = "LIGID   {";
+			std::string ligname  = "LIGNAME {";
+			std::string rec_id   = "RECID   {";
+			std::string rec_name = "RECNAME {";
+			std::string residue  = "RESIDUE {";
+			std::string res_id   = "RESID   {";
+			std::string chain    = "CHAIN   {";
+			char item[8], pad[8];
+			for(unsigned int j=0; j<calc.analysis.size(); j++){
+				if(j>0){
+					types    += ",";
+					lig_id   += ",";
+					ligname  += ",";
+					rec_id   += ",";
+					rec_name += ",";
+					residue  += ",";
+					res_id   += ",";
+					chain    += ",";
 				}
+				switch(calc.analysis[j].type){
+					case 0: types += "   \"R\"";
+					        break;
+					case 1: types += "   \"H\"";
+					        break;
+					default:
+					case 2: types += "   \"V\"";
+					        break;
+				}
+				sprintf(item, "%5d ", calc.analysis[j].lig_id);   lig_id+=item;
+				sprintf(item, "\"%s\"", calc.analysis[j].lig_name); sprintf(pad, "%6s", item); ligname+=pad;
+				sprintf(item, "%5d ", calc.analysis[j].rec_id);   rec_id+=item;
+				sprintf(item, "\"%s\"", calc.analysis[j].rec_name); sprintf(pad, "%6s", item); rec_name+=pad;
+				sprintf(item, "\"%s\"", calc.analysis[j].residue); sprintf(pad, "%6s", item);  residue+=pad;
+				sprintf(item, "%5d ", calc.analysis[j].res_id);   res_id+=item;
+				sprintf(item, "\"%s\"", calc.analysis[j].chain); sprintf(pad, "%6s", item);    chain+=pad;
 			}
+			fprintf(fp, "ANALYSIS: %s}\n", types.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n", lig_id.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n", ligname.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n", rec_id.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n", rec_name.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n", residue.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n", res_id.c_str());
+			fprintf(fp, "ANALYSIS: %s}\n\n", chain.c_str());
 		}
-		if (result_clustered != 1) // if no suitable cluster was found, this is the center of a new one
-		{
-			num_of_clusters++;
-			(myresults [i]).clus_id = num_of_clusters; // new cluster id
-			(myresults [i]).rmsd_from_cluscent = 0;
-		}
 	}
-
-	for (i=1; i<=num_of_clusters; i++) // printing cluster info to file
-	{
-		subrank = 0;
-		cluster_sizes [i-1] = 0;
-		sum_energy [i-1] = 0;
-		for (j=0; j<num_of_runs; j++)
-			if (myresults [j].clus_id == i)
-			{
-				subrank++;
-				(cluster_sizes [i-1])++;
-				sum_energy [i-1] += (myresults [j]).interE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
-				(myresults [j]).clus_subrank = subrank;
-				if (subrank == 1)
-					best_energy [i-1] = (myresults [j]).interE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
-			}
+	if(output_energy){
+		double torsional_energy = mypars->coeffs.AD4_coeff_tors * calc_lig.true_ligand_rotbonds;
+		fprintf(fp, "%s    Estimated Free Energy of Binding    =", prefix);
+		PRINT1000(fp, ((float) (calc.interE + calc.interflexE + torsional_energy)));
+		fprintf(fp, " kcal/mol  [=(1)+(2)+(3)-(4)]\n");
+		fprintf(fp, "%s\n", prefix);
+		fprintf(fp, "%s    (1) Final Intermolecular Energy     =", prefix);
+		PRINT1000(fp, ((float) (calc.interE + calc.interflexE)));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s        vdW + Hbond + desolv Energy     =", prefix);
+		PRINT1000(fp, ((float) (calc.interE - calc.interE_elec)));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s        Electrostatic Energy            =", prefix);
+		PRINT1000(fp, ((float) calc.interE_elec));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s        Moving Ligand-Fixed Receptor    =", prefix);
+		PRINT1000(fp, ((float) calc.interE));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s        Moving Ligand-Moving Receptor   =", prefix);
+		PRINT1000(fp, ((float) calc.interflexE));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s    (2) Final Total Internal Energy     =", prefix);
+		PRINT1000(fp, ((float) (calc.intraE + calc.intraflexE)));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s    (3) Torsional Free Energy           =", prefix);
+		PRINT1000(fp, ((float) torsional_energy));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s    (4) Unbound System's Energy         =", prefix);
+		PRINT1000(fp, ((float) (calc.intraE + calc.intraflexE)));
+		fprintf(fp, " kcal/mol\n");
+		fprintf(fp, "%s\n", prefix);
 	}
-
-	fp = fopen(report_file_name, "w");
-
-	write_basic_info(fp, ligand_ref, mypars, mygrid, argc, argv); // Write basic information about docking and molecule parameters to file
-	fprintf(fp, "           RUN TIME INFO           \n");
-	fprintf(fp, "===================================\n\n");
-
-	fprintf(fp, "Average GPU run time for 1 run:           %lfs\n", docking_avg_runtime);
-	fprintf(fp, "Total GPU docking run time:               %fs\n", docking_avg_runtime*mypars->num_of_runs);
-
-	fprintf(fp, "Program run time:                          %lfs\n", program_runtime);
-	fprintf(fp, "\n\n");
-
-	fprintf(fp, "       CLUSTERING HISTOGRAM        \n");
-	fprintf(fp, "===================================\n\n");
-	fprintf(fp, " Cluster rank | Num in cluster |   Best energy   |   Mean energy   |    5    10   15   20   25   30   35\n");
-	fprintf(fp, "--------------+----------------+-----------------+-----------------+----+----+----+----+----+----+----+\n");
-
-	for (i=1; i<=num_of_clusters; i++)
-	{
-		fprintf(fp, "      %3d     |       %3d      | %15.3lf | %15.3lf |", i, cluster_sizes [i-1], best_energy [i-1], sum_energy [i-1]/cluster_sizes [i-1]);
-
-		for (j=0; j<cluster_sizes [i-1]; j++)
-			fprintf(fp, "#");
-
-		fprintf(fp, "\n");
-	}
-	fprintf(fp, "\n\n");
-
-	fprintf(fp, "              CLUSTERS             \n");
-	fprintf(fp, "===================================\n\n");
-	fprintf(fp, " Rank | Subrank | Run | Intermolecular E | Intramolecular E | Torsional energy |   Total energy   | Cluster RMSD | Reference RMSD |\n");
-	fprintf(fp, "------+---------+-----+------------------+------------------+------------------+------------------+--------------+----------------+\n");
-
-	for (i=1; i<=num_of_clusters; i++) // printing cluster info to file
-	{
-		for (j=0; j<num_of_runs; j++)
-			if (myresults [j].clus_id == i)
-			{
-				fprintf(fp, "  %3d |   %3d   | %3d |  %15.3lf |  %15.3lf |  %15.3lf |  %15.3lf |     %4.2lf     |      %4.2lf      |\n", (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number,
-				            (myresults [j]).interE, (myresults [j]).intraE, torsional_energy, (myresults [j]).interE + /*(myresults [j]).intraE +*/ torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref); // intraE can be commented when unbound_same_as_bound
-			}
-	}
-	fclose(fp);
 }
 
-void clusanal_gendlg(
+void generate_output(
                            Ligandresult  myresults [],
                            int           num_of_runs,
-                     const Liganddata*   ligand_ref,
+                           IntraTables*  tables,
+                           Liganddata*   ligand_ref,
+                     const Liganddata*   ligand_xray,
                      const Dockpars*     mypars,
                      const Gridinfo*     mygrid,
                      const int*          argc,
@@ -630,14 +661,12 @@ void clusanal_gendlg(
 // will be written to it.
 {
 	int i, j, atom_cnt;
-	Ligandresult temp_ligres;
-	int num_of_clusters;
+	int num_of_clusters = 0;
 	int current_clust_center;
 	double temp_rmsd;
 	int result_clustered;
 	int subrank;
 	FILE* fp = stdout;
-	FILE* fp_orig;
 	FILE* fp_xml;
 	int cluster_sizes [1000];
 	double sum_energy [1000];
@@ -646,13 +675,12 @@ void clusanal_gendlg(
 	char tempstr [256];
 
 	double cluster_tolerance = mypars->rmsd_tolerance;
-	const double AD4_coeff_tors = mypars->coeffs.AD4_coeff_tors;
-	double torsional_energy;
 
 	// first of all, let's calculate the constant torsional free energy term
-	torsional_energy = AD4_coeff_tors * ligand_ref->true_ligand_rotbonds;
+	double torsional_energy = mypars->coeffs.AD4_coeff_tors * ligand_ref->true_ligand_rotbonds;
 
 	int len = strlen(mypars->resname) + 4 + 1;
+	
 	// GENERATING DLG FILE
 	if(mypars->output_dlg){
 		if(!mypars->dlg2stdout){
@@ -660,6 +688,10 @@ void clusanal_gendlg(
 			strcpy(report_file_name, mypars->resname);
 			strcat(report_file_name, ".dlg");
 			fp = fopen(report_file_name, "w");
+			if(fp==NULL){
+				printf("Error: Cannot create dlg output file %s: %s\n",report_file_name,strerror(errno));
+				exit(7);
+			}
 			free(report_file_name);
 		}
 
@@ -667,8 +699,8 @@ void clusanal_gendlg(
 		write_basic_info_dlg(fp, ligand_ref, mypars, mygrid, argc, argv);
 
 		if(!mypars->xml2dlg){
-			fprintf(fp, "           COUNTER STATES           \n");
-			fprintf(fp, "___________________________________\n\n");
+			fprintf(fp, "    COUNTER STATES\n");
+			fprintf(fp, "    ________________________\n\n\n");
 			fprintf(fp, "Number of energy evaluations performed:    %lu\n", evals_performed);
 			fprintf(fp, "Number of generations used:                %lu\n", generations_used);
 			fprintf(fp, "\n\n");
@@ -677,11 +709,30 @@ void clusanal_gendlg(
 		std::string pdbqt_template;
 		std::vector<unsigned int> atom_data;
 		char lineout [264];
+		bool output_ref_calcs = mypars->reflig_en_required;
+		if(mypars->given_xrayligandfile){
+			// writing xray ligand pdbqt file
+			fprintf(fp, "    XRAY LIGAND PDBQT FILE:\n");
+			fprintf(fp, "    ________________________\n\n\n");
+			ligand_calc_output(fp, "XRAY-LIGAND-PDBQT: USER", tables, ligand_xray, mypars, mygrid, mypars->contact_analysis, output_ref_calcs);
+			if(output_ref_calcs) output_ref_calcs=false;
+			unsigned int line_count = 0;
+			while (line_count < ligand_xray->ligand_line_count)
+			{
+				strcpy(tempstr,ligand_xray->file_content[line_count].c_str());
+				line_count++;
+				fprintf(fp, "XRAY-LIGAND-PDBQT: %s", tempstr);
+			}
+			fprintf(fp, "\n\n");
+		}
 		// writing input pdbqt file
 		fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
-		fp_orig = fopen(mypars->ligandfile, "rb"); // fp_orig = fopen(mypars->ligandfile, "r");
-		while (fgets(tempstr, 255, fp_orig) != NULL) // reading original ligand pdb line by line
+		ligand_calc_output(fp, "INPUT-LIGAND-PDBQT: USER", tables, ligand_ref, mypars, mygrid, mypars->contact_analysis, output_ref_calcs);
+		unsigned int line_count = 0;
+		while (line_count < ligand_ref->ligand_line_count)
 		{
+			strcpy(tempstr,ligand_ref->file_content[line_count].c_str());
+			line_count++;
 			fprintf(fp, "INPUT-LIGAND-PDBQT: %s", tempstr);
 			if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 			{
@@ -700,15 +751,15 @@ void clusanal_gendlg(
 			}
 		}
 		fprintf(fp, "\n\n");
-		fclose(fp_orig);
 		
 		// writing input flexres pdbqt file if specified
 		if (mypars->flexresfile!=NULL) {
 			if ( strlen(mypars->flexresfile)>0 ) {
 				fprintf(fp, "    INPUT FLEXRES PDBQT FILE:\n    ________________________\n\n\n");
-				fp_orig = fopen(mypars->flexresfile, "rb"); // fp_orig = fopen(mypars->flexresfile, "r");
-				while (fgets(tempstr, 255, fp_orig) != NULL) // reading original flexres pdb line by line
+				while (line_count < ligand_ref->file_content.size())
 				{
+					strcpy(tempstr,ligand_ref->file_content[line_count].c_str());
+					line_count++;
 					fprintf(fp, "INPUT-FLEXRES-PDBQT: %s", tempstr);
 					if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 					{
@@ -727,7 +778,6 @@ void clusanal_gendlg(
 					}
 				}
 				fprintf(fp, "\n\n");
-				fclose(fp_orig);
 			}
 		}
 		
@@ -742,15 +792,6 @@ void clusanal_gendlg(
 
 			if(mypars->contact_analysis){
 				if(myresults[i].analysis.size()>0){
-					// sort by analysis type
-					AnalysisData temp;
-					for(unsigned int j=0; j<myresults[i].analysis.size(); j++)
-						for(unsigned int k=0; k<myresults[i].analysis.size()-j-1; k++)
-							if(myresults[i].analysis[k].type>myresults[i].analysis[k+1].type){
-								temp = myresults[i].analysis[k];
-								myresults[i].analysis[k]   = myresults[i].analysis[k+1];
-								myresults[i].analysis[k+1] = temp;
-							}
 					fprintf(fp, "ANALYSIS: COUNT %lu\n", myresults[i].analysis.size());
 					std::string types    = "TYPE    {";
 					std::string lig_id   = "LIGID   {";
@@ -852,7 +893,7 @@ void clusanal_gendlg(
 					fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[i].genotype[5]);
 				} else fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", myresults[i].genotype[3], myresults[i].genotype[4], myresults[i].genotype[5], myresults[i].genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1]);
 				fprintf(fp, "DOCKED: USER    NEWDPF dihe0");
-				for(j=0; j<myresults[i].reslig_realcoord.num_of_rotbonds; j++)
+				for(j=0; j<ligand_ref->num_of_rotbonds; j++)
 					fprintf(fp, " %.6f", myresults[i].genotype[6+j]);
 				fprintf(fp, "\n");
 			}
@@ -865,16 +906,18 @@ void clusanal_gendlg(
 			}
 			
 			curr_model = pdbqt_template;
-			for(atom_cnt = atom_data.size(); atom_cnt-->0;)
+			// inserting text from the end means prior text positions won't shift
+			// so there's less to keep track off ;-)
+			for(atom_cnt = ligand_ref->num_of_atoms; atom_cnt-->0;)
 			{
 				char* line = lineout;
-				line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][1]); // x
-				line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][2]); // y
-				line += sprintf(line, "%8.3lf", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][3]); // z
+				line += sprintf(line, "%8.3lf", myresults[i].atom_idxyzq[atom_cnt][1]); // x
+				line += sprintf(line, "%8.3lf", myresults[i].atom_idxyzq[atom_cnt][2]); // y
+				line += sprintf(line, "%8.3lf", myresults[i].atom_idxyzq[atom_cnt][3]); // z
 				line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw
 				line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec
-				line += sprintf(line, "    %+6.3lf ", myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][4]); // q
-				line += sprintf(line, "%-2s\n", myresults[i].reslig_realcoord.atom_types[((int) myresults[i].reslig_realcoord.atom_idxyzq[atom_cnt][0])]); // type
+				line += sprintf(line, "    %+6.3lf ", myresults[i].atom_idxyzq[atom_cnt][4]); // q
+				line += sprintf(line, "%-2s\n", ligand_ref->atom_types[((int)myresults[i].atom_idxyzq[atom_cnt][0])]); // type
 				curr_model.insert(atom_data[atom_cnt],lineout);
 			}
 			fprintf(fp, "%s", curr_model.c_str());
@@ -883,150 +926,158 @@ void clusanal_gendlg(
 			fprintf(fp, "________________________________________________________________________________\n\n\n");
 		}
 	}
+	
+	// arranging results according to energy, myresults [energy_order[0]] will be the best one (with lowest energy)
+	std::vector<int> energy_order(num_of_runs);
+	std::vector<double> energies(num_of_runs);
+	for (i=0; i<num_of_runs; i++){
+		energy_order[i] = i;
+		energies[i] = myresults [i].interE+myresults[i].interflexE; // mimics the behaviour of AD4 unbound_same_as_bound
+		myresults[i].clus_id = 0; // indicates that it hasn't been put into cluster yet (may as well do that here ...)
+	}
+	// sorting the indices instead of copying the results around will be faster
+	for(i=0; i<num_of_runs-1; i++)
+		for(j=0; j<num_of_runs-i-1; j++)
+			if(energies[energy_order[j]]>energies[energy_order[j+1]]) // swap indices to percolate larger energies up
+				std::swap(energy_order[j], energy_order[j+1]);
 	// PERFORM CLUSTERING
-	// arranging results according to energy, myresults [0] will be the best one (with lowest energy)
-	for (j=0; j<num_of_runs-1; j++)
-		for (i=num_of_runs-2; i>=j; i--) // arrange according to sum of inter- and intramolecular energies
-			if ((myresults [i]).interE+myresults[i].interflexE /*+ (myresults [i]).intraE*/ > (myresults [i+1]).interE+myresults[i+1].interflexE /*+ (myresults [i+1]).intraE*/)	//mimics the behaviour of AD4 unbound_same_as_bound
-			//if ((myresults [i]).interE + (myresults [i]).intraE > (myresults [i+1]).interE + (myresults [i+1]).intraE)
+	if(mypars->calc_clustering){
+
+		// the best result is the center of the first cluster
+		myresults[energy_order[0]].clus_id = 1;
+		myresults[energy_order[0]].rmsd_from_cluscent = 0;
+		num_of_clusters = 1;
+
+		for (int w=1; w<num_of_runs; w++) // for each result
+		{
+			i=energy_order[w];
+			current_clust_center = 0;
+			result_clustered = 0;
+
+			for (int u=0; u<w; u++) // results with lower id-s are clustered, look for cluster centers
 			{
-				temp_ligres = myresults [i];
-				myresults [i] = myresults [i+1];
-				myresults [i+1] = temp_ligres;
+				j=energy_order[u];
+				if (myresults[j].clus_id > current_clust_center) // it is the center of a new cluster
+				{
+					current_clust_center = myresults[j].clus_id;
+					temp_rmsd = calc_rmsd(myresults[j].atom_idxyzq, myresults[i].atom_idxyzq, ligand_ref->true_ligand_atoms, mypars->handle_symmetry); // comparing current result with cluster center
+					if (temp_rmsd <= cluster_tolerance) // in this case we put result i to cluster with center j
+					{
+						myresults[i].clus_id = current_clust_center;
+						myresults[i].rmsd_from_cluscent = temp_rmsd;
+						result_clustered = 1;
+						break;
+					}
+				}
 			}
 
-	for (i=0; i<num_of_runs; i++)
-	{
-		(myresults [i]).clus_id = 0; // indicates that it hasn't been put into cluster yet
-	}
-
-	// the best result is the center of the first cluster
-	(myresults [0]).clus_id = 1;
-	(myresults [0]).rmsd_from_cluscent = 0;
-	num_of_clusters = 1;
-
-	for (i=1; i<num_of_runs; i++) // for each result
-	{
-		current_clust_center = 0;
-		result_clustered = 0;
-
-		for (j=0; j<i; j++) // results with lower id-s are clustered, look for cluster centers
-		{
-			if ((myresults [j]).clus_id > current_clust_center) // it is the center of a new cluster
+			if (result_clustered != 1) // if no suitable cluster was found, this is the center of a new one
 			{
-				current_clust_center = (myresults [j]).clus_id;
-				temp_rmsd = calc_rmsd(&((myresults [j]).reslig_realcoord), &((myresults [i]).reslig_realcoord), mypars->handle_symmetry); // comparing current result with cluster center
-				if (temp_rmsd <= cluster_tolerance) // in this case we put result i to cluster with center j
+				num_of_clusters++;
+				myresults[i].clus_id = num_of_clusters; // new cluster id
+				myresults[i].rmsd_from_cluscent = 0;
+			}
+		}
+
+		for (i=1; i<=num_of_clusters; i++) // printing cluster info to file
+		{
+			subrank = 0;
+			cluster_sizes [i-1] = 0;
+			sum_energy [i-1] = 0;
+			for (int u=0; u<num_of_runs; u++){
+				j = energy_order[u];
+				if (myresults [j].clus_id == i)
 				{
-					(myresults [i]).clus_id = current_clust_center;
-					(myresults [i]).rmsd_from_cluscent = temp_rmsd;
-					result_clustered = 1;
-					break;
+					subrank++;
+					cluster_sizes[i-1]++;
+					sum_energy [i-1] += myresults[j].interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
+					myresults[j].clus_subrank = subrank;
+					if (subrank == 1)
+					{
+						best_energy [i-1] = myresults[j].interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
+						best_energy_runid  [i-1] = myresults[j].run_number;
+					}
 				}
 			}
 		}
 
-		if (result_clustered != 1) // if no suitable cluster was found, this is the center of a new one
-		{
-			num_of_clusters++;
-			(myresults [i]).clus_id = num_of_clusters; // new cluster id
-			(myresults [i]).rmsd_from_cluscent = 0;
-		}
-	}
+		if(mypars->output_dlg){
+			// WRITING CLUSTER INFORMATION
+			fprintf(fp, "    CLUSTERING HISTOGRAM\n    ____________________\n\n\n");
+			fprintf(fp, "________________________________________________________________________________\n");
+			fprintf(fp, "     |           |     |           |     |\n");
+			fprintf(fp, "Clus | Lowest    | Run | Mean      | Num | Histogram\n");
+			fprintf(fp, "-ter | Binding   |     | Binding   | in  |\n");
+			fprintf(fp, "Rank | Energy    |     | Energy    | Clus|    5    10   15   20   25   30   35\n");
+			fprintf(fp, "_____|___________|_____|___________|_____|____:____|____:____|____:____|____:___\n");
 
-	for (i=1; i<=num_of_clusters; i++) // printing cluster info to file
-	{
-		subrank = 0;
-		cluster_sizes [i-1] = 0;
-		sum_energy [i-1] = 0;
-		for (j=0; j<num_of_runs; j++)
-			if (myresults [j].clus_id == i)
+			for (i=0; i<num_of_clusters; i++)
 			{
-				subrank++;
-				(cluster_sizes [i-1])++;
-				sum_energy [i-1] += (myresults [j]).interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
-				(myresults [j]).clus_subrank = subrank;
-				if (subrank == 1)
-				{
-					best_energy [i-1] = (myresults [j]).interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
-					best_energy_runid  [i-1] = (myresults [j]).run_number;
+				fprintf(fp, "%4d |", i+1);
+
+				if (best_energy[i] > 999999.99)
+					fprintf(fp, "%+10.2e", best_energy[i]);
+				else
+					fprintf(fp, "%+10.2f", best_energy[i]);
+				fprintf(fp, " |%4d |", best_energy_runid[i]);
+
+				if (sum_energy[i]/cluster_sizes[i] > 999999.99)
+					fprintf(fp, "%+10.2e |", sum_energy[i]/cluster_sizes[i]);
+				else
+					fprintf(fp, "%+10.2f |", sum_energy[i]/cluster_sizes[i]);
+
+				fprintf(fp, "%4d |", cluster_sizes [i]);
+
+				for (j=0; j<cluster_sizes [i]; j++)
+					fprintf(fp, "#");
+
+				fprintf(fp, "\n");
+			}
+
+			fprintf(fp, "_____|___________|_____|___________|_____|______________________________________\n\n\n");
+
+			// writing RMSD table
+
+			fprintf(fp, "    RMSD TABLE\n");
+			fprintf(fp, "    __________\n\n\n");
+
+			fprintf(fp, "_____________________________________________________________________\n");
+			fprintf(fp, "     |      |      |           |         |                 |\n");
+			fprintf(fp, "Rank | Sub- | Run  | Binding   | Cluster | Reference       | Grep\n");
+			fprintf(fp, "     | Rank |      | Energy    | RMSD    | RMSD            | Pattern\n");
+			fprintf(fp, "_____|______|______|___________|_________|_________________|___________\n" );
+
+			for (i=0; i<num_of_clusters; i++) // printing cluster info to file
+			{
+				for (int u=0; u<num_of_runs; u++){
+					j = energy_order[u];
+					if (myresults[j].clus_id == i+1) {
+						if (myresults[j].interE + myresults[j].interflexE + torsional_energy > 999999.99)
+							fprintf(fp, "%4d   %4d   %4d  %+10.2e  %8.2f  %8.2f           RANKING\n",
+							             myresults[j].clus_id,
+							                   myresults[j].clus_subrank,
+							                         myresults[j].run_number,
+							                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
+							                                       myresults[j].rmsd_from_cluscent,
+							                                              myresults[j].rmsd_from_ref);
+						else
+							fprintf(fp, "%4d   %4d   %4d  %+10.2f  %8.2f  %8.2f           RANKING\n",
+							             myresults[j].clus_id,
+							                   myresults[j].clus_subrank,
+							                         myresults[j].run_number,
+							                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
+							                                       myresults[j].rmsd_from_cluscent,
+							                                              myresults[j].rmsd_from_ref);
+					}
 				}
 			}
+		}
 	}
-
+	
 	if(mypars->output_dlg){
-		// WRITING CLUSTER INFORMATION
-		fprintf(fp, "    CLUSTERING HISTOGRAM\n    ____________________\n\n\n");
-		fprintf(fp, "________________________________________________________________________________\n");
-		fprintf(fp, "     |           |     |           |     |\n");
-		fprintf(fp, "Clus | Lowest    | Run | Mean      | Num | Histogram\n");
-		fprintf(fp, "-ter | Binding   |     | Binding   | in  |\n");
-		fprintf(fp, "Rank | Energy    |     | Energy    | Clus|    5    10   15   20   25   30   35\n");
-		fprintf(fp, "_____|___________|_____|___________|_____|____:____|____:____|____:____|____:___\n");
-
-		for (i=0; i<num_of_clusters; i++)
-		{
-			fprintf(fp, "%4d |", i+1);
-
-			if (best_energy[i] > 999999.99)
-				fprintf(fp, "%+10.2e", best_energy[i]);
-			else
-				fprintf(fp, "%+10.2f", best_energy[i]);
-			fprintf(fp, " |%4d |", best_energy_runid[i]);
-
-			if (sum_energy[i]/cluster_sizes[i] > 999999.99)
-				fprintf(fp, "%+10.2e |", sum_energy[i]/cluster_sizes[i]);
-			else
-				fprintf(fp, "%+10.2f |", sum_energy[i]/cluster_sizes[i]);
-
-			fprintf(fp, "%4d |", cluster_sizes [i]);
-
-			for (j=0; j<cluster_sizes [i]; j++)
-				fprintf(fp, "#");
-
-			fprintf(fp, "\n");
-		}
-
-		fprintf(fp, "_____|___________|_____|___________|_____|______________________________________\n\n\n");
-
-		// writing RMSD table
-
-		fprintf(fp, "    RMSD TABLE\n");
-		fprintf(fp, "    __________\n\n\n");
-
-		fprintf(fp, "_____________________________________________________________________\n");
-		fprintf(fp, "     |      |      |           |         |                 |\n");
-		fprintf(fp, "Rank | Sub- | Run  | Binding   | Cluster | Reference       | Grep\n");
-		fprintf(fp, "     | Rank |      | Energy    | RMSD    | RMSD            | Pattern\n");
-		fprintf(fp, "_____|______|______|___________|_________|_________________|___________\n" );
-
-		for (i=0; i<num_of_clusters; i++) // printing cluster info to file
-		{
-			for (j=0; j<num_of_runs; j++)
-				if (myresults [j].clus_id == i+1) {
-					if (myresults[j].interE + myresults[j].interflexE + torsional_energy > 999999.99)
-						fprintf(fp, "%4d   %4d   %4d  %+10.2e  %8.2f  %8.2f           RANKING\n",
-						             (myresults [j]).clus_id,
-						                   (myresults [j]).clus_subrank,
-						                         (myresults [j]).run_number,
-						                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
-						                                       (myresults [j]).rmsd_from_cluscent,
-						                                              (myresults [j]).rmsd_from_ref);
-					else
-						fprintf(fp, "%4d   %4d   %4d  %+10.2f  %8.2f  %8.2f           RANKING\n",
-						             (myresults [j]).clus_id,
-						                   (myresults [j]).clus_subrank,
-						                         (myresults [j]).run_number,
-						                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
-						                                       (myresults [j]).rmsd_from_cluscent,
-						                                              (myresults [j]).rmsd_from_ref);
-				}
-		}
-
 		// Add execution and idle time information
 		fprintf(fp, "\nRun time %.3f sec", exec_time);
 		fprintf(fp, "\nIdle time %.3f sec\n", idle_time);
-
 		if(!mypars->dlg2stdout){
 			fclose(fp);
 		}
@@ -1039,14 +1090,31 @@ void clusanal_gendlg(
 		strcpy(xml_file_name, mypars->resname);
 		strcat(xml_file_name, ".xml");
 		fp_xml = fopen(xml_file_name, "w");
+		if(fp==NULL){
+			printf("Error: Cannot create xml output file %s: %s\n",xml_file_name,strerror(errno));
+			exit(9);
+		}
 
 		fprintf(fp_xml, "<?xml version=\"1.0\" ?>\n");
 		fprintf(fp_xml, "<autodock_gpu>\n");
 		fprintf(fp_xml, "\t<version>%s</version>\n",VERSION);
 		if((*argc)>1){
 			fprintf(fp_xml, "\t<arguments>");
-			for(i=1; i<(*argc); i++)
+			for(i=1; i<(*argc); i++){
 				fprintf(fp_xml, "%s%s", (i>1)?" ":"", argv[i]);
+				if (argcmp("filelist", argv[i], 'B')){
+					if(mypars->filelist_files>1){
+						fprintf(fp_xml, " %s", mypars->ligandfile);
+						i+=mypars->filelist_files; // skip ahead in case there are multiple entries here
+					}
+				}
+				if (argcmp("xml2dlg", argv[i], 'X')){
+					if(mypars->xml_files>1){
+						fprintf(fp_xml, " %s", mypars->load_xml);
+						i+=mypars->xml_files; // skip ahead in case there are multiple entries here
+					}
+				}
+			}
 			fprintf(fp_xml, "</arguments>\n");
 		}
 		if(mypars->dpffile)
@@ -1070,19 +1138,11 @@ void clusanal_gendlg(
 		fprintf(fp_xml, "\t<run_requested>%lu</run_requested>\n",mypars->num_of_runs);
 		fprintf(fp_xml, "\t<runs>\n");
 		double phi, theta;
-		for(j=0; j<num_of_runs; j++){
+		for(int u=0; u<num_of_runs; u++){
+			j = energy_order[u];
 			fprintf(fp_xml, "\t\t<run id=\"%d\">\n",(myresults [j]).run_number);
 			if(mypars->contact_analysis){
 				if(myresults[j].analysis.size()>0){
-					// sort by analysis type
-					AnalysisData temp;
-					for(unsigned int i=0; i<myresults[j].analysis.size(); i++)
-						for(unsigned int k=0; k<myresults[j].analysis.size()-i-1; k++)
-							if(myresults[j].analysis[k].type>myresults[j].analysis[k+1].type){
-								temp = myresults[j].analysis[k];
-								myresults[j].analysis[k]   = myresults[j].analysis[k+1];
-								myresults[j].analysis[k+1] = temp;
-							}
 					fprintf(fp_xml, "\t\t\t<contact_analysis count=\"%lu\">\n", myresults[j].analysis.size());
 					std::string types;
 					std::string lig_id;
@@ -1140,36 +1200,39 @@ void clusanal_gendlg(
 			phi = myresults[j].genotype[3]/180.0*PI;
 			theta = myresults[j].genotype[4]/180.0*PI;
 			fprintf(fp_xml, "\t\t\t<axisangle0>%.8f %.8f %.8f %.6f</axisangle0>\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[j].genotype[5]);
-			fprintf(fp_xml, "\t\t\t<ndihe>%d</ndihe>\n", myresults[j].reslig_realcoord.num_of_rotbonds);
+			fprintf(fp_xml, "\t\t\t<ndihe>%d</ndihe>\n", ligand_ref->num_of_rotbonds);
 			fprintf(fp_xml, "\t\t\t<dihe0>");
-			for(i=0; i<myresults[j].reslig_realcoord.num_of_rotbonds; i++)
+			for(i=0; i<ligand_ref->num_of_rotbonds; i++)
 				fprintf(fp_xml, "%s%.6f", (i>0)?" ":"", myresults[j].genotype[6+i]);
 			fprintf(fp_xml, "\n\t\t\t</dihe0>\n");
 			fprintf(fp_xml, "\t\t</run>\n");
 		}
 		fprintf(fp_xml, "\t</runs>\n");
-		fprintf(fp_xml, "\t<result>\n");
-		
-		fprintf(fp_xml, "\t\t<clustering_histogram>\n");
-		for (i=0; i<num_of_clusters; i++)
-		{
-			fprintf(fp_xml, "\t\t\t<cluster cluster_rank=\"%d\" lowest_binding_energy=\"%.2lf\" run=\"%d\" mean_binding_energy=\"%.2lf\" num_in_clus=\"%d\" />\n",
+		if(mypars->calc_clustering){
+			fprintf(fp_xml, "\t<result>\n");
+			fprintf(fp_xml, "\t\t<clustering_histogram>\n");
+			for (i=0; i<num_of_clusters; i++)
+			{
+				fprintf(fp_xml, "\t\t\t<cluster cluster_rank=\"%d\" lowest_binding_energy=\"%.2lf\" run=\"%d\" mean_binding_energy=\"%.2lf\" num_in_clus=\"%d\" />\n",
 					i+1, best_energy[i], best_energy_runid[i], sum_energy[i]/cluster_sizes[i], cluster_sizes [i]);
-		}
-		fprintf(fp_xml, "\t\t</clustering_histogram>\n");
-		
-		fprintf(fp_xml, "\t\t<rmsd_table>\n");
-		for (i=0; i<num_of_clusters; i++)
-		{
-			for (j=0; j<num_of_runs; j++)
-				if (myresults [j].clus_id == i+1)
-				{
-					fprintf(fp_xml, "\t\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
-					                     (myresults [j]).clus_id, (myresults [j]).clus_subrank, (myresults [j]).run_number, myresults[j].interE + myresults[j].interflexE + torsional_energy, (myresults [j]).rmsd_from_cluscent, (myresults [j]).rmsd_from_ref);
+			}
+			fprintf(fp_xml, "\t\t</clustering_histogram>\n");
+			
+			fprintf(fp_xml, "\t\t<rmsd_table>\n");
+			for (i=0; i<num_of_clusters; i++)
+			{
+				for (int u=0; u<num_of_runs; u++){
+					j = energy_order[u];
+					if (myresults[j].clus_id == i+1)
+					{
+						fprintf(fp_xml, "\t\t\t<run rank=\"%d\" sub_rank=\"%d\" run=\"%d\" binding_energy=\"%.2lf\" cluster_rmsd=\"%.2lf\" reference_rmsd=\"%.2lf\" />\n",
+							myresults[j].clus_id, myresults[j].clus_subrank, myresults[j].run_number, myresults[j].interE + myresults[j].interflexE + torsional_energy, myresults[j].rmsd_from_cluscent, myresults[j].rmsd_from_ref);
+					}
 				}
+			}
+			fprintf(fp_xml, "\t\t</rmsd_table>\n");
+			fprintf(fp_xml, "\t</result>\n");
 		}
-		fprintf(fp_xml, "\t\t</rmsd_table>\n");
-		fprintf(fp_xml, "\t</result>\n");
 		fprintf(fp_xml, "</autodock_gpu>\n");
 		fclose(fp_xml);
 		free(xml_file_name);
@@ -1178,9 +1241,8 @@ void clusanal_gendlg(
 
 void process_result(
                     const Gridinfo*        mygrid,
-                    const float*           cpu_floatgrids,
                     const Dockpars*        mypars,
-                    const Liganddata*      myligand_init,
+                          Liganddata*      myligand_init,
                     const Liganddata*      myxrayligand,
                     const int*             argc,
                           char**           argv,
@@ -1191,11 +1253,13 @@ void process_result(
 
 	// Fill in cpu_result_ligands
 	float best_energy_of_all = 1000000000000.0;
+	IntraTables tables(&(sim_state.myligand_reference), mypars->coeffs.scaled_AD4_coeff_elec, mypars->coeffs.AD4_coeff_desolv, mypars->qasp, mypars->nr_mod_atype_pairs, mypars->mod_atype_pairs);
 	for (unsigned long run_cnt=0; run_cnt < mypars->num_of_runs; run_cnt++)
 	{
 		arrange_result(sim_state.cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM, sim_state.cpu_energies.data()+run_cnt*mypars->pop_size, mypars->pop_size);
 		make_resfiles(sim_state.cpu_populations.data()+run_cnt*mypars->pop_size*GENOTYPE_LENGTH_IN_GLOBMEM,
 		              sim_state.cpu_energies.data()+run_cnt*mypars->pop_size,
+		              &tables,
 		              &(sim_state.myligand_reference),
 		              myligand_init,
 		              myxrayligand,
@@ -1203,7 +1267,6 @@ void process_result(
 		              sim_state.cpu_evals_of_runs[run_cnt],
 		              sim_state.generation_cnt,
 		              mygrid,
-		              cpu_floatgrids,
 		              argc,
 		              argv,
 		              /*1*/0,
@@ -1212,10 +1275,12 @@ void process_result(
 		              &(cpu_result_ligands [run_cnt]));
 	}
 
-	// Do clustering analysis and generate dlg file
-	clusanal_gendlg(cpu_result_ligands.data(),
+	// Do analyses and generate dlg or xml output files
+	generate_output(cpu_result_ligands.data(),
 	                mypars->num_of_runs,
+	                &tables,
 	                myligand_init,
+	                myxrayligand,
 	                mypars,
 	                mygrid,
 	                argc,

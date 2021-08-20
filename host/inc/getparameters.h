@@ -65,8 +65,9 @@ constexpr AD4_free_energy_coeffs unbound_models[3] = {
 // Struct which contains the docking parameters (partly parameters for fpga)
 typedef struct _Dockpars
 {                                                                 // default values
-	int                       devnum                          = -1;
-	int                       devices_requested               = 1; // this is AD-GPU ...
+	int                       devnum                          = -1; // actual device number (-1 means not set, grab first)
+	std::vector<int>          dev_pool;
+	int                       dev_pool_nr                     = -1; // number in pool of many devices (-1 means none set, grab first)
 	uint32_t                  seed[3]                         = {(uint32_t)time(NULL),(uint32_t)processid(),0};
 	unsigned long             num_of_energy_evals             = 2500000;
 	unsigned long             num_of_generations              = 42000;
@@ -107,6 +108,8 @@ typedef struct _Dockpars
 	float                     H_cutoff                        = 3.7;
 	float                     V_cutoff                        = 4.0;
 	unsigned int              xml_files                       = 0;
+	unsigned int              filelist_files                  = 0;
+	unsigned int              filelist_grid_idx               = 0;
 	bool                      dlg2stdout                      = false;
 	int                       gen_pdbs                        = 0;
 	char*                     dpffile                         = NULL;
@@ -119,7 +122,6 @@ typedef struct _Dockpars
 	bool                      autostop                        = true;
 	unsigned int              as_frequency                    = 5;
 	float                     stopstd                         = 0.15;
-	bool                      cgmaps                          = false; // default is false (use a single map for every CGx or Gx atom type)
 	unsigned long             num_of_runs                     = 20;
 	unsigned int              list_nr                         = 0;
 	bool                      reflig_en_required              = false;
@@ -136,14 +138,27 @@ typedef struct _Dockpars
 	float                     adam_epsilon                    = 1.0e-8f;
 	bool                      output_dlg                      = true; // dlg output file will be generated (by default)
 	bool                      output_xml                      = true; // xml output file will be generated (by default)
+	bool                      calc_clustering                 = true; // wether clustering will be calculated and output
 } Dockpars;
 
-inline bool add_deriv_atype(
-                            Dockpars* mypars,
-                            char*     name,
-                            int       length
-                           )
+inline int add_deriv_atype(
+                           Dockpars* mypars,
+                           char*     name,
+                           int       length,
+                           bool      ignore_doublets = false
+                          )
 {
+	// name is too long
+	if(length>=4) return 0;
+	// make sure name hasn't already been used
+	for(int i=0; i<mypars->nr_deriv_atypes; i++){
+		if (strncmp(mypars->deriv_atypes[i].deriv_name, name, length) == 0){
+			if(ignore_doublets) return -i-1; // return doublet index starting from -1
+			printf("Error: -derivtype type name \"%s\" has already been used.\n",mypars->deriv_atypes[i].deriv_name);
+			exit(2);
+		}
+	}
+	// add new type name
 	mypars->nr_deriv_atypes++;
 	mypars->deriv_atypes=(deriv_atype*)realloc(mypars->deriv_atypes,mypars->nr_deriv_atypes*sizeof(deriv_atype));
 	if(mypars->deriv_atypes==NULL){
@@ -151,18 +166,9 @@ inline bool add_deriv_atype(
 		exit(1);
 	}
 	mypars->deriv_atypes[mypars->nr_deriv_atypes-1].nr=mypars->nr_deriv_atypes;
-	if(length<4){
-		strncpy(mypars->deriv_atypes[mypars->nr_deriv_atypes-1].deriv_name,name,length);
-		mypars->deriv_atypes[mypars->nr_deriv_atypes-1].deriv_name[length]='\0';
-	} else return false; // name is too long
-	// make sure name hasn't already been used
-	for(int i=0; i<mypars->nr_deriv_atypes-1; i++){
-		if (strcmp(mypars->deriv_atypes[i].deriv_name, mypars->deriv_atypes[mypars->nr_deriv_atypes-1].deriv_name) == 0){
-			printf("Error: -derivtype type name \"%s\" has already been used.\n",mypars->deriv_atypes[i].deriv_name);
-			exit(2);
-		}
-	}
-	return true;
+	strncpy(mypars->deriv_atypes[mypars->nr_deriv_atypes-1].deriv_name,name,length);
+	mypars->deriv_atypes[mypars->nr_deriv_atypes-1].deriv_name[length]='\0';
+	return 1;
 }
 
 bool argcmp(
@@ -171,13 +177,13 @@ bool argcmp(
             const char shortarg = '\0'
            );
 
-int preparse_dpf(
-                 const int*      argc,
-                       char**    argv,
-                       Dockpars* mypars,
-                       Gridinfo* mygrid,
-                       FileList& filelist
-                );
+int initial_commandpars(
+                        const int*      argc,
+                              char**    argv,
+                              Dockpars* mypars,
+                              Gridinfo* mygrid,
+                              FileList& filelist
+                       );
 
 int get_filelist(
                  const int*      argc,
@@ -191,7 +197,8 @@ int get_filenames_and_ADcoeffs(
                                const int*,
                                      char**,
                                      Dockpars*,
-                               const bool
+                               const bool,
+                               const bool = true
                               );
 
 void print_options(

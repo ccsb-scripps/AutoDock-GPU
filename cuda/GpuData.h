@@ -111,7 +111,8 @@ typedef struct
 
 struct GpuData {
 	int                             devnum;
-	int                             preload_gridsize;
+	int                             devid;
+	int                             preallocated_gridsize;
 	GpuDockparameters               dockpars;
 	
 	// Consolidated constants and memory pointers to reduce kernel launch overhead
@@ -146,6 +147,8 @@ struct GpuTempData {
 	int*        pMem_evals_of_new_entities;
 	int*        pMem_gpu_evals_of_runs;
 	uint32_t*   pMem_prng_states;
+	char*       device_name;
+	bool        device_busy;
 };
 #endif
 

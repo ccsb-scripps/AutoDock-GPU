@@ -41,7 +41,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
     }
 
 // Struct which contains ligand and flexres information.
-typedef struct
+typedef struct _Liganddata
 {
 // num_of_atoms:          Number of ligand/flexres atoms.
 	int            num_of_atoms;
@@ -67,6 +67,8 @@ typedef struct
 	char           base_atom_names       [MAX_NUM_OF_ATOMS][4];
 // atom_map_to_fgrids:    Maps each moving atom to a (pre-loaded) map id
 	int            atom_map_to_fgrids    [MAX_NUM_OF_ATOMS];
+// ligand grid types
+	char           ligand_grid_types     [MAX_NUM_OF_ATYPES+2][4]; // The additional two are the electrostatic and the desolvation types
 // atom_idxyzq:           Each row describes one atom of the ligand.
 //                        The columns (second index) contain the atom type code, x, y and z coordinate
 //                        (in Angstroms) and electrical charge  of the atom.
@@ -143,6 +145,9 @@ typedef struct
 	bool           acceptor                [MAX_NUM_OF_ATOMS];
 	bool           donor                   [MAX_NUM_OF_ATOMS];
 	bool           reactive                [MAX_NUM_OF_ATOMS]; // atoms with 1,4,7 numbered atom types
+// store the ligand file content so it only gets read once (not upto 4 times ...)
+	std::vector<std::string> file_content;
+	unsigned int ligand_line_count = 0;
 } Liganddata;
 
 // structure to store relevant receptor atom data
@@ -178,14 +183,14 @@ int init_liganddata(
                           Liganddata*,
                           Gridinfo*,
                           int          nr_deriv_atypes,
-                          deriv_atype* deriv_atypes,
-                          bool         cgmaps
+                          deriv_atype* deriv_atypes
                    );
 
 int set_liganddata_typeid(
-                                Liganddata*,
-                                int,
-                          const char*
+                                Liganddata* myligand,
+                                Gridinfo*   mygrid,
+                                int         atom_id,
+                          const char*       typeof_new_atom
                          );
 
 void get_intraE_contributors(Liganddata*);
@@ -211,17 +216,16 @@ int get_VWpars(
 
 int get_moving_and_unit_vectors(Liganddata*);
 
-int get_liganddata(
-                   const char*,
-                   const char*,
-                         Liganddata*,
-                   const double,
-                   const double,
-                         int          nr_deriv_atypes,
-                         deriv_atype* deriv_atypes,
-                         int          nr_mod_atype_pairs,
-                         pair_mod*    mod_atype_pairs
-                  );
+int parse_liganddata(
+                           Liganddata*  myligand,
+                           Gridinfo*    mygrid,
+                     const double       AD4_coeff_vdW,
+                     const double       AD4_coeff_hb,
+                           int          nr_deriv_atypes,
+                           deriv_atype* deriv_atypes,
+                           int          nr_mod_atype_pairs,
+                           pair_mod*    mod_atype_pairs
+                    );
 
 int gen_new_pdbfile(const char*, const char*, const Liganddata*);
 
@@ -233,7 +237,12 @@ void move_ligand(Liganddata*, const double [], const double []);
 
 void scale_ligand(Liganddata*, const double);
 
-double calc_rmsd(const Liganddata*, const Liganddata*, const bool);
+double calc_rmsd(
+                 const double       atom_idxyzq_ref [MAX_NUM_OF_ATOMS][5],
+                 const double       atom_idxyzq     [MAX_NUM_OF_ATOMS][5],
+                       unsigned int num_atoms,
+                 const bool         handle_symmetry
+                );
 
 double calc_ddd_Mehler_Solmajer(double);
 
@@ -243,19 +252,6 @@ bool is_H_bond(
                const char* atype1,
                const char* atype2
               );
-
-void print_ref_lig_energies_f(
-                                    Liganddata,
-                              const float,
-                                    Gridinfo,
-                              const float*,
-                              const float,
-                              const float,
-                              const float,
-                              const float,
-                                    int,
-                                    pair_mod*
-                             );
 
 //////////////////////////////////
 //float functions
@@ -307,22 +303,13 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 float calc_interE_f(
                     const Gridinfo*   mygrid,
                     const Liganddata* myligand,
-                    const float*      fgrids,
                           float       outofgrid_tolerance,
                           int         debug,
-                          float&      intraflexE
+                          float&      intraflexE,
+                          float*      elecE = NULL,
+                          float*      peratom_vdw = NULL,
+                          float*      peratom_elec = NULL
                    );
-
-void calc_interE_peratom_f(
-                           const Gridinfo*   mygrid,
-                           const Liganddata* myligand,
-                           const float*      fgrids,
-                                 float       outofgrid_tolerance,
-                                 float*      elecE,
-                                 float       peratom_vdw [MAX_NUM_OF_ATOMS],
-                                 float       peratom_elec[MAX_NUM_OF_ATOMS],
-                                 int         debug
-                          );
 
 struct IntraTables{
 	//The following tables will contain the 1/r^6, 1/r^10, 1/r^12, W_el/(r*eps(r)) and W_des*exp(-r^2/(2sigma^2)) functions for
@@ -339,21 +326,30 @@ struct IntraTables{
 	float q1q2          [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ATOMS];
 	float qasp_mul_absq [MAX_NUM_OF_ATOMS];
 	bool is_HB          [MAX_NUM_OF_ATYPES] [MAX_NUM_OF_ATYPES];
+	pair_mod* mod_pair  [MAX_NUM_OF_ATYPES] [MAX_NUM_OF_ATYPES];
 
 	// Fill intraE tables
 	IntraTables(
 	            const Liganddata* myligand,
 	            const float       scaled_AD4_coeff_elec,
 	            const float       AD4_coeff_desolv,
-	            const float       qasp
+	            const float       qasp,
+	                  int         nr_mod_atype_pairs,
+	                  pair_mod*   mod_atype_pairs
 	           )
 	{
 		calc_distdep_tables_f(r_6_table, r_10_table, r_12_table, r_epsr_table, desolv_table, scaled_AD4_coeff_elec, AD4_coeff_desolv);
 		calc_q_tables_f(myligand, qasp, q1q2, qasp_mul_absq);
-		for (int type_id1=0; type_id1<myligand->num_of_atypes; type_id1++)
-			for (int type_id2=0; type_id2<myligand->num_of_atypes; type_id2++)
-				is_HB [type_id1][type_id2] = (is_H_bond(myligand->atom_types [type_id1],
-				                              myligand->atom_types [type_id2]) != 0);
+		for (int type_id1=0; type_id1<myligand->num_of_atypes; type_id1++){
+			for (int type_id2=0; type_id2<myligand->num_of_atypes; type_id2++){
+				is_HB    [type_id1][type_id2] = (is_H_bond(myligand->atom_types [type_id1],
+				                                           myligand->atom_types [type_id2]) != 0);
+				mod_pair [type_id1][type_id2] = is_mod_pair(myligand->atom_types[type_id1],
+				                                            myligand->atom_types[type_id2],
+				                                            nr_mod_atype_pairs,
+				                                            mod_atype_pairs);
+			}
+		}
 	}
 };
 
@@ -363,22 +359,14 @@ float calc_intraE_f(
                           float                     smooth,
                           bool                      ignore_desolv,
                     const float                     elec_min_distance,
-                          IntraTables&              tables,
+                          IntraTables*              tables,
                           int                       debug,
                           float&                    interflexE,
-                          int                       nr_mod_atype_pairs,
-                          pair_mod*                 mod_atype_pairs,
                           std::vector<AnalysisData> *analysis = NULL,
                     const ReceptorAtom*             flexres_atoms = NULL,
                           float                     R_cutoff = 2.1,
                           float                     H_cutoff = 3.7,
                           float                     V_cutoff = 4.2
-                   );
-
-int map_to_all_maps(
-                    Gridinfo*         mygrid,
-                    Liganddata*       myligand,
-                    std::vector<Map>& all_maps
                    );
 
 #endif /* PROCESSLIGAND_H_ */

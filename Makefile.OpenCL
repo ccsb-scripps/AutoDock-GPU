@@ -15,8 +15,6 @@ CPP = g++
 LIB_OPENCL = -lOpenCL
 UNAME := $(shell uname)
 
-$(shell ./link_opencl.sh)
-
 ifeq ($(UNAME), Darwin)
 # In case ScoreP (for profiling/tracing) is used,
 # need to link to a *.dylib for instrumentation
@@ -57,14 +55,16 @@ KRNL_DIR=./device
 KCMN_DIR=$(COMMON_DIR)
 BIN_DIR=./bin
 
-# Host sources
-OCL_SRC=$(wildcard $(OCL_SRC_DIR)/*.cpp)
-HOST_SRC=$(wildcard $(HOST_SRC_DIR)/*.cpp)
-SRC=$(OCL_SRC) $(HOST_SRC)
+TARGET := autodock
+TOOL_TARGET := adgpu_analysis
 
 IFLAGS=-I$(COMMON_DIR) -I$(OCL_INC_DIR) -I$(HOST_INC_DIR) -I$(KRNL_DIR) -I$(OCLA_INC_PATH)
 LFLAGS=-L$(OCLA_LIB_PATH)
 CFLAGS=-std=c++11 $(IFLAGS) $(LFLAGS)
+TOOL_CFLAGS=-std=c++11 -I$(COMMON_DIR) -I$(HOST_INC_DIR)
+
+# Host sources
+OCL_SRC=$(wildcard $(OCL_SRC_DIR)/*.cpp)
 
 # Device sources
 KRNL_MAIN=calcenergy.cl
@@ -81,7 +81,6 @@ K_NAMES=-DK1=$(K1_NAME) -DK2=$(K2_NAME) -DK3=$(K3_NAME) -DK4=$(K4_NAME) -DK5=$(K
 # Kernel flags
 KFLAGS=-DKRNL_SOURCE=$(KRNL_DIR)/$(KRNL_MAIN) -DKRNL_DIRECTORY=$(KRNL_DIR) -DKCMN_DIRECTORY=$(KCMN_DIR) $(K_NAMES)
 
-TARGET := autodock
 ifeq ($(DEVICE), CPU)
 	TARGET:=$(TARGET)_cpu
 else ifeq ($(DEVICE), GPU)
@@ -183,11 +182,11 @@ else
 endif
 # ------------------------------------------------------
 
-all: odock
+all: otool odock
 
 check-env-dev:
 	@if test -z "$$DEVICE"; then \
-		echo "DEVICE is undefined"; \
+		echo "Please set DEVICE to either CPU, GPU, CUDA, or OCLGPU to build docking software."; \
 		exit 1; \
 	else \
 		if [ "$$DEVICE" = "CPU" ]; then \
@@ -196,7 +195,8 @@ check-env-dev:
 			if [ "$$DEVICE" = "GPU" ]; then \
 				echo "DEVICE is set to $$DEVICE"; \
 			else \
-				echo "DEVICE value is invalid. Set DEVICE to either CPU or GPU"; \
+				echo "DEVICE value is invalid. Please set DEVICE to either CPU, GPU, CUDA, or OCLGPU"; \
+				exit 1; \
 			fi; \
 		fi; \
 	fi; \
@@ -236,15 +236,36 @@ check-env-all: check-env-dev check-env-cpu check-env-gpu
 GIT_VERSION := $(shell ./version_string.sh)
 
 CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
+TOOL_CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
 
 # ------------------------------------------------------
+
+# Tool host sources
+
+# Host sources
+
+link-code:
+	ln -sf performdocking.h.OpenCL $(HOST_INC_DIR)/performdocking.h
+	ln -sf performdocking.cpp.OpenCL $(HOST_SRC_DIR)/performdocking.cpp
+
+unlink-code:
+	rm -f $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
 
 stringify:
 	./stringify_ocl_krnls.sh
 
-odock: check-env-all stringify $(SRC)
+otool: unlink-code
+	@echo "Building" $(TOOL_TARGET) "..."
 	$(CPP) \
-	$(SRC) \
+	$(shell ls $(HOST_SRC_DIR)/*.cpp) \
+	$(TOOL_CFLAGS) \
+	-o$(BIN_DIR)/$(TOOL_TARGET) \
+	$(PIPELINE) $(OPT) -DTOOLMODE $(REP)
+
+odock: check-env-all stringify link-code
+	@echo "Building" $(TARGET) "..."
+	$(CPP) \
+	$(OCL_SRC) $(shell ls $(HOST_SRC_DIR)/*.cpp) \
 	$(CFLAGS) \
 	$(LIB_OPENCL) \
 	-o$(BIN_DIR)/$(TARGET) \

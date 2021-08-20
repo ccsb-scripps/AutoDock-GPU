@@ -133,7 +133,8 @@ int dpf_token(const char* token)
 int parse_dpf(
               Dockpars* mypars,
               Gridinfo* mygrid,
-              FileList& filelist
+              FileList& filelist,
+              bool get_grid_info = true
              )
 {
 	if (mypars->dpffile)
@@ -158,14 +159,13 @@ int parse_dpf(
 		//   performance reasons (as they can be read once)
 		// - each ligand is still going to be limited to MAX_NUM_OF_ATYPES
 		char ltypes[4*MAX_NUM_OF_ATYPES][4];
-		char* typestr;
 		memset(ltypes,0,16*MAX_NUM_OF_ATYPES*sizeof(char));
-		unsigned int idx;
+		std::string map_fn;
+		int idx;
 		pair_mod* curr_pair;
 		float paramA, paramB;
 		int m, n;
 		char typeA[4], typeB[4];
-		filelist.max_len = 256;
 		bool new_device = false; // indicate if current mypars has a new device requested
 		unsigned int run_cnt=0;
 		while(std::getline(file, line)) {
@@ -174,6 +174,10 @@ int parse_dpf(
 			tempstr[0]='\0';
 			sscanf(line.c_str(),"%255s",tempstr);
 			int token_id = dpf_token(tempstr);
+			if (token_id >= DPF_MOVE ){ // take care of end-comments for regular tokens
+				int comment_loc = line.find("#");
+				if(comment_loc>0) line.erase(comment_loc,line.size()-comment_loc);
+			}
 			switch(token_id){
 				case DPF_MOVE: // movable ligand file name
 						if(!mypars->xml2dlg){
@@ -190,13 +194,12 @@ int parse_dpf(
 						}
 						break;
 				case DPF_FLD: // grid data file name
-						if(!mypars->xml2dlg){
+						if(get_grid_info){
 							sscanf(line.c_str(),"%*s %255s",argstr);
 							// Add the .fld file
 							if(mypars->fldfile) free(mypars->fldfile);
 							mypars->fldfile = strdup(argstr); // this allows using the dpf to set up all parameters but the ligand
 							// Filling mygrid according to the specified fld file
-							mygrid->info_read = false;
 							if (get_gridinfo(mypars->fldfile, mygrid) != 0)
 							{
 								printf("\nError: get_gridinfo failed with fld file specified with <%s> parameter at %s:%u.\n",tempstr,mypars->dpffile,line_count);
@@ -230,14 +233,28 @@ int parse_dpf(
 						mtype_nr=0;
 						break;
 				case DPF_MAP: // grid map specifier
-						sscanf(line.c_str(),"%*s %255s",argstr);
-						argstr[strlen(argstr)-4] = '\0'; // get rid of .map extension
-						typestr=strchr(argstr+strlen(argstr)-4,'.')+1; // 4 chars for atom type
 						if(mtype_nr>=ltype_nr){
 							printf("\nError: More map files specified than atom types at %s:%u (ligand types need to be specified before maps).\n",mypars->dpffile,line_count);
 							return 1;
 						}
-						if(strcmp(typestr,ltypes[mtype_nr])){ // derived type
+						sscanf(line.c_str(),"%*s %255s",argstr);
+						map_fn=argstr;
+						if(mygrid->grid_mapping.size()<2){
+							printf("Error: fld keyword needs to be placed before <%s> parameter at %s:%u.\n",tempstr,mypars->dpffile,line_count);
+							return 1;
+						}
+						n=-1;
+						for(m=mygrid->grid_mapping.size()/2; m<mygrid->grid_mapping.size(); m++)
+							if(map_fn.find(mygrid->grid_mapping[m])!=std::string::npos){
+								n=m-mygrid->grid_mapping.size()/2;
+								break;
+							}
+						if(n<0){
+							printf("Error: No matching map file <%s> specified in fld file at %s:%u.\n",argstr,mypars->dpffile,line_count);
+							return 1;
+						}
+						strcpy(argstr,mygrid->grid_mapping[n].c_str());
+						if(strcmp(argstr,ltypes[mtype_nr])){ // derived type
 							if(mypars->nr_deriv_atypes==0){ // get the derived atom types started
 								mypars->deriv_atypes=(deriv_atype*)malloc(sizeof(deriv_atype));
 								if(mypars->deriv_atypes==NULL){
@@ -245,15 +262,24 @@ int parse_dpf(
 									return 1;
 								}
 							}
-							if(!add_deriv_atype(mypars,ltypes[mtype_nr],strlen(ltypes[mtype_nr]))){
+							idx = add_deriv_atype(mypars,ltypes[mtype_nr],strlen(ltypes[mtype_nr]),true);
+							if(idx == 0){
 								printf("Error: Derivative (ligand type %s) names can only be upto 3 characters long.\n",ltypes[mtype_nr]);
 								return 1;
 							}
-							idx = mypars->nr_deriv_atypes-1;
-							strcpy(mypars->deriv_atypes[idx].base_name,typestr);
+							if(idx>0){
+								idx = mypars->nr_deriv_atypes-1;
+								strcpy(mypars->deriv_atypes[idx].base_name,argstr);
 #ifdef DERIVTYPE_INFO
-							printf("%i: %s=%s\n",mypars->deriv_atypes[idx].nr,mypars->deriv_atypes[idx].deriv_name,mypars->deriv_atypes[idx].base_name);
+								printf("%i: %s=%s\n",mypars->deriv_atypes[idx].nr,mypars->deriv_atypes[idx].deriv_name,mypars->deriv_atypes[idx].base_name);
 #endif
+							} else{ // same derived type name - make sure base type is the same
+								idx++; // idx is -type idx-1
+								if(strcmp(mypars->deriv_atypes[-idx].base_name,argstr)){
+									printf("Error: Redefinition of ligand type %s with different map types.\n",ltypes[mtype_nr]);
+									return 1;
+								}
+							}
 						}
 						mtype_nr++;
 						break;
@@ -329,8 +355,19 @@ int parse_dpf(
 									printf("\nError: No map file on record yet. Please specify a map file before the first ligand.\n");
 									return 1;
 								}
-								filelist.fld_files.push_back(mypars->fldfile);
+								if(filelist.fld_files.size()>0){
+									// only add to fld_files if different from previous one
+									if(strcmp(mypars->fldfile,filelist.fld_files.back().name.c_str())!=0){
+										filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+										// Also add the grid
+										filelist.mygrids.push_back(*mygrid);
+									}
+								} else{
+									filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+									filelist.mygrids.push_back(*mygrid);
+								}
 								mypars->list_nr++;
+								mypars->filelist_grid_idx=filelist.fld_files.back().grid_idx;
 								// If more than one unique protein, cant do map preloading yet
 								if (filelist.fld_files.size()>1){
 									filelist.preload_maps=false;
@@ -346,7 +383,10 @@ int parse_dpf(
 									mypars->resname[len]='\0';
 								} else mypars->resname = strdup("docking"); // Fallback to old default
 								filelist.resnames.push_back(mypars->resname);
-								if(new_device) mypars->devices_requested++;
+								if(new_device){
+									mypars->dev_pool_nr=mypars->dev_pool.size();
+									mypars->dev_pool.push_back(mypars->devnum);
+								}
 								// Before pushing parameters and grids back make sure
 								// the filename pointers are unique
 								if(filelist.mypars.size()>0){ // mypars and mygrids have same size
@@ -356,20 +396,9 @@ int parse_dpf(
 									if((filelist.mypars.back().xrayligandfile) &&
 									   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
 										mypars->xrayligandfile=strdup(mypars->xrayligandfile);
-									if((filelist.mygrids.back().grid_file_path) &&
-									   (filelist.mygrids.back().grid_file_path==mygrid->grid_file_path))
-										mygrid->grid_file_path=strdup(mygrid->grid_file_path);
-									if((filelist.mygrids.back().receptor_name) &&
-									   (filelist.mygrids.back().receptor_name==mygrid->receptor_name))
-										mygrid->receptor_name=strdup(mygrid->receptor_name);
-									if((filelist.mygrids.back().map_base_name) &&
-									   (filelist.mygrids.back().map_base_name==mygrid->map_base_name))
-										mygrid->map_base_name=strdup(mygrid->map_base_name);
 								}
 								// Add the parameter block now that resname is set
 								filelist.mypars.push_back(*mypars);
-								// Also add the grid
-								filelist.mygrids.push_back(*mygrid);
 							}
 						} else{
 							if(token_id!=DPF_RUNS) run_cnt++;
@@ -512,10 +541,12 @@ int parse_dpf(
 							}
 							// count GPUs in case we set a different one
 							if(argcmp("devnum",tempstr,'D')){
-								new_device=false;
-								for(i=0; (i<(int)filelist.mypars.size())&&!new_device; i++){
-									if(mypars->devnum==filelist.mypars[i].devnum){
-										new_device=true;
+								new_device=true;
+								for(i=0; i<mypars->dev_pool.size(); i++){
+									if(mypars->devnum==mypars->dev_pool[i]){
+										new_device=false;
+										mypars->dev_pool_nr=i;
+										break;
 									}
 								}
 							}
@@ -535,13 +566,13 @@ int parse_dpf(
 	return 0;
 }
 
-int preparse_dpf(
-                 const int*      argc,
-                       char**    argv,
-                       Dockpars* mypars,
-                       Gridinfo* mygrid,
-                       FileList& filelist
-                )
+int initial_commandpars(
+                        const int*      argc,
+                              char**    argv,
+                              Dockpars* mypars,
+                              Gridinfo* mygrid,
+                              FileList& filelist
+                       )
 // This function checks if a dpf file is used and, if runs are specified, map and ligand information
 // is stored in the filelist; flexres information and which location in the dpf parameters are in each
 // run is stored separately to allow logical parsing with the correct parameters initialized per run
@@ -549,6 +580,10 @@ int preparse_dpf(
 	bool output_multiple_warning = true;
 	std::vector<std::string> xml_files;
 	bool read_more_xml_files = false;
+#ifdef TOOLMODE
+	mypars->xml2dlg = true;
+	read_more_xml_files = true;
+#endif
 	int error;
 	for (int i=1; i<(*argc)-1+(read_more_xml_files); i++)
 	{
@@ -573,11 +608,16 @@ int preparse_dpf(
 				}
 			}
 			mypars->dpffile = strdup(argv[i+1]);
+			i++;
 		}
 		
 		// Argument: load initial data from xml file and reconstruct dlg, then finish
 		if (argcmp("xml2dlg", argv [i], 'X'))
 		{
+			if(mypars->xml_files>0){
+				printf("Error: Only one --xml2dlg (-X) argument is allowed.\n");
+				return 1;
+			}
 			mypars->load_xml = strdup(argv[i+1]);
 			read_more_xml_files = true;
 			mypars->xml2dlg = true;
@@ -603,6 +643,7 @@ int preparse_dpf(
 				sscanf(argv[i+1], "%f,%f,%f", &(mypars->R_cutoff), &(mypars->H_cutoff), &(mypars->V_cutoff));
 				mypars->contact_analysis = true;
 			}
+			i++;
 		}
 		
 		// Argument: print dlg output to stdout instead of to a file
@@ -613,7 +654,11 @@ int preparse_dpf(
 				mypars->dlg2stdout = false;
 			else
 				mypars->dlg2stdout = true;
+			i++;
 		}
+#ifdef TOOLMODE
+		read_more_xml_files = true;
+#endif
 	}
 	
 	bool specified_dpf = (mypars->dpffile!=NULL);
@@ -658,21 +703,30 @@ int preparse_dpf(
 			                   mypars->flexresfile,
 			                   mypars->list_nr,
 			                   mypars->seed);
-			if(!specified_dpf){ // parse dpf file in XML file unless user specified one
-				if((error=parse_dpf(mypars,mygrid,filelist))) return error;
-			}
-			mypars->pop_size=1;
+
 			// Filling mygrid according to the specified fld file
-			mygrid->info_read = false;
 			if (get_gridinfo(mypars->fldfile, mygrid) != 0)
 			{
 				printf("\nError: get_gridinfo failed with fld file (%s) specified in %s.\n",mypars->fldfile,mypars->load_xml);
 				return 1;
 			}
-			if(prev_fld_file){ // unfortunately, some strcmp implementation segfault with NULL as input
-				if(strcmp(prev_fld_file,mypars->fldfile) != 0)
-					filelist.fld_files.push_back(mypars->fldfile);
-			} else filelist.fld_files.push_back(mypars->fldfile);
+
+			if(!specified_dpf){ // parse dpf file in XML file unless user specified one
+				if((error=parse_dpf(mypars,mygrid,filelist,false))) return error;
+			}
+			mypars->pop_size=1;
+
+			if(filelist.fld_files.size()>0){
+				// only add to fld_files if different from previous one
+				if(strcmp(mypars->fldfile,filelist.fld_files.back().name.c_str())!=0){
+					filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+					filelist.mygrids.push_back(*mygrid);
+				}
+			} else{
+				filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+				filelist.mygrids.push_back(*mygrid);
+			}
+			mypars->filelist_grid_idx=filelist.fld_files.back().grid_idx;
 
 			// If more than one unique protein, cant do map preloading yet
 			if (filelist.fld_files.size()>1)
@@ -681,20 +735,23 @@ int preparse_dpf(
 			// Add the ligand filename in the xml to the filelist
 			filelist.ligand_files.push_back(mypars->ligandfile);
 			filelist.mypars.push_back(*mypars);
-			filelist.mygrids.push_back(*mygrid);
 		}
 		if(mypars->xml_files>100) printf("\n\n");
 		filelist.nfiles = mypars->xml_files;
 	} else{
+#ifdef TOOLMODE
+		printf("Error: No xml files specified.\n\n");
+		print_options(argv[0]);
+		return 1;
+#endif
 		filelist.nfiles = filelist.ligand_files.size();
 	}
 	if(filelist.nfiles>0){
 		filelist.used = true;
 		if(mypars->contact_analysis && filelist.preload_maps){
 			std::string receptor_name=mygrid->grid_file_path;
-			if(strlen(mygrid->grid_file_path)>0) receptor_name+="/";
-			receptor_name += mygrid->receptor_name;
-			receptor_name += ".pdbqt";
+			if(mygrid->grid_file_path.size()>0) receptor_name+="/";
+			receptor_name += mygrid->receptor_name + ".pdbqt";
 			mypars->receptor_atoms = read_receptor(receptor_name.c_str(),mygrid,mypars->receptor_map,mypars->receptor_map_list);
 			mypars->nr_receptor_atoms = mypars->receptor_atoms.size();
 		}
@@ -716,102 +773,180 @@ int get_filelist(
 		filelist.preload_maps&=filelist.used;
 		return 0;
 	}
-	bool output_multiple_warning = true;
-	for (int i=1; i<(*argc)-1; i++)
+	bool read_ligands = false;
+	std::vector<char*> ligands;
+	for (int i=1; i<(*argc)-1+(read_ligands); i+=1+(!read_ligands))
 	{
+		// wildcards for -filelist are allowed (or multiple file names)
+		// - one file specified is the filelist containing file
+		// - more than one file will be multiple ligands
+		// the test below is to stop reading arguments as filenames when another argument starts with "-"
+		if (read_ligands && (argv[i][0]=='-')){
+			read_ligands = false;
+			if(i>=(*argc)-1) break; // ignore last argument if there is no parameter specified
+		} else if (read_ligands) ligands.push_back(argv[i]); // copy argument into xml_files when read_more_xml_files is true
+		
+		if (argcmp("xml2dlg", argv[i], 'X'))
+			i+=mypars->xml_files-1; // skip ahead in case there are multiple entries here
+		
 		// Argument: file name that contains list of files.
 		if (argcmp("filelist", argv[i], 'B'))
 		{
-			filelist.used = true;
+			if(ligands.size()>0){
+				printf("Error: Only one --filelist (-B) argument is allowed.\n");
+				return 1;
+			}
 			if(filelist.filename){
 				free(filelist.filename);
-				if(output_multiple_warning){
-					printf("Warning: Multiple --filelist (-B) arguments, only the last one will be used.");
-					output_multiple_warning = false;
-				}
+				filelist.filename = NULL;
 			}
-			filelist.filename = strdup(argv[i+1]);
+			read_ligands=true;
 		}
 	}
+	mypars->filelist_files = ligands.size();
+	if(ligands.size()>1){
+		// Need to setup file names from command line in case they weren't set with a dpf
+		if (get_filenames_and_ADcoeffs(argc, argv, mypars, filelist.used, false) != 0){
+			return 1;
+		}
+		// use current (aka last specified) fld file to for this file list
+		if(mypars->fldfile==NULL){
+			printf("Error: Argument --filelist (-B) with ligand files needs a grid file. Please specify through --ffile (-M) or --import_dpf (-I).\n");
+			return 1;
+		}
+		filelist.fld_files.push_back({mypars->fldfile,filelist.mygrids.size()});
+		mypars->filelist_grid_idx=filelist.fld_files.back().grid_idx;
+		// Filling mygrid according to the specified fld file
+		if (get_gridinfo(mypars->fldfile, mygrid) != 0)
+		{
+			printf("Error: get_gridinfo failed with fld file specified in file list.\n");
+			return 1;
+		}
+		// Add the grid info
+		filelist.mygrids.push_back(*mygrid);
+		for(unsigned int i=0; i<ligands.size(); i++){
+			// Need new mypars->fldfile char* block to preserve previous one
+			if(filelist.mypars.size()>0){
+				if((filelist.mypars.back().fldfile) &&
+				   (filelist.mypars.back().fldfile==mypars->fldfile))
+					mypars->fldfile=strdup(mypars->fldfile);
+				if((filelist.mypars.back().flexresfile) &&
+				   (filelist.mypars.back().flexresfile==mypars->flexresfile))
+					mypars->flexresfile=strdup(mypars->flexresfile);
+				if((filelist.mypars.back().xrayligandfile) &&
+				   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
+					mypars->xrayligandfile=strdup(mypars->xrayligandfile);
+			}
+			mypars->ligandfile = strdup(ligands[i]);
+			filelist.ligand_files.push_back(ligands[i]);
+			mypars->list_nr++;
+			long long len = strrchr(ligands[i],'.')-ligands[i];
+			if(len<1) len=strlen(ligands[i]);
+			filelist.resnames.push_back(filelist.ligand_files[i].substr(0,len));
+			mypars->resname=strdup(filelist.resnames[i].c_str());
+			// Add the parameter block
+			filelist.mypars.push_back(*mypars);
+		}
+		filelist.nfiles = filelist.ligand_files.size();
+		if(filelist.nfiles>0) filelist.used = true;
+		
+		filelist.preload_maps&=filelist.used;
+		if(mypars->contact_analysis && filelist.preload_maps){
+			std::string receptor_name=mygrid->grid_file_path;
+			if(mygrid->grid_file_path.size()>0) receptor_name+="/";
+			receptor_name += mygrid->receptor_name + ".pdbqt";
+			mypars->receptor_atoms = read_receptor(receptor_name.c_str(),mygrid,mypars->receptor_map,mypars->receptor_map_list);
+			mypars->nr_receptor_atoms = mypars->receptor_atoms.size();
+		}
+		return 0;
+	} else if(ligands.size()==1) filelist.filename = strdup(ligands[0]);
 
 	if (filelist.filename){ // true when -filelist specifies a filename
 	                        // filelist.used may be true when dpf file is specified as it uses the filelist to store runs
 		std::ifstream file(filelist.filename);
 		if(file.fail()){
-			printf("\nError: Could not open filelist %s. Check path and permissions.\n",filelist.filename);
+			printf("\nError: Could not open file list %s. Check path and permissions.\n",filelist.filename);
 			return 1;
 		}
 		std::string line;
 		bool prev_line_was_fld=false;
+		int prev_fld_line;
 		unsigned int initial_res_count = filelist.resnames.size();
 		int len;
+		int last_fld_idx=0;
 		int line_count=0;
 		while(std::getline(file, line)) {
 			line_count++;
 			trim(line); // Remove leading and trailing whitespace
 			len = line.size();
-			if(len>filelist.max_len) filelist.max_len = len;
 			if (len>=4 && line.compare(len-4,4,".fld") == 0){
+				bool new_grid=true;
 				if (prev_line_was_fld){ // Overwrite the previous fld file if two in a row
-					filelist.fld_files[filelist.fld_files.size()-1] = line;
-					printf("\nWarning: using second listed .fld file in line %d\n",line_count);
+					filelist.mygrids.pop_back(); // previous map is invalid now and will be overwritten by new one
+					filelist.fld_files.back() = {line,filelist.mygrids.size()};
+					printf("Warning: Fld file specified in line %d of the file list is superceded by line %d.\n\n",prev_fld_line,line_count);
 				} else {
-					// Add the .fld file
-					filelist.fld_files.push_back(line);
+					// Add the fld file if different from previous
+					if(filelist.fld_files.size()>0){
+						new_grid=false;
+						if(line.compare(filelist.fld_files.back().name)!=0){
+							filelist.fld_files.push_back({line,filelist.mygrids.size()});
+							new_grid=true;
+						}
+					} else filelist.fld_files.push_back({line,filelist.mygrids.size()});
 					prev_line_was_fld=true;
 
 					// If more than one unique protein, cant do map preloading yet
-					if (filelist.fld_files.size()>1){
+					if (filelist.fld_files.size()>0){
 						filelist.preload_maps=false;
 					}
 				}
+				mypars->filelist_grid_idx = filelist.fld_files.back().grid_idx;
+				prev_fld_line=line_count;
+				// Keep mypars->fldfile current (need new char* block to preserve previous one)
+				mypars->fldfile = strdup(filelist.fld_files.back().name.c_str());
 				// Filling mygrid according to the specified fld file
-				mygrid->info_read = false;
-				if (get_gridinfo(filelist.fld_files[filelist.fld_files.size()-1].c_str(), mygrid) != 0)
+				if (get_gridinfo(mypars->fldfile, mygrid) != 0)
 				{
-					printf("\nError: get_gridinfo failed with fld file specified in filelist.\n");
+					printf("Error: get_gridinfo failed with fld file specified in file list.\n");
 					return 1;
 				}
+				// Add the grid info
+				if(new_grid) filelist.mygrids.push_back(*mygrid);
+			} else if (len>=7 && line.compare(len-7,7,".pdbqt*") == 0){
+				// Add the reference (xray) ligand file
+				mypars->xrayligandfile = strndup(line.c_str(),len-1);
+				mypars->given_xrayligandfile = true;
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
 				// Add the .pdbqt
 				filelist.ligand_files.push_back(line);
 				mypars->list_nr++;
 				// Before pushing parameters and grids back make sure
-				// the filename pointers are unique
-				if(filelist.mypars.size()>0){ // mypars and mygrids have same size
+				// the filename pointers are unique in the filelist
+				if(filelist.mypars.size()>0){
+					if((filelist.mypars.back().fldfile) &&
+					   (filelist.mypars.back().fldfile==mypars->fldfile))
+						mypars->fldfile=strdup(mypars->fldfile);
 					if((filelist.mypars.back().flexresfile) &&
 					   (filelist.mypars.back().flexresfile==mypars->flexresfile))
 						mypars->flexresfile=strdup(mypars->flexresfile);
 					if((filelist.mypars.back().xrayligandfile) &&
 					   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
 						mypars->xrayligandfile=strdup(mypars->xrayligandfile);
-					if((filelist.mygrids.back().grid_file_path) &&
-					   (filelist.mygrids.back().grid_file_path==mygrid->grid_file_path))
-						mygrid->grid_file_path=strdup(mygrid->grid_file_path);
-					if((filelist.mygrids.back().receptor_name) &&
-					   (filelist.mygrids.back().receptor_name==mygrid->receptor_name))
-						mygrid->receptor_name=strdup(mygrid->receptor_name);
-					if((filelist.mygrids.back().map_base_name) &&
-					   (filelist.mygrids.back().map_base_name==mygrid->map_base_name))
-						mygrid->map_base_name=strdup(mygrid->map_base_name);
 				}
-				// Add the parameter block
-				filelist.mypars.push_back(*mypars);
-				// Add the grid info
-				filelist.mygrids.push_back(*mygrid);
+				// Keep track of fld files
 				if (filelist.fld_files.size()==0){
-					if(mygrid->info_read){ // already read a map file in with dpf import
-						printf("\nUsing map file from dpf import.\n");
-						filelist.fld_files.push_back(mypars->fldfile);
+					if(mygrid->fld_name.length()>0){ // already read a map file in with dpf import
+						printf("Using map file from dpf import.\n\n");
 					} else{
-						printf("\nError: No map file on record yet. Please specify a .fld file before the first ligand (%s).\n",line.c_str());
+						printf("Error: No map file on record yet. Please specify a .fld file before the first ligand (%s).\n",line.c_str());
 						return 1;
 					}
 				}
-				if (filelist.ligand_files.size()>filelist.fld_files.size()){
-					// If this ligand doesnt have a protein preceding it, use the previous protein
-					filelist.fld_files.push_back(filelist.fld_files[filelist.fld_files.size()-1]);
-				}
+				// Add the parameter block
+				filelist.mypars.push_back(*mypars);
+				// Keep track of fld lines actually used
+				last_fld_idx = filelist.fld_files.size();
 				prev_line_was_fld=false;
 			} else if (len>0) {
 				// Anything else in the file is assumed to be the resname
@@ -820,23 +955,26 @@ int get_filelist(
 		}
 
 		filelist.nfiles = filelist.ligand_files.size();
+		if(filelist.nfiles>0) filelist.used = true;
 
 		if (filelist.ligand_files.size()==0){
-			printf("\nError: No ligands, through lines ending with the .pdbqt suffix, have been specified.\n");
+			printf("Error: No ligands, through lines ending with the .pdbqt suffix, have been specified.\n");
 			return 1;
 		}
 		if (filelist.ligand_files.size() != filelist.resnames.size()){
 			if(filelist.resnames.size()-initial_res_count>0){ // make sure correct number of resnames were specified when they were specified
-				printf("\nError: Inconsistent number of resnames (%lu) compared to ligands (%lu)!\n",filelist.resnames.size(),filelist.ligand_files.size());
+				printf("Error: Inconsistent number of resnames (%lu) compared to ligands (%lu)!\n",filelist.resnames.size(),filelist.ligand_files.size());
 				return 1;
 			} else{ // otherwise add default resname (ligand basename)
-				for(unsigned int i=filelist.resnames.size(); i<filelist.ligand_files.size(); i++)
-					filelist.resnames.push_back(filelist.ligand_files[i].substr(0,filelist.ligand_files[i].size()-6));
+				for(unsigned int i=filelist.resnames.size(); i<filelist.ligand_files.size(); i++){
+					const char* ln = filelist.ligand_files[i].c_str();
+					long long len = strrchr(ln,'.')-ln;
+					if(len<1) len=strlen(ln);
+					filelist.resnames.push_back(filelist.ligand_files[i].substr(0,len));
+				}
 			}
 		}
 		for(unsigned int i=initial_res_count; i<filelist.ligand_files.size(); i++){
-			if(filelist.mypars[i].fldfile) free(filelist.mypars[i].fldfile);
-			filelist.mypars[i].fldfile = strdup(filelist.fld_files[i].c_str());
 			if(filelist.mypars[i].ligandfile) free(filelist.mypars[i].ligandfile);
 			filelist.mypars[i].ligandfile = strdup(filelist.ligand_files[i].c_str());
 			if(filelist.mypars[i].resname) free(filelist.mypars[i].resname);
@@ -844,6 +982,13 @@ int get_filelist(
 		}
 	}
 	filelist.preload_maps&=filelist.used;
+	if(mypars->contact_analysis && filelist.preload_maps){
+		std::string receptor_name=mygrid->grid_file_path;
+		if(mygrid->grid_file_path.size()>0) receptor_name+="/";
+		receptor_name += mygrid->receptor_name + ".pdbqt";
+		mypars->receptor_atoms = read_receptor(receptor_name.c_str(),mygrid,mypars->receptor_map,mypars->receptor_map_list);
+		mypars->nr_receptor_atoms = mypars->receptor_atoms.size();
+	}
 
 	return 0;
 }
@@ -852,7 +997,8 @@ int get_filenames_and_ADcoeffs(
                                const int*      argc,
                                      char**    argv,
                                      Dockpars* mypars,
-                               const bool      multiple_files
+                               const bool      multiple_files,
+                               const bool      missing_error
                               )
 // The function fills the file name and coeffs fields of mypars parameter
 // according to the proper command line arguments.
@@ -864,8 +1010,14 @@ int get_filenames_and_ADcoeffs(
 	ffile_given = (mypars->fldfile!=NULL);
 	lfile_given = (mypars->ligandfile!=NULL);
 	
-	for (i=1; i<(*argc)-1; i++)
+	for (i=1; i<(*argc)-1; i+=2)
 	{
+		if (argcmp("filelist", argv[i], 'B'))
+			i+=mypars->filelist_files-1; // skip ahead in case there are multiple entries here
+		
+		if (argcmp("xml2dlg", argv[i], 'X'))
+			i+=mypars->xml_files-1; // skip ahead in case there are multiple entries here
+		
 		if (!multiple_files){
 			// Argument: grid parameter file name.
 			if (argcmp("ffile", argv[i], 'M'))
@@ -914,18 +1066,16 @@ int get_filenames_and_ADcoeffs(
 		}
 	}
 
-	if (ffile_given == 0 && !multiple_files)
+	if (ffile_given == 0 && !multiple_files && missing_error)
 	{
 		printf("Error: grid fld file was not defined. Use --ffile (-M) argument!\n");
 		print_options(argv[0]);
-		return 1; // we'll never get here - but we might in the future again ...
 	}
 
-	if (lfile_given == 0 && !multiple_files)
+	if (lfile_given == 0 && !multiple_files && missing_error)
 	{
 		printf("Error: ligand pdbqt file was not defined. Use --lfile (-L) argument!\n");
 		print_options(argv[0]);
-		return 1; // we'll never get here - but we might in the future again ...
 	}
 
 	return 0;
@@ -936,30 +1086,42 @@ void print_options(
                   )
 {
 	printf("Command line options:\n\n");
-	printf(" Argument              | Description                                           | Default value\n");
-	printf("-----------------------|-------------------------------------------------------|------------------\n");
+	printf("Arguments              | Description                                           | Default value\n");
+	printf("-----------------------+-------------------------------------------------------+------------------\n");
+#ifndef TOOLMODE
+	printf("\nINPUT\n");
 	printf("--lfile             -L | Ligand pdbqt file                                     | no default\n");
 	printf("--ffile             -M | Grid map files descriptor fld file                    | no default\n");
 	printf("--flexres           -F | Flexible residue pdbqt file                           | no default\n");
 	printf("--filelist          -B | Batch file                                            | no default\n");
 	printf("--import_dpf        -I | Import AD4-type dpf input file (only partial support) | no default\n");
-	printf("--resnam            -N | Name for docking output log                           | ligand basename\n");
 	printf("--xraylfile         -R | reference ligand file for RMSD analysis               | ligand file\n");
+	printf("\nCONVERSION\n");
+	printf("--xml2dlg           -X | One (or many) AD-GPU xml file(s) to convert to dlg(s) | no default\n");
+#endif
+	printf("\nOUTPUT\n");
+	printf("--resnam            -N | Name for docking output log                           | ligand basename\n");
+	printf("--contact_analysis  -C | Perform distance-based analysis (description below)   | 0 (no)\n");
+	printf("--xmloutput         -x | Specify if xml output format is wanted                | 1 (yes)\n");
+	printf("--dlgoutput         -d | Control if dlg output is created                      | 1 (yes)\n");
+	printf("--dlg2stdout        -2 | Write dlg file output to stdout (if not OVERLAP=ON)   | 0 (no)\n");
+	printf("--rlige                | Print reference ligand energies                       | 0 (no)\n");
+	printf("--gfpop                | Output all poses from all populations of each LGA run | 0 (no)\n");
+	printf("--npdb                 | # pose pdbqt files from populations of each LGA run   | 0\n");
+	printf("--gbest                | Output single best pose as pdbqt file                 | 0 (no)\n");
+	printf("--clustering           | Output clustering analysis in dlg and/or xml file     | 1 (yes)\n");
+	printf("--hsym                 | Handle symmetry in RMSD calc.                         | 1 (yes)\n");
+	printf("--rmstol               | RMSD clustering tolerance                             | 2 (Å)\n");
+#ifndef TOOLMODE
+	printf("\nSETUP\n");
 	printf("--devnum            -D | OpenCL/Cuda device number (counting starts at 1)      | 1\n");
-	printf("--derivtype         -T | Derivative atom types (e.g. C1,C2,C3=C/S4=S/H5=HD)    | no default\n");
-	printf("--modpair           -P | Modify vdW pair params (e.g. C1:S4,1.60,1.200,13,7)   | no default\n");
+	printf("--loadxml           -c | Load initial population from xml results file         | no default\n");
+	printf("--seed              -s | Random number seeds (up to three comma-sep. integers) | time, process id\n");
+	printf("\nSEARCH\n");
 	printf("--heuristics        -H | Ligand-based automatic search method and # evals      | 1 (yes)\n");
 	printf("--heurmax           -E | Asymptotic heuristics # evals limit (smooth limit)    | 12000000\n");
 	printf("--autostop          -A | Automatic stopping criterion based on convergence     | 1 (yes)\n");
 	printf("--asfreq            -a | AutoStop testing frequency (in # of generations)      | 5\n");
-	printf("--contact_analysis  -C | Perform distance-based analysis (description below)   | 0 (no)\n");
-	printf("--xml2dlg           -X | One (or many) AD-GPU xml file(s) to convert to dlg(s) | no default\n");
-	printf("--xmloutput         -x | Specify if xml output format is wanted                | 1 (yes)\n");
-	printf("--loadxml           -c | Load initial population from xml results file         | no default\n");
-	printf("--dlgoutput         -d | Control if dlg output is created                      | 1 (yes)\n");
-	printf("--dlg2stdout        -2 | Write dlg file output to stdout (if not OVERLAP=ON)   | 0 (no)\n");
-	printf("--seed              -s | Random number seeds (up to three comma-sep. integers) | time, process id\n");
-	printf("--ubmod             -u | Unbound model: 0 (bound), 1 (extended), 2 (compact)   | 0 (same as bound)\n");
 	printf("--nrun              -n | # LGA runs                                            | 20\n");
 	printf("--nev               -e | # Score evaluations (max.) per LGA run                | 2500000\n");
 	printf("--ngen              -g | # Generations (max.) per LGA run                      | 42000\n");
@@ -970,39 +1132,50 @@ void print_options(
 	printf("--crat                 | Crossover rate                                        | 80  (%%)\n");
 	printf("--lsrat                | Local-search rate                                     | 100 (%%)\n");
 	printf("--trat                 | Tournament (selection) rate                           | 60  (%%)\n");
-	printf("--rlige                | Print reference ligand energies                       | 0 (no)\n");
-	printf("--hsym                 | Handle symmetry in RMSD calc.                         | 1 (yes)\n");
-	printf("--rmstol               | RMSD clustering tolerance                             | 2 (Å)\n");
 	printf("--dmov                 | Maximum LGA movement delta                            | 6 (Å)\n");
 	printf("--dang                 | Maximum LGA angle delta                               | 90 (°)\n");
 	printf("--rholb                | Solis-Wets lower bound of rho parameter               | 0.01\n");
 	printf("--lsmov                | Solis-Wets movement delta                             | 2 (Å)\n");
 	printf("--lsang                | Solis-Wets angle delta                                | 75 (°)\n");
 	printf("--cslim                | Solis-Wets cons. success/failure limit to adjust rho  | 4\n");
+	printf("--stopstd              | AutoStop energy standard deviation tolerance          | 0.15 (kcal/mol)\n");
+	printf("--initswgens           | Initial # generations of Solis-Wets instead of -lsmet | 0 (no)\n");
+#endif
+	printf("\nSCORING\n");
+	printf("--derivtype         -T | Derivative atom types (e.g. C1,C2,C3=C/S4=S/H5=HD)    | no default\n");
+	printf("--modpair           -P | Modify vdW pair params (e.g. C1:S4,1.60,1.200,13,7)   | no default\n");
+	printf("--ubmod             -u | Unbound model: 0 (bound), 1 (extended), 2 (compact)   | 0 (same as bound)\n");
 	printf("--smooth               | Smoothing parameter for vdW interactions              | 0.5 (Å)\n");
 	printf("--elecmindist          | Min. electrostatic potential distance (w/ dpf: 0.5 Å) | 0.01 (Å)\n");
 	printf("--modqp                | Use modified QASP from VirtualDrug or AD4 original    | 0 (no, use AD4)\n");
-	printf("--cgmaps               | Use individual maps for CG-G0 instead of the same one | 0 (no, same map)\n");
-	printf("--stopstd              | AutoStop energy standard deviation tolerance          | 0.15 (kcal/mol)\n");
-	printf("--initswgens           | Initial # generations of Solis-Wets instead of -lsmet | 0 (no)\n");
-	printf("--gfpop                | Output all poses from all populations of each LGA run | 0 (no)\n");
-	printf("--npdb                 | # pose pdbqt files from populations of each LGA run   | 0\n");
-	printf("--gbest                | Output single best pose as pdbqt file                 | 0 (no)\n");
-
-	printf("\nAutodock-GPU requires a ligand and a set of grid maps as well as optionally a flexible residue to\n");
-	printf("perform a docking calculation. These could be specified directly (--lfile, --ffile, and --flexres),\n");
-	printf("as part of a filelist text file (see README.md for format), or as an AD4-style dpf.\n");
-
+#ifndef TOOLMODE
+	printf("\nAutoDock-GPU requires a ligand and a set of grid maps to perform a docking calculation. Optionally,\n");
+	printf("one or multiple flexible residues may be provided. These inputs could be specified directly (--lfile,\n");
+	printf("--ffile, and --flexres), as part of a file list text file (see README.md), or in an AD4-style dpf.\n");
+#endif
 	printf("\nExamples:\n");
+#ifndef TOOLMODE
 	printf("   * Dock ligand.pdbqt to receptor.maps.fld using 50 LGA runs:\n");
 	printf("        %s --lfile ligand.pdbqt --ffile receptor.maps.fld --nrun 50\n",program_name);
+#endif
+	printf("   * Convert all xml files to their respective dlg and perform contact analysis:\n");
+#ifndef TOOLMODE
+	printf("        %s --xml2dlg *.xml --contact_analysis 1\n",program_name);
+#else
+	printf("        %s --contact_analysis 1 *.xml\n",program_name);
+#endif
 	printf("   * Convert ligand.xml to dlg, perform contact analysis, and output dlg to stdout:\n");
+#ifndef TOOLMODE
 	printf("        %s --xml2dlg ligand.xml --contact_analysis 1 --dlg2stdout 1\n",program_name);
+#else
+	printf("        %s -C 1 -2 1 ligand.xml\n",program_name);
+#endif
+#ifndef TOOLMODE
 	printf("   * Dock ligands and map specified in file.lst with flexres flex.pdbqt:\n");
 	printf("        %s --filelist file.lst --flexres flex.pdbqt\n",program_name);
 	printf("   * Dock ligands, map, and (optional) flexres specified in docking.dpf on device #2:\n");
 	printf("        %s --import_dpf docking.dpf --devnum 2\n\n",program_name);
-	
+#endif
 	exit(0);
 }
 
@@ -1047,7 +1220,8 @@ int get_commandpars(
 		// default values
 		mypars->abs_max_dmov        = 6.0/(*spacing);             // +/-6A
 		mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);   // 2 A
-		mypars->xrayligandfile      = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
+		if(mypars->xrayligandfile==NULL)
+			mypars->xrayligandfile      = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
 		if(mypars->xml2dlg){
 			if(strlen(mypars->load_xml)>4){ // .xml = 4 chars
 				i=strlen(mypars->load_xml)-4;
@@ -1069,10 +1243,16 @@ int get_commandpars(
 	}
 
 	// overwriting values which were defined as a command line argument
+#ifndef TOOLMODE
 	for (i=1; i<(*argc)-1; i+=2)
+#else
+	for (i=1; i<(*argc); i++)
+#endif
 	{
 		arg_recognized = 0;
-
+#ifdef TOOLMODE
+		if(argv[i][0]!='-') arg_recognized=1;
+#endif
 		// Argument: number of energy evaluations. Must be a positive integer.
 		if (argcmp("nev", argv[i], 'e'))
 		{
@@ -1433,11 +1613,13 @@ int get_commandpars(
 		// UPDATED in : get_filelist()
 		// ---------------------------------
 		// Argument: name of file containing file list
-		if (argcmp("filelist", argv [i], 'B'))
+		if (argcmp("filelist", argv [i], 'B')){
 			arg_recognized = 1;
+			i+=mypars->filelist_files-1; // skip ahead in case there are multiple entries here
+		}
 
 		// ---------------------------------
-		// UPDATED in : preparse_dpf()
+		// UPDATED in : initial_commandpars()
 		// ---------------------------------
 		// Argument: name of file containing file list
 		if (argcmp("import_dpf", argv [i], 'I'))
@@ -1500,8 +1682,12 @@ int get_commandpars(
 		{
 			arg_recognized = 1;
 			arg_set = 0;
-			if(!late_call){
+			if(!late_call){ // this means when this is called during dpf file reading
 				arg_set = 1;
+				if(strchr(argv[i+1], ',')){ // only allowed from command line
+					printf("Error: Value of --devnum (-D) is expected to be a single device number here.\n");
+					return -1;
+				}
 				sscanf(argv [i+1], "%d", &tempint);
 				if ((tempint >= 1) && (tempint <= 65536)){
 					mypars->devnum = (unsigned long) tempint-1;
@@ -1510,17 +1696,6 @@ int get_commandpars(
 					return -1;
 				}
 			}
-		}
-		// ----------------------------------
-
-		// ----------------------------------
-		// Argument: Multiple CG-G0 maps or not
-		// - has already been tested for in
-		//   main.cpp, as it's needed at grid
-		//   creation time not after (now)
-		if (argcmp("cgmaps", argv [i]))
-		{
-			arg_recognized = 1; // stub to not complain about an unknown parameter
 		}
 		// ----------------------------------
 
@@ -1732,6 +1907,20 @@ int get_commandpars(
 				mypars->output_xml = true;
 		}
 
+		// Argument: choose wether to calculate and output clustering
+		// If the value is 1, DLG output will be generated
+		// DLG output won't be generated if 0 is specified
+		if (argcmp("clustering", argv [i]))
+		{
+			arg_recognized = 1;
+			sscanf(argv [i+1], "%d", &tempint);
+			
+			if (tempint == 0)
+				mypars->calc_clustering = false;
+			else
+				mypars->calc_clustering = true;
+		}
+
 		// ----------------------------------
 		// Argument: ligand xray pdbqt file name
 		if (argcmp("xraylfile", argv[i], 'R'))
@@ -1740,7 +1929,6 @@ int get_commandpars(
 			free(mypars->xrayligandfile);
 			mypars->xrayligandfile = strdup(argv[i+1]);
 			mypars->given_xrayligandfile = true;
-			printf("Info: using --xraylfile (-R) value as X-ray ligand.\n");
 		}
 		// ----------------------------------
 
@@ -1749,6 +1937,9 @@ int get_commandpars(
 			print_options(argv[0]);
 			return -1; // we won't get here - maybe we will in the future though ...
 		}
+#ifdef TOOLMODE
+		else i++;
+#endif
 	}
 
 	// validating some settings
@@ -1791,8 +1982,11 @@ std::vector<ReceptorAtom> read_receptor_atoms(
 		sscanf(line.c_str(),"%255s",tempstr);
 		if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 		{
+			line.insert(38,1,' '); // add spaces to make reading coordinates easier
+			line.insert(47,1,' ');
 			sscanf(&line.c_str()[30], "%f %f %f", &(current.x), &(current.y), &(current.z));
-			sscanf(&line.c_str()[77], "%3s", current.atom_type);
+			// moved by the two spaces above
+			sscanf(&line.c_str()[79], "%3s", current.atom_type);
 			line[27]='\0';
 			sscanf(line.c_str(), "%*s %d %4s %3s %1s %d", &(current.id), current.name, current.res_name, current.chain_id, &(current.res_id));
 			// assign H-bond acceptors (is going to fail for flexres with modified atom types)
@@ -1804,7 +1998,6 @@ std::vector<ReceptorAtom> read_receptor_atoms(
 			if((heavy=='O') || (heavy=='N') || (heavy=='S')) heavy_ids.push_back(atoms.size());
 			atoms.push_back(current);
 		}
-		if(strcmp(tempstr, "TER") == 0) break;
 	}
 	ReceptorAtom heavy, HD;
 	// assign H-donor heavy atoms

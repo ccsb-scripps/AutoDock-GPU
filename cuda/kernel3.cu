@@ -62,10 +62,10 @@ gpu_perform_LS_kernel(
 	float3* calc_coords = (float3*)sFloatBuff;
 
 	// Genotype pointers
-	float* genotype_candidate = (float*)(calc_coords + cData.dockpars.num_of_atoms);
-	float* genotype_deviate = (float*)(genotype_candidate + cData.dockpars.num_of_genes);
-	float* genotype_bias = (float*)(genotype_deviate + cData.dockpars.num_of_genes);
-	float* offspring_genotype = (float*)(genotype_bias + cData.dockpars.num_of_genes);
+	float* genotype_candidate = (float*)(calc_coords + MAX_NUM_OF_ATOMS);
+	float* genotype_deviate = (float*)(genotype_candidate + ACTUAL_GENOTYPE_LENGTH);
+	float* genotype_bias = (float*)(genotype_deviate + ACTUAL_GENOTYPE_LENGTH);
+	float* offspring_genotype = (float*)(genotype_bias + ACTUAL_GENOTYPE_LENGTH);
 
 	// Determining run ID and entity ID
 	// Initializing offspring genotype
@@ -321,7 +321,7 @@ void gpu_perform_LS(
                     float*   pMem_energies_next
                    )
 {
-	size_t sz_shared = (3 * cpuData.dockpars.num_of_atoms + 4 * cpuData.dockpars.num_of_genes) * sizeof(float);
+	size_t sz_shared = (3 * MAX_NUM_OF_ATOMS + 4 * ACTUAL_GENOTYPE_LENGTH) * sizeof(float);
 	gpu_perform_LS_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
 	LAUNCHERROR("gpu_perform_LS_kernel");
 #if 0

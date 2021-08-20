@@ -107,20 +107,28 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "stringify.h"
 #include "correct_grad_axisangle.h"
 
-void copy_map_to_gpu(
-                     GpuTempData&      tData,
-                     std::vector<Map>& all_maps,
-                     int               t,
-                     int               size_of_one_map
-                    )
+std::vector<int> get_gpu_pool()
 {
-	cl_int err;
-	err = clEnqueueWriteBuffer(tData.command_queue,tData.pMem_fgrids,true,t*size_of_one_map*sizeof(float),size_of_one_map*sizeof(float),all_maps[t].grid.data(),0,NULL,NULL);
-	if (err != CL_SUCCESS){
-		printf("pMem_fgrids: failed to upload maps to GPU memory. %d\n", err);
-		fflush(stdout);
+	cl_platform_id*  platform_id;
+	cl_device_id*    device_ids;
+	cl_uint platformCount;
+	cl_uint deviceCount;
+	std::vector<int> result;
+
+	// Get all available platforms
+	if (getPlatforms(&platform_id,&platformCount) == CL_SUCCESS)
+		for(unsigned int platform_nr=0; platform_nr<platformCount; platform_nr++)
+			// Get all devices of the given platform
+			if (getDevices(platform_id[platform_nr],platformCount,&device_ids,&deviceCount) == CL_SUCCESS)
+				for(unsigned int i=0; i<deviceCount; i++)
+					result.push_back(i+(platform_nr<<8));
+
+	if (result.size() == 0)
+	{
+		printf("No suitable OpenCL devices found, exiting.\n");
 		exit(-1);
 	}
+	return result;
 }
 
 void setup_gpu_for_docking(
@@ -229,14 +237,11 @@ void setup_gpu_for_docking(
 	device_id=device_ids[cData.devnum];
 	size_t dev_name_size;
 	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, 0, NULL, &dev_name_size);
-	char* device_name = (char*) malloc(dev_name_size);
-	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, dev_name_size, device_name, NULL);
-	printf("OpenCL device:                           %s",device_name);
-	if(deviceCount>1) printf(" (#%d / %d)",cData.devnum+1,deviceCount);
-	printf("\n");
+	tData.device_name = (char*) malloc(dev_name_size+32); // make sure array is large enough to hold device number text too
+	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, dev_name_size, tData.device_name, NULL);
+	if(deviceCount>1) sprintf(&tData.device_name[dev_name_size-1], " (#%d / %d)",cData.devnum+1,deviceCount);
+	printf("OpenCL device:                           %s\n",tData.device_name);
 	cData.devnum=-2;
-
-	free(device_name);
 
 	// Create context from first platform
 	if (createContext(platform_id[platform_nr],1,&device_id,&tData.context) != 0) exit(-1);
@@ -271,40 +276,18 @@ void setup_gpu_for_docking(
 // End of OpenCL Host Setup
 // =======================================================================
 
-	size_t sz_interintra_const   = MAX_NUM_OF_ATOMS*sizeof(float) + 
-	                               MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
-	                               MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
-	                               MAX_NUM_OF_ATOMS*sizeof(char);
-
-	size_t sz_intracontrib_const = 2*MAX_INTRAE_CONTRIBUTORS*sizeof(uint32_t);
-
-	size_t sz_intra_const        = MAX_NUM_OF_ATYPES*sizeof(unsigned int) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(unsigned short) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*sizeof(float);
-
-	size_t sz_rotlist_const      = MAX_NUM_OF_ROTATIONS*sizeof(int);
-
-	size_t sz_conform_const      = 3*MAX_NUM_OF_ATOMS*sizeof(float) +
-	                               3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                               3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                               4*MAX_NUM_OF_RUNS*sizeof(float);
-
 	// These constants are allocated in global memory since
 	// there is a limited number of constants that can be passed
 	// as arguments to kernel
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,sz_interintra_const,        &cData.mem_interintra_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,sz_intracontrib_const,      &cData.mem_intracontrib_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,sz_intra_const,             &cData.mem_intra_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,sz_rotlist_const,           &cData.mem_rotlist_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,sz_conform_const,           &cData.mem_conform_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_interintra),        &cData.mem_interintra_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_intracontrib),      &cData.mem_intracontrib_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_intra),             &cData.mem_intra_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_rotlist),           &cData.mem_rotlist_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_conform),           &cData.mem_conform_const);
 
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,2*MAX_NUM_OF_ROTBONDS*sizeof(int),                &cData.mem_rotbonds_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int), &cData.mem_rotbonds_atoms_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,MAX_NUM_OF_ROTBONDS*sizeof(int),                  &cData.mem_num_rotating_atoms_per_rotbond_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, 2*MAX_NUM_OF_ROTBONDS*sizeof(int),                &cData.mem_rotbonds_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int), &cData.mem_rotbonds_atoms_const);
+	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, MAX_NUM_OF_ROTBONDS*sizeof(int),                  &cData.mem_num_rotating_atoms_per_rotbond_const);
 
 	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,1000*sizeof(float),&cData.mem_angle_const);
 	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,1000*sizeof(float),&cData.mem_dependence_on_theta_const);
@@ -314,8 +297,8 @@ void setup_gpu_for_docking(
 	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_theta_const,    false,  &dependence_on_theta,    1000*sizeof(float));
 	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_rotangle_const, false,  &dependence_on_rotangle, 1000*sizeof(float));
 
-	if(cData.preload_gridsize>0)
-		mallocBufferObject(tData.context,CL_MEM_READ_ONLY,cData.preload_gridsize* (sizeof(float)) * (ATYPE_NUM+2),&(tData.pMem_fgrids));
+	if(cData.preallocated_gridsize>0)
+		mallocBufferObject(tData.context,CL_MEM_READ_ONLY,cData.preallocated_gridsize*sizeof(float),&(tData.pMem_fgrids));
 }
 
 void finish_gpu_from_docking(
@@ -323,6 +306,8 @@ void finish_gpu_from_docking(
                              GpuTempData& tData
                             )
 {
+	if(cData.devnum>-2) return; // device not set up
+	
 	clReleaseMemObject(cData.mem_interintra_const);
 	clReleaseMemObject(cData.mem_intracontrib_const);
 	clReleaseMemObject(cData.mem_intra_const);
@@ -353,11 +338,11 @@ void finish_gpu_from_docking(
 	clReleaseProgram(tData.program);
 	clReleaseCommandQueue(tData.command_queue);
 	clReleaseContext(tData.context);
+	free(tData.device_name);
 }
 
 int docking_with_gpu(
                      const Gridinfo*        mygrid,
-                     /*const*/ float*       cpu_floatgrids,
                            Dockpars*        mypars,
                      const Liganddata*      myligand_init,
                      const Liganddata*      myxrayligand,
@@ -367,21 +352,18 @@ int docking_with_gpu(
                            SimulationState& sim_state,
                            GpuData&         cData,
                            GpuTempData&     tData,
-                           bool             floatgrids_preloaded
+                           std::string*     output
                     )
 /* The function performs the docking algorithm and generates the corresponding result files.
 parameter mygrid:
 		describes the grid
 		filled with get_gridinfo()
-parameter cpu_floatgrids:
-		points to the memory region containing the grids
-		filled with get_gridvalues_f()
 parameter mypars:
 		describes the docking parameters
 		filled with get_commandpars()
 parameter myligand_init:
 		describes the ligands
-		filled with get_liganddata()
+		filled with parse_liganddata()
 parameter myxrayligand:
 		describes the xray ligand
 		filled with get_xrayliganddata()
@@ -389,6 +371,9 @@ parameters argc and argv:
 		are the corresponding command line arguments parameter
 */
 {
+	char* outbuf;
+	if(output!=NULL) outbuf = (char*)malloc(256*sizeof(char));
+
 	// Times
 	cl_ulong time_start_kernel;
 	cl_ulong time_end_kernel;
@@ -412,7 +397,6 @@ parameters argc and argv:
 	unsigned int* cpu_prng_seeds;
 
 	Dockparameters dockpars;
-	size_t size_floatgrids;
 	size_t size_populations;
 	size_t size_energies;
 	size_t size_prng_seeds;
@@ -471,60 +455,38 @@ parameters argc and argv:
 	memset(sim_state.cpu_evals_of_runs.data(), 0, size_evals_of_runs);
 
 	// preparing the constant data fields for the GPU
-	kernelconstant_interintra	KerConst_interintra;
-	kernelconstant_intracontrib	KerConst_intracontrib;
-	kernelconstant_intra		KerConst_intra;
-	kernelconstant_rotlist		KerConst_rotlist;
-	kernelconstant_conform		KerConst_conform;
-	kernelconstant_grads		KerConst_grads;
+	kernelconstant_interintra*	KerConst_interintra = new kernelconstant_interintra;
+	kernelconstant_intracontrib*	KerConst_intracontrib = new kernelconstant_intracontrib;
+	kernelconstant_intra*		KerConst_intra = new kernelconstant_intra;
+	kernelconstant_rotlist*		KerConst_rotlist = new kernelconstant_rotlist;
+	kernelconstant_conform*		KerConst_conform = new kernelconstant_conform;
+	kernelconstant_grads*		KerConst_grads = new kernelconstant_grads;
 
 	if (prepare_const_fields_for_gpu(&myligand_reference, mypars,
-	                                 &KerConst_interintra,
-	                                 &KerConst_intracontrib,
-	                                 &KerConst_intra,
-	                                 &KerConst_rotlist,
-	                                 &KerConst_conform,
-	                                 &KerConst_grads) == 1) {
+	                                 KerConst_interintra,
+	                                 KerConst_intracontrib,
+	                                 KerConst_intra,
+	                                 KerConst_rotlist,
+	                                 KerConst_conform,
+	                                 KerConst_grads) == 1) {
 		return 1;
 	}
 
-	size_t sz_interintra_const   = MAX_NUM_OF_ATOMS*sizeof(float) +
-	                               MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
-	                               MAX_NUM_OF_ATOMS*sizeof(uint32_t) +
-	                               MAX_NUM_OF_ATOMS*sizeof(char);
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_interintra_const,   false, KerConst_interintra,   sizeof(kernelconstant_interintra));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intracontrib_const, false, KerConst_intracontrib, sizeof(kernelconstant_intracontrib));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intra_const,        false, KerConst_intra,        sizeof(kernelconstant_intra));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotlist_const,      false, KerConst_rotlist,      sizeof(kernelconstant_rotlist));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_conform_const,      false, KerConst_conform,      sizeof(kernelconstant_conform));
 
-	size_t sz_intracontrib_const = 2*MAX_INTRAE_CONTRIBUTORS*sizeof(uint32_t);
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotbonds_const,                       false, KerConst_grads->rotbonds,                       sizeof(KerConst_grads->rotbonds));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotbonds_atoms_const,                 false, KerConst_grads->rotbonds_atoms,                 sizeof(KerConst_grads->rotbonds_atoms));
+	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_num_rotating_atoms_per_rotbond_const, false, KerConst_grads->num_rotating_atoms_per_rotbond, sizeof(KerConst_grads->num_rotating_atoms_per_rotbond));
 
-	size_t sz_intra_const        = MAX_NUM_OF_ATYPES*sizeof(unsigned int) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(unsigned short) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*sizeof(float) +
-	                               MAX_NUM_OF_ATYPES*sizeof(float);
-
-	size_t sz_rotlist_const      = MAX_NUM_OF_ROTATIONS*sizeof(int);
-
-	size_t sz_conform_const      = 3*MAX_NUM_OF_ATOMS*sizeof(float) +
-	                               3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                               3*MAX_NUM_OF_ROTBONDS*sizeof(float) +
-	                               4*MAX_NUM_OF_RUNS*sizeof(float);
-
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_interintra_const,   false, &KerConst_interintra,   sz_interintra_const);
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intracontrib_const, false, &KerConst_intracontrib, sz_intracontrib_const);
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intra_const,        false, &KerConst_intra,        sz_intra_const);
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotlist_const,      false, &KerConst_rotlist,      sz_rotlist_const);
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_conform_const,      false, &KerConst_conform,      sz_conform_const);
-
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotbonds_const,                       false, &KerConst_grads.rotbonds,                       2*MAX_NUM_OF_ROTBONDS*sizeof(int));
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_rotbonds_atoms_const,                 false, &KerConst_grads.rotbonds_atoms,                 MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_num_rotating_atoms_per_rotbond_const, false, &KerConst_grads.num_rotating_atoms_per_rotbond, MAX_NUM_OF_ROTBONDS*sizeof(int));
 
 	// ----------------------------------------------------------------------
 
- 	// allocating GPU memory for populations, floatgirds,
+	// allocating GPU memory for populations, floatgirds,
 	// energies, evaluation counters and random number generator states
-	size_floatgrids = 4 * (sizeof(float)) * (mygrid->num_of_atypes+2) * (mygrid->size_xyz[0]) * (mygrid->size_xyz[1]) * (mygrid->size_xyz[2]);
 
 	cl_mem mem_dockpars_conformations_current;
 	cl_mem mem_dockpars_energies_current;
@@ -534,29 +496,28 @@ parameters argc and argv:
 	cl_mem mem_gpu_evals_of_runs;
 	cl_mem mem_dockpars_prng_states;
 
-	if(cData.preload_gridsize==0)
-		mallocBufferObject(tData.context,CL_MEM_READ_ONLY,size_floatgrids, &tData.pMem_fgrids);
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_populations, &mem_dockpars_conformations_current);
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_energies,    &mem_dockpars_energies_current);
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_populations, &mem_dockpars_conformations_next);
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_energies,    &mem_dockpars_energies_next);
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,mypars->pop_size*mypars->num_of_runs*sizeof(int), &mem_dockpars_evals_of_new_entities);
+	if(cData.preallocated_gridsize==0)
+		mallocBufferObject(tData.context, CL_MEM_READ_ONLY, mygrid->grids.size()*sizeof(float), &tData.pMem_fgrids);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, size_populations, &mem_dockpars_conformations_current);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, size_energies,    &mem_dockpars_energies_current);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, size_populations, &mem_dockpars_conformations_next);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, size_energies,    &mem_dockpars_energies_next);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, mypars->pop_size*mypars->num_of_runs*sizeof(int), &mem_dockpars_evals_of_new_entities);
 
 	// -------- Replacing with memory maps! ------------
 #if defined (MAPPED_COPY)
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR ,size_evals_of_runs, &mem_gpu_evals_of_runs);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR , size_evals_of_runs, &mem_gpu_evals_of_runs);
 #else
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_evals_of_runs, &mem_gpu_evals_of_runs);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, size_evals_of_runs, &mem_gpu_evals_of_runs);
 #endif
 	// -------- Replacing with memory maps! ------------
 
-	mallocBufferObject(tData.context,CL_MEM_READ_WRITE,size_prng_seeds, &mem_dockpars_prng_states);
+	mallocBufferObject(tData.context, CL_MEM_READ_WRITE, size_prng_seeds, &mem_dockpars_prng_states);
 
-	if(!floatgrids_preloaded)
-		memcopyBufferObjectToDevice(tData.command_queue,tData.pMem_fgrids,          false, cpu_floatgrids,                     size_floatgrids);
-	memcopyBufferObjectToDevice(tData.command_queue,mem_dockpars_conformations_current, false, cpu_init_populations,               size_populations);
-	memcopyBufferObjectToDevice(tData.command_queue,mem_gpu_evals_of_runs,              false, sim_state.cpu_evals_of_runs.data(), size_evals_of_runs);
-	memcopyBufferObjectToDevice(tData.command_queue,mem_dockpars_prng_states,           false, cpu_prng_seeds,                     size_prng_seeds);
+	memcopyBufferObjectToDevice(tData.command_queue, tData.pMem_fgrids,                  false, mygrid->grids.data(),               mygrid->grids.size()*sizeof(float));
+	memcopyBufferObjectToDevice(tData.command_queue, mem_dockpars_conformations_current, false, cpu_init_populations,               size_populations);
+	memcopyBufferObjectToDevice(tData.command_queue, mem_gpu_evals_of_runs,              false, sim_state.cpu_evals_of_runs.data(), size_evals_of_runs);
+	memcopyBufferObjectToDevice(tData.command_queue, mem_dockpars_prng_states,           false, cpu_prng_seeds,                     size_prng_seeds);
 
 	// preparing parameter struct
 	dockpars.num_of_atoms      = ((int)  myligand_reference.num_of_atoms);
@@ -625,7 +586,7 @@ parameters argc and argv:
 //			heur_evals = (unsigned long)ceil(1000 * pow(2.0,0.5 * myligand_init->num_of_rotbonds + 6.0));
 			heur_evals = (unsigned long)ceil(64000 * pow(2.0, (0.5 - 0.2 * myligand_init->num_of_rotbonds/(20.0f + myligand_init->num_of_rotbonds)) * myligand_init->num_of_rotbonds));
 			} else{
-				printf("\nError: LS method \"%s\" is not supported by heuristics.\n       Please choose Solis-Wets (sw), Adadelta (ad),\n       or switch off the heuristics.\n",mypars->ls_method);
+				para_printf("\nError: LS method \"%s\" is not supported by heuristics.\n       Please choose Solis-Wets (sw), Adadelta (ad),\n       or switch off the heuristics.\n",mypars->ls_method);
 				exit(-1);
 			}
 		}
@@ -636,9 +597,9 @@ parameters argc and argv:
 		// => e = 1/19*hm
 		// at hm = 50 M => e0 = 2.63 M where e becomes less than 95% (about 11 torsions)
 		mypars->num_of_energy_evals = (unsigned long)ceil(heur_evals*(float)mypars->heuristics_max/(mypars->heuristics_max+heur_evals));
-		printf("    Using heuristics: (capped) number of evaluations set to %lu\n",mypars->num_of_energy_evals);
+		para_printf("    Using heuristics: (capped) number of evaluations set to %lu\n",mypars->num_of_energy_evals);
 		if (mypars->nev_provided && (mypars->num_of_energy_evals>nev)){
-			printf("    Overriding heuristics, setting number of evaluations to --nev = %lu instead.\n",nev);
+			para_printf("    Overriding heuristics, setting number of evaluations to --nev = %lu instead.\n",nev);
 			mypars->num_of_energy_evals = nev;
 			profile.capped = true;
 		}
@@ -648,14 +609,14 @@ parameters argc and argv:
 		float min_frac = a/(1+cap_fraction*cap_fraction*(a/(a-1.0f)-1.0f))+1.0f-a;
 		min_as_evals = (unsigned long)ceil(mypars->num_of_energy_evals*min_frac)*mypars->num_of_runs;
 		if(cap_fraction<0.5f){
-			printf("    Warning: The set number of evals is %.2f%% of the uncapped heuristics estimate of %lu evals.\n",cap_fraction*100.0f,heur_evals);
-			printf("             This means this docking may not be able to converge. Increasing ");
+			para_printf("    Warning: The set number of evals is %.2f%% of the uncapped heuristics estimate of %lu evals.\n",cap_fraction*100.0f,heur_evals);
+			para_printf("             This means this docking may not be able to converge. Increasing ");
 			if (mypars->nev_provided && (mypars->num_of_energy_evals>nev))
-				printf("--nev");
+				para_printf("--nev");
 			else
-				printf("--heurmax");
-			printf(" may improve\n             convergence but will also increase runtime.\n");
-			if(mypars->autostop) printf("             AutoStop will not stop before %.2f%% (%lu) of the set number of evaluations.\n",min_frac*100.0f,min_as_evals/mypars->num_of_runs);
+				para_printf("--heurmax");
+			para_printf(" may improve\n             convergence but will also increase runtime.\n");
+			if(mypars->autostop) para_printf("             AutoStop will not stop before %.2f%% (%lu) of the set number of evaluations.\n",min_frac*100.0f,min_as_evals/mypars->num_of_runs);
 		}
 	}
 	
@@ -673,13 +634,13 @@ parameters argc and argv:
 		strcpy(method_chosen,"ADADELTA (ad)");
 	}
 	else{
-		printf("\nError: LS method %s is not (yet) supported in the OpenCL version.\n",mypars->ls_method);
+		para_printf("\nError: LS method %s is not (yet) supported in the OpenCL version.\n",mypars->ls_method);
 		exit(-1);
 	}
-	printf("    Local-search chosen method is: %s\n", (dockpars.lsearch_rate == 0.0f)? "GA" : method_chosen);
+	para_printf("    Local-search chosen method is: %s\n", (dockpars.lsearch_rate == 0.0f)? "GA" : method_chosen);
 
 	if((mypars->initial_sw_generations>0) && (strcmp(mypars->ls_method, "sw") != 0))
-		printf("    Using Solis-Wets (sw) for the first %d generations.\n",mypars->initial_sw_generations);
+		para_printf("    Using Solis-Wets (sw) for the first %d generations.\n",mypars->initial_sw_generations);
 
         // Get profile for timing
 	profile.adadelta=(strcmp(mypars->ls_method, "ad")==0);
@@ -688,32 +649,17 @@ parameters argc and argv:
 	profile.num_rotbonds = myligand_init->num_of_rotbonds;
 
 	/*
-	printf("dockpars.num_of_intraE_contributors:%u\n", dockpars.num_of_intraE_contributors);
-	printf("dockpars.rotbondlist_length:%u\n", dockpars.rotbondlist_length);
+	para_printf("dockpars.num_of_intraE_contributors:%u\n", dockpars.num_of_intraE_contributors);
+	para_printf("dockpars.rotbondlist_length:%u\n", dockpars.rotbondlist_length);
 	*/
 
 	clock_start_docking = clock();
 
 #ifdef DOCK_DEBUG
-	printf("\n");
+	para_printf("\n");
 	// Main while-loop iterarion counter
 	unsigned int ite_cnt = 0;
 #endif
-
-	/*
-	// Added for printing intracontributor_pairs (autodockdevpy)
-	for (unsigned int intrapair_cnt=0; 
-			  intrapair_cnt<dockpars.num_of_intraE_contributors;
-			  intrapair_cnt++) {
-		if (intrapair_cnt == 0) {
-			printf("%-10s %-10s %-10s\n", "#pair", "#atom1", "#atom2");
-		}
-
-		printf ("%-10u %-10u %-10u\n", intrapair_cnt,
-					    KerConst.intraE_contributors_const[3*intrapair_cnt],
-					    KerConst.intraE_contributors_const[3*intrapair_cnt+1]);
-	}
-	*/
 
 	// Kernel1
 	setKernelArg(tData.kernel1,0, sizeof(dockpars.num_of_atoms),                  &dockpars.num_of_atoms);
@@ -746,7 +692,7 @@ parameters argc and argv:
 	kernel1_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
 	kernel1_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "K_INIT", "gSize: ", kernel1_gxsize, "lSize: ", kernel1_lxsize); fflush(stdout);
+	para_printf("%-25s %10s %8u %10s %4u\n", "K_INIT", "gSize: ", kernel1_gxsize, "lSize: ", kernel1_lxsize); fflush(stdout);
 #endif
 	// End of Kernel1
 
@@ -757,7 +703,7 @@ parameters argc and argv:
 	kernel2_gxsize = blocksPerGridForEachRun * threadsPerBlock;
 	kernel2_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "K_EVAL", "gSize: ", kernel2_gxsize, "lSize: ",  kernel2_lxsize); fflush(stdout);
+	para_printf("%-25s %10s %8u %10s %4u\n", "K_EVAL", "gSize: ", kernel2_gxsize, "lSize: ",  kernel2_lxsize); fflush(stdout);
 #endif
 	// End of Kernel2
 
@@ -802,7 +748,7 @@ parameters argc and argv:
 	kernel4_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
 	kernel4_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
-	printf("%-25s %10s %8u %10s %4u\n", "K_GA_GENERATION", "gSize: ",  kernel4_gxsize, "lSize: ", kernel4_lxsize); fflush(stdout);
+	para_printf("%-25s %10s %8u %10s %4u\n", "K_GA_GENERATION", "gSize: ",  kernel4_gxsize, "lSize: ", kernel4_lxsize); fflush(stdout);
 #endif
 	// End of Kernel4
 
@@ -851,7 +797,7 @@ parameters argc and argv:
 			kernel3_gxsize = blocksPerGridForEachLSEntity * threadsPerBlock;
 			kernel3_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_LS_SOLISWETS", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
+			para_printf("%-25s %10s %8u %10s %4u\n", "K_LS_SOLISWETS", "gSize: ", kernel3_gxsize, "lSize: ", kernel3_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel3
 		}
@@ -901,7 +847,7 @@ parameters argc and argv:
 			kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
 			kernel5_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_SDESCENT", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
+			para_printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_SDESCENT", "gSize: ", kernel5_gxsize, "lSize: ", kernel5_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel5
 		}
@@ -949,7 +895,7 @@ parameters argc and argv:
 			kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
 			kernel6_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_FIRE", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
+			para_printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_FIRE", "gSize: ", kernel6_gxsize, "lSize: ", kernel6_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel6
 		}
@@ -998,7 +944,7 @@ parameters argc and argv:
 			kernel7_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
 			kernel7_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
-			printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_ADADELTA", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
+			para_printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_ADADELTA", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
 			#endif
 			// End of Kernel7
 		}
@@ -1006,22 +952,22 @@ parameters argc and argv:
 
 	// Kernel1
 	#ifdef DOCK_DEBUG
-		printf("\nExecution starts:\n\n");
-		printf("%-25s", "\tK_INIT");fflush(stdout);
+		para_printf("\nExecution starts:\n\n");
+		para_printf("%-25s", "\tK_INIT");fflush(stdout);
 	#endif
 	runKernel1D(tData.command_queue,tData.kernel1,kernel1_gxsize,kernel1_lxsize,&time_start_kernel,&time_end_kernel);
 	#ifdef DOCK_DEBUG
-		printf("%15s" ," ... Finished\n");fflush(stdout);
+		para_printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 	// End of Kernel1
 
 	// Kernel2
 	#ifdef DOCK_DEBUG
-		printf("%-25s", "\tK_EVAL");fflush(stdout);
+		para_printf("%-25s", "\tK_EVAL");fflush(stdout);
 	#endif
 	runKernel1D(tData.command_queue,tData.kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
 	#ifdef DOCK_DEBUG
-		printf("%15s" ," ... Finished\n");fflush(stdout);
+		para_printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 	// End of Kernel2
 	// ===============================================================================
@@ -1040,7 +986,7 @@ parameters argc and argv:
 	generation_cnt = 0;
 	unsigned long total_evals;
 	// print progress bar
-	AutoStop autostop(mypars->pop_size, mypars->num_of_runs, mypars->stopstd, mypars->as_frequency);
+	AutoStop autostop(mypars->pop_size, mypars->num_of_runs, mypars->stopstd, mypars->as_frequency, output);
 #ifndef DOCK_DEBUG
 	if (mypars->autostop)
 	{
@@ -1048,9 +994,9 @@ parameters argc and argv:
 	}
 	else
 	{
-		printf("\nExecuting docking runs:\n");
-		printf("        20%%        40%%       60%%       80%%       100%%\n");
-		printf("---------+---------+---------+---------+---------+\n");
+		para_printf("\nExecuting docking runs:\n");
+		para_printf("        20%%        40%%       60%%       80%%       100%%\n");
+		para_printf("---------+---------+---------+---------+---------+\n");
 	}
 #endif
 	curr_progress_cnt = 0;
@@ -1079,7 +1025,7 @@ parameters argc and argv:
 		{
 #ifdef DOCK_DEBUG
 			ite_cnt++;
-			printf("\nLGA iteration # %u\n", ite_cnt);
+			para_printf("\nLGA iteration # %u\n", ite_cnt);
 			fflush(stdout);
 #endif
 			// update progress bar (bar length is 50)
@@ -1089,59 +1035,59 @@ parameters argc and argv:
 			while (curr_progress_cnt < new_progress_cnt) {
 				curr_progress_cnt++;
 #ifndef DOCK_DEBUG
-				printf("*");
+				para_printf("*");
 #endif
 				fflush(stdout);
 			}
 		}
 		// Kernel4
 		#ifdef DOCK_DEBUG
-			printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
+			para_printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 		#endif
 		runKernel1D(tData.command_queue,tData.kernel4,kernel4_gxsize,kernel4_lxsize,&time_start_kernel,&time_end_kernel);
 		#ifdef DOCK_DEBUG
-			printf("%15s", " ... Finished\n");fflush(stdout);
+			para_printf("%15s", " ... Finished\n");fflush(stdout);
 		#endif
 		// End of Kernel4
 		if (dockpars.lsearch_rate != 0.0f) {
 			if ((strcmp(mypars->ls_method, "sw") == 0) || ((strcmp(mypars->ls_method, "ad") == 0) && (generation_cnt<mypars->initial_sw_generations))) {
 				// Kernel3
 				#ifdef DOCK_DEBUG
-					printf("%-25s", "\tK_LS_SOLISWETS");fflush(stdout);
+					para_printf("%-25s", "\tK_LS_SOLISWETS");fflush(stdout);
 				#endif
 				runKernel1D(tData.command_queue,tData.kernel3,kernel3_gxsize,kernel3_lxsize,&time_start_kernel,&time_end_kernel);
 				#ifdef DOCK_DEBUG
-					printf("%15s" ," ... Finished\n");fflush(stdout);
+					para_printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
 				// End of Kernel3
 			} else if (strcmp(mypars->ls_method, "sd") == 0) {
 				// Kernel5
 				#ifdef DOCK_DEBUG
-					printf("%-25s", "\tK_LS_GRAD_SDESCENT");fflush(stdout);
+					para_printf("%-25s", "\tK_LS_GRAD_SDESCENT");fflush(stdout);
 				#endif
 				runKernel1D(tData.command_queue,tData.kernel5,kernel5_gxsize,kernel5_lxsize,&time_start_kernel,&time_end_kernel);
 				#ifdef DOCK_DEBUG
-					printf("%15s" ," ... Finished\n");fflush(stdout);
+					para_printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
 				// End of Kernel5
 			} else if (strcmp(mypars->ls_method, "fire") == 0) {
 				// Kernel6
 				#ifdef DOCK_DEBUG
-					printf("%-25s", "\tK_LS_GRAD_FIRE");fflush(stdout);
+					para_printf("%-25s", "\tK_LS_GRAD_FIRE");fflush(stdout);
 				#endif
 				runKernel1D(tData.command_queue,tData.kernel6,kernel6_gxsize,kernel6_lxsize,&time_start_kernel,&time_end_kernel);
 				#ifdef DOCK_DEBUG
-					printf("%15s" ," ... Finished\n");fflush(stdout);
+					para_printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
 				// End of Kernel6
 			} else if (strcmp(mypars->ls_method, "ad") == 0) {
 				// Kernel7
 				#ifdef DOCK_DEBUG
-					printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
+					para_printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
 				#endif
 				runKernel1D(tData.command_queue,tData.kernel7,kernel7_gxsize,kernel7_lxsize,&time_start_kernel,&time_end_kernel);
 				#ifdef DOCK_DEBUG
-					printf("%15s" ," ... Finished\n");fflush(stdout);
+					para_printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
 				// End of Kernel7
 			}
@@ -1153,11 +1099,11 @@ parameters argc and argv:
 		// -------- Replacing with memory maps! ------------
 		// Kernel2
 		#ifdef DOCK_DEBUG
-			printf("%-25s", "\tK_EVAL");fflush(stdout);
+			para_printf("%-25s", "\tK_EVAL");fflush(stdout);
 		#endif
 		runKernel1D(tData.command_queue,tData.kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
 		#ifdef DOCK_DEBUG
-			printf("%15s" ," ... Finished\n");fflush(stdout);
+			para_printf("%15s" ," ... Finished\n");fflush(stdout);
 		#endif
 		// End of Kernel2
 		// ===============================================================================
@@ -1236,7 +1182,7 @@ parameters argc and argv:
 		}
 		// ----------------------------------------------------------------------
 		#ifdef DOCK_DEBUG
-			printf("\tProgress %.3f %%\n", progress);
+			para_printf("\tProgress %.3f %%\n", progress);
 			fflush(stdout);
 		#endif
 	} // End of while-loop
@@ -1251,7 +1197,7 @@ parameters argc and argv:
 		//update progress bar (bar length is 50)mem_num_of_rotatingatoms_per_rotbond_const
 		while (curr_progress_cnt < 50) {
 			curr_progress_cnt++;
-			printf("*");
+			para_printf("*");
 			fflush(stdout);
 		}
 	}
@@ -1272,12 +1218,12 @@ parameters argc and argv:
 	// Final autostop statistics output
 	if (mypars->autostop) autostop.output_final_stddev(generation_cnt, sim_state.cpu_energies.data(), total_evals);
 
-	printf("\n");
+	para_printf("\n");
 #if defined (DOCK_DEBUG)
 	for (int cnt_pop=0;cnt_pop<size_populations/sizeof(float);cnt_pop++)
-		printf("total_num_pop: %u, cpu_final_populations[%u]: %f\n",(unsigned int)(size_populations/sizeof(float)),cnt_pop,cpu_final_populations[cnt_pop]);
+		para_printf("total_num_pop: %u, cpu_final_populations[%u]: %f\n",(unsigned int)(size_populations/sizeof(float)),cnt_pop,cpu_final_populations[cnt_pop]);
 	for (int cnt_pop=0;cnt_pop<size_energies/sizeof(float);cnt_pop++)
-		printf("total_num_energies: %u, sim_state.cpu_energies.data()[%u]: %f\n",    (unsigned int)(size_energies/sizeof(float)),cnt_pop,sim_state.cpu_energies.data()[cnt_pop]);
+		para_printf("total_num_energies: %u, sim_state.cpu_energies.data()[%u]: %f\n",    (unsigned int)(size_energies/sizeof(float)),cnt_pop,sim_state.cpu_energies.data()[cnt_pop]);
 #endif
 	// ===============================================================================
 	// Assign simulation results to sim_state
@@ -1285,6 +1231,11 @@ parameters argc and argv:
 	sim_state.generation_cnt = generation_cnt;
 	sim_state.sec_per_run = ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs;
 	sim_state.total_evals = total_evals;
+
+#if defined (MAPPED_COPY)
+	unmemMap(tData.command_queue,mem_gpu_evals_of_runs,map_cpu_evals_of_runs);
+#endif
+	clFinish(tData.command_queue);
 
 	clReleaseMemObject(mem_dockpars_conformations_current);
 	clReleaseMemObject(mem_dockpars_energies_current);
@@ -1294,7 +1245,15 @@ parameters argc and argv:
 	clReleaseMemObject(mem_dockpars_prng_states);
 	clReleaseMemObject(mem_gpu_evals_of_runs);
 
+	delete KerConst_interintra;
+	delete KerConst_intracontrib;
+	delete KerConst_intra;
+	delete KerConst_rotlist;
+	delete KerConst_conform;
+	delete KerConst_grads;
+
 	free(cpu_prng_seeds);
+	if(output!=NULL) free(outbuf);
 
 	return 0;
 }

@@ -74,12 +74,7 @@ typedef struct {
 } Gradientparameters;
 #endif
 
-void copy_map_to_gpu(
-                     GpuTempData&      tData,
-                     std::vector<Map>& all_maps,
-                     int               t,
-                     int               size_of_one_map
-                    );
+std::vector<int> get_gpu_pool();
 
 void setup_gpu_for_docking(
                            GpuData&     cData,
@@ -93,7 +88,6 @@ void finish_gpu_from_docking(
 
 int docking_with_gpu(
                      const Gridinfo*        mygrid,
-                     /*const*/ float*       cpu_floatgrids,
                            Dockpars*        mypars,
                      const Liganddata*      myligand_init,
                      const Liganddata*      myxrayligand,
@@ -103,7 +97,7 @@ int docking_with_gpu(
                            SimulationState& sim_state,
                            GpuData&         cData,
                            GpuTempData&     tData,
-                           bool             floatgrids_preloaded
+                           std::string*     output = NULL
                     );
 
 double check_progress(

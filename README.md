@@ -134,7 +134,6 @@ By default the output log file is written in the current working folder. Example
 |--smooth           |   | Smoothing parameter for vdW interactions              | 0.5 (Å)          |
 |--elecmindist      |   | Min. electrostatic potential distance (w/ dpf: 0.5 Å) | 0.01 (Å)         |
 |--modqp            |   | Use modified QASP from VirtualDrug or AD4 original    | 0 (no, use AD4)  |
-|--cgmaps           |   | Use individual maps for CG-G0 instead of the same one | 0 (no, same map) |
 
 Autostop is ON by default since v1.4. The collective distribution of scores among all LGA populations
 is tested for convergence every `<asfreq>` generations, and docking is stopped if the top-scored poses
