@@ -163,7 +163,6 @@ __device__ void gpu_calc_energy(
 	uint g2 = cData.dockpars.gridsize_x_times_y;
 	uint g3 = cData.dockpars.gridsize_x_times_y_times_z;
 
-	__threadfence();
 	__syncthreads();
 
 	// ================================================
@@ -226,8 +225,7 @@ __device__ void gpu_calc_energy(
 			calc_coords[atom_id].z = qt.z + rotation_movingvec.z;
 		} // End if-statement not dummy rotation
 
-		__threadfence();
-		__syncthreads();
+			__syncthreads();
 
 	} // End rotation_counter for-loop
 
