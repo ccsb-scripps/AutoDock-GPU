@@ -263,6 +263,7 @@ std::string get_filepath(const char* filename)
 	char* ts1 = strdup(filename);
 	std::string result = dirname(ts1);
 	free(ts1);
+	if(result==".") result="";
 	return result;
 	#else
 	char drive_tmp[_MAX_DRIVE];

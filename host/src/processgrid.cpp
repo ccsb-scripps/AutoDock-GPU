@@ -40,7 +40,6 @@ int get_gridinfo(
 	std::string line;
 	char   tempstr [256];
 	int    gpoints_even[3];
-	int    recnamelen;
 	double center[3];
 	int grid_types=0;
 
@@ -112,9 +111,9 @@ int get_gridinfo(
 		if (strcmp(tempstr, "#MACROMOLECULE") == 0)
 		{
 			sscanf(&line.c_str()[14], "%255s", tempstr);
-			recnamelen = strcspn(tempstr,".");
-			tempstr[recnamelen] = '\0';
-			int len = strlen(tempstr)+1;
+			if(strrchr(tempstr,'.')!=NULL){
+				tempstr[strrchr(tempstr,'.')-tempstr] = '\0';
+			}
 			mygrid->receptor_name = tempstr;
 		}
 
