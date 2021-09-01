@@ -119,7 +119,6 @@ __device__ void gpu_calc_energrad(
 	uint32_t  g2 = cData.dockpars.gridsize_x_times_y;
 	uint32_t  g3 = cData.dockpars.gridsize_x_times_y_times_z;
 
-	__threadfence();
 	__syncthreads();
 
 	// ================================================
@@ -183,8 +182,7 @@ __device__ void gpu_calc_energrad(
 			calc_coords[atom_id].z = qt.z + rotation_movingvec.z;
 
 		} // End if-statement not dummy rotation
-		__threadfence();
-		__syncthreads();
+			__syncthreads();
 	} // End rotation_counter for-loop
 
 	// ================================================
@@ -409,7 +407,6 @@ __device__ void gpu_calc_energrad(
 		gradient[atom_id].z += lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * gz)));
 #endif
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
-	__threadfence();
 	__syncthreads();
 
 	// Inter- and intra-molecular energy calculation
@@ -595,7 +592,6 @@ __device__ void gpu_calc_energrad(
 		ATOMICADDI32(&gradient[atom2_id].z, priv_intra_gradient_z);
 #endif
 	} // End contributor_counter for-loop (INTRAMOLECULAR ENERGY)
-	__threadfence();
 	__syncthreads();
 
 	// Transform gradients_inter_{x|y|z} 
@@ -681,7 +677,6 @@ __device__ void gpu_calc_energrad(
 		printf("gradient_z:%f\n", gradient_genotype [2]);
 		#endif
 	}
-	__threadfence();
 	__syncthreads();
 
 	// ------------------------------------------
@@ -876,7 +871,6 @@ __device__ void gpu_calc_energrad(
 		printf("%-13.6f %-13.6f %-13.6f\n", gradient_genotype[3], gradient_genotype[4], gradient_genotype[5]);
 		#endif
 	}
-	__threadfence();
 	__syncthreads();
 
 	// ------------------------------------------
@@ -938,7 +932,6 @@ __device__ void gpu_calc_energrad(
 		// - this works because a * (a_1 + a_2 + ... + a_n) = a*a_1 + a*a_2 + ... + a*a_n
 		ATOMICADDI32(&gradient_genotype[rotbond_id+6], lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * torque_on_axis * DEG_TO_RAD)))); /*(M_PI / 180.0f)*/;
 	}
-	__threadfence();
 	__syncthreads();
 
 	for (uint32_t gene_cnt = threadIdx.x;
@@ -946,7 +939,6 @@ __device__ void gpu_calc_energrad(
 	              gene_cnt+= blockDim.x) {
 		fgradient_genotype[gene_cnt] = ONEOVERTERMSCALE * (float)gradient_genotype[gene_cnt];
 	}
-	__threadfence();
 	__syncthreads();
 
 	#if defined (CONVERT_INTO_ANGSTROM_RADIAN)
@@ -956,7 +948,6 @@ __device__ void gpu_calc_energrad(
 	{
 		fgradient_genotype[gene_cnt] *= cData.dockpars.grid_spacing * cData.dockpars.grid_spacing * SCFACTOR_ANGSTROM_RADIAN;
 	}
-	__threadfence();
 	__syncthreads();
 	#endif
 }

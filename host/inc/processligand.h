@@ -64,7 +64,6 @@ typedef struct _Liganddata
 // base_atom_types:       Each row (first index) contain an atom base type (for derived types it'll be different from atom_types),
 //                        the row index is equal to the atom type code.
 	char           base_atom_types       [MAX_NUM_OF_ATOMS][4];
-	char           base_atom_names       [MAX_NUM_OF_ATOMS][4];
 // atom_map_to_fgrids:    Maps each moving atom to a (pre-loaded) map id
 	int            atom_map_to_fgrids    [MAX_NUM_OF_ATOMS];
 // ligand grid types

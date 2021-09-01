@@ -51,11 +51,12 @@ gpu_perform_LS_kernel(
 	__shared__ int   iteration_cnt;
 	__shared__ int   evaluation_cnt;
 
-
 	__shared__ float offspring_energy;
 	__shared__ float sFloatAccumulator;
 	__shared__ int entity_id;
-	extern __shared__ float sFloatBuff[];
+
+	volatile __shared__ float sFloatBuff[3 * MAX_NUM_OF_ATOMS + 4 * ACTUAL_GENOTYPE_LENGTH];
+
 	float candidate_energy;
 	int run_id;
 	// Ligand-atom position and partial energies
@@ -90,7 +91,6 @@ gpu_perform_LS_kernel(
 		iteration_cnt = 0;
 		evaluation_cnt = 0;
 	}
-	__threadfence();
 	__syncthreads();
 
 	size_t offset = (run_id * cData.dockpars.pop_size + entity_id) * GENOTYPE_LENGTH_IN_GLOBMEM;
@@ -101,7 +101,6 @@ gpu_perform_LS_kernel(
 		offspring_genotype[gene_counter] = pMem_conformations_next[offset + gene_counter];
 		genotype_bias[gene_counter] = 0.0f;
 	}
-	__threadfence();
 	__syncthreads();
 	
 
@@ -155,7 +154,6 @@ gpu_perform_LS_kernel(
 			                                   genotype_bias[gene_counter];
 		}
 		// Evaluating candidate
-		__threadfence();
 		__syncthreads();
 
 		// =================================================================
@@ -170,7 +168,6 @@ gpu_perform_LS_kernel(
 		if (threadIdx.x == 0) {
 			evaluation_cnt++;
 		}
-		__threadfence();
 		__syncthreads();
 
 		if (candidate_energy < offspring_energy)	// If candidate is better, success
@@ -187,7 +184,6 @@ gpu_perform_LS_kernel(
 
 			// Work-item 0 will overwrite the shared variables
 			// used in the previous if condition
-			__threadfence();
 			__syncthreads();
 
 			if (threadIdx.x == 0)
@@ -210,7 +206,6 @@ gpu_perform_LS_kernel(
 			}
 
 			// Evaluating candidate
-			__threadfence();
 			__syncthreads();
 
 			// =================================================================
@@ -230,7 +225,6 @@ gpu_perform_LS_kernel(
 				printf("%-18s [%-5s]---{%-5s}   [%-10.8f]---{%-10.8f}\n", "-ENERGY-KERNEL3-", "GRIDS", "INTRA", partial_interE[0], partial_intraE[0]);
 				#endif
 			}
-			__threadfence();
 			__syncthreads();
 
 			if (candidate_energy < offspring_energy) // If candidate is better, success
@@ -247,8 +241,7 @@ gpu_perform_LS_kernel(
 
 				// Work-item 0 will overwrite the shared variables
 				// used in the previous if condition
-				__threadfence();
-				__syncthreads();
+							__syncthreads();
 
 				if (threadIdx.x == 0)
 				{
@@ -290,7 +283,6 @@ gpu_perform_LS_kernel(
 					cons_fail = 0;
 				}
 		}
-		__threadfence();
 		__syncthreads();
 	}
 
@@ -321,8 +313,7 @@ void gpu_perform_LS(
                     float*   pMem_energies_next
                    )
 {
-	size_t sz_shared = (3 * MAX_NUM_OF_ATOMS + 4 * ACTUAL_GENOTYPE_LENGTH) * sizeof(float);
-	gpu_perform_LS_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
+	gpu_perform_LS_kernel<<<blocks, threads>>>(pMem_conformations_next, pMem_energies_next);
 	LAUNCHERROR("gpu_perform_LS_kernel");
 #if 0
 	cudaError_t status;

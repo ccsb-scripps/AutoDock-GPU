@@ -319,7 +319,7 @@ void write_basic_info_dlg(
 		fprintf(fp, "    ________________________\n\n\n");
 		fprintf(fp, "DPF> outlev 1\n");
 		fprintf(fp, "DPF> ga_run %lu\n", mypars->num_of_runs);
-		fprintf(fp, "DPF> fld %s.maps.fld\n", mygrid->receptor_name.c_str());
+		fprintf(fp, "DPF> fld %s\n", mygrid->fld_name.c_str());
 		fprintf(fp, "DPF> move %s\n", mypars->ligandfile);
 		if(flexres) fprintf(fp, "DPF> flexres %s\n", mypars->flexresfile);
 		fprintf(fp, "\n\n");

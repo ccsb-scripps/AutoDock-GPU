@@ -84,7 +84,8 @@ gpu_gradient_minAD_kernel(
 	__shared__ int entity_id;
 	__shared__ float best_energy;
 	__shared__ float sFloatAccumulator;
-	extern __shared__ float sFloatBuff[];
+
+	volatile __shared__ float sFloatBuff[6 * MAX_NUM_OF_ATOMS + 5 * ACTUAL_GENOTYPE_LENGTH];
 
 	// Ligand-atom position and partial energies
 	float3* calc_coords = (float3*)sFloatBuff;
@@ -135,7 +136,6 @@ gpu_gradient_minAD_kernel(
 		printf("%20s %.6f\n", "initial energy: ", energy);
 		#endif
 	}
-	__threadfence();
 	__syncthreads();
 	energy = pMem_energies_next[run_id * cData.dockpars.pop_size + entity_id];
 
@@ -160,7 +160,6 @@ gpu_gradient_minAD_kernel(
 	// E.g. in steepest descent "delta" is -1.0 * stepsize * gradient
 
 	// Asynchronous copy should be finished by here
-	__threadfence();
 	__syncthreads();
 
 	// Initializing vectors
@@ -214,7 +213,6 @@ gpu_gradient_minAD_kernel(
 		// =============================================================
 		// =============================================================
 		// Calculating energy & gradient
-		__threadfence();
 		__syncthreads();
 
 		gpu_calc_energrad(
@@ -272,7 +270,6 @@ gpu_gradient_minAD_kernel(
 			printf("\n");
 			#endif
 		}
-		__threadfence();
 		__syncthreads();
 		#endif // DEBUG_ENERGY_ADADELTA
 
@@ -297,7 +294,6 @@ gpu_gradient_minAD_kernel(
 			// Applying update
 			genotype[i] += delta;
 		}
-		__threadfence();
 		__syncthreads();
 
 		#if defined (DEBUG_SQDELTA_ADADELTA)
@@ -310,7 +306,6 @@ gpu_gradient_minAD_kernel(
 				printf("%13u %20.6f %15.6f %15.6f %15.6f\n", i, square_gradient[i], delta[i], square_delta[i], genotype[i]);
 			}
 		}
-		__threadfence();
 		__syncthreads();
 		#endif
 
@@ -356,8 +351,7 @@ gpu_gradient_minAD_kernel(
 			}
 #endif
 		}
-		__threadfence();
-		__syncthreads(); // making sure that iteration_cnt is up-to-date
+			__syncthreads(); // making sure that iteration_cnt is up-to-date
 #ifdef ADADELTA_AUTOSTOP
 	} while ((iteration_cnt < cData.dockpars.max_num_of_iters)  && (rho > 0.01f));
 #else
@@ -375,7 +369,6 @@ gpu_gradient_minAD_kernel(
 	}
 
 	// Updating old offspring in population
-	__threadfence();
 	__syncthreads();
 
 	offset = (run_id * cData.dockpars.pop_size + entity_id) * GENOTYPE_LENGTH_IN_GLOBMEM;
@@ -407,8 +400,7 @@ void gpu_gradient_minAD(
                         float*   pMem_energies_next
                        )
 {
-	size_t sz_shared = (6 * MAX_NUM_OF_ATOMS + 5 * ACTUAL_GENOTYPE_LENGTH) * sizeof(float);
-	gpu_gradient_minAD_kernel<<<blocks, threads, sz_shared>>>(pMem_conformations_next, pMem_energies_next);
+	gpu_gradient_minAD_kernel<<<blocks, threads>>>(pMem_conformations_next, pMem_energies_next);
 	LAUNCHERROR("gpu_gradient_minAD_kernel");
 #if 0
 	cudaError_t status;

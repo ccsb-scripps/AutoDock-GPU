@@ -96,8 +96,8 @@ int init_liganddata(
 				new_type = 1; // supposing this will be a new atom type
 				sscanf(&line.c_str()[77], "%3s", tempstr); // reading atom type
 				tempstr[3] = '\0'; //just to be sure strcpy wont fail even if something is wrong with position
-				line[17]='\0';
-				sscanf(&line.c_str()[13], "%4s", myligand->atom_names[atom_cnt]);
+				line[16]='\0';
+				sscanf(&line.c_str()[12], "%4s", myligand->atom_names[atom_cnt]);
 				atom_cnt++;
 
 				// checking if this atom has been already found

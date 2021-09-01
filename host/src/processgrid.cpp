@@ -40,7 +40,6 @@ int get_gridinfo(
 	std::string line;
 	char   tempstr [256];
 	int    gpoints_even[3];
-	int    recnamelen;
 	double center[3];
 	int grid_types=0;
 
@@ -48,6 +47,7 @@ int get_gridinfo(
 	// Getting full path fo the grid file
 	// Getting father directory name
 	mygrid->grid_file_path = get_filepath(fldfilename);
+	if(mygrid->grid_file_path==".") mygrid->grid_file_path="";
 	// ----------------------------------------------------
 
 	// Processing fld file
@@ -112,9 +112,9 @@ int get_gridinfo(
 		if (strcmp(tempstr, "#MACROMOLECULE") == 0)
 		{
 			sscanf(&line.c_str()[14], "%255s", tempstr);
-			recnamelen = strcspn(tempstr,".");
-			tempstr[recnamelen] = '\0';
-			int len = strlen(tempstr)+1;
+			if(strrchr(tempstr,'.')!=NULL){
+				tempstr[strrchr(tempstr,'.')-tempstr] = '\0';
+			}
 			mygrid->receptor_name = tempstr;
 		}
 
@@ -208,7 +208,9 @@ int get_gridvalues(Gridinfo* mygrid)
 	{
 		ti = t + mygrid->grid_mapping.size()/2;
 		if(mygrid->fld_relative){ // this is always true (unless changed)
-			fn=mygrid->grid_file_path+"/"+mygrid->grid_mapping[ti];
+			fn=mygrid->grid_file_path;
+			if(mygrid->grid_file_path.size()>0) fn+="/";
+			fn+=mygrid->grid_mapping[ti];
 //			printf("Atom type %d (%s) uses map: %s\n",t,mygrid->grid_mapping[t].c_str(),fn.c_str());
 			fp.open(fn);
 		}
