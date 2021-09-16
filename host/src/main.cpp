@@ -477,6 +477,9 @@ int main(int argc, char* argv[])
 				if(mypars.resname) free(mypars.resname);
 			}
 		} // end of for loop
+#ifdef USE_PIPELINE
+		#pragma omp single
+#endif
 		if(!filelist.used){
 			// Clean up memory dynamically allocated to not leak
 			mypars.receptor_atoms.clear();
@@ -488,6 +491,7 @@ int main(int argc, char* argv[])
 		}
 	} // end of parallel section
 	if(initial_pars.xml2dlg && !initial_pars.dlg2stdout && (n_files>100)) printf("\n\n"); // finish progress bar
+
 	
 #ifndef _WIN32
 	// Total time measurement
