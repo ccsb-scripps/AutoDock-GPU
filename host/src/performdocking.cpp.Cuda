@@ -119,16 +119,12 @@ void setup_gpu_for_docking(
                            GpuTempData& tData
                           )
 {
-	cudaError_t status;
-	if(cData.devnum<-1){
-		status = cudaSetDevice(cData.devid);
-		return; // device already setup
-	}
+	if(cData.devnum<-1) return; // device already setup
 	auto const t0 = std::chrono::steady_clock::now();
 
 	// Initialize CUDA
 	int gpuCount=0;
-	status = cudaGetDeviceCount(&gpuCount);
+	cudaError_t status = cudaGetDeviceCount(&gpuCount);
 	RTERROR(status, "cudaGetDeviceCount failed");
 	if (gpuCount == 0)
 	{
@@ -316,7 +312,7 @@ parameters argc and argv:
 	if(output!=NULL) outbuf = (char*)malloc(256*sizeof(char));
 
 	auto const t1 = std::chrono::steady_clock::now();
-	cudaError_t status;
+	cudaError_t status = cudaSetDevice(cData.devid); // make sure we're on the correct device
 
 	Liganddata myligand_reference;
 
@@ -590,21 +586,6 @@ parameters argc and argv:
 	unsigned int ite_cnt = 0;
 #endif
 
-	/*
-	// Added for printing intracontributor_pairs (autodockdevpy)
-	for (unsigned int intrapair_cnt=0; 
-			  intrapair_cnt<dockpars.num_of_intraE_contributors;
-			  intrapair_cnt++) {
-		if (intrapair_cnt == 0) {
-			para_printf("%-10s %-10s %-10s\n", "#pair", "#atom1", "#atom2");
-		}
-
-		para_printf ("%-10u %-10u %-10u\n", intrapair_cnt,
-		        KerConst.intraE_contributors_const[3*intrapair_cnt],
-		        KerConst.intraE_contributors_const[3*intrapair_cnt+1]);
-	}
-	*/
-
 	// Kernel1
 	uint32_t kernel1_gxsize = blocksPerGridForEachEntity;
 	uint32_t kernel1_lxsize = threadsPerBlock;
@@ -694,7 +675,6 @@ parameters argc and argv:
 		cudaDeviceSynchronize();
 	#endif
 	gpu_calc_initpop(kernel1_gxsize, kernel1_lxsize, pMem_conformations_current, pMem_energies_current);
-	//runKernel1D(command_queue,kernel1,kernel1_gxsize,kernel1_lxsize,&time_start_kernel,&time_end_kernel);
 	#ifdef DOCK_DEBUG
 		cudaDeviceSynchronize();
 		para_printf("%15s" ," ... Finished\n");fflush(stdout);
@@ -705,7 +685,6 @@ parameters argc and argv:
 	#ifdef DOCK_DEBUG
 		para_printf("%-25s", "\tK_EVAL");fflush(stdout);
 	#endif
-	//runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
 	gpu_sum_evals(kernel2_gxsize, kernel2_lxsize);
 	#ifdef DOCK_DEBUG
 		cudaDeviceSynchronize();
