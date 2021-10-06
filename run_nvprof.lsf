@@ -1,0 +1,109 @@
+#!/bin/bash
+# Begin LSF Directives
+#BSUB -P gen119
+#BSUB -W 02:00
+#BSUB -nnodes 1
+#BSUB -J autodock_cuda
+#BSUB -alloc_flags "smt4"
+#BSUB -o btest.%J
+#BSUB -e btest.%J
+#BSUB -u thavappiragm@ornl.gov
+
+module load gcc/8.1.0 cuda/10.1.243
+#module load gcc/8.1.0 cuda/11.0.3
+
+
+date
+
+#single thread
+export OMP_NUM_THREADS=1
+
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/3er5/rand-1.pdbqt -nrun 10  > docking_cuda_summit_n10_nvprof_cu101_gcc810_3er5.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/3er5/rand-1.pdbqt -nrun 20  > docking_cuda_summit_n20_nvprof_cu101_gcc810_3er5.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/3er5/rand-1.pdbqt -nrun 40  > docking_cuda_summit_n40_nvprof_cu101_gcc810_3er5.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/3er5/rand-1.pdbqt -nrun 60  > docking_cuda_summit_n60_nvprof_cu101_gcc810_3er5.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/3er5/rand-1.pdbqt -nrun 80  > docking_cuda_summit_n80_nvprof_cu101_gcc810_3er5.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/3er5/rand-1.pdbqt -nrun 100  > docking_cuda_summit_n100_nvprof_cu101_gcc810_3er5.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/3er5/rand-1.pdbqt -nrun 120  > docking_cuda_summit_n120_nvprof_cu101_gcc810_3er5.txt
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs ./bin/autodock_gpu_64wi -ffile ./input/3er5/protein.maps.fld -lfile ./input/3er5/rand-1.pdbqt -nrun 10 -autostop 1 > docking_cuda_summit_n10_cu101_gcc810_3er5.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs ./bin/autodock_gpu_64wi -ffile ./input/3er5/protein.maps.fld -lfile ./input/3er5/rand-1.pdbqt -nrun 20 -autostop 1 > docking_cuda_summit_n20_cu101_gcc810_3er5.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs ./bin/autodock_gpu_64wi -ffile ./input/3er5/protein.maps.fld -lfile ./input/3er5/rand-1.pdbqt -nrun 40 -autostop 1 > docking_cuda_summit_n40_cu101_gcc810_3er5.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs ./bin/autodock_gpu_64wi -ffile ./input/3er5/protein.maps.fld  -lfile ./input/3er5/rand-1.pdbqt -nrun 60 -autostop 1 > docking_cuda_summit_n60_cu101_gcc810_3er5.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs ./bin/autodock_gpu_64wi -ffile ./input/3er5/protein.maps.fld -lfile ./input/3er5/rand-1.pdbqt -nrun 80 -autostop 1 > docking_cuda_summit_n80_cu101_gcc810_3er5.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs ./bin/autodock_gpu_64wi -ffile ./input/3er5/protein.maps.fld -lfile ./input/3er5/rand-1.pdbqt -nrun 100 -autostop 1 > docking_cuda_summit_n100_cu101_gcc810_3er5.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs ./bin/autodock_gpu_64wi -ffile ./input/3er5/protein.maps.fld -lfile ./input/3er5/rand-1.pdbqt -nrun 120 -autostop 1 > docking_cuda_summit_n120_cu101_gcc810_3er5.txt
+
+#----------
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 10  > docking_cuda_summit_n10_nvprof_cu101_gcc810_nsc1620.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 20  > docking_cuda_summit_n20_nvprof_cu101_gcc810_nsc1620.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 40  > docking_cuda_summit_n40_nvprof_cu101_gcc810_nsc1620.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 60  > docking_cuda_summit_n60_nvprof_cu101_gcc810_nsc1620.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 80  > docking_cuda_summit_n80_nvprof_cu101_gcc810_nsc1620.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 100  > docking_cuda_summit_n100_nvprof_cu101_gcc810_nsc1620.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof ./bin/autodock_gpu_64wi -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 120  > docking_cuda_summit_n120_nvprof_cu101_gcc810_nsc1620.txt 
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/nsc1620/protein.maps.fld -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 10 -autostop 1 > docking_cuda_summit_n10_cu101_gcc810_nsc1620.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/nsc1620/protein.maps.fld -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 20 -autostop 1 > docking_cuda_summit_n20_cu101_gcc810_nsc1620.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/nsc1620/protein.maps.fld -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 40 -autostop 1 > docking_cuda_summit_n40_cu101_gcc810_nsc1620.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/nsc1620/protein.maps.fld -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 60 -autostop 1 > docking_cuda_summit_n60_cu101_gcc810_nsc1620.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/nsc1620/protein.maps.fld -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 80 -autostop 1 > docking_cuda_summit_n80_cu101_gcc810_nsc1620.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/nsc1620/protein.maps.fld -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 100 -autostop 1 > docking_cuda_summit_n100_cu101_gcc810_nsc1620.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/nsc1620/protein.maps.fld -lfile ./input/nsc1620/NSC1620.pdbqt -nrun 120 -autostop 1 > docking_cuda_summit_n120_cu101_gcc810_nsc1620.txt
+
+#----------
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 10  > docking_cuda_summit_n10_nvprof_cu101_gcc810.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 20  > docking_cuda_summit_n20_nvprof_cu101_gcc810.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 40  > docking_cuda_summit_n40_nvprof_cu101_gcc810.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 60  > docking_cuda_summit_n60_nvprof_cu101_gcc810.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 80  > docking_cuda_summit_n80_nvprof_cu101_gcc810.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 100  > docking_cuda_summit_n100_nvprof_cu101_gcc810.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 120  > docking_cuda_summit_n120_nvprof_cu101_gcc810.txt 
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/7cpa/7cpa_protein.maps.fld  -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 1  > docking_cuda_summit_n1_cu101_gcc810.txt 
+
+jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/7cpa/derived/7cpa_protein.maps.fld -lfile ./input/7cpa/derived/7cpa_ligand.pdbqt -nrun 10  -autostop 1  > docking_cuda_summit_n10_cu101_gcc810.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/7cpa/7cpa_protein.maps.fld -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 20  -autostop 1  > docking_cuda_summit_n20_cu101_gcc810.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/7cpa/7cpa_protein.maps.fld -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 40  -autostop 1  > docking_cuda_summit_n40_cu101_gcc810.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/7cpa/7cpa_protein.maps.fld -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 60  -autostop 1  > docking_cuda_summit_n60_cu101_gcc810.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/7cpa/7cpa_protein.maps.fld -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 80  -autostop 1 > docking_cuda_summit_n80_cu101_gcc810.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/7cpa/7cpa_protein.maps.fld -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 100 -autostop 1  > docking_cuda_summit_n100_cu101_gcc810.txt 
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -ffile ./input/7cpa/7cpa_protein.maps.fld -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 120 -autostop 1  > docking_cuda_summit_n120_cu101_gcc810.txt 
+
+
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 10  > docking_cuda_summit_n10_nvprof_cu1103_gcc810.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 20  > docking_cuda_summit_n20_nvprof_cu1103_gcc810.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 40  > docking_cuda_summit_n40_nvprof_cu1103_gcc810.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 60  > docking_cuda_summit_n60_nvprof_cu1103_gcc810.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 80  > docking_cuda_summit_n80_nvprof_cu1103_gcc810.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 100  > docking_cuda_summit_n100_nvprof_cu1103_gcc810.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs nvprof  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 120  > docking_cuda_summit_n120_nvprof_cu1103_gcc810.txt
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 10  > docking_cuda_summit_n10_cu1103_gcc810.txt  
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 20  > docking_cuda_summit_n20_cu1103_gcc810.txt   
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 40  > docking_cuda_summit_n40_cu1103_gcc810.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 60  > docking_cuda_summit_n60_cu1103_gcc810.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 80  > docking_cuda_summit_n80_cu1103_gcc810.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 100  > docking_cuda_summit_n100_cu1103_gcc810.txt
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 1 -d packed -b rs  ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 120  > docking_cuda_summit_n120_cu1103_gcc810.txt
+
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 7 -d packed -b rs nvprof --print-gpu-trace ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 100  > docking_cuda_summit_LS_knl_sp.txt 
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 7 -d packed -b rs nvprof --kernels ":::1" --metrics flop_count_sp_fma --metrics flop_count_sp_special --metrics flop_count_sp_mul --metrics flop_count_sp_add --metrics flop_count_dp_fma  --metrics flop_count_dp --metrics flop_count_sp --metrics gld_transactions --metrics gst_transactions --metrics l2_read_transactions --metrics l2_write_transactions --metrics dram_read_transactions --metrics dram_write_transactions --metrics sysmem_read_bytes --metrics sysmem_write_bytes ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 100  > docking_cuda_summit_LS_knl_sp.txt 
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 7 -d packed -b rs nvprof --kernels ":::1" --metrics flop_count_dp --metrics flop_count_sp --metrics gld_transactions --metrics gst_transactions --metrics l2_read_transactions --metrics l2_write_transactions --metrics dram_read_transactions --metrics dram_write_transactions --metrics sysmem_read_bytes --metrics sysmem_write_bytes ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 100  > docking_cuda_summit_LS_knl_sp.txt 
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 7 -d packed -b rs nvprof --kernels "gpu_calc_initpop_kernel" --metrics flop_count_sp --metrics gld_transactions --metrics gst_transactions --metrics l2_read_transactions --metrics l2_write_transactions --metrics dram_read_transactions --metrics dram_write_transactions --metrics sysmem_read_bytes --metrics sysmem_write_bytes ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 100  > docking_cuda_summit_LS_knl_sp.txt 
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 7 -d packed -b rs nvprof --kernels "gpu_gen_and_eval_newpops_kernel" --metrics flop_count_sp --metrics gld_transactions --metrics gst_transactions --metrics l2_read_transactions --metrics l2_write_transactions --metrics dram_read_transactions --metrics dram_write_transactions --metrics sysmem_read_bytes --metrics sysmem_write_bytes ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 100  > docking_cuda_summit_LS_knl_sp.txt 
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 7 -d packed -b rs nvprof --kernels "gpu_sum_evals_kernel" --metrics flop_count_sp --metrics gld_transactions --metrics gst_transactions --metrics l2_read_transactions --metrics l2_write_transactions --metrics dram_read_transactions --metrics dram_write_transactions --metrics sysmem_read_bytes --metrics sysmem_write_bytes ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 100  > docking_cuda_summit_sumevals_knl_sp.txt 
+
+#jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 1 -c 7 -d packed -b rs nvprof --kernels "gpu_perform_LS_kernel" --metrics flop_count_sp --metrics gld_transactions --metrics gst_transactions --metrics l2_read_transactions --metrics l2_write_transactions --metrics dram_read_transactions --metrics dram_write_transactions --metrics sysmem_read_bytes --metrics sysmem_write_bytes ./bin/autodock_gpu_64wi -lfile ./input/7cpa/7cpa_ligand.pdbqt -nrun 100  > docking_cuda_summit_LS_knl_sp.txt 
+
+

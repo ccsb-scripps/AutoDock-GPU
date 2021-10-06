@@ -1,0 +1,24 @@
+
+Lmod is automatically replacing "xl/16.1.1-5" with "gcc/8.1.0".
+
+
+Inactive Modules:
+  1) spectrum-mpi
+
+Wed Jun  9 15:39:56 EDT 2021
+
+------------------------------------------------------------
+Sender: LSF System <lsfadmin@batch1>
+Subject: Job 1068215: <autodock_cuda> in cluster <summit> Done
+
+Job <autodock_cuda> was submitted from host <login2> by user <mathit> in cluster <summit> at Wed Jun  9 15:38:50 2021
+Job was executed on host(s) <1*batch1>, in queue <batch>, as user <mathit> in cluster <summit> at Wed Jun  9 15:39:42 2021
+                            <42*h18n11>
+</ccs/home/mathit> was used as the home directory.
+</gpfs/alpine/scratch/mathit/gen119/SOLLVE/AutoDock-GPU> was used as the working directory.
+Started at Wed Jun  9 15:39:42 2021
+Terminated at Wed Jun  9 15:40:00 2021
+Results reported at Wed Jun  9 15:40:00 2021
+
+The output (if any) is above this job summary.
+
