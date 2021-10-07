@@ -27,7 +27,7 @@ See [more relevant papers](https://github.com/ccsb-scripps/AutoDock-GPU/wiki/Pub
 
 | Operating system                         | CPU                          | GPU                                            |
 |:----------------------------------------:|:----------------------------:|:----------------------------------------------:|
-|CentOS 6.7 & 6.8 / Ubuntu 14.04 & 16.04   | Intel SDK for OpenCL 2017    | AMD APP SDK v3.0 / CUDA v8.0, v9.0, and v10.0  |
+|CentOS 6.7 & 6.8 / Ubuntu 14.04 & 16.04   | Intel SDK for OpenCL 2017    | AMD APP SDK v3.0 / CUDA 9, 10, and 11          |
 |macOS Catalina 10.15.1                    | Apple / Intel                | Apple / Intel Iris, Radeon Vega 64, Radeon VII |
 
 
