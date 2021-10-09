@@ -93,7 +93,7 @@ void gpu_calc_initpop(	uint32_t pops_by_runs,
         for (uint atom_id = 0;
                   atom_id < cData.dockpars.num_of_atoms;
                   atom_id+= 1){
-            energy += calc_interenergy( atom_id, cData.dockpars, cData, calc_coords );
+            energy += calc_interenergy( atom_id, cData, calc_coords );
         } // End atom_id for-loop (INTERMOLECULAR ENERGY)
 
 //            printf("inter energy: %f \n", inter_energy);
@@ -102,7 +102,7 @@ void gpu_calc_initpop(	uint32_t pops_by_runs,
         for (uint contributor_counter = 0;
              contributor_counter < cData.dockpars.num_of_intraE_contributors;
              contributor_counter += 1){
-             energy += calc_intraenergy( contributor_counter, cData.dockpars, cData, calc_coords );
+             energy += calc_intraenergy( contributor_counter, cData, calc_coords );
         }
   //          printf("intra energy: %f \n", intra_energy);
         //energy = (inter_energy +intra_energy);

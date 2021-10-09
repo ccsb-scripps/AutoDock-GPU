@@ -34,7 +34,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "performdocking.h"
 #include "correct_grad_axisangle.h"
 #include "GpuData.h"
-#include "kernels.h"
+#include "kernels.hpp"
 
 /* CUDA kernels
 void SetKernelsGpuData(GpuData* pData);
@@ -96,12 +96,12 @@ double elapsed_seconds(
 
 std::vector<int> get_gpu_pool()
 {
-	int gpuCount=0;
+/*	int gpuCount=0;
 	cudaError_t status;
 	status = cudaGetDeviceCount(&gpuCount);
 	RTERROR(status, "cudaGetDeviceCount failed");
-	std::vector<int> result;
-	cudaDeviceProp props;
+*/	std::vector<int> result;
+/*	cudaDeviceProp props;
 	for(unsigned int i=0; i<gpuCount; i++){
 		RTERROR(cudaGetDeviceProperties(&props,i),"cudaGetDeviceProperties failed");
 		if(props.major>=3) result.push_back(i);
@@ -112,6 +112,7 @@ std::vector<int> get_gpu_pool()
 		cudaDeviceReset();
 		exit(-1);
 	}
+*/
 	return result;
 }
 
@@ -120,17 +121,15 @@ void setup_gpu_for_docking(
                            GpuTempData& tData
                           )
 {
+	/*
 	if(cData.devnum<-1) return; // device already setup
 	auto const t0 = std::chrono::steady_clock::now();
 
 	// Initialize CUDA
 	int gpuCount=0;
-	cudaError_t status = cudaGetDeviceCount(&gpuCount);
-	RTERROR(status, "cudaGetDeviceCount failed");
 	if (gpuCount == 0)
 	{
-		printf("No CUDA-capable devices found, exiting.\n");
-		cudaDeviceReset();
+		printf("No GPU devices found, exiting.\n");
 		exit(-1);
 	}
 	if (cData.devnum>=gpuCount){
@@ -140,28 +139,12 @@ void setup_gpu_for_docking(
 	if (cData.devnum<0)
 		free(NULL); // Trick driver into creating context on current device
 	else
-	//	status = cudaSetDevice(cData.devnum);
-	// Now that we have a device, gather some information
-	/* size_t freemem, totalmem;
-	cudaDeviceProp props;
-	RTERROR(cudaGetDevice(&(cData.devnum)),"cudaGetDevice failed");
-	RTERROR(cudaGetDeviceProperties(&props,cData.devnum),"cudaGetDeviceProperties failed");
-	tData.device_name = (char*) malloc(strlen(props.name)+32); // make sure array is large enough to hold device number text too
-	strcpy(tData.device_name, props.name);
-	if(gpuCount>1) sprintf(&tData.device_name[strlen(props.name)], " (#%d / %d)",cData.devnum+1,gpuCount);
-	printf("Cuda device:                              %s\n",tData.device_name);
-	RTERROR(cudaMemGetInfo(&freemem,&totalmem), "cudaGetMemInfo failed");
-	printf("Available memory on device:               %lu MB (total: %lu MB)\n",(freemem>>20),(totalmem>>20));
 	cData.devid=cData.devnum;
 	cData.devnum=-2;
-#ifdef SET_CUDA_PRINTF_BUFFER
-	status = cudaDeviceSetLimit(cudaLimitPrintfFifoSize, 200000000ull);
-	RTERROR(status, "cudaDeviceSetLimit failed");
-#endif
 	*/
 
-	auto const t1 = std::chrono::steady_clock::now();
-	printf("\nCUDA Setup time %fs\n", elapsed_seconds(t0 ,t1));
+	//auto const t1 = std::chrono::steady_clock::now();
+	//printf("\nCUDA Setup time %fs\n", elapsed_seconds(t0 ,t1));
 
 	// Allocate kernel constant GPU memory
 	cData.pKerconst_interintra = (kernelconstant_interintra *) calloc(1, sizeof(*cData.pKerconst_interintra));
@@ -239,9 +222,9 @@ void setup_gpu_for_docking(
 
 
 	// Allocate temporary data - JL TODO - Are these sizes correct?
-	if(cData.preload_gridsize > 0){
-           tData.pMem_fgrids = (float*) calloc( size_floatgrids, sizeof(*tData.pMem_fgrids) );
-           #pragma omp target enter data map(to: tData.pMem_fgrids[:size_floatgrids])
+	if(cData.preallocated_gridsize > 0){
+           tData.pMem_fgrids = (float*) calloc( cData.preallocated_gridsize, sizeof(*tData.pMem_fgrids) );
+           #pragma omp target enter data map(to: tData.pMem_fgrids[:cData.preallocated_gridsize])
         }
 
 }
@@ -314,7 +297,6 @@ parameters argc and argv:
 	if(output!=NULL) outbuf = (char*)malloc(256*sizeof(char));
 
 	auto const t1 = std::chrono::steady_clock::now();
-	cudaError_t status = cudaSetDevice(cData.devid); // make sure we're on the correct device
 
 	Liganddata myligand_reference;
 
@@ -381,88 +363,6 @@ parameters argc and argv:
 	memset(sim_state.cpu_evals_of_runs.data(), 0, size_evals_of_runs);
 
 	// preparing the constant data fields for the GPU
-	kernelconstant_interintra*	KerConst_interintra = new kernelconstant_interintra;
-	kernelconstant_intracontrib*	KerConst_intracontrib = new kernelconstant_intracontrib;
-		describes the ligands
-		filled with parse_liganddata()
-parameter myxrayligand:
-		describes the xray ligand
-		filled with get_xrayliganddata()
-parameters argc and argv:
-		are the corresponding command line arguments parameter
-*/
-{
-	char* outbuf;
-	if(output!=NULL) outbuf = (char*)malloc(256*sizeof(char));
-
-	auto const t1 = std::chrono::steady_clock::now();
-	cudaError_t status = cudaSetDevice(cData.devid); // make sure we're on the correct device
-
-	Liganddata myligand_reference;
-
-	float* cpu_init_populations;
-	float* cpu_final_populations;
-	unsigned int* cpu_prng_seeds;
-
-	size_t size_populations;
-	size_t size_energies;
-	size_t size_prng_seeds;
-	size_t size_evals_of_runs;
-
-	int threadsPerBlock;
-	int blocksPerGridForEachEntity;
-	int blocksPerGridForEachRun;
-	int blocksPerGridForEachLSEntity = 0;
-	int blocksPerGridForEachGradMinimizerEntity = 0;
-
-	int generation_cnt;
-	int i;
-	double progress;
-
-	int curr_progress_cnt;
-	int new_progress_cnt;
-
-	clock_t clock_start_docking;
-	clock_t	clock_stop_docking;
-
-	// setting number of blocks and threads
-	threadsPerBlock = NUM_OF_THREADS_PER_BLOCK;
-	blocksPerGridForEachEntity = mypars->pop_size * mypars->num_of_runs;
-	blocksPerGridForEachRun = mypars->num_of_runs;
-
-	// allocating CPU memory for initial populations
-	size_populations = mypars->num_of_runs * mypars->pop_size * GENOTYPE_LENGTH_IN_GLOBMEM*sizeof(float);
-	sim_state.cpu_populations.resize(size_populations);
-	memset(sim_state.cpu_populations.data(), 0, size_populations);
-
-	// allocating CPU memory for results
-	size_energies = mypars->pop_size * mypars->num_of_runs * sizeof(float);
-	sim_state.cpu_energies.resize(size_energies);
-	cpu_init_populations = sim_state.cpu_populations.data();
-	cpu_final_populations = sim_state.cpu_populations.data();
-
-	// generating initial populations and random orientation angles of reference ligand
-	// (ligand will be moved to origo and scaled as well)
-	myligand_reference = *myligand_init;
-	gen_initpop_and_reflig(mypars, cpu_init_populations, &myligand_reference, mygrid);
-
-	// allocating memory in CPU for pseudorandom number generator seeds and
-	// generating them (seed for each thread during GA)
-	size_prng_seeds = blocksPerGridForEachEntity * threadsPerBlock * sizeof(unsigned int);
-	cpu_prng_seeds = (unsigned int*) malloc(size_prng_seeds);
-
-	LocalRNG r(mypars->seed);
-//	para_printf("RNG seed is %u\n", mypars->seed);
-
-	for (i=0; i<blocksPerGridForEachEntity*threadsPerBlock; i++)
-	     tData.pMem_prng_states[i] = r.random_uint();
-
-	// allocating memory in CPU for evaluation counters
-	size_evals_of_runs = mypars->num_of_runs*sizeof(int);
-	sim_state.cpu_evals_of_runs.resize(size_evals_of_runs);
-	memset(sim_state.cpu_evals_of_runs.data(), 0, size_evals_of_runs);
-
-	// preparing the constant data fields for the GPU
 /*
 	kernelconstant_interintra*	KerConst_interintra = new kernelconstant_interintra;
 	kernelconstant_intracontrib*	KerConst_intracontrib = new kernelconstant_intracontrib;
@@ -484,16 +384,16 @@ parameters argc and argv:
 */
 
 	kernelconstant_grads            KerConst_grads;
-        if (prepare_const_fields_for_gpu(&myligand_reference, mypars, sim_state.cpu_ref_ori_angles.data(),
+        if (prepare_const_fields_for_gpu(&myligand_reference, mypars,
                                          cData.pKerconst_interintra,
                                          cData.pKerconst_intracontrib,
                                          cData.pKerconst_intra,
                                          cData.pKerconst_rotlist,
                                          cData.pKerconst_conform,
-					 cData.pMem_rotbonds_const,
-					 cData.pMem_rotbonds_atoms_const,
-					 cData.pMem_num_rotating_atoms_per_rotbond_const) == 1){	
-                                         //&KerConst_grads) == 1) {
+					 //cData.pMem_rotbonds_const,
+					 //cData.pMem_rotbonds_atoms_const,
+					 //cData.pMem_num_rotating_atoms_per_rotbond_const) == 1){	
+                                         &KerConst_grads) == 1) {
                 return 1;
         }
 
@@ -522,6 +422,7 @@ parameters argc and argv:
 	float* pMem_energies_current = tData.pMem_energies1;
 	float* pMem_energies_next = tData.pMem_energies2;
 
+        size_t sz_new_entities = MAX_POPSIZE*MAX_NUM_OF_RUNS;
 	// Set constant pointers
 	cData.pMem_fgrids = tData.pMem_fgrids;
 	cData.pMem_evals_of_new_entities = tData.pMem_evals_of_new_entities;
@@ -546,9 +447,6 @@ parameters argc and argv:
         #pragma omp target enter data map(alloc: pMem_energies_next[:size_energies])
 
         #pragma omp target enter data map(alloc: cData.pMem_evals_of_new_entities[:sz_new_entities])
-
-	status = cudaMemcpy(pMem_conformations_current, cpu_init_populations, size_populations, cudaMemcpyHostToDevice);
-	RTERROR(status, "pMem_conformations_current: failed to upload to GPU memory.\n");
 
 	//preparing parameter struct
 	cData.dockpars.num_of_atoms                 = myligand_reference.num_of_atoms;
@@ -682,7 +580,7 @@ parameters argc and argv:
 
 	clock_start_docking = clock();
 
-	SetKernelsGpuData(&cData);
+	//SetKernelsGpuData(&cData);
 
 #ifdef DOCK_DEBUG
 	para_printf("\n");
@@ -1019,12 +917,13 @@ parameters argc and argv:
 
 	free(cpu_prng_seeds);
 
-	delete KerConst_interintra;
+	/*delete KerConst_interintra;
 	delete KerConst_intracontrib;
 	delete KerConst_intra;
 	delete KerConst_rotlist;
 	delete KerConst_conform;
-	delete KerConst_grads;
+	*/
+	//delete KerConst_grads;
 
 	auto const t4 = std::chrono::steady_clock::now();
 	para_printf("\nShutdown time %fs\n", elapsed_seconds(t3, t4));

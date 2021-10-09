@@ -138,7 +138,7 @@ void gpu_perform_LS(uint32_t pops_by_runs,
 			//#pragma omp parallel for reduction(+ : energy_idx) default(none) 
 			#pragma omp parallel for default(none) \
 					shared(cData, genotype_deviate,offspring_genotype,  \
-					cData.dockpars, genotype_candidate, calc_coords,genotype_bias ) \
+					 genotype_candidate, calc_coords,genotype_bias ) \
 					firstprivate(idx, gene_scale, work_pteam, num_of_genes, run_id ,\
 					lig_scale, rho)
 			for (uint32_t j = 0; j < work_pteam; j++) {

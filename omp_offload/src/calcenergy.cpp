@@ -135,70 +135,59 @@ inline void rotate_atoms(
 			float4struct genrot_movingvec				
 			)
 {
-    int rotation_list_element = cData.pKerconst_rotlist->rotlist_const[rotation_counter];
 
-    if ((rotation_list_element & RLIST_DUMMY_MASK) == 0)	// If not dummy rotation
-    {
-        uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
+	int rotation_list_element = cData.pKerconst_rotlist->rotlist_const[rotation_counter];
 
-        // Capturing atom coordinates
-        float4struct atom_to_rotate;
-        atom_to_rotate.x = calc_coords[atom_id].x;
-        atom_to_rotate.y = calc_coords[atom_id].y;
-        atom_to_rotate.z = calc_coords[atom_id].z;
-        atom_to_rotate.w = 0.0f;
+		if ((rotation_list_element & RLIST_DUMMY_MASK) == 0) // If not dummy rotation
+		{
+			uint atom_id = rotation_list_element & RLIST_ATOMID_MASK;
 
-        // initialize with general rotation values
-        float4struct rotation_unitvec = genrot_unitvec;
-        float4struct rotation_movingvec = genrot_movingvec;
+			// Capturing atom coordinates
+			float4struct atom_to_rotate;
+			atom_to_rotate.x = calc_coords[atom_id].x;
+			atom_to_rotate.y = calc_coords[atom_id].y;
+			atom_to_rotate.z = calc_coords[atom_id].z;
+			atom_to_rotate.w = 0.0f;
 
-        if ((rotation_list_element & RLIST_GENROT_MASK) == 0) // If rotating around rotatable bond
-        {
-            uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
+			// initialize with general rotation values
+			float4struct rotation_unitvec;
+			float4struct rotation_movingvec;
+			if (atom_id < cData.dockpars.true_ligand_atoms){
+				rotation_unitvec = genrot_unitvec;
+				rotation_movingvec = genrot_movingvec;
+			} else{
+				rotation_unitvec.x = 0.0f; rotation_unitvec.y = 0.0f; rotation_unitvec.z = 0.0f;
+				rotation_unitvec.w = 1.0f;
+				rotation_movingvec.x = 0.0f; rotation_movingvec.y = 0.0f; rotation_movingvec.z = 0.0f;
+				rotation_movingvec.w = 0.0f;
+			}
 
-            float rotation_angle = pGenotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
-            float s = sin(rotation_angle);
-            rotation_unitvec.x = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id];
-            rotation_unitvec.y = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1];
-            rotation_unitvec.z = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2];
-            rotation_unitvec.w = cos(rotation_angle);
-            rotation_movingvec.x = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id];
-            rotation_movingvec.y = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1];
-            rotation_movingvec.z = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2];
-            
-            // Performing additionally the first movement which
-            // is needed only if rotating around rotatable bond
-            atom_to_rotate.x -= rotation_movingvec.x;
-            atom_to_rotate.y -= rotation_movingvec.y;
-            atom_to_rotate.z -= rotation_movingvec.z;
-        }
+			if ((rotation_list_element & RLIST_GENROT_MASK) == 0) // If rotating around rotatable bond
+			{
+				uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
 
-        float4struct quatrot_left = rotation_unitvec;
-        // Performing rotation
-        if ((rotation_list_element & RLIST_GENROT_MASK) != 0)	// If general rotation,
-                                    // two rotations should be performed
-                                    // (multiplying the quaternions)
-        {
-            // Calculating quatrot_left*ref_orientation_quats_const,
-            // which means that reference orientation rotation is the first
-            uint rid4 = 4 * run_id;
-            float4struct qt;
-            qt.x = cData.pKerconst_conform->ref_orientation_quats_const[rid4+0];
-            qt.y = cData.pKerconst_conform->ref_orientation_quats_const[rid4+1];
-            qt.z = cData.pKerconst_conform->ref_orientation_quats_const[rid4+2];
-            qt.w = cData.pKerconst_conform->ref_orientation_quats_const[rid4+3];
-            quatrot_left = quaternion_multiply(quatrot_left, qt);
-        }
+				float rotation_angle = pGenotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
+				float s = sin(rotation_angle);
+				rotation_unitvec.x = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id];
+				rotation_unitvec.y = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+1];
+				rotation_unitvec.z = s*cData.pKerconst_conform->rotbonds_unit_vectors_const[3*rotbond_id+2];
+				rotation_unitvec.w = cos(rotation_angle);
+				rotation_movingvec.x = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id];
+				rotation_movingvec.y = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+1];
+				rotation_movingvec.z = cData.pKerconst_conform->rotbonds_moving_vectors_const[3*rotbond_id+2];
+				// Performing additionally the first movement which
+				// is needed only if rotating around rotatable bond
+				atom_to_rotate.x -= rotation_movingvec.x;
+				atom_to_rotate.y -= rotation_movingvec.y;
+				atom_to_rotate.z -= rotation_movingvec.z;
+			}
 
-        // Performing final movement and storing values
-        float4struct qt = quaternion_rotate(atom_to_rotate,quatrot_left);
- //       #pragma omp atomic write
-        calc_coords[atom_id].x = qt.x + rotation_movingvec.x;
- //       #pragma omp atomic write
-        calc_coords[atom_id].y = qt.y + rotation_movingvec.y;
-//        #pragma omp atomic write
-        calc_coords[atom_id].z = qt.z + rotation_movingvec.z;
-    } // End if-statement not dummy rotation
+			// Performing rotation and final movement
+			float4struct qt = quaternion_rotate(atom_to_rotate, rotation_unitvec);
+			calc_coords[atom_id].x = qt.x + rotation_movingvec.x;
+			calc_coords[atom_id].y = qt.y + rotation_movingvec.y;
+			calc_coords[atom_id].z = qt.z + rotation_movingvec.z;
+		} // End if-statement not dummy rotation
 
     //__threadfence();
     //__syncthreads();
@@ -214,74 +203,94 @@ inline float calc_interenergy(
               float3struct* calc_coords
 				)
 {
-    float partial_energy = 0.0f;
-    uint g1 = cData.dockpars.gridsize_x;
+	    uint g1 = cData.dockpars.gridsize_x;
     uint g2 = cData.dockpars.gridsize_x_times_y;
     uint g3 = cData.dockpars.gridsize_x_times_y_times_z;
+	float weights[8];
+	float cube[8];
+    float partial_energy = 0.0f;
+    if (cData.pKerconst_interintra->ignore_inter_const[atom_id]>0) // first two atoms of a flex res are to be ignored here
+			return partial_energy; // get on with loop as our work here is done (we crashed into the walls)
+		float x = calc_coords[atom_id].x;
+		float y = calc_coords[atom_id].y;
+		float z = calc_coords[atom_id].z;
+		float q = cData.pKerconst_interintra->atom_charges_const[atom_id];
+		uint atom_typeid = cData.pKerconst_interintra->atom_types_map_const[atom_id];
+		if ((x < 0) || (y < 0) || (z < 0) || (x >= cData.dockpars.gridsize_x-1)
+		                                  || (y >= cData.dockpars.gridsize_y-1)
+		                                  || (z >= cData.dockpars.gridsize_z-1)){
+			partial_energy += 16777216.0f; //100000.0f;
+			return partial_energy; // get on with loop as our work here is done (we crashed into the walls)
+		}
+		// Getting coordinates
+		float x_low  = floor(x);
+		float y_low  = floor(y);
+		float z_low  = floor(z);
 
-    uint atom_typeid = cData.pKerconst_interintra->atom_types_map_const[atom_id];
-    float x = calc_coords[atom_id].x;
-    float y = calc_coords[atom_id].y;
-    float z = calc_coords[atom_id].z;
-    float q = cData.pKerconst_interintra->atom_charges_const[atom_id];
-    if ((x < 0) || (y < 0) || (z < 0) || (x >= cData.dockpars.gridsize_x-1) || (y >= cData.dockpars.gridsize_y-1) || (z >= cData.dockpars.gridsize_z-1)){
-        partial_energy += 16777216.0f; //100000.0f;
-        return partial_energy; // get on with loop as our work here is done (we crashed into the walls)
-    }
-    // Getting coordinates
-    uint x_low  = (uint)floor(x);
-    uint y_low  = (uint)floor(y);
-    uint z_low  = (uint)floor(z);
+		// Grid value at 000
+		float* grid_value_000 = cData.pMem_fgrids + ((ulong)(x_low  + y_low*g1  + z_low*g2)<<2);
 
-    float dx = x - x_low;
-    float omdx = 1.0 - dx;
-    float dy = y - y_low;
-    float omdy = 1.0 - dy;
-    float dz = z - z_low;
-    float omdz = 1.0 - dz;
+		float dx = x - x_low;
+		float omdx = 1.0f - dx;
+		float dy = y - y_low;
+		float omdy = 1.0f - dy;
+		float dz = z - z_low;
+		float omdz = 1.0f - dz;
 
-    // Calculating interpolation weights
-    float weights[8];
-    weights [idx_000] = omdx*omdy*omdz;
-    weights [idx_100] = dx*omdy*omdz;
-    weights [idx_010] = omdx*dy*omdz;
-    weights [idx_110] = dx*dy*omdz;
-    weights [idx_001] = omdx*omdy*dz;
-    weights [idx_101] = dx*omdy*dz;
-    weights [idx_011] = omdx*dy*dz;
-    weights [idx_111] = dx*dy*dz;
+		// Calculating interpolation weights
+		weights [idx_000] = omdx*omdy*omdz;
+		weights [idx_010] = omdx*dy*omdz;
+		weights [idx_001] = omdx*omdy*dz;
+		weights [idx_011] = omdx*dy*dz;
+		weights [idx_100] = dx*omdy*omdz;
+		weights [idx_110] = dx*dy*omdz;
+		weights [idx_101] = dx*omdy*dz;
+		weights [idx_111] = dx*dy*dz;
 
-    // Grid value at 000
-    float* grid_value_000 = cData.pMem_fgrids + ((x_low  + y_low*g1  + z_low*g2)<<2);
-    ulong mul_tmp = atom_typeid*g3<<2;
-    // Calculating affinity energy
-    partial_energy += TRILININTERPOL((grid_value_000+mul_tmp), weights);
+		ulong mul_tmp = atom_typeid*g3<<2;
+		cube[0] = *(grid_value_000+mul_tmp+0);
+		cube[1] = *(grid_value_000+mul_tmp+1);
+		cube[2] = *(grid_value_000+mul_tmp+2);
+		cube[3] = *(grid_value_000+mul_tmp+3);
+		cube[4] = *(grid_value_000+mul_tmp+4);
+		cube[5] = *(grid_value_000+mul_tmp+5);
+		cube[6] = *(grid_value_000+mul_tmp+6);
+		cube[7] = *(grid_value_000+mul_tmp+7);
+		
+		// Calculating affinity energy
+		partial_energy += cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7];
 
-    #if defined (DEBUG_ENERGY_KERNEL)
-    interE += TRILININTERPOL((grid_value_000+mul_tmp), weights);
-    #endif
+		// Capturing electrostatic values
+		atom_typeid = cData.dockpars.num_of_map_atypes;
 
-    // Capturing electrostatic values
-    atom_typeid = cData.dockpars.num_of_map_atypes;
+		mul_tmp = atom_typeid*g3<<2; // different atom type id to get charge IA
+		cube[0] = *(grid_value_000+mul_tmp+0);
+		cube[1] = *(grid_value_000+mul_tmp+1);
+		cube[2] = *(grid_value_000+mul_tmp+2);
+		cube[3] = *(grid_value_000+mul_tmp+3);
+		cube[4] = *(grid_value_000+mul_tmp+4);
+		cube[5] = *(grid_value_000+mul_tmp+5);
+		cube[6] = *(grid_value_000+mul_tmp+6);
+		cube[7] = *(grid_value_000+mul_tmp+7);
 
-    mul_tmp = atom_typeid*g3<<2;
-    // Calculating electrostatic energy
-    partial_energy += q * TRILININTERPOL((grid_value_000+mul_tmp), weights);
+		// Calculating affinity energy
+		partial_energy += q * (cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
 
-    #if defined (DEBUG_ENERGY_KERNEL)
-    interE += q * TRILININTERPOL((grid_value_000+mul_tmp), weights);
-    #endif
+		// Need only magnitude of charge from here on down
+		q = fabs(q);
+		// Capturing desolvation values (atom_typeid+1 compared to above => mul_tmp + g3*4)
+		mul_tmp += g3<<2;
+		cube[0] = *(grid_value_000+mul_tmp+0);
+		cube[1] = *(grid_value_000+mul_tmp+1);
+		cube[2] = *(grid_value_000+mul_tmp+2);
+		cube[3] = *(grid_value_000+mul_tmp+3);
+		cube[4] = *(grid_value_000+mul_tmp+4);
+		cube[5] = *(grid_value_000+mul_tmp+5);
+		cube[6] = *(grid_value_000+mul_tmp+6);
+		cube[7] = *(grid_value_000+mul_tmp+7);
 
-    // Capturing desolvation values
-    atom_typeid = cData.dockpars.num_of_map_atypes+1;
-
-    mul_tmp = atom_typeid*g3<<2;
-    // Calculating desolvation energy
-    partial_energy += fabs(q) * TRILININTERPOL((grid_value_000+mul_tmp), weights);
-
-    #if defined (DEBUG_ENERGY_KERNEL)
-    interE += fabs(q) * TRILININTERPOL((grid_value_000+mul_tmp), weights);
-    #endif
+		// Calculating affinity energy
+		partial_energy += q * (cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
     return partial_energy;
 }
 
@@ -296,113 +305,93 @@ inline float calc_intraenergy(
 {
     float partial_energy = 0.0f;
     float delta_distance = 0.5f*cData.dockpars.smooth;
+    float smoothed_distance;
     
-    uint atom1_id = cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter];
-    uint atom2_id = cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter+1];
-    bool hbond = (cData.pKerconst_intracontrib->intraE_contributors_const[3*contributor_counter+2] == 1);	// evaluates to 1 in case of H-bond, 0 otherwise
+// Getting atom IDs
+		uint32_t atom1_id = cData.pKerconst_intracontrib->intraE_contributors_const[2*contributor_counter];
+		uint32_t atom2_id = cData.pKerconst_intracontrib->intraE_contributors_const[2*contributor_counter+1];
 
-    // Calculating vector components of vector going
-    // from first atom's to second atom's coordinates
-    float subx = calc_coords[atom1_id].x - calc_coords[atom2_id].x;
-    float suby = calc_coords[atom1_id].y - calc_coords[atom2_id].y;
-    float subz = calc_coords[atom1_id].z - calc_coords[atom2_id].z;
+		// Calculating vector components of vector going
+		// from first atom's to second atom's coordinates
+		float subx = calc_coords[atom1_id].x - calc_coords[atom2_id].x;
+		float suby = calc_coords[atom1_id].y - calc_coords[atom2_id].y;
+		float subz = calc_coords[atom1_id].z - calc_coords[atom2_id].z;
 
-    // Calculating atomic_distance
-    float atomic_distance = sqrt(subx*subx + suby*suby + subz*subz)*cData.dockpars.grid_spacing;
+		// Calculating atomic_distance
+		float dist = sqrt(subx*subx + suby*suby + subz*subz);
+		float atomic_distance = dist * cData.dockpars.grid_spacing;
 
-    // Getting type IDs
-    uint atom1_typeid = cData.pKerconst_interintra->atom_types_const[atom1_id];
-    uint atom2_typeid = cData.pKerconst_interintra->atom_types_const[atom2_id];
+		// Getting type IDs
+		uint32_t atom1_typeid = cData.pKerconst_interintra->atom_types_const[atom1_id];
+		uint32_t atom2_typeid = cData.pKerconst_interintra->atom_types_const[atom2_id];
 
-    uint atom1_type_vdw_hb = cData.pKerconst_intra->atom1_types_reqm_const [atom1_typeid];
-    uint atom2_type_vdw_hb = cData.pKerconst_intra->atom2_types_reqm_const [atom2_typeid];
+		uint32_t atom1_type_vdw_hb = cData.pKerconst_intra->atom_types_reqm_const [atom1_typeid];
+		uint32_t atom2_type_vdw_hb = cData.pKerconst_intra->atom_types_reqm_const [atom2_typeid];
 
+		// ------------------------------------------------
+		// Required only for flexrings
+		// Checking if this is a CG-G0 atomic pair.
+		// If so, then adding energy term (E = G * distance).
+		// Initial specification required NON-SMOOTHED distance.
+		// This interaction is evaluated at any distance,
+		// so no cuttoffs considered here!
+		// vbond is G when calculating flexrings, 0.0 otherwise
+		float vbond = G * (float)(((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) ||
+					  ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX)));
+		partial_energy += vbond * atomic_distance;
+		// ------------------------------------------------
 
-    // Calculating energy contributions
-    // Cuttoff1: internuclear-distance at 8A only for vdw and hbond.
-    if (atomic_distance < 8.0f)
-    {
-        // Getting optimum pair distance (opt_distance) from reqm and reqm_hbond
-        // reqm: equilibrium internuclear separation
-        //       (sum of the vdW radii of two like atoms (A)) in the case of vdW
-        // reqm_hbond: equilibrium internuclear separation
-        //  	 (sum of the vdW radii of two like atoms (A)) in the case of hbond
-        float opt_distance = (cData.pKerconst_intra->reqm_const [atom1_type_vdw_hb+ATYPE_NUM*(uint32_t)hbond] + cData.pKerconst_intra->reqm_const [atom2_type_vdw_hb+ATYPE_NUM*(uint32_t)hbond]);
+		// Calculating energy contributions
+		// Cuttoff1: internuclear-distance at 8A only for vdw and hbond.
+		if (atomic_distance < 8.0f)
+		{
+			uint32_t idx = atom1_typeid * cData.dockpars.num_of_atypes + atom2_typeid;
+			ushort exps = cData.pKerconst_intra->VWpars_exp_const[idx];
+			char m=(exps & 0xFF00)>>8;
+			char n=(exps & 0xFF);
+			// Getting optimum pair distance (opt_distance)
+			float opt_distance = cData.pKerconst_intra->reqm_AB_const[idx];
 
-        // Getting smoothed distance
-        // smoothed_distance = function(atomic_distance, opt_distance)
-        float smoothed_distance = opt_distance;
+			// Getting smoothed distance
+			// smoothed_distance = function(atomic_distance, opt_distance)
+			float opt_dist_delta = opt_distance - atomic_distance;
+			if(fabs(opt_dist_delta)>=delta_distance){
+				smoothed_distance = atomic_distance + copysign(delta_distance,opt_dist_delta);
+			} else smoothed_distance = opt_distance;
+			// Calculating van der Waals / hydrogen bond term
+			partial_energy += (cData.pKerconst_intra->VWpars_AC_const[idx]
+			           -__powf(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx])
+			           *__powf(smoothed_distance,-m);
+		} // if cuttoff1 - internuclear-distance at 8A
 
-        if (atomic_distance <= (opt_distance - delta_distance)) {
-            smoothed_distance = atomic_distance + delta_distance;
-        }
-        if (atomic_distance >= (opt_distance + delta_distance)) {
-            smoothed_distance = atomic_distance - delta_distance;
-        }
+		// Calculating energy contributions
+		// Cuttoff2: internuclear-distance at 20.48A only for el and sol.
+		if (atomic_distance < 20.48f)
+		{
+			if(atomic_distance<cData.dockpars.elec_min_distance)
+				atomic_distance=cData.dockpars.elec_min_distance;
+			float q1 = cData.pKerconst_interintra->atom_charges_const[atom1_id];
+			float q2 = cData.pKerconst_interintra->atom_charges_const[atom2_id];
+//			float exp_el = native_exp(DIEL_B_TIMES_H*atomic_distance);
+			float dist2 = atomic_distance*atomic_distance;
+			// Calculating desolvation term
+			// 1/25.92 = 0.038580246913580245
+			float desolv_energy =  ((cData.pKerconst_intra->dspars_S_const[atom1_typeid] +
+						 cData.dockpars.qasp*fabs(q1)) * cData.pKerconst_intra->dspars_V_const[atom2_typeid] +
+						(cData.pKerconst_intra->dspars_S_const[atom2_typeid] +
+						 cData.dockpars.qasp*fabs(q2)) * cData.pKerconst_intra->dspars_V_const[atom1_typeid]) *
+						 (
+							cData.dockpars.coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)) /
+							(12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2)))
+						 );
+			// Calculating electrostatic term
+			float dist_shift=atomic_distance+1.26366f;
+			dist2=dist_shift*dist_shift;
+			float diel = (1.10859f / dist2)+0.010358f;
+			float es_energy = cData.dockpars.coeff_elec * q1 * q2 / atomic_distance;
+			partial_energy += diel * es_energy + desolv_energy;
 
-        // Calculating van der Waals / hydrogen bond term
-        uint idx = atom1_typeid * cData.dockpars.num_of_atypes + atom2_typeid;
-        float s2 = smoothed_distance * smoothed_distance;
-        float s4 = s2 * s2;
-        float s6 = s2 * s4;
-        float s12 = s6 * s6;
-        float s10 = s6 * (hbond ? s4 : 1.0f);
-        partial_energy +=   (cData.pKerconst_intra->VWpars_AC_const[idx] / s12) -
-                    (cData.pKerconst_intra->VWpars_BD_const[idx] / s10);
-
-        #if defined (DEBUG_ENERGY_KERNEL)
-        intraE +=   (cData.pKerconst_intra->VWpars_AC_const[idx] / s12) -
-                    (cData.pKerconst_intra->VWpars_BD_const[idx] / s10);
-        #endif
-    } // if cuttoff1 - internuclear-distance at 8A
-
-    // Calculating energy contributions
-    // Cutoff2: internuclear-distance at 20.48A only for el and sol.
-    if (atomic_distance < 20.48f)
-    {
-        float q1 = cData.pKerconst_interintra->atom_charges_const[atom1_id];
-        float q2 = cData.pKerconst_interintra->atom_charges_const[atom2_id];
-        float dist2 = atomic_distance*atomic_distance;
-        // Calculating desolvation term
-        float desolv_energy = ((cData.pKerconst_intra->dspars_S_const[atom1_typeid] +
-                             cData.dockpars.qasp*fabs(q1)) * cData.pKerconst_intra->dspars_V_const[atom2_typeid] +
-                            (cData.pKerconst_intra->dspars_S_const[atom2_typeid] +
-                             cData.dockpars.qasp*fabs(q2)) * cData.pKerconst_intra->dspars_V_const[atom1_typeid]) *
-                            (cData.dockpars.coeff_desolv*(12.96f-0.1063f*dist2*(1.0f-0.001947f*dist2)) /
-                            (12.96f+dist2*(0.4137f+dist2*(0.00357f+0.000112f*dist2))) // *native_exp(-0.03858025f*atomic_distance*atomic_distance);
-                              );
-        // Calculating electrostatic term
-        float dist_shift=atomic_distance+1.261f;
-        dist2=dist_shift*dist_shift;
-        float diel = (1.105f / dist2)+0.0104f;
-        float es_energy = cData.dockpars.coeff_elec * q1 * q2 / atomic_distance;
-        partial_energy += diel * es_energy + desolv_energy;
-
-        #if defined (DEBUG_ENERGY_KERNEL)
-        intraE += (cData.dockpars.coeff_elec * q1 * q2) /
-                    (atomic_distance * (DIEL_A + (DIEL_B / (1.0f + DIEL_K*native_exp(-DIEL_B_TIMES_H*atomic_distance))))) +
-                    ((cData.pKerconst_intra->dspars_S_const[atom1_typeid] +
-                    cData.dockpars.qasp*fabs(q1)) * cData.pKerconst_intra->dspars_V_const[atom2_typeid] +
-                    (cData.pKerconst_intra->dspars_S_const[atom2_typeid] +
-                    cData.dockpars.qasp*fabs(q2))*cData.pKerconst_intra->dspars_V_const[atom1_typeid]) *
-                    cData.dockpars.coeff_desolv*exp(-0.03858025f*pow(atomic_distance, 2));
-        #endif
-    } // if cuttoff2 - internuclear-distance at 20.48A
-
-    // ------------------------------------------------
-    // Required only for flexrings
-    // Checking if this is a CG-G0 atomic pair.
-    // If so, then adding energy term (E = G * distance).
-    // Initial specification required NON-SMOOTHED distance.
-    // This interaction is evaluated at any distance,
-    // so no cuttoffs considered here!
-    if (((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) ||
-        ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX)))
-    {
-        partial_energy += G * atomic_distance;
-    }
-    // ------------------------------------------------
-
+		} // if cuttoff2 - internuclear-distance at 20.48A
     return partial_energy;
 }
 #pragma omp end declare target

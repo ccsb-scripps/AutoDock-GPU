@@ -7,14 +7,8 @@
 
 UNAME := $(shell uname)
 
-link-code:
-	ln -sf performdocking.h.Omp $(HOST_INC_DIR)/performdocking.h
-	ln -sf performdocking.cpp.Omp $(HOST_SRC_DIR)/performdocking.cpp
-
-unlink-code:
-	rm -f $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
-
 #$(shell ./link_ompt.sh)
+#COMPILER=llvm
 
 #Using LLVM clang compiler
 ifeq ($(COMPILER), llvm)
@@ -46,8 +40,8 @@ endif
 COMMON_DIR=./common
 HOST_INC_DIR=./host/inc
 HOST_SRC_DIR=./host/src
-KRNL_INC_DIR=./framework/omp_target/inc
-KRNL_SRC_DIR=./framework/omp_target/src
+KRNL_INC_DIR=./omp_offload/inc
+KRNL_SRC_DIR=./omp_offload/src
 BIN_DIR=./bin
 
 # Host sources
@@ -197,6 +191,12 @@ GIT_VERSION := $(shell git describe --abbrev=40 --dirty --always --tags)
 CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
 
 # ------------------------------------------------------
+link-code:
+	ln -sf performdocking.h.Omp $(HOST_INC_DIR)/performdocking.h
+	ln -sf performdocking.cpp.Omp $(HOST_SRC_DIR)/performdocking.cpp
+
+unlink-code:
+	rm -f $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
 
 #odock: check-env-all $(HOST_SRC) $(KRNL_SRC)
 odock: check-env-all $(SRC) link-code 
