@@ -31,7 +31,8 @@ void gpu_calc_initpop(	uint32_t pops_by_runs,
 			uint32_t work_pteam, 
 			float* pMem_conformations_current, 
 			float* pMem_energies_current, 
-			GpuData& cData)
+			GpuData& cData,
+			GpuDockparameters dockpars )
 {
 
     #pragma omp target teams distribute\
@@ -41,18 +42,17 @@ void gpu_calc_initpop(	uint32_t pops_by_runs,
         float3struct calc_coords[MAX_NUM_OF_ATOMS];
 	//#pragma omp allocate(calc_coords) allocator(omp_pteam_mem_alloc)  
         
-        int run_id = idx / cData.dockpars.pop_size;
+        int run_id = idx / dockpars.pop_size;
         float* pGenotype = pMem_conformations_current + idx * GENOTYPE_LENGTH_IN_GLOBMEM;
        
         //======================= Calculating Energy ===============//  
         float energy = 0.0f;
  	#pragma omp parallel for
         for (uint atom_id = 0;
-          	  atom_id < cData.dockpars.num_of_atoms;
+          	  atom_id < dockpars.num_of_atoms;
           	  atom_id+= 1) {
             get_atompos( atom_id, calc_coords, cData );
         }
-	
         // General rotation moving vector
         float4struct genrot_movingvec;
         genrot_movingvec.x = pGenotype[0];
@@ -75,34 +75,35 @@ void gpu_calc_initpop(	uint32_t pops_by_runs,
         //__threadfence();
         //__syncthreads();
         
-	int num_of_rotcyc = cData.dockpars.rotbondlist_length/work_pteam;
+//printf("run_id: %d \t pop_size: %d \t phi %f\n", run_id,  dockpars.pop_size, phi);	continue;     
+	int num_of_rotcyc = dockpars.rotbondlist_length/work_pteam;
         for(int rot=0; rot < num_of_rotcyc; rot++){
             int start = rot*work_pteam;
 	    int end = start +work_pteam;
-	    if ( end > cData.dockpars.rotbondlist_length ) end = cData.dockpars.rotbondlist_length; 
+	    if ( end > dockpars.rotbondlist_length ) end = dockpars.rotbondlist_length; 
             #pragma omp parallel for  
             for (int rotation_counter  = start;
                  rotation_counter  < end; 
                  rotation_counter++){
-            rotate_atoms(rotation_counter, calc_coords, cData, run_id, pGenotype, genrot_unitvec, genrot_movingvec);
+            rotate_atoms(rotation_counter, calc_coords, cData, dockpars, run_id, pGenotype, genrot_unitvec, genrot_movingvec);
 	    }
 	} // End rotation_counter for-loop
 
         //float inter_energy = 0.0f;
         #pragma omp parallel for reduction(+:energy)
         for (uint atom_id = 0;
-                  atom_id < cData.dockpars.num_of_atoms;
+                  atom_id < dockpars.num_of_atoms;
                   atom_id+= 1){
-            energy += calc_interenergy( atom_id, cData, calc_coords );
+            energy += calc_interenergy( atom_id, cData, dockpars, calc_coords );
         } // End atom_id for-loop (INTERMOLECULAR ENERGY)
 
 //            printf("inter energy: %f \n", inter_energy);
         //float intra_energy = 0.0f;
         #pragma omp parallel for reduction(+:energy)
         for (uint contributor_counter = 0;
-             contributor_counter < cData.dockpars.num_of_intraE_contributors;
+             contributor_counter < dockpars.num_of_intraE_contributors;
              contributor_counter += 1){
-             energy += calc_intraenergy( contributor_counter, cData, calc_coords );
+             energy += calc_intraenergy( contributor_counter, cData, dockpars, calc_coords );
         }
   //          printf("intra energy: %f \n", intra_energy);
         //energy = (inter_energy +intra_energy);

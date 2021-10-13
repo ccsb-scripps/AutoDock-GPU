@@ -25,7 +25,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 void gpu_sum_evals(uint32_t nruns, 
                    uint32_t work_pteam, 
-                   GpuData& cData)
+                   GpuData& cData,
+		   GpuDockparameters dockpars )
 {
     #pragma omp target teams distribute\
      num_teams(nruns) thread_limit(NUM_OF_THREADS_PER_BLOCK)
@@ -34,13 +35,14 @@ void gpu_sum_evals(uint32_t nruns,
         int sum_evals = 0;
     //    #pragma omp allocate(sum_evals) allocator(omp_pteam_mem_alloc)
 
-    	int* pEvals_of_new_entities = cData.pMem_evals_of_new_entities + idx * cData.dockpars.pop_size;
+    	int* pEvals_of_new_entities = cData.pMem_evals_of_new_entities + idx * dockpars.pop_size;
         #pragma omp parallel for reduction(+:sum_evals)
-        for (int entity_counter = 0; entity_counter < cData.dockpars.pop_size; entity_counter++){
+        for (int entity_counter = 0; entity_counter < dockpars.pop_size; entity_counter++){
 		sum_evals += pEvals_of_new_entities[entity_counter];
         }// End for a team
+	//printf("idx %d \t  dockpars.pop_size %d \n",idx, dockpars.pop_size); continue;
         cData.pMem_gpu_evals_of_runs[idx] += sum_evals;
-        //printf("k2_%d(%d, %d)\n", idx, cData.pMem_gpu_evals_of_runs[idx], sum_evals );
+   //     printf("k2_%d(%d, %d)\n", idx, cData.pMem_gpu_evals_of_runs[idx], sum_evals ); continue;
    }// End for teams
 }
 

@@ -174,18 +174,19 @@ void setup_gpu_for_docking(
         #pragma omp target enter data map(alloc: cData.pKerconst_conform[:1])
         #pragma omp target enter data map(alloc: cData.pKerconst_intracontrib[:1])
 
-        #pragma omp target enter data map(to: cData.pMem_angle_const[:sz_angle_const])
-        #pragma omp target enter data map(to: cData.pMem_dependence_on_theta_const[:sz_angle_const])
-        #pragma omp target enter data map(to: cData.pMem_dependence_on_rotangle_const[:sz_angle_const])
-        #pragma omp target enter data map(to: cData.pMem_rotbonds_const[:sz_rotbonds_const])
-        #pragma omp target enter data map(to: cData.pMem_rotbonds_atoms_const[:sz_rotbonds_atoms_const])
-        #pragma omp target enter data map(to: cData.pMem_num_rotating_atoms_per_rotbond_const[:MAX_NUM_OF_ROTBONDS])
+  //      #pragma omp target enter data map(alloc: cData.pMem_angle_const[:sz_angle_const])
+  //      #pragma omp target enter data map(alloc: cData.pMem_dependence_on_theta_const[:sz_angle_const])
+  //      #pragma omp target enter data map(alloc: cData.pMem_dependence_on_rotangle_const[:sz_angle_const])
+        #pragma omp target enter data map(alloc: cData.pMem_rotbonds_const[:sz_rotbonds_const])
+        #pragma omp target enter data map(alloc: cData.pMem_rotbonds_atoms_const[:sz_rotbonds_atoms_const])
+        #pragma omp target enter data map(alloc: cData.pMem_num_rotating_atoms_per_rotbond_const[:MAX_NUM_OF_ROTBONDS])
 
 	// Upload mem data
+/*
         cData.pMem_angle_const = angle;
         cData.pMem_dependence_on_theta_const = dependence_on_theta;
         cData.pMem_dependence_on_rotangle_const = dependence_on_rotangle;
-
+*/
         size_t size_populations = MAX_NUM_OF_RUNS * MAX_POPSIZE * GENOTYPE_LENGTH_IN_GLOBMEM;
         size_t size_energies = MAX_POPSIZE * MAX_NUM_OF_RUNS;
         size_t sz_new_entities = MAX_POPSIZE*MAX_NUM_OF_RUNS;
@@ -197,18 +198,25 @@ void setup_gpu_for_docking(
         tData.pMem_evals_of_new_entities = (int*) calloc( sz_new_entities, sizeof(*tData.pMem_evals_of_new_entities));
 
         #pragma omp target enter data map(to: tData)
-        #pragma omp target enter data map(to: tData.pMem_conformations1[:size_populations])
-        #pragma omp target enter data map(to: tData.pMem_conformations2[:size_populations])
-        #pragma omp target enter data map(to: tData.pMem_energies1[:size_energies])
-        #pragma omp target enter data map(to: tData.pMem_energies2[:size_energies])
-        #pragma omp target enter data map(to: tData.pMem_evals_of_new_entities[:sz_new_entities])
+
+      // Allocate temporary data - JL TODO - Are these sizes correct?
+        if(cData.preallocated_gridsize > 0){
+           tData.pMem_fgrids = (float*) calloc( cData.preallocated_gridsize, sizeof(*tData.pMem_fgrids) );
+           #pragma omp target enter data map(alloc: tData.pMem_fgrids[:cData.preallocated_gridsize])
+        }
+
+        #pragma omp target enter data map(alloc: tData.pMem_conformations1[:size_populations])
+        #pragma omp target enter data map(alloc: tData.pMem_conformations2[:size_populations])
+        #pragma omp target enter data map(alloc: tData.pMem_energies1[:size_energies])
+        #pragma omp target enter data map(alloc: tData.pMem_energies2[:size_energies])
+        #pragma omp target enter data map(alloc: tData.pMem_evals_of_new_entities[:sz_new_entities])
 
         size_t size_evals_of_runs = MAX_NUM_OF_RUNS;
 #if defined (MAPPED_COPY)
         //--- Have to be changed to unified memory
         //#pragma omp requires unified_shared_memory
         tData.pMem_gpu_evals_of_runs = (int*) calloc( size_evals_of_runs, sizeof(*tData.pMem_gpu_evals_of_runs));
-        #pragma omp target enter data map(to: tData.pMem_gpu_evals_of_runs[:size_evals_of_runs])
+        #pragma omp target enter data map(alloc: tData.pMem_gpu_evals_of_runs[:size_evals_of_runs])
 #else
         tData.pMem_gpu_evals_of_runs = (int*) calloc( size_evals_of_runs, sizeof(*tData.pMem_gpu_evals_of_runs));
         #pragma omp target enter data map(to: tData.pMem_gpu_evals_of_runs[:size_evals_of_runs])
@@ -218,14 +226,7 @@ void setup_gpu_for_docking(
         // tData.pMem_prng_states = (uint32_t *) calloc(size_prng_seeds, sizeof(*tData.pMem_prng_states));
         tData.pMem_prng_states = (unsigned int *) calloc(size_prng_seeds, sizeof(*tData.pMem_prng_states));
 
-        #pragma omp target enter data map(to: tData.pMem_prng_states[:size_prng_seeds] )
-
-
-	// Allocate temporary data - JL TODO - Are these sizes correct?
-	if(cData.preallocated_gridsize > 0){
-           tData.pMem_fgrids = (float*) calloc( cData.preallocated_gridsize, sizeof(*tData.pMem_fgrids) );
-           #pragma omp target enter data map(to: tData.pMem_fgrids[:cData.preallocated_gridsize])
-        }
+        #pragma omp target enter data map(alloc: tData.pMem_prng_states[:size_prng_seeds] )
 
 }
 
@@ -396,7 +397,6 @@ parameters argc and argv:
                                          &KerConst_grads) == 1) {
                 return 1;
         }
-
 	#pragma omp target update to(cData.pKerconst_interintra[:1])
         #pragma omp target update to(cData.pKerconst_intra[:1])
         #pragma omp target update to(cData.pKerconst_rotlist[:1])
@@ -405,6 +405,10 @@ parameters argc and argv:
 
         size_t sz_rotbonds_const = 2*MAX_NUM_OF_ROTBONDS;
         size_t sz_rotbonds_atoms_const = MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS;
+
+	cData.pMem_rotbonds_const = KerConst_grads.rotbonds;
+	cData.pMem_rotbonds_atoms_const = KerConst_grads.rotbonds_atoms;
+	cData.pMem_num_rotating_atoms_per_rotbond_const = KerConst_grads.num_rotating_atoms_per_rotbond;
 
         #pragma omp target update to(cData.pMem_rotbonds_const[:sz_rotbonds_const])
         #pragma omp target update to(cData.pMem_rotbonds_atoms_const[:sz_rotbonds_atoms_const])
@@ -415,6 +419,7 @@ parameters argc and argv:
         size_t size_floatgrids = mygrid->grids.size();
 	if(cData.preallocated_gridsize==0){
 		tData.pMem_fgrids = (float*) calloc( size_floatgrids, sizeof(*tData.pMem_fgrids) );
+           	#pragma omp target enter data map(alloc: tData.pMem_fgrids[:cData.preallocated_gridsize])
 	}
 	// Flippable pointers
 	float* pMem_conformations_current = tData.pMem_conformations1;
@@ -428,25 +433,29 @@ parameters argc and argv:
 	cData.pMem_evals_of_new_entities = tData.pMem_evals_of_new_entities;
 	cData.pMem_gpu_evals_of_runs = tData.pMem_gpu_evals_of_runs;
 	cData.pMem_prng_states = tData.pMem_prng_states;
+        #pragma omp target enter data map(alloc: cData.pMem_fgrids[:size_floatgrids] )
+        #pragma omp target enter data map(alloc: cData.pMem_evals_of_new_entities[:sz_new_entities])
+        #pragma omp target enter data map(alloc: cData.pMem_gpu_evals_of_runs[:size_evals_of_runs])
+        #pragma omp target enter data map(alloc: cData.pMem_prng_states[:size_prng_seeds] )
 
 	// Upload data
+        for(i=0; i<size_floatgrids; i++)
+            tData.pMem_fgrids[i] = mygrid->grids[i];
+        #pragma omp target enter data map(to: tData.pMem_fgrids[:size_floatgrids])
 
         for(i=0; i<size_evals_of_runs; i++)
             tData.pMem_gpu_evals_of_runs[i] = sim_state.cpu_evals_of_runs[i];
- 
-        for(i=0; i<size_floatgrids; i++)
-            tData.pMem_fgrids[i] = mygrid->grids[i];
-
-        #pragma omp target enter data map(to: tData.pMem_prng_states[:size_prng_seeds])
-        #pragma omp target enter data map(to: tData.pMem_fgrids[:size_floatgrids])
         #pragma omp target update to( tData.pMem_gpu_evals_of_runs[:size_evals_of_runs])
+ 
+        #pragma omp target enter data map(to: tData.pMem_prng_states[:size_prng_seeds])
+	for(i = 0; i<size_populations; i++)
+		pMem_conformations_current[i] = cpu_init_populations[i];
         #pragma omp target enter data map(to: pMem_conformations_current[:size_populations])
 
         #pragma omp target enter data map(alloc: pMem_conformations_next[:size_populations])
         #pragma omp target enter data map(alloc: pMem_energies_current[:size_energies])
         #pragma omp target enter data map(alloc: pMem_energies_next[:size_energies])
 
-        #pragma omp target enter data map(alloc: cData.pMem_evals_of_new_entities[:sz_new_entities])
 
 	//preparing parameter struct
 	cData.dockpars.num_of_atoms                 = myligand_reference.num_of_atoms;
@@ -500,6 +509,7 @@ parameters argc and argv:
 		// Only one entity per reach run, undergoes gradient minimization
 		//blocksPerGridForEachGradMinimizerEntity = mypars->num_of_runs;
 	}
+       #pragma omp target enter data map(to: cData.dockpars)       
 
 	unsigned long min_as_evals = 0; // no minimum w/o heuristics
 	if(mypars->use_heuristics){
@@ -551,13 +561,13 @@ parameters argc and argv:
 	char method_chosen[64]; // 64 chars will be enough for this message as mypars->ls_method is 4 chars at the longest
 	if(strcmp(mypars->ls_method, "sw") == 0){
 		strcpy(method_chosen,"Solis-Wets (sw)");
-	}
+	}/*
 	else if(strcmp(mypars->ls_method, "ad") == 0){
 		strcpy(method_chosen,"ADADELTA (ad)");
 	}
 	else if(strcmp(mypars->ls_method, "adam") == 0){
 		strcpy(method_chosen,"ADAM (adam)");
-	}
+	}*/
 	else{
 		para_printf("\nError: LS method %s is not (yet) supported in the Cuda version.\n",mypars->ls_method);
 		exit(-1);
@@ -676,7 +686,7 @@ parameters argc and argv:
 		para_printf("%-25s", "\tK_INIT");fflush(stdout);
 		cudaDeviceSynchronize();
 	#endif
-	gpu_calc_initpop(kernel1_gxsize, kernel1_lxsize, pMem_conformations_current, pMem_energies_current, cData);
+	gpu_calc_initpop(kernel1_gxsize, kernel1_lxsize, pMem_conformations_current, pMem_energies_current, cData, cData.dockpars);
 	#ifdef DOCK_DEBUG
 		cudaDeviceSynchronize();
 		para_printf("%15s" ," ... Finished\n");fflush(stdout);
@@ -687,7 +697,7 @@ parameters argc and argv:
 	#ifdef DOCK_DEBUG
 		para_printf("%-25s", "\tK_EVAL");fflush(stdout);
 	#endif
-	gpu_sum_evals(kernel2_gxsize, kernel2_lxsize, cData);
+	gpu_sum_evals(kernel2_gxsize, kernel2_lxsize, cData, cData.dockpars);
         #pragma omp target update from(cData.pMem_gpu_evals_of_runs[:size_evals_of_runs])
         sim_state.cpu_evals_of_runs.assign(cData.pMem_gpu_evals_of_runs, cData.pMem_gpu_evals_of_runs+size_evals_of_runs);
 
@@ -761,9 +771,9 @@ parameters argc and argv:
 		#ifdef DOCK_DEBUG
 			para_printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 		#endif
-
+//printf("pass \n"); exit(0);
 		//runKernel1D(command_queue,kernel4,kernel4_gxsize,kernel4_lxsize,&time_start_kernel,&time_end_kernel);
-		gpu_gen_and_eval_newpops(kernel4_gxsize, kernel4_lxsize, pMem_conformations_current, pMem_energies_current, pMem_conformations_next, pMem_energies_next, cData);
+		gpu_gen_and_eval_newpops(kernel4_gxsize, kernel4_lxsize, pMem_conformations_current, pMem_energies_current, pMem_conformations_next, pMem_energies_next, cData, cData.dockpars);
 		#ifdef DOCK_DEBUG
 			para_printf("%15s", " ... Finished\n");fflush(stdout);
 		#endif
@@ -775,7 +785,7 @@ parameters argc and argv:
 					para_printf("%-25s", "\tK_LS_SOLISWETS");fflush(stdout);
 				#endif
 				//runKernel1D(command_queue,kernel3,kernel3_gxsize,kernel3_lxsize,&time_start_kernel,&time_end_kernel);
-				gpu_perform_LS(kernel3_gxsize, kernel3_lxsize, pMem_conformations_next, pMem_energies_next, cData);                
+				gpu_perform_LS(kernel3_gxsize, kernel3_lxsize, pMem_conformations_next, pMem_energies_next, cData, cData.dockpars);                
 				#ifdef DOCK_DEBUG
 					para_printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
@@ -831,7 +841,7 @@ parameters argc and argv:
 			para_printf("%-25s", "\tK_EVAL");fflush(stdout);
 		#endif
 		//runKernel1D(command_queue,kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
-		gpu_sum_evals(kernel2_gxsize, kernel2_lxsize, cData);
+		gpu_sum_evals(kernel2_gxsize, kernel2_lxsize, cData, cData.dockpars);
 
 		#ifdef DOCK_DEBUG
 			para_printf("%15s" ," ... Finished\n");fflush(stdout);
