@@ -40,9 +40,7 @@ void gpu_sum_evals(uint32_t nruns,
         for (int entity_counter = 0; entity_counter < dockpars.pop_size; entity_counter++){
 		sum_evals += pEvals_of_new_entities[entity_counter];
         }// End for a team
-	//printf("idx %d \t  dockpars.pop_size %d \n",idx, dockpars.pop_size); continue;
         cData.pMem_gpu_evals_of_runs[idx] += sum_evals;
-   //     printf("k2_%d(%d, %d)\n", idx, cData.pMem_gpu_evals_of_runs[idx], sum_evals ); continue;
    }// End for teams
 }
 

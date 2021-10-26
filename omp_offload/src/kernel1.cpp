@@ -44,7 +44,6 @@ void gpu_calc_initpop(	uint32_t pops_by_runs,
         
         int run_id = idx / dockpars.pop_size;
         float* pGenotype = pMem_conformations_current + idx * GENOTYPE_LENGTH_IN_GLOBMEM;
-       
         //======================= Calculating Energy ===============//  
         float energy = 0.0f;
  	#pragma omp parallel for
@@ -75,7 +74,6 @@ void gpu_calc_initpop(	uint32_t pops_by_runs,
         //__threadfence();
         //__syncthreads();
         
-//printf("run_id: %d \t pop_size: %d \t phi %f\n", run_id,  dockpars.pop_size, phi);	continue;     
 	int num_of_rotcyc = dockpars.rotbondlist_length/work_pteam;
         for(int rot=0; rot < num_of_rotcyc; rot++){
             int start = rot*work_pteam;
@@ -97,7 +95,7 @@ void gpu_calc_initpop(	uint32_t pops_by_runs,
             energy += calc_interenergy( atom_id, cData, dockpars, calc_coords );
         } // End atom_id for-loop (INTERMOLECULAR ENERGY)
 
-//            printf("inter energy: %f \n", inter_energy);
+         //  printf("inter energy: %f \n", energy);
         //float intra_energy = 0.0f;
         #pragma omp parallel for reduction(+:energy)
         for (uint contributor_counter = 0;
@@ -105,10 +103,10 @@ void gpu_calc_initpop(	uint32_t pops_by_runs,
              contributor_counter += 1){
              energy += calc_intraenergy( contributor_counter, cData, dockpars, calc_coords );
         }
-  //          printf("intra energy: %f \n", intra_energy);
+            //printf("intra energy: %f \n", energy);
         //energy = (inter_energy +intra_energy);
         // ======================================= 
-    //        printf("energy: %f \n", energy);
+          // printf("energy: %f \n", energy);
         // Write out final energy
         pMem_energies_current[idx] = energy;
         cData.pMem_evals_of_new_entities[idx] = 1;

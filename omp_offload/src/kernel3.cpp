@@ -150,7 +150,6 @@ void gpu_perform_LS(uint32_t pops_by_runs,
 					genotype_deviate[gene_counter] =
 						rho * (2 * gpu_randf(cData.pMem_prng_states, idx, j) - 1) *
 						(gpu_randf(cData.pMem_prng_states, idx, j) < gene_scale);
-//printf("%d \n", gpu_randf(cData.pMem_prng_states, idx, j));
 					// Translation genes
 					if (gene_counter < 3) {
 						genotype_deviate[gene_counter] *= dockpars.base_dmov_mul_sqrt3;

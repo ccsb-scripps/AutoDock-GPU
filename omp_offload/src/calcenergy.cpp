@@ -129,7 +129,7 @@ inline void rotate_atoms(
 			const int rotation_counter,
 			float3struct* calc_coords,
 			GpuData& cData,
-			GpuDockparameters dockpars,
+			GpuDockparameters& dockpars,
 			const int run_id, 
 			float* pGenotype,
 			float4struct genrot_unitvec,
@@ -201,7 +201,7 @@ inline void rotate_atoms(
 inline float calc_interenergy(
               const int atom_id,
               GpuData& cData,
-	      GpuDockparameters dockpars,
+	      GpuDockparameters& dockpars,
               float3struct* calc_coords
 				)
 {
@@ -302,7 +302,7 @@ inline float calc_interenergy(
 inline float calc_intraenergy(
 			       const int contributor_counter,
 			       GpuData& cData,
-			       GpuDockparameters dockpars,
+			       GpuDockparameters& dockpars,
 			       float3struct* calc_coords		
 )
 {
