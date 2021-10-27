@@ -14,5 +14,5 @@ module load llvm/14.0.0-latest cuda
 date
 
 export OMP_NUM_THREADS=6
-jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 6 -c 6 -d packed -b rs ../bin/autodock_ompt_nv_llvm_64wi -filelist filelist_1.txt -nrun 10 -lsmet 'sw' -D all
+jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 3 -c 6 -d packed -b rs ../bin/autodock_ompt_nv_llvm_64wi -filelist filelist_1.txt -nrun 10 -lsmet 'sw' -D all
 
