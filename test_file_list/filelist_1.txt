@@ -1,0 +1,13 @@
+Protein/protein.maps.fld
+NSC100058
+Ligands/NSC100058.pdbqt
+NSC10173
+Ligands/NSC10173.pdbqt
+NSC103331
+Ligands/NSC103331.pdbqt
+NSC105827
+Ligands/NSC105827.pdbqt
+NSC107582
+Ligands/NSC107582.pdbqt
+NSC109086
+Ligands/NSC109086.pdbqt

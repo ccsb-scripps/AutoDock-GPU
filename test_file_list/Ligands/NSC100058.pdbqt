@@ -1,0 +1,33 @@
+REMARK  2 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C_1  and  O_19 
+REMARK    2  A    between atoms: C_7  and  O_21 
+ROOT
+ATOM      1  C   LIG d          -1.180   1.260   1.580  0.00  0.00     0.116 A 
+ATOM      2  C   LIG d          -0.480   2.420   1.220  0.00  0.00     0.112 A 
+ATOM      3  C   LIG d          -0.780   3.720   1.600  0.00  0.00     0.005 A 
+ATOM      4  C   LIG d           0.200   4.700   1.020  0.00  0.00     0.066 A 
+ATOM      5  C   LIG d           1.080   3.700   0.160  0.00  0.00     0.132 A 
+ATOM      6  C   LIG d           2.600   3.740   0.440  0.00  0.00     0.065 C 
+ATOM      7  C   LIG d           2.900   3.800   1.940  0.00  0.00     0.135 C 
+ATOM      8  C   LIG d           2.180   4.960   2.580  0.00  0.00    -0.002 C 
+ATOM      9  C   LIG d           0.980   5.380   2.160  0.00  0.00    -0.022 C 
+ATOM     10  O   LIG d           0.580   2.380   0.440  0.00  0.00    -0.331 OA
+ATOM     11  C   LIG d          -2.420   5.160   2.860  0.00  0.00     0.277 C 
+ATOM     12  N   LIG d          -1.900   6.360   2.140  0.00  0.00     0.143 N 
+ATOM     13  C   LIG d          -1.880   6.280   0.680  0.00  0.00     0.252 C 
+ATOM     14  C   LIG d          -0.520   5.740   0.140  0.00  0.00     0.046 C 
+ATOM     15  C   LIG d          -1.940   3.820   2.420  0.00  0.00     0.009 A 
+ATOM     16  C   LIG d          -2.680   2.700   2.840  0.00  0.00    -0.001 A 
+ATOM     17  C   LIG d          -2.300   1.420   2.420  0.00  0.00     0.026 A 
+ATOM     18  C   LIG d          -2.520   7.580   2.640  0.00  0.00     0.286 C 
+ENDROOT
+BRANCH   1  19
+ATOM     19  O   LIG d          -0.800   0.060   1.160  0.00  0.00    -0.326 OA
+ATOM     20  C   LIG d           0.000   0.000   0.000  0.00  0.00     0.181 C 
+ENDBRANCH   1  19
+BRANCH   7  21
+ATOM     21  O   LIG d           2.520   2.600   2.580  0.00  0.00    -0.380 OA
+ATOM     22  HO  LIG d           2.706   2.637   3.511  0.00  0.00     0.211 HD
+ENDBRANCH   7  21
+TORSDOF 2
