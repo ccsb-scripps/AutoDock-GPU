@@ -52,7 +52,6 @@ void gpu_gen_and_eval_newpops(
         float bestEnergy[NUM_OF_THREADS_PER_BLOCK];
         int bestID[NUM_OF_THREADS_PER_BLOCK];
         float3struct calc_coords[MAX_NUM_OF_ATOMS];
-        //int partial_energy[NUM_OF_THREADS_PER_BLOCK];
         float energy;
 /*
 	 #pragma omp allocate(offspring_genotype) allocator(omp_pteam_mem_alloc)	 
@@ -330,7 +329,6 @@ void gpu_gen_and_eval_newpops(
 
                 pMem_energies_next[idx] = energy;
                 cData.pMem_evals_of_new_entities[idx] = 1;
-            //printf("energy_%d : %f \n", idx, energy);
                 #if defined (DEBUG_ENERGY_KERNEL4)
                 printf("%-18s [%-5s]---{%-5s}   [%-10.8f]---{%-10.8f}\n", "-ENERGY-KERNEL4-", "GRIDS", "INTRA", interE, intraE);
                 #endif
