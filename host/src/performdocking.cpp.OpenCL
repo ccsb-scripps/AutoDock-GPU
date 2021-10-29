@@ -303,7 +303,7 @@ void setup_gpu_for_docking(
 	err != memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_rotangle_const, false,  &dependence_on_rotangle, 1000*sizeof(float));
 
 	if(err != CL_SUCCESS){
-		printf("Cannot transfer device memory, exiting ...\n");
+		printf("Cannot copy memory to device, exiting ...\n");
 		exit(-1);
 	}
 
