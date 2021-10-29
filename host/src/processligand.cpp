@@ -212,8 +212,13 @@ int set_liganddata_typeid(
 	{
 		myligand->atom_idxyzq[atom_id][0] = type;
 		myligand->atom_map_to_fgrids[atom_id] = -1;
+		bool derived=(strcmp(myligand->atom_types[type],myligand->base_atom_types[type])!=0); // derived type
 		for (i=0; i<(mygrid->grid_mapping.size()/2-2); i++){
 			if(strcmp(mygrid->grid_mapping[i].c_str(),myligand->ligand_grid_types[myligand->base_type_idx[type]]) == 0){
+				myligand->atom_map_to_fgrids[atom_id]=i; // found
+				if(!derived) break;
+			}
+			if(derived && (strcmp(mygrid->grid_mapping[i].c_str(),myligand->atom_types[type]) == 0)){
 				myligand->atom_map_to_fgrids[atom_id]=i; // found
 				break;
 			}
