@@ -279,26 +279,36 @@ void setup_gpu_for_docking(
 	// These constants are allocated in global memory since
 	// there is a limited number of constants that can be passed
 	// as arguments to kernel
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_interintra),        &cData.mem_interintra_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_intracontrib),      &cData.mem_intracontrib_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_intra),             &cData.mem_intra_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_rotlist),           &cData.mem_rotlist_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_conform),           &cData.mem_conform_const);
+	cl_int err = mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_interintra),        &cData.mem_interintra_const);
+	err |= mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_intracontrib),      &cData.mem_intracontrib_const);
+	err |= mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_intra),             &cData.mem_intra_const);
+	err |= mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_rotlist),           &cData.mem_rotlist_const);
+	err |= mallocBufferObject(tData.context,CL_MEM_READ_ONLY, sizeof(kernelconstant_conform),           &cData.mem_conform_const);
 
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, 2*MAX_NUM_OF_ROTBONDS*sizeof(int),                &cData.mem_rotbonds_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int), &cData.mem_rotbonds_atoms_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY, MAX_NUM_OF_ROTBONDS*sizeof(int),                  &cData.mem_num_rotating_atoms_per_rotbond_const);
+	err |= mallocBufferObject(tData.context,CL_MEM_READ_ONLY, 2*MAX_NUM_OF_ROTBONDS*sizeof(int),                &cData.mem_rotbonds_const);
+	err |= mallocBufferObject(tData.context,CL_MEM_READ_ONLY, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int), &cData.mem_rotbonds_atoms_const);
+	err |= mallocBufferObject(tData.context,CL_MEM_READ_ONLY, MAX_NUM_OF_ROTBONDS*sizeof(int),                  &cData.mem_num_rotating_atoms_per_rotbond_const);
 
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,1000*sizeof(float),&cData.mem_angle_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,1000*sizeof(float),&cData.mem_dependence_on_theta_const);
-	mallocBufferObject(tData.context,CL_MEM_READ_ONLY,1000*sizeof(float),&cData.mem_dependence_on_rotangle_const);
+	err |= mallocBufferObject(tData.context,CL_MEM_READ_ONLY,1000*sizeof(float),&cData.mem_angle_const);
+	err |= mallocBufferObject(tData.context,CL_MEM_READ_ONLY,1000*sizeof(float),&cData.mem_dependence_on_theta_const);
+	err |= mallocBufferObject(tData.context,CL_MEM_READ_ONLY,1000*sizeof(float),&cData.mem_dependence_on_rotangle_const);
 
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_angle_const,                  false,  &angle,                  1000*sizeof(float));
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_theta_const,    false,  &dependence_on_theta,    1000*sizeof(float));
-	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_rotangle_const, false,  &dependence_on_rotangle, 1000*sizeof(float));
+	if(err != CL_SUCCESS){
+		printf("Cannot allocate device memory, exiting ...\n");
+		exit(-1);
+	}
+
+	err = memcopyBufferObjectToDevice(tData.command_queue,cData.mem_angle_const,                  false,  &angle,                  1000*sizeof(float));
+	err != memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_theta_const,    false,  &dependence_on_theta,    1000*sizeof(float));
+	err != memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_rotangle_const, false,  &dependence_on_rotangle, 1000*sizeof(float));
+
+	if(err != CL_SUCCESS){
+		printf("Cannot copy memory to device, exiting ...\n");
+		exit(-1);
+	}
 
 	if(cData.preallocated_gridsize>0)
-		mallocBufferObject(tData.context,CL_MEM_READ_ONLY,cData.preallocated_gridsize*sizeof(float),&(tData.pMem_fgrids));
+		if(mallocBufferObject(tData.context,CL_MEM_READ_ONLY,cData.preallocated_gridsize*sizeof(float),&(tData.pMem_fgrids)) != 0) exit(-1);
 }
 
 void finish_gpu_from_docking(
