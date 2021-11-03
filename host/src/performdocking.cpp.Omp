@@ -170,20 +170,17 @@ void setup_gpu_for_docking(
         #pragma omp target enter data map(alloc: cData.pKerconst_conform[:1])
         #pragma omp target enter data map(alloc: cData.pKerconst_intracontrib[:1])
 
-        #pragma omp target enter data map(alloc: cData.pMem_angle_const[:sz_angle_const])
-        #pragma omp target enter data map(alloc: cData.pMem_dependence_on_theta_const[:sz_angle_const])
-        #pragma omp target enter data map(alloc: cData.pMem_dependence_on_rotangle_const[:sz_angle_const])
         #pragma omp target enter data map(alloc: cData.pMem_rotbonds_const[:sz_rotbonds_const])
         #pragma omp target enter data map(alloc: cData.pMem_rotbonds_atoms_const[:sz_rotbonds_atoms_const])
         #pragma omp target enter data map(alloc: cData.pMem_num_rotating_atoms_per_rotbond_const[:MAX_NUM_OF_ROTBONDS])
 
 	// Upload mem data
         cData.pMem_angle_const = angle;
-	#pragma omp target update to(cData.pMem_angle_const[:sz_angle_const])
+        #pragma omp target enter data map(to: cData.pMem_angle_const[:sz_angle_const])
         cData.pMem_dependence_on_theta_const = dependence_on_theta;
-	#pragma omp target update to(cData.pMem_dependence_on_theta_const[:sz_angle_const])
+        #pragma omp target enter data map(to: cData.pMem_dependence_on_theta_const[:sz_angle_const])
         cData.pMem_dependence_on_rotangle_const = dependence_on_rotangle;
-	#pragma omp target update to(cData.pMem_dependence_on_rotangle_const[:sz_angle_const])
+        #pragma omp target enter data map(to: cData.pMem_dependence_on_rotangle_const[:sz_angle_const])
 
         #pragma omp target enter data map(to: tData)
         // Allocate temporary data - JL TODO - Are these sizes correct?
@@ -209,14 +206,13 @@ void setup_gpu_for_docking(
         #pragma omp target enter data map(alloc: tData.pMem_evals_of_new_entities[:sz_new_entities])
 
         size_t size_evals_of_runs = MAX_NUM_OF_RUNS;
-        tData.pMem_gpu_evals_of_runs = (int*) calloc( size_evals_of_runs, sizeof(*tData.pMem_gpu_evals_of_runs));
 #if defined (MAPPED_COPY)
         //--- Have to be changed to unified memory
         //#pragma omp requires unified_shared_memory
-	{
-        	#pragma omp target enter data map(alloc: tData.pMem_gpu_evals_of_runs[:size_evals_of_runs])
-	}
+        tData.pMem_gpu_evals_of_runs = (int*) calloc( size_evals_of_runs, sizeof(*tData.pMem_gpu_evals_of_runs));
+        #pragma omp target enter data map(alloc: tData.pMem_gpu_evals_of_runs[:size_evals_of_runs])
 #else
+        tData.pMem_gpu_evals_of_runs = (int*) calloc( size_evals_of_runs, sizeof(*tData.pMem_gpu_evals_of_runs));
         #pragma omp target enter data map(alloc: tData.pMem_gpu_evals_of_runs[:size_evals_of_runs])
 #endif
 
@@ -427,7 +423,7 @@ parameters argc and argv:
 	float* pMem_energies_current = tData.pMem_energies1;
 	float* pMem_energies_next = tData.pMem_energies2;
 
-        #pragma omp target enter data map(alloc: pMem_conformations_current[:size_populations])
+	#pragma omp target enter data map(alloc: pMem_conformations_current[:size_populations])
 	#pragma omp target enter data map(alloc: pMem_conformations_next[:size_populations])
         #pragma omp target enter data map(alloc: pMem_energies_current[:size_energies])
         #pragma omp target enter data map(alloc: pMem_energies_next[:size_energies])
@@ -461,12 +457,7 @@ parameters argc and argv:
 		pMem_conformations_current[i] = cpu_init_populations[i];
 	//printf(" pMem_conformations_current %f \t cpu_init_populations %f \n", pMem_conformations_current[i], cpu_init_populations[i]);
 	}
-        #pragma omp target update to(pMem_conformations_current[:size_populations])
-
-        #pragma omp target enter data map(alloc: pMem_conformations_next[:size_populations])
-        #pragma omp target enter data map(alloc: pMem_energies_current[:size_energies])
-        #pragma omp target enter data map(alloc: pMem_energies_next[:size_energies])
-
+        #pragma omp target update to( pMem_conformations_current[:size_populations])
 
 	//preparing parameter struct
 	cData.dockpars.num_of_atoms                 = myligand_reference.num_of_atoms;
