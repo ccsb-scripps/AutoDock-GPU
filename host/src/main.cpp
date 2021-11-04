@@ -54,6 +54,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <sys/time.h>
 #endif
 
+#define TASKTOGPU
+
+#ifdef TASKTOGPU
+#include "tasktogpu.hpp"
+#endif
+
 template<typename T>
 inline double seconds_since(T& time_start)
 {
@@ -75,6 +81,7 @@ inline void start_timer(T& time_start)
 	gettimeofday(&time_start,NULL);
 #endif
 }
+
 
 int main(int argc, char* argv[])
 {
@@ -185,6 +192,11 @@ int main(int argc, char* argv[])
 		nr_devices=1;
 		initial_pars.dev_pool.clear();
 	}
+#ifdef TASKTOGPU
+        unsigned *occupancies  = (unsigned *) calloc(nr_devices, sizeof(*occupancies));
+	printf("Using task to GPU scheduling techniques \n");
+#endif
+
 #ifndef USE_PIPELINE
 	if(nr_devices>1) printf("Info: Parallelization over multiple GPUs is only available if OVERLAP=ON is specified when AD-GPU is build.\n\n");
 #endif
@@ -310,6 +322,9 @@ int main(int argc, char* argv[])
 #endif
 				{
 					if(nr_devices>1){
+#ifdef TASKTOGPU
+		                                dev_nr = gpu_scheduler_random(occupancies, nr_devices);
+#else
 						if(mypars.dev_pool_nr<0){ // assign next available GPU
 							dev_nr=-1;
 							for(unsigned int i=0; i<nr_devices; i++){
@@ -322,6 +337,7 @@ int main(int argc, char* argv[])
 							if(dev_nr<0) dev_nr = i_job % nr_devices;
 						} else dev_nr = mypars.dev_pool_nr; // this is set when specific GPU is requested
 						tData[dev_nr].device_busy = true;
+#endif
 						setup_gpu_for_docking(cData[dev_nr],tData[dev_nr]);
 						fflush(stdout);
 					}
@@ -456,7 +472,13 @@ int main(int argc, char* argv[])
 #ifdef USE_PIPELINE
 			if(!mypars.xml2dlg){
 #ifndef TOOLMODE
-				if(nr_devices>1) tData[dev_nr].device_busy = false;
+				if(nr_devices>1) 
+#ifdef TASKTOGPU
+				#pragma omp atomic
+				occupancies[dev_nr]--;
+#else
+				tData[dev_nr].device_busy = false;
+#endif
 #endif
 				printf ("(Thread %d is processing Job #%d)\n",t_id,i_job+1); fflush(stdout);
 			}

@@ -70,6 +70,10 @@ ifeq ($(OVERLAP), ON)
 	endif
 endif
 
+ifeq ($(TASK2GPU), YES)
+                OMPT_OPTS+=-DTASKTOGPU
+endif
+
 BIN := $(wildcard $(TARGET)*)
 
 # ------------------------------------------------------
