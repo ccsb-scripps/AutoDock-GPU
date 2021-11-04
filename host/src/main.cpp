@@ -195,6 +195,7 @@ int main(int argc, char* argv[])
 #ifdef TASKTOGPU
         unsigned *occupancies  = (unsigned *) calloc(nr_devices, sizeof(*occupancies));
 	printf("Using task to GPU scheduling techniques \n");
+	int gsz = 1;
 #endif
 
 #ifndef USE_PIPELINE
@@ -277,7 +278,15 @@ int main(int argc, char* argv[])
 		char outbuf[256];
 		int t_id = omp_get_thread_num();
 #else
+#ifdef TASKTOGPU
+        #pragma omp parallel
+        {
+        #pragma omp single
+                {
+                char outbuf[256];
+#else
 	{
+#endif
 #endif
 		Dockpars   mypars = initial_pars;
 		Liganddata myligand_init;
@@ -292,6 +301,10 @@ int main(int argc, char* argv[])
 #endif
 #ifdef USE_PIPELINE
 		#pragma omp for schedule(dynamic,1)
+#endif
+
+#ifdef TASKTOGPU
+		#pragma omp taskloop grainsize(gsz)
 #endif
 		for(int i_job=0; i_job<n_files; i_job++){
 			// Setup the next file in the queue
@@ -323,6 +336,7 @@ int main(int argc, char* argv[])
 				{
 					if(nr_devices>1){
 #ifdef TASKTOGPU
+		                                //dev_nr = gpu_scheduler_dynamic(occupancies, nr_devices);
 		                                dev_nr = gpu_scheduler_random(occupancies, nr_devices);
 #else
 						if(mypars.dev_pool_nr<0){ // assign next available GPU
@@ -511,6 +525,9 @@ int main(int argc, char* argv[])
 			if(mypars.xrayligandfile) free(mypars.xrayligandfile);
 			if(mypars.resname) free(mypars.resname);
 		}
+#ifdef TASKTOGPU
+	} // end of single
+#endif
 	} // end of parallel section
 	if(initial_pars.xml2dlg && !initial_pars.dlg2stdout && (n_files>100)) printf("\n\n"); // finish progress bar
 
