@@ -35,6 +35,9 @@ Other environments or configurations likely work as well, but are untested.
 
 # Compilation
 
+The first step is to set environmental variables `GPU_INCLUDE_PATH` and `GPU_LIBRARY_PATH`,
+as described here: https://github.com/ccsb-scripps/AutoDock-GPU/wiki/Guideline-for-users
+
 ```zsh
 make DEVICE=<TYPE> NUMWI=<NWI>
 ```
