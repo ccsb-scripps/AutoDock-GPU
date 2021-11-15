@@ -1,10 +1,11 @@
 
-#ifndef CALCENERGY_H
-#define CALCENERGY_H
 
 #include "typedefine.h"
 #include "GpuData.h"
+#include "mathfn.hpp"
 
+#ifndef CALCENERGY_H
+#define CALCENERGY_H
 
 #pragma omp declare target
 void get_atompos(

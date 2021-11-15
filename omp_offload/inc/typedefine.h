@@ -40,7 +40,7 @@ struct float4struct
 
 
 struct float3struct
-//Coordinate struct for floats (float4)
+//Coordinate struct for floats (float3)
 {
         float x;
         float y;
@@ -53,3 +53,16 @@ struct float3struct
 
 };
 
+struct int3struct
+//Coordinate struct for ints (int3)
+{
+        int x;
+        int y;
+        int z;
+
+        inline int3struct() {}
+        inline int3struct(int x, int y, int z) : x(x), y(y), z(z) {}
+        inline int3struct operator + (const int3struct &p)  const { return int3struct(x+p.x, y+p.y, z+p.z); }
+        inline int3struct operator - (const int3struct &p)  const { return int3struct(x-p.x, y-p.y, z-p.z); }
+
+};

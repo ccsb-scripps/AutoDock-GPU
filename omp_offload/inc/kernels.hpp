@@ -68,4 +68,14 @@ void gpu_gen_and_eval_newpops(
     GpuData& cData,
     GpuDockparameters dockpars
     );
+
+void gpu_gradient_minAD(        
+		uint32_t nblocks,
+                uint32_t work_pteam,
+                float* pMem_conformations_next,
+                float* pMem_energies_next,
+                GpuData& cData,
+                GpuDockparameters dockpars
+                         );
+
 #endif /* KERNELS_H */
