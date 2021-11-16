@@ -49,13 +49,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "calcMergeEneGra.hpp"
 
 #pragma omp declare target
-inline void REDUCEFLOATSUM( int threadIdx, float value, float* pAccumulator){ 
+inline void REDUCEFLOATSUM( int threadIdx, float* value, float* pAccumulator){ 
 	if (threadIdx == 0) *pAccumulator = 0; 
         #pragma omp barrier 
         #pragma omp atomic update 
-        *pAccumulator += value; 
+        *pAccumulator += (float)(*value); 
         #pragma omp barrier 
-        value = (float)(*pAccumulator); 
+        *value = (float)(*pAccumulator); 
         #pragma omp barrier
 }
 
@@ -715,22 +715,22 @@ inline float calc_intermolecular_gradients(
 	torque_rot.x = pFloatAccumulator;
 	#pragma omp barrier
 */
-	REDUCEFLOATSUM( threadIdx, torque_rot.x, pFloatAccumulator);
-	REDUCEFLOATSUM(threadIdx, torque_rot.y, pFloatAccumulator);
-	REDUCEFLOATSUM(threadIdx, torque_rot.z, pFloatAccumulator);
+	REDUCEFLOATSUM( threadIdx, &torque_rot.x, pFloatAccumulator);
+	REDUCEFLOATSUM( threadIdx, &torque_rot.y, pFloatAccumulator);
+	REDUCEFLOATSUM( threadIdx, &torque_rot.z, pFloatAccumulator);
 
 	// TODO
 	// -------------------------------------------------------
 	// Obtaining energy and translation-related gradients
 	// -------------------------------------------------------
 	// reduction over partial energies and prepared "gradient_intra_*" values
-	REDUCEFLOATSUM(threadIdx, energy, pFloatAccumulator);
+	REDUCEFLOATSUM(threadIdx, &energy, pFloatAccumulator);
 #if defined (DEBUG_ENERGY_KERNEL)
-	REDUCEFLOATSUM(threadIdx, intraE, pFloatAccumulator);
+	REDUCEFLOATSUM(threadIdx, &intraE, pFloatAccumulator);
 #endif
-	REDUCEFLOATSUM(threadIdx, gx, pFloatAccumulator);
-	REDUCEFLOATSUM(threadIdx, gy, pFloatAccumulator);
-	REDUCEFLOATSUM(threadIdx, gz, pFloatAccumulator);
+	REDUCEFLOATSUM(threadIdx, &gx, pFloatAccumulator);
+	REDUCEFLOATSUM(threadIdx, &gy, pFloatAccumulator);
+	REDUCEFLOATSUM(threadIdx, &gz, pFloatAccumulator);
 
 	global_energy = energy;
 	int* gradient_genotype = (int*)fgradient_genotype;
