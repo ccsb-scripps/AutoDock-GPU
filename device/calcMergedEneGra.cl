@@ -27,12 +27,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define MAXTERM          ((float)(1 << (31 - TERMBITS - 8))) // 2^(31 - 10 - 8) = 2^13 = 8192
 #define TERMSCALE        ((float)(1 << TERMBITS)) // 2^10 = 1024
 #define ONEOVERTERMSCALE (1.0f / TERMSCALE) // 1 / 1024 = 0.000977
-
-inline int float2int_rte (float number)
+int float2int_round (float number)
 {
-   int addsub = (int)((number < 0.0f) - (number > 0.0f)); // +1 for number < 0 (round up), -1 for number > 0 (round down)
-   int odd = ((int)number) & 1;
-   return ((int)(number+addsub*(0.5f-odd)));
+   int addsub = (int)((number < 0.0f) - (number > 0.0f)); // +1 for number < 0 (round up, i.e. 1.5 -> 2.0), -1 for number > 0 (round down, i.e. -1.5 -> -2.0)
+   return ((int)(number+0.5f*addsub));
 }
 #endif
 
@@ -216,7 +214,7 @@ void gpu_calc_energrad(
 	// ================================================
 	// CALCULATING INTERMOLECULAR GRADIENTS
 	// ================================================
-	float inv_grid_spacing = native_recip(dockpars_grid_spacing);
+	float inv_grid_spacing = native_divide(1.0f,dockpars_grid_spacing);
 	float weights[8];
 	float cube[8];
 	for ( int atom_id = tidx;
@@ -234,10 +232,10 @@ void gpu_calc_energrad(
 		if ((x < 0) || (y < 0) || (z < 0) || (x >= dockpars_gridsize_x-1)
 		                                  || (y >= dockpars_gridsize_y-1)
 		                                  || (z >= dockpars_gridsize_z-1)){
+#ifdef RESTORING_MAP_GRADIENT
 			x -= 0.5f * dockpars_gridsize_x;
 			y -= 0.5f * dockpars_gridsize_y;
 			z -= 0.5f * dockpars_gridsize_z;
-#ifdef RESTORING_MAP_GRADIENT
 			partial_energies[tidx] += 21.0f * (x*x+y*y+z*z); //100000.0f;
 #else
 			partial_energies[tidx] += 16777216.0f; //100000.0f;
@@ -254,21 +252,27 @@ void gpu_calc_energrad(
 			gradient_y[atom_id] += 42.0f * y * inv_grid_spacing;
 			gradient_z[atom_id] += 42.0f * z * inv_grid_spacing;
 			#else
-			gradient_x[atom_id] += float2int_rte( TERMSCALE * 42.0f * x * inv_grid_spacing );
-			gradient_y[atom_id] += float2int_rte( TERMSCALE * 42.0f * y * inv_grid_spacing );
-			gradient_z[atom_id] += float2int_rte( TERMSCALE * 42.0f * z * inv_grid_spacing );
+			gradient_x[atom_id] += float2int_round( TERMSCALE * 42.0f * x * inv_grid_spacing );
+			gradient_y[atom_id] += float2int_round( TERMSCALE * 42.0f * y * inv_grid_spacing );
+			gradient_z[atom_id] += float2int_round( TERMSCALE * 42.0f * z * inv_grid_spacing );
 			#endif // FLOAT_GRADIENTS
 #else
+			#ifdef FLOAT_GRADIENTS
 			gradient_x[atom_id] += 16777216.0f;
 			gradient_y[atom_id] += 16777216.0f;
 			gradient_z[atom_id] += 16777216.0f;
+			#else
+			gradient_x[atom_id] += 16777216;
+			gradient_y[atom_id] += 16777216;
+			gradient_z[atom_id] += 16777216;
+			#endif // FLOAT_GRADIENTS
 #endif
 			continue;
 		}
 		// Getting coordinates
-		float x_low  = floor(x);
-		float y_low  = floor(y);
-		float z_low  = floor(z);
+		int x_low  = floor(x);
+		int y_low  = floor(y);
+		int z_low  = floor(z);
 
 		// Grid value at 000
 		__global const float* grid_value_000 = dockpars_fgrids + ((ulong)(x_low  + y_low*g1  + z_low*g2)<<2);
@@ -430,9 +434,9 @@ void gpu_calc_energrad(
 		gradient_y[atom_id] += gy;
 		gradient_z[atom_id] += gz;
 #else
-		gradient_x[atom_id] += float2int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * gx)));
-		gradient_y[atom_id] += float2int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * gy)));
-		gradient_z[atom_id] += float2int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * gz)));
+		gradient_x[atom_id] += float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * gx)));
+		gradient_y[atom_id] += float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * gy)));
+		gradient_z[atom_id] += float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * gz)));
 #endif
 	} // End atom_id for-loop (INTERMOLECULAR ENERGY)
 
@@ -594,9 +598,9 @@ void gpu_calc_energrad(
 		float priv_intra_gradient_y = suby * grad_div_dist;
 		float priv_intra_gradient_z = subz * grad_div_dist;
 #else
-		int priv_intra_gradient_x = float2int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * subx * grad_div_dist)));
-		int priv_intra_gradient_y = float2int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * suby * grad_div_dist)));
-		int priv_intra_gradient_z = float2int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * subz * grad_div_dist)));
+		int priv_intra_gradient_x = float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * subx * grad_div_dist)));
+		int priv_intra_gradient_y = float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * suby * grad_div_dist)));
+		int priv_intra_gradient_z = float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * subz * grad_div_dist)));
 #endif
 		// Calculating gradients in xyz components.
 		// Gradients for both atoms in a single contributor pair
@@ -676,9 +680,9 @@ void gpu_calc_energrad(
 		printf("gradient_z:%f\n", gradient_genotype [2]);
 		#endif
 #else
-		i_gradient_genotype[0] = float2int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * accumulator_x[0] * dockpars_grid_spacing)));
-		i_gradient_genotype[1] = float2int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * accumulator_y[0] * dockpars_grid_spacing)));
-		i_gradient_genotype[2] = float2int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * accumulator_z[0] * dockpars_grid_spacing)));
+		i_gradient_genotype[0] = float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * accumulator_x[0] * dockpars_grid_spacing)));
+		i_gradient_genotype[1] = float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * accumulator_y[0] * dockpars_grid_spacing)));
+		i_gradient_genotype[2] = float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * accumulator_z[0] * dockpars_grid_spacing)));
 		#if defined (PRINT_GRAD_TRANSLATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("i_gradient_x:%f\n", i_gradient_genotype [0]);
@@ -917,9 +921,9 @@ void gpu_calc_energrad(
 		gradient_genotype[4] = native_divide(grad_theta, dependence_on_rotangle) * DEG_TO_RAD;
 		gradient_genotype[5] = grad_rotangle * DEG_TO_RAD;
 #else
-		i_gradient_genotype[3] = float2int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * native_divide(grad_phi, (dependence_on_theta * dependence_on_rotangle)) * DEG_TO_RAD)));
-		i_gradient_genotype[4] = float2int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * native_divide(grad_theta, dependence_on_rotangle) * DEG_TO_RAD)));
-		i_gradient_genotype[5] = float2int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * grad_rotangle * DEG_TO_RAD)));
+		i_gradient_genotype[3] = float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * native_divide(grad_phi, (dependence_on_theta * dependence_on_rotangle)) * DEG_TO_RAD)));
+		i_gradient_genotype[4] = float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * native_divide(grad_theta, dependence_on_rotangle) * DEG_TO_RAD)));
+		i_gradient_genotype[5] = float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * grad_rotangle * DEG_TO_RAD)));
 #endif
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -979,7 +983,7 @@ void gpu_calc_energrad(
 #ifdef FLOAT_GRADIENTS
 		atomicAdd_g_f(&gradient_genotype[rotbond_id+6], torque_on_axis * DEG_TO_RAD); /*(M_PI / 180.0f)*/;
 #else
-		atomic_add(&i_gradient_genotype[rotbond_id+6], float2int_rte(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * torque_on_axis * DEG_TO_RAD)))); /*(M_PI / 180.0f)*/;
+		atomic_add(&i_gradient_genotype[rotbond_id+6], float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * torque_on_axis * DEG_TO_RAD)))); /*(M_PI / 180.0f)*/;
 #endif
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);

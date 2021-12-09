@@ -310,7 +310,7 @@ gradient_minAD(
 		square_gradient[i] = 0.0f;
 		delta[i]           = 0.0f;
 		square_delta[i]    = 0.0f;
-		best_genotype [i] = genotype [i];
+		best_genotype[i]   = genotype[i];
 	}
 
 	// Initializing best energy

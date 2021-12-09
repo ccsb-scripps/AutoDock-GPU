@@ -147,7 +147,7 @@ int get_gridinfo(
 	}
 	
 	if(mygrid->grid_mapping.size() != 2*grid_types){
-		printf("Error: Number of grid map labels (%d) and filenames (%d) mismatched in fld file.\n", grid_types, mygrid->grid_mapping.size()-grid_types);
+		printf("Error: Number of grid map labels (%d) and filenames (%d) mismatched in fld file.\n", grid_types, (int)mygrid->grid_mapping.size()-grid_types);
 		return 1;
 	}
 	if(!have_e){
