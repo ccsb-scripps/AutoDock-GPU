@@ -107,6 +107,13 @@ enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.da
 // Added definition to support flexrings.
 #define G 50.0f
 
+// Enables full floating point gradient calculation.
+// Use is not advised as:
+// - the determinism gradients (aka integer gradients) are much faster *and*
+// - speed up the local search convergence
+// Please only use for debugging
+// #define FLOAT_GRADIENTS
+
 // Use one more coefficient in the fit to the Mehler-Solmajer dielectric in energrad implementation
 // Although this improves the fit (particularly for the gradient), it costs a little bit more and
 // does not return better accuracy overall (default: commented out, don't use)

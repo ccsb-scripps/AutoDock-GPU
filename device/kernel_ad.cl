@@ -121,7 +121,7 @@ gradient_minAD(
 	__local float energy;
 	__local float genotype[ACTUAL_GENOTYPE_LENGTH];
 
-	// Iteration counter fot the minimizer
+	// Iteration counter for the minimizer
 	__local uint iteration_cnt;
 
 	if (tidx == 0)
@@ -180,9 +180,9 @@ gradient_minAD(
 	// Gradient of the intermolecular energy per each ligand atom
 	// Also used to store the accummulated gradient per each ligand atom
 #ifdef FLOAT_GRADIENTS
-	__local float   gradient_x[MAX_NUM_OF_ATOMS];
-	__local float   gradient_y[MAX_NUM_OF_ATOMS];
-	__local float   gradient_z[MAX_NUM_OF_ATOMS];
+	__local float gradient_x[MAX_NUM_OF_ATOMS];
+	__local float gradient_y[MAX_NUM_OF_ATOMS];
+	__local float gradient_z[MAX_NUM_OF_ATOMS];
 #else
 	__local int   gradient_x[MAX_NUM_OF_ATOMS];
 	__local int   gradient_y[MAX_NUM_OF_ATOMS];
@@ -319,11 +319,11 @@ gradient_minAD(
 	}
 
 #ifdef ADADELTA_AUTOSTOP
-	__local float rho;
+	__local float varrho;
 	__local int   cons_succ;
 	__local int   cons_fail;
 	if (tidx == 0) {
-		rho = 1.0f;
+		varrho = 1.0f;
 		cons_succ = 0;
 		cons_fail = 0;
 	}
@@ -447,14 +447,16 @@ gradient_minAD(
 
 			// Accummulating gradient^2 (eq.8 in the paper)
 			// square_gradient corresponds to E[g^2]
-			square_gradient[i] = RHO * square_gradient[i] + (1.0f - RHO) * gradient[i] * gradient[i];
+			square_gradient[i] *= RHO;
+			square_gradient[i] += (1.0f - RHO) * gradient[i] * gradient[i];
 
 			// Computing update (eq.9 in the paper)
 			delta[i] = -1.0f * gradient[i] * native_sqrt(native_divide((float)(square_delta[i] + EPSILON), (float)(square_gradient[i] + EPSILON)));
 
 			// Accummulating update^2
 			// square_delta corresponds to E[dx^2]
-			square_delta[i] = RHO * square_delta[i] + (1.0f - RHO) * delta[i] * delta [i];
+			square_delta[i] *= RHO;
+			square_delta[i] += (1.0f - RHO) * delta[i] * delta [i];
 
 			// Applying update
 			genotype[i] += delta[i];
@@ -504,20 +506,20 @@ gradient_minAD(
 #ifdef ADADELTA_AUTOSTOP
 			if (cons_succ >= 4)
 			{
-				rho *= LS_EXP_FACTOR;
+				varrho *= LS_EXP_FACTOR;
 				cons_succ = 0;
 			}
 			else
 				if (cons_fail >= 4)
 				{
-					rho *= LS_CONT_FACTOR;
+					varrho *= LS_CONT_FACTOR;
 					cons_fail = 0;
 				}
 #endif
 		}
 		barrier(CLK_LOCAL_MEM_FENCE); // making sure that iteration_cnt is up-to-date
 #ifdef ADADELTA_AUTOSTOP
-	} while ((iteration_cnt < dockpars_max_num_of_iters)  && (rho > 0.01f));
+	} while ((iteration_cnt < dockpars_max_num_of_iters)  && (varrho > 0.01f));
 #else
 	} while (iteration_cnt < dockpars_max_num_of_iters);
 #endif

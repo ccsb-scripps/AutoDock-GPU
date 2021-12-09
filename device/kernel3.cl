@@ -110,7 +110,7 @@ __constant       kernelconstant_conform*      kerconst_conform
 	if (tidx == 0)
 	{
 		run_id = get_group_id(0) / dockpars_num_of_lsentities;
-		entity_id = get_group_id(0) % dockpars_num_of_lsentities;
+		entity_id = get_group_id(0) - run_id * dockpars_num_of_lsentities;
 
 		// Since entity 0 is the best one due to elitism,
 		// it should be subjected to random selection

@@ -207,10 +207,15 @@ gradient_minFire(
 	// -------------------------------------------------------------------
 	// Gradient of the intermolecular energy per each ligand atom
 	// Also used to store the accummulated gradient per each ligand atom
-	__local int   i_gradient_x[MAX_NUM_OF_ATOMS];
-	__local int   i_gradient_y[MAX_NUM_OF_ATOMS];
-	__local int   i_gradient_z[MAX_NUM_OF_ATOMS];
-
+#ifdef FLOAT_GRADIENTS
+	__local float gradient_x[MAX_NUM_OF_ATOMS];
+	__local float gradient_y[MAX_NUM_OF_ATOMS];
+	__local float gradient_z[MAX_NUM_OF_ATOMS];
+#else
+	__local int   gradient_x[MAX_NUM_OF_ATOMS];
+	__local int   gradient_y[MAX_NUM_OF_ATOMS];
+	__local int   gradient_z[MAX_NUM_OF_ATOMS];
+#endif
 	__local float f_gradient_x[MAX_NUM_OF_ATOMS];
 	__local float f_gradient_y[MAX_NUM_OF_ATOMS];
 	__local float f_gradient_z[MAX_NUM_OF_ATOMS];
@@ -354,7 +359,7 @@ gradient_minFire(
 	                  dependence_on_rotangle_const,
 	                  // Gradient-related arguments
 	                  dockpars_num_of_genes,
-	                  (__local float*)i_gradient_x, (__local float*)i_gradient_y, (__local float*)i_gradient_z,
+	                  gradient_x, gradient_y, gradient_z,
 	                  f_gradient_x, f_gradient_y, f_gradient_z,
 	                  gradient
 	                 );
@@ -505,7 +510,7 @@ gradient_minFire(
 		                  dependence_on_rotangle_const,
 		                  // Gradient-related arguments
 		                  dockpars_num_of_genes,
-		                  i_gradient_x, i_gradient_y, i_gradient_z,
+		                  gradient_x, gradient_y, gradient_z,
 		                  f_gradient_x, f_gradient_y, f_gradient_z,
 		                  candidate_gradient
 		                 );
@@ -612,7 +617,7 @@ gradient_minFire(
 		                  dependence_on_rotangle_const,
 		                  // Gradient-related arguments
 		                  dockpars_num_of_genes,
-		                  i_gradient_x, i_gradient_y, i_gradient_z,
+		                  gradient_x, gradient_y, gradient_z,
 		                  f_gradient_x, f_gradient_y, f_gradient_z,
 		                  candidate_gradient
 		                 );

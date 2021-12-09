@@ -200,7 +200,7 @@ void gpu_calc_gradient(
 
 	uint g1 = dockpars_gridsize_x;
 	uint g2 = dockpars_gridsize_x_times_y;
-  	uint g3 = dockpars_gridsize_x_times_y_times_z;
+	uint g3 = dockpars_gridsize_x_times_y_times_z;
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
