@@ -299,8 +299,8 @@ void setup_gpu_for_docking(
 	}
 
 	err = memcopyBufferObjectToDevice(tData.command_queue,cData.mem_angle_const,                  false,  &angle,                  1000*sizeof(float));
-	err != memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_theta_const,    false,  &dependence_on_theta,    1000*sizeof(float));
-	err != memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_rotangle_const, false,  &dependence_on_rotangle, 1000*sizeof(float));
+	err |= memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_theta_const,    false,  &dependence_on_theta,    1000*sizeof(float));
+	err |= memcopyBufferObjectToDevice(tData.command_queue,cData.mem_dependence_on_rotangle_const, false,  &dependence_on_rotangle, 1000*sizeof(float));
 
 	if(err != CL_SUCCESS){
 		printf("Cannot copy memory to device, exiting ...\n");
