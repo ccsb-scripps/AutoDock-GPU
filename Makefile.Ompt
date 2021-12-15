@@ -1,0 +1,215 @@
+#
+# miniMDock OpenMP Target Offloading Makefile
+# ------------------------------------------------------
+# Note that environment variables must be defined
+# before compiling
+# DEVICE?
+
+UNAME := $(shell uname)
+
+#$(shell ./link_ompt.sh)
+#COMPILER=llvm
+
+#Using LLVM clang compiler
+ifeq ($(COMPILER), llvm)
+      CPP=clang++ -Ofast -std=c++17 -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda --cuda-path=$(GPU_PATH) -Xcuda-ptxas --maxrregcount=120
+##CPP=clang++ -Ofast -std=c++17 -fopenmp -lopmtarget -fopenmp-targets=nvptx64-nvidia-cuda --cuda-path=$(GPU_PATH)
+      COMP=llvm
+#Using IBM XL Compiler
+else ifeq ($(COMPILER), xl)
+      CPP=xlC -std=c++14 -qsmp=omp -qoffload -O3 -qstrict 
+      COMP=xl
+#Using NVIDIA nvc++ compiler
+else ifeq ($(COMPILER), nvhpc)
+      CPP=nvc++ -std=c++17 -mp=gpu -fast -gpu=cc70
+      COMP=nvhpc
+#Using gcc 
+else ifeq ($(COMPILER), gcc)
+      CPP=g++ -fopenmp -foffload=-lm  -O2 -std=c++17
+      COMP=gcc
+else ifeq ($(COMPILER), CC)
+      CPP=CC -fopenmp 
+      COMP=cce
+else ifeq ($(COMPILER), ROCM)
+      CPP=clang++  -fopenmp -target x86_64-pc-linux-gnu -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx908
+      COMP=rocm
+endif
+
+# ------------------------------------------------------
+# Project directories
+COMMON_DIR=./common
+HOST_INC_DIR=./host/inc
+HOST_SRC_DIR=./host/src
+KRNL_INC_DIR=./omp_offload/inc
+KRNL_SRC_DIR=./omp_offload/src
+BIN_DIR=./bin
+
+# Host sources
+HOST_SRC=$(wildcard $(HOST_SRC_DIR)/*.cpp)
+KRNL_SRC=$(wildcard $(KRNL_SRC_DIR)/*.cpp)
+SRC=$(HOST_SRC) $(KRNL_SRC)
+
+IFLAGS=-I$(COMMON_DIR) -I$(HOST_INC_DIR) -I$(KRNL_INC_DIR)
+#LFLAGS= -lomptarget 
+CFLAGS=$(IFLAGS) $(LFLAGS)
+
+OMPT_OPTS=-DUSE_OMPT
+TARGET := autodock_ompt
+
+ifeq ($(CARD), AMD)
+        CD=-DCARD_AMD
+        TARGET:=$(TARGET)_amd
+else
+        TARGET:=$(TARGET)_nv
+endif
+TARGET:=$(TARGET)_$(COMP)
+
+ifeq ($(OVERLAP), ON)
+	ifeq ($(DEVICE), GPU)
+		OMPT_OPTS+=-DUSE_OMP
+	endif
+endif
+
+ifeq ($(TASK2GPU), YES)
+                OMPT_OPTS+=-DTASKTOGPU
+endif
+
+BIN := $(wildcard $(TARGET)*)
+
+# ------------------------------------------------------
+# Number of work-items (wi)
+# Valid values: 32, 64, 128, 256
+NUMWI=
+
+ifeq ($(NUMWI), 32)
+        NWI=-DN32WI
+        TARGET:=$(TARGET)_32wi
+else ifeq ($(NUMWI), 64)
+        NWI=-DN64WI
+        TARGET:=$(TARGET)_64wi
+else ifeq ($(NUMWI), 128)
+        NWI=-DN128WI
+        TARGET:=$(TARGET)_128wi
+else ifeq ($(NUMWI), 256)
+                NWI=-DN256WI
+                TARGET:=$(TARGET)_256wi
+else
+        ifeq ($(DEVICE), CPU)
+                NWI=-DN16WI
+                TARGET:=$(TARGET)_16wi
+        else ifeq ($(DEVICE), GPU)
+                NWI=-DN64WI
+                TARGET:=$(TARGET)_64wi
+        endif
+endif
+
+# ------------------------------------------------------
+# Configuration
+# FDEBUG (full) : enables debugging on both host + device
+# LDEBUG (light): enables debugging on host
+# RELEASE
+CONFIG=RELEASE
+#CONFIG=FDEBUG
+
+ifeq ($(CONFIG),FDEBUG)
+	OPT =-O0 -g -Wall -DDOCK_DEBUG
+else ifeq ($(CONFIG),LDEBUG)
+	OPT =-O0 -g -Wall
+else ifeq ($(CONFIG),RELEASE)
+	OPT =-O3
+else
+	OPT =
+endif
+
+# ------------------------------------------------------
+# Reproduce results (remove randomness)
+REPRO=NO
+
+ifeq ($(REPRO),YES)
+	REP =-DREPRO
+else
+	REP =
+endif
+# ------------------------------------------------------
+
+all: odock
+
+check-env-dev:
+	@if test -z "$$DEVICE"; then \
+		echo "DEVICE is undefined"; \
+		exit 1; \
+	else \
+		if [ "$$DEVICE" = "GPU" ]; then \
+			echo "DEVICE is set to $$DEVICE"; \
+		else \
+			if [ "$$DEVICE" = "CPU" ]; then \
+				echo "DEVICE is set to $$DEVICE"; \
+			else \
+				if [ "$$DEVICE" = "SERIAL" ]; then \
+					echo "DEVICE is set to $$DEVICE"; \
+				else \
+					echo "DEVICE value is invalid. Set DEVICE to either CPU, GPU, or SERIAL (1 thread on CPU)"; \
+				fi; \
+			fi; \
+			if [ "$$OVERLAP" = "ON" ]; then \
+				echo "OVERLAP only works with the GPU version right now"; \
+				exit 1; \
+			fi; \
+		fi; \
+	fi; \
+	echo " "
+
+check-env-cpu:
+	@if test -z "$$CPU_INCLUDE_PATH"; then \
+		echo "CPU_INCLUDE_PATH is undefined"; \
+	else \
+		echo "CPU_INCLUDE_PATH is set to $$CPU_INCLUDE_PATH"; \
+	fi; \
+	if test -z "$$CPU_LIBRARY_PATH"; then \
+		echo "CPU_LIBRARY_PATH is undefined"; \
+	else \
+		echo "CPU_LIBRARY_PATH is set to $$CPU_LIBRARY_PATH"; \
+	fi; \
+	echo " "
+
+check-env-gpu:
+	@if test -z "$$GPU_INCLUDE_PATH"; then \
+		echo "GPU_INCLUDE_PATH is undefined"; \
+	else \
+		echo "GPU_INCLUDE_PATH is set to $$GPU_INCLUDE_PATH"; \
+	fi; \
+	if test -z "$$GPU_LIBRARY_PATH"; then \
+		echo "GPU_LIBRARY_PATH is undefined"; \
+	else \
+		echo "GPU_LIBRARY_PATH is set to $$GPU_LIBRARY_PATH"; \
+	fi; \
+	echo " "
+
+check-env-all: check-env-dev check-env-cpu check-env-gpu
+
+# ------------------------------------------------------
+# Priting out its git version hash
+
+GIT_VERSION := $(shell git describe --abbrev=40 --dirty --always --tags)
+
+CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
+
+# ------------------------------------------------------
+link-code:
+	ln -sf performdocking.h.Omp $(HOST_INC_DIR)/performdocking.h
+	ln -sf performdocking.cpp.Omp $(HOST_SRC_DIR)/performdocking.cpp
+
+unlink-code:
+	rm -f $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
+
+#odock: check-env-all $(HOST_SRC) $(KRNL_SRC)
+odock: check-env-all $(SRC) link-code 
+	$(CPP) \
+	$(SRC) \
+	$(CFLAGS) \
+	-o $(BIN_DIR)/$(TARGET) \
+	$(NWI) $(OPT) $(DD) $(REP) $(CD) $(OMPT_OPTS)
+
+
+clean:
+	rm -f $(BIN_DIR)/* initpop.txt

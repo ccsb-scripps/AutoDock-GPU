@@ -98,7 +98,7 @@ enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.da
 #define LS_CONT_FACTOR             0.5f
 
 // Improvements over Pechan's implementation
-#define MAPPED_COPY
+//#define MAPPED_COPY
 
 
 // Coefficients for CG-G0 pairs used in

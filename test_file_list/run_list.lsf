@@ -1,0 +1,18 @@
+#!/bin/bash
+# Begin LSF Directives
+#BSUB -P gen119
+#BSUB -W 01:00
+#BSUB -nnodes 1
+#BSUB -J dock
+#BSUB -alloc_flags "smt4"
+#BSUB -o dock.%J
+#BSUB -e dock.%J
+
+module use /sw/summit/modulefiles/ums/stf010/Core
+module load llvm/14.0.0-latest cuda
+
+date
+
+export OMP_NUM_THREADS=6
+jsrun --smpiargs="-disable_gpu_hooks" -n 1 -r 1 -a 1 -g 3 -c 6 -d packed -b rs ../bin/autodock_ompt_nv_llvm_64wi -filelist filelist_1.txt -nrun 10 -lsmet 'sw' -D all
+

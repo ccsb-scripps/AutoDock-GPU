@@ -1,0 +1,15 @@
+#!/bin/bash
+# Begin LSF Directives
+#BSUB -P gen119
+#BSUB -W 00:10
+#BSUB -nnodes 1
+#BSUB -alloc_flags gpumps
+#BSUB -J dock
+#BSUB -o dock.%J
+#BSUB -e dock.%J
+
+module use /sw/summit/modulefiles/ums/stf010/Core
+module load llvm/14.0.0-latest cuda
+
+date
+jsrun -n 1 -g 1 -c 21 ./bin/autodock_ompt_nv_llvm_64wi -ffile ./input/1stp/derived/1stp_protein.maps.fld -lfile ./input/1stp/derived/1stp_ligand.pdbqt -nrun 10 -lsmet 'sw' -D 1> docking_omp_llvm_1stp.txt

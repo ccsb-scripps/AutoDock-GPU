@@ -25,21 +25,27 @@
 # Valid values: CPU, GPU, CUDA, OCLGPU
 
 ifeq ($(DEVICE), $(filter $(DEVICE),GPU CUDA))
-TEST_CUDA := $(shell ./test_cuda.sh nvcc "$(GPU_INCLUDE_PATH)" "$(GPU_LIBRARY_PATH)")
+  TEST_CUDA := $(shell ./test_cuda.sh nvcc "$(GPU_INCLUDE_PATH)" "$(GPU_LIBRARY_PATH)")
 # if user specifies DEVICE=CUDA it will be used (wether the test succeeds or not)
 # if user specifies DEVICE=GPU the test result determines wether CUDA will be used or not
-ifeq ($(DEVICE)$(TEST_CUDA),GPUyes)
-override DEVICE:=CUDA
-endif
+  ifeq ($(DEVICE)$(TEST_CUDA),GPUyes)
+    override DEVICE:=CUDA
+  endif
 endif
 ifeq ($(DEVICE),CUDA)
-override DEVICE:=GPU
-export
-include Makefile.Cuda
+  override DEVICE:=GPU
+  export
+  include Makefile.Cuda
+else
+ifeq ($(DEVICE), OMPGPU)
+  override DEVICE:=GPU
+  export
+  include Makefile.Ompt
 else
 ifeq ($(DEVICE),OCLGPU)
-override DEVICE:=GPU
-export
+  override DEVICE:=GPU
+  export
+  include Makefile.OpenCL
 endif
-include Makefile.OpenCL
+endif
 endif

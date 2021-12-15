@@ -1947,9 +1947,9 @@ float calc_interE_f(
 		if (debug == 1)
 		{
 			printf("\n\nPartial results for atom with id %d:\n", atom_cnt);
-			printf("x_low = %d, x_high = %d, x_frac = %f\n", x_low, x_high, x_frac);
-			printf("y_low = %d, y_high = %d, y_frac = %f\n", y_low, y_high, y_frac);
-			printf("z_low = %d, z_high = %d, z_frac = %f\n\n", z_low, z_high, z_frac);
+			printf("x_low = %d, x_high = %d, x_frac = %f\n", (int)x_low, x_high, x_frac);
+			printf("y_low = %d, y_high = %d, y_frac = %f\n", (int)y_low, y_high, y_frac);
+			printf("z_low = %d, z_high = %d, z_frac = %f\n\n", (int)z_low, z_high, z_frac);
 			printf("coeff(0,0,0) = %f\n", weights [idx_000]);
 			printf("coeff(1,0,0) = %f\n", weights [idx_100]);
 			printf("coeff(0,1,0) = %f\n", weights [idx_010]);
