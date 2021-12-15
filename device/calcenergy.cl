@@ -86,7 +86,7 @@ inline float positive_power(float a, uint exp)
 
 inline float fmod_pi2(float x)
 {
-	return x-(int)(invpi2*x)*PI_TIMES_2;
+	return x-((int)(invpi2*x))*PI_TIMES_2;
 }
 
 #define fast_acos_a  9.78056e-05f

@@ -754,7 +754,8 @@ void gpu_calc_energrad(
 
 		// Derived from rotation.py/axisangle_to_q()
 		// genes[3:7] = rotation.axisangle_to_q(torque, rad)
-		float torque_length = fast_length(torque_rot);
+//		float torque_length = fast_length(torque_rot);
+		float torque_length = native_sqrt(torque_rot.x*torque_rot.x+torque_rot.y*torque_rot.y+torque_rot.z*torque_rot.z);
 		torque_length += (torque_length<1e-20f)*1e-20f;
 		
 		#if defined (PRINT_GRAD_ROTATION_GENES)
@@ -801,10 +802,10 @@ void gpu_calc_energrad(
 		// target_oclacube = quaternion_to_oclacube(target_q, theta_larger_than_pi)
 		// Derived from autodockdev/motions.py/quaternion_to_oclacube()
 		// In our terms means quaternion_to_oclacube(target_q{w|x|y|z}, theta_larger_than_pi)
-		target_rotangle = 2.0f * acos(target_q.w); // = 2.0f * ang;
+		target_rotangle = 2.0f * fast_acos(target_q.w); // = 2.0f * ang;
 		float inv_sin_ang = native_rsqrt(1.0f-target_q.w*target_q.w); // = 1.0/native_sin(ang);
 
-		target_theta = PI_TIMES_2 + is_theta_gt_pi * acos( target_q.z * inv_sin_ang );
+		target_theta = PI_TIMES_2 + is_theta_gt_pi * fast_acos( target_q.z * inv_sin_ang );
 		target_phi   = fmod_pi2((atan2( is_theta_gt_pi*target_q.y, is_theta_gt_pi*target_q.x) + PI_TIMES_2));
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
