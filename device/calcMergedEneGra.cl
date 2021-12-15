@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define MAXTERM          ((float)(1 << (31 - TERMBITS - 8))) // 2^(31 - 10 - 8) = 2^13 = 8192
 #define TERMSCALE        ((float)(1 << TERMBITS)) // 2^10 = 1024
 #define ONEOVERTERMSCALE (1.0f / TERMSCALE) // 1 / 1024 = 0.000977
+// inspired by: https://streamhpc.com/blog/2014-11-07/opencl-integer-rounding-c/
 int float2int_round (float number)
 {
    int addsub = (int)((number < 0.0f) - (number > 0.0f)); // +1 for number < 0 (round up, i.e. 1.5 -> 2.0), -1 for number > 0 (round down, i.e. -1.5 -> -2.0)
