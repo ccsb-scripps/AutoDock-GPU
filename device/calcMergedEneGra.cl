@@ -755,7 +755,6 @@ void gpu_calc_energrad(
 
 		// Derived from rotation.py/axisangle_to_q()
 		// genes[3:7] = rotation.axisangle_to_q(torque, rad)
-//		float torque_length = fast_length(torque_rot);
 		float torque_length = native_sqrt(torque_rot.x*torque_rot.x+torque_rot.y*torque_rot.y+torque_rot.z*torque_rot.z);
 		torque_length += (torque_length<1e-20f)*1e-20f;
 		
