@@ -200,7 +200,7 @@ void gpu_calc_gradient(
 
 	uint g1 = dockpars_gridsize_x;
 	uint g2 = dockpars_gridsize_x_times_y;
-  	uint g3 = dockpars_gridsize_x_times_y_times_z;
+	uint g3 = dockpars_gridsize_x_times_y_times_z;
 
 	// ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -864,7 +864,8 @@ void gpu_calc_gradient(
 
 		// Derived from rotation.py/axisangle_to_q()
 		// genes[3:7] = rotation.axisangle_to_q(torque, rad)
-		float torque_length = fast_length(torque_rot);
+		float torque_length = native_sqrt(torque_rot.x*torque_rot.x+torque_rot.y*torque_rot.y+torque_rot.z*torque_rot.z);
+		torque_length += (torque_length<1e-20f)*1e-20f;
 		
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");

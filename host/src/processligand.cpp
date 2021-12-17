@@ -1920,9 +1920,9 @@ float calc_interE_f(
 		}
 
 		// Getting coordinates
-		float x_low  = floor(x);
-		float y_low  = floor(y);
-		float z_low  = floor(z);
+		x_low  = floor(x);
+		y_low  = floor(y);
+		z_low  = floor(z);
 
 		// Grid value at 000
 		const float* grid_value_000 = mygrid->grids.data() + ((unsigned long)(x_low  + y_low*g1  + z_low*g2)<<2);

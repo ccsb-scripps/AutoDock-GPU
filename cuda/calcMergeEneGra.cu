@@ -659,13 +659,26 @@ __device__ void gpu_calc_energrad(
 	REDUCEFLOATSUM(gz, pFloatAccumulator);
 
 	global_energy = energy;
+#ifndef FLOAT_GRADIENTS
 	int* gradient_genotype = (int*)fgradient_genotype;
-
+#endif
 	if (threadIdx.x == 0) {
 		// Scaling gradient for translational genes as
 		// their corresponding gradients were calculated in the space
 		// where these genes are in Angstrom,
 		// but AutoDock-GPU translational genes are within in grids
+#ifdef FLOAT_GRADIENTS
+		fgradient_genotype[0] = gx * cData.dockpars.grid_spacing;
+		fgradient_genotype[1] = gy * cData.dockpars.grid_spacing;
+		fgradient_genotype[2] = gz * cData.dockpars.grid_spacing;
+
+		#if defined (PRINT_GRAD_TRANSLATION_GENES)
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("gradient_x:%f\n", fgradient_genotype [0]);
+		printf("gradient_y:%f\n", fgradient_genotype [1]);
+		printf("gradient_z:%f\n", fgradient_genotype [2]);
+		#endif
+#else
 		gradient_genotype[0] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * gx * cData.dockpars.grid_spacing)));
 		gradient_genotype[1] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * gy * cData.dockpars.grid_spacing)));
 		gradient_genotype[2] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * gz * cData.dockpars.grid_spacing)));
@@ -676,6 +689,7 @@ __device__ void gpu_calc_energrad(
 		printf("gradient_y:%f\n", gradient_genotype [1]);
 		printf("gradient_z:%f\n", gradient_genotype [2]);
 		#endif
+#endif
 	}
 	__syncthreads();
 
@@ -861,6 +875,17 @@ __device__ void gpu_calc_energrad(
 
 		// Setting gradient rotation-related genotypes in cube
 		// Multiplicating by DEG_TO_RAD is to make it uniform to DEG (see torsion gradients)        
+#ifdef FLOAT_GRADIENTS
+		fgradient_genotype[3] = (grad_phi / (dependence_on_theta * dependence_on_rotangle)) * DEG_TO_RAD;
+		fgradient_genotype[4] = (grad_theta / dependence_on_rotangle) * DEG_TO_RAD;
+		fgradient_genotype[5] = grad_rotangle * DEG_TO_RAD;
+		#if defined (PRINT_GRAD_ROTATION_GENES)
+		printf("\n%s\n", "----------------------------------------------------------");
+		printf("%-30s \n", "grad_axisangle (1,2,3) - after empirical scaling: ");
+		printf("%-13s %-13s %-13s \n", "grad_phi", "grad_theta", "grad_rotangle");
+		printf("%-13.6f %-13.6f %-13.6f\n", fgradient_genotype[3], fgradient_genotype[4], fgradient_genotype[5]);
+		#endif
+#else
 		gradient_genotype[3] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * (grad_phi / (dependence_on_theta * dependence_on_rotangle)) * DEG_TO_RAD)));
 		gradient_genotype[4] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * (grad_theta / dependence_on_rotangle) * DEG_TO_RAD))); 
 		gradient_genotype[5] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * grad_rotangle * DEG_TO_RAD)));
@@ -870,6 +895,7 @@ __device__ void gpu_calc_energrad(
 		printf("%-13s %-13s %-13s \n", "grad_phi", "grad_theta", "grad_rotangle");
 		printf("%-13.6f %-13.6f %-13.6f\n", gradient_genotype[3], gradient_genotype[4], gradient_genotype[5]);
 		#endif
+#endif
 	}
 	__syncthreads();
 
@@ -930,17 +956,22 @@ __device__ void gpu_calc_energrad(
 
 		// Assignment of gene-based gradient
 		// - this works because a * (a_1 + a_2 + ... + a_n) = a*a_1 + a*a_2 + ... + a*a_n
+#ifdef FLOAT_GRADIENTS
+		ATOMICADDF32(&fgradient_genotype[rotbond_id+6], torque_on_axis * DEG_TO_RAD); /*(M_PI / 180.0f)*/;
+#else
 		ATOMICADDI32(&gradient_genotype[rotbond_id+6], lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * torque_on_axis * DEG_TO_RAD)))); /*(M_PI / 180.0f)*/;
+#endif
 	}
 	__syncthreads();
 
+#ifndef FLOAT_GRADIENTS
 	for (uint32_t gene_cnt = threadIdx.x;
 	              gene_cnt < cData.dockpars.num_of_genes;
 	              gene_cnt+= blockDim.x) {
 		fgradient_genotype[gene_cnt] = ONEOVERTERMSCALE * (float)gradient_genotype[gene_cnt];
 	}
 	__syncthreads();
-
+#endif
 	#if defined (CONVERT_INTO_ANGSTROM_RADIAN)
 	for (uint32_t gene_cnt = threadIdx.x+3; // Only for gene_cnt > 2 means start gene_cnt at 3
 	              gene_cnt < cData.dockpars.num_of_genes;
