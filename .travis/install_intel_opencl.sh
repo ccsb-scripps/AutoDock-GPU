@@ -19,4 +19,4 @@ wget -q ${PACKAGE_URL} -O /tmp/opencl_runtime.tgz
 tar -xzf /tmp/opencl_runtime.tgz -C /tmp
 sed 's/decline/accept/g' -i /tmp/${PACKAGE_NAME}/silent.cfg
 sudo apt-get install -yq cpio
-/tmp/${PACKAGE_NAME}/install.sh -s /tmp/${PACKAGE_NAME}/silent.cfg
+sudo /tmp/${PACKAGE_NAME}/install.sh -s /tmp/${PACKAGE_NAME}/silent.cfg
