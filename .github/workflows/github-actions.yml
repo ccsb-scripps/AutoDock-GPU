@@ -15,5 +15,7 @@ jobs:
         run: ls -asl ${{ github.workspace }}
       - run: echo "This job's status is ${{ job.status }}."
       - run: git checkout githubactions
+      - name: Install Intel OpenCL runtime
+        run: bash .travis/install_intel_opencl.sh
       - name: Run custom script
         run: source .travis/run_test.sh 32
