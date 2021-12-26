@@ -1,0 +1,7 @@
+name: GitHub Actions
+on: [push]
+jobs:
+  GitHub-Actions:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
