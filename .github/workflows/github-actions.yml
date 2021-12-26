@@ -14,5 +14,6 @@ jobs:
       - name: List files in the repository
         run: ls ${{ github.workspace }}
       - run: echo "This job's status is ${{ job.status }}."
+      - run: git checkout githubactions
       - name: Run custom script
         run: ./travis/run_test.sh 32
