@@ -1,7 +1,7 @@
-name: GitHub Actions
+name: preliminary-actions
 on: [push]
 jobs:
-  GitHub-Actions:
+  test-github-actions:
     runs-on: ubuntu-latest
     steps:
       - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
