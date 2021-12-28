@@ -2,7 +2,7 @@ on: [push]
 
 jobs:
   main_job:
-    runs_on: ubuntu-latest
+    runs-on: ubuntu-latest
     name: A preliminary job
     steps:
       - name: Hello world action step
