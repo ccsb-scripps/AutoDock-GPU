@@ -9,6 +9,6 @@ jobs:
         id: hello
         uses: AutoDock-GPU/action@v1
         with:
-          'githubactions'
+          git_branch: 'githubactions'
       - name: Get the output time
         run: echo "This is the end"
