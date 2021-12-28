@@ -1,0 +1,14 @@
+on: [push]
+
+jobs:
+  main_job:
+    runs_on: ubuntu-latest
+    name: A preliminary job
+    steps:
+      - name: Hello world action step
+        id: hello
+        uses: AutoDock-GPU/action@v1
+        with:
+          'githubactions'
+      - name: Get the output time
+        run: echo "This is the end"

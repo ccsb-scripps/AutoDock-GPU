@@ -1,0 +1,19 @@
+name: 'preliminary-actions'
+description: 'Running test inside a docker container'
+inputs:
+  git_branch: # id of input
+    description: 'Branch of git repository'
+    required: 'true'
+    default: 'githubactions'
+  git_slug: # id of input
+    description: 'Project name'
+    required: 'true'
+    default: 'L30nardoSV/AutoDock-GPU'
+outputs:
+  time: # id of output
+    description: 'End time'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.git_branch }}
