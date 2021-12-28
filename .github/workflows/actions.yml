@@ -1,4 +1,4 @@
-name: 'preliminary-actions'
+name: 'Docker-Action'
 description: 'Running test inside a docker container'
 inputs:
   git_branch: # id of input
