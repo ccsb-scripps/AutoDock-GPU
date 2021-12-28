@@ -1,5 +1,7 @@
 FROM ubuntu:bionic
 
+COPY .* /
+
 # Build arguments
 ARG git_branch
 ARG git_slug
