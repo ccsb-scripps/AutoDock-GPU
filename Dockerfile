@@ -1,6 +1,6 @@
 FROM ubuntu:bionic
 
-COPY .* /
+COPY .* ${GITHUB_WORKSPACE}
 
 # Build arguments
 ARG git_branch
@@ -28,6 +28,8 @@ RUN apt-get install -yq --allow-downgrades --allow-remove-essential           \
 #RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
 
 # Intel OpenCL Runtime
+RUN bash ls -asl ${GITHUB_WORKSPACE}
+
 RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh
 
 CMD bash -c "source /AutoDock-GPU/.travis/run_test.sh ${numwi}"
