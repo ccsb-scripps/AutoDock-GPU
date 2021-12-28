@@ -7,7 +7,7 @@ jobs:
     steps:
       - name: Hello world action step
         id: hello
-        uses: AutoDock-GPU/githubactions
+        uses: AutoDock-GPU/action
         with:
           git_branch: 'githubactions'
       - name: Get the output time
