@@ -28,7 +28,7 @@ RUN apt-get install -yq --allow-downgrades --allow-remove-essential           \
 #RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
 
 # Intel OpenCL Runtime
-RUN bash ls -asl ${GITHUB_WORKSPACE}
+RUN bash -c /bin/ls -asl ${GITHUB_WORKSPACE}
 
 RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh
 
