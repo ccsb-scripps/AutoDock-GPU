@@ -1,6 +1,6 @@
 FROM ubuntu:bionic
 
-COPY .* ${GITHUB_WORKSPACE}
+COPY .* ${GITHUB_WORKSPACE}/
 
 # Build arguments
 ARG git_branch
