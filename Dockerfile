@@ -23,7 +23,7 @@ RUN apt-get install -yq --allow-downgrades --allow-remove-essential           \
     --allow-change-held-packages ocl-icd-opencl-dev ocl-icd-dev opencl-headers
 
 # AutoDock-GPU
-RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
+#RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
 
 # Intel OpenCL Runtime
 RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh
