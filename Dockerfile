@@ -5,8 +5,6 @@ ARG git_branch
 ARG git_slug
 
 # Execution arguments
-ENV git_slug 12
-ENV git_branch 12
 ENV numwi 16
 
 # Utilities
@@ -25,6 +23,8 @@ RUN apt-get install -yq --allow-downgrades --allow-remove-essential \
     --allow-change-held-packages ocl-icd-opencl-dev ocl-icd-dev opencl-headers
 
 # AutoDock-GPU
+RUN echo ${git_slug}
+RUN echo ${git_branch}
 RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
 #RUN git clone https://github.com/L30nardoSV/AutoDock-GPU.git -b githubactions /AutoDock-GPU
 
