@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM ubuntu:latest
 
 # Arguments (passed from outside)
 ARG git_branch
