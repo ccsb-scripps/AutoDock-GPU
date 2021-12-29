@@ -7,6 +7,7 @@ jobs:
     env:
       GIT_BRANCH: 'githubactions'
       GIT_SLUG: 'L30nardoSV/AutoDock-GPU'
+      NUMWI: 16
     runs-on: ubuntu-latest
     name: Running test via Docker container
     steps:
@@ -21,3 +22,5 @@ jobs:
         run: tree ${HOME}/work/AutoDock-GPU
       - name: Building the Docker image
         run: docker build --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} -t adgpu . --file ${HOME}/work/AutoDock-GPU/AutoDock-GPU/Dockerfile
+      - name: Running test
+        run: docker run -e ${NUMWI} adgpu
