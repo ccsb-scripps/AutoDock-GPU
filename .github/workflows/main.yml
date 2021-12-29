@@ -9,5 +9,5 @@ jobs:
         uses: L30nardoSV/AutoDock-GPU@githubactions
         with:
           build_args: git_branch='githubactions', git_slug='L30nardoSV/AutoDock-GPU'
-      - run: export numwi=16
-      - run: docker run -e numwi adgpu
+#      - run: export numwi=16
+#      - run: docker run -e numwi adgpu
