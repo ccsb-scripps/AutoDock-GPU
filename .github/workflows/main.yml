@@ -15,10 +15,8 @@ jobs:
 #        uses: L30nardoSV/AutoDock-GPU@githubactions
         uses: actions/checkout@v2
       - name: Printing folders contents
-        run: ls -asl ${HOME} && ls -asl ${HOME}/work
-      - name: Dummy3
-        run: tree ${HOME}/work/AutoDock-GPU
+        run: ls -asl ${HOME} && ls -asl ${HOME}/work && tree ${HOME}/work/AutoDock-GPU
       - name: Building the Docker image
         run: docker build --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} -t adgpu . --file ${HOME}/work/AutoDock-GPU/AutoDock-GPU/Dockerfile
-      - name: Running test
+      - name: Running test within docker image
         run: docker run -e ${NUMWI} adgpu
