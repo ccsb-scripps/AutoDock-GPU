@@ -5,6 +5,8 @@ ARG git_branch
 ARG git_slug
 
 # Execution arguments
+ENV git_slug 12
+ENV git_branch 12
 ENV numwi 16
 
 # Utilities
