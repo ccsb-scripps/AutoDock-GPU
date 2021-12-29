@@ -23,8 +23,8 @@ RUN apt-get install -yq --allow-downgrades --allow-remove-essential \
     --allow-change-held-packages ocl-icd-opencl-dev ocl-icd-dev opencl-headers
 
 # AutoDock-GPU
-#RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
-RUN git clone https://github.com/L30nardoSV/AutoDock-GPU.git -b githubactions /AutoDock-GPU
+RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
+#RUN git clone https://github.com/L30nardoSV/AutoDock-GPU.git -b githubactions /AutoDock-GPU
 
 RUN bash -c /bin/ls -asl ${HOME}
 
