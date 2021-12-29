@@ -8,8 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     name: A preliminary job
     steps:
-#      - name: Setting up repository
-#        uses: L30nardoSV/AutoDock-GPU@githubactions
+      - name: Setting up repository
+        uses: L30nardoSV/AutoDock-GPU@githubactions
 #      - name: Exporting environmental variables
 #        run: export GIT_BRANCH=githubactions && export GIT_SLUG=L30nardoSV/AutoDock-GPU
       - name: Building the Docker image
