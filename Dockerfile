@@ -2,6 +2,8 @@ FROM ubuntu:bionic
 
 # Execution arguments
 ENV numwi 16
+ARG git_branch
+ARG git_slug
 
 # Utilities
 RUN apt-get -yq update
