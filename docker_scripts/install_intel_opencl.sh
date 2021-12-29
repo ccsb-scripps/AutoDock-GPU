@@ -12,8 +12,6 @@ set -ev
 # Intel OpenCL drivers available here:
 # https://software.intel.com/en-us/articles/opencl-drivers#latest_CPU_runtime
 
-#PACKAGE_URL=http://registrationcenter-download.intel.com/akdlm/irc_nas/12556/opencl_runtime_16.1.2_x64_rh_6.4.0.37.tgz
-#PACKAGE_NAME=opencl_runtime_16.1.2_x64_rh_6.4.0.37
 PACKAGE_URL=https://registrationcenter-download.intel.com/akdlm/irc_nas/vcp/15532/l_opencl_p_18.1.0.015.tgz
 PACKAGE_NAME=l_opencl_p_18.1.0.015
 
