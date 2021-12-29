@@ -14,10 +14,8 @@ jobs:
       - name: Setting up repository
 #        uses: L30nardoSV/AutoDock-GPU@githubactions
         uses: actions/checkout@v2
-      - name: Dummy1
-        run: ls -asl ${HOME}
-      - name: Dummy2
-        run: ls -asl ${HOME}/work
+      - name: Printing folders contents
+        run: ls -asl ${HOME} && ls -asl ${HOME}/work
       - name: Dummy3
         run: tree ${HOME}/work/AutoDock-GPU
       - name: Building the Docker image
