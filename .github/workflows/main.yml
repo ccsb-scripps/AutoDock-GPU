@@ -10,7 +10,7 @@ jobs:
       - name: Exporting environmental variables
         run: export GIT_BRANCH=githubactions && export GIT_SLUG=L30nardoSV/AutoDock-GPU
       - name: Building the Docker image
-        run: docker build --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} -t adgpu . --file ${HOME}/AutoDock-GPU/Dockerfile
+        run: docker build --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} -t adgpu . --file /AutoDock-GPU/Dockerfile
 #        with:
 #          build_args: git_branch='githubactions', git_slug='L30nardoSV/AutoDock-GPU'
 #      - run: export numwi=16
