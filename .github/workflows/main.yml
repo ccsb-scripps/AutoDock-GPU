@@ -13,5 +13,7 @@ jobs:
       - name: Setting up repository
 #        uses: L30nardoSV/AutoDock-GPU@githubactions
         uses: actions/checkout@v2
+      - name: Dummy
+        run: ls -asl ${HOME}
       - name: Building the Docker image
-        run: docker build --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} -t adgpu . --file /AutoDock-GPU/Dockerfile
+        run: docker build --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} -t adgpu . --file AutoDock-GPU/Dockerfile
