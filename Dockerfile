@@ -29,6 +29,6 @@ RUN git clone https://github.com/${git_slug}.git -b ${git_branch} /AutoDock-GPU
 RUN bash -c /bin/ls -asl ${HOME}
 
 # Intel OpenCL Runtime
-RUN bash /AutoDock-GPU/.travis/install_intel_opencl.sh
+RUN bash /AutoDock-GPU/docker_scripts/install_intel_opencl.sh
 
-CMD bash -c "source /AutoDock-GPU/.travis/run_test.sh ${numwi}"
+CMD bash -c "source /AutoDock-GPU/docker_scripts/run_test.sh ${numwi}"
