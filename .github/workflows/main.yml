@@ -18,6 +18,6 @@ jobs:
       - name: Dummy2
         run: ls -asl ${HOME}/work
       - name: Dummy3
-        run: ls -asl ${HOME}/work/AutoDock-GPU
+        run: tree ${HOME}/work/AutoDock-GPU
       - name: Building the Docker image
         run: docker build --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} -t adgpu . --file ${HOME}/work/AutoDock-GPU/Dockerfile
