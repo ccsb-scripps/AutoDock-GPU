@@ -15,5 +15,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Dummy
         run: ls -asl ${HOME}
+      - name: Dummy
+        run: ls -asl ${HOME}/work
       - name: Building the Docker image
         run: docker build --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} -t adgpu . --file AutoDock-GPU/Dockerfile
