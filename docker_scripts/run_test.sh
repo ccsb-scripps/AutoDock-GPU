@@ -62,8 +62,8 @@ function run_test() {
     for pdb in "3ce3" "1stp"; do
         for lsmet in "sw" "ad"; do
             for nrun in 1 10; do
-#                for ngen in 10 100; do
-#                    for psize in 10 50; do
+                for ngen in 10 100; do
+                    for psize in 10 50; do
                         ${BIN_DIR}/autodock_cpu_${1}wi \
                         -ffile ./input/${pdb}/derived/${pdb}_protein.maps.fld \
                         -lfile ./input/${pdb}/derived/${pdb}_ligand.pdbqt \
@@ -75,8 +75,8 @@ function run_test() {
                         -xmloutput 0
                         echo " "
 	                    tail -30 ${pdb}-${lsmet}-${nrun}-${ngen}-${psize}-*.dlg
-#                    done
-#                done
+                    done
+                done
             done
         done
     done        
