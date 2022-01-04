@@ -8,7 +8,7 @@ set -o xtrace
 
 # This script is invoked from the Dockerfile,
 # but can also be invoked independently (for local tests).
-# E.g.: source .travis/run_test.sh 4
+# E.g.: source docker_scripts/run_test.sh 4
 # The argument "4" passes the NUMWI value.
 
 info="[INFO]"
@@ -37,7 +37,6 @@ function run_clinfo() {
     clinfo
 }
 
-#ADGPU_DIR=~/Desktop/AutoDock-GPU
 ADGPU_DIR=/AutoDock-GPU
 BIN_DIR=${ADGPU_DIR}/bin
 DEVICE=CPU
