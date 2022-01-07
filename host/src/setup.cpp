@@ -285,7 +285,7 @@ int setup(
 	}
 
 	// Filling the atom types field of myligand according to the grid types
-	if (init_liganddata(mypars->ligandfile,
+	if (init_liganddata(mypars->free_roaming_ligand ? mypars->ligandfile : NULL,
 	                    mypars->flexresfile,
 	                    &myligand_init,
 	                    mygrid,

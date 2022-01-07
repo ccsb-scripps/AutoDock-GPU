@@ -119,6 +119,7 @@ typedef struct _Dockpars
 	char*                     xrayligandfile                  = NULL;  // by default will be ligand file name
 	char*                     resname                         = NULL; // by default will be ligand file basename
 	bool                      given_xrayligandfile            = false; // That is, not given (explicitly by the user)
+	bool                      free_roaming_ligand             = true;
 	bool                      autostop                        = true;
 	unsigned int              as_frequency                    = 5;
 	float                     stopstd                         = 0.15;

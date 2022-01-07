@@ -62,16 +62,24 @@ int init_liganddata(
 	char tempstr [256];
 	std::string line;
 
+	unsigned int ls=0;
+	if ( ligfilename==NULL ) {
+		ls++;
+	}
 	unsigned int lnr=1;
-	if ( flexresfilename!=NULL) {
+	if ( flexresfilename!=NULL ) {
 		if ( strlen(flexresfilename)>0 )
 			lnr++;
+	}
+	if ( lnr-ls <= 0){
+		printf("Error: No ligand or flex res file specified.\n");
+		return 1;
 	}
 
 	num_of_atypes = 0;
 	num_of_base_atypes = 0;
 	unsigned int atom_cnt = 0;
-	for (unsigned int l=0; l<lnr; l++)
+	for (unsigned int l=ls; l<lnr; l++)
 	{
 		if(l==0)
 			fp.open(ligfilename);

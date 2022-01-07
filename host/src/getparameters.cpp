@@ -759,6 +759,39 @@ int initial_commandpars(
 	return 0;
 }
 
+int filelist_add(
+                       Dockpars* mypars,
+                       Gridinfo* mygrid,
+                       FileList& filelist
+                )
+{
+	mypars->list_nr++;
+	// Before pushing parameters and grids back make sure
+	// the filename pointers are unique in the filelist
+	if(filelist.mypars.size()>0){
+		if((filelist.mypars.back().fldfile) &&
+		   (filelist.mypars.back().fldfile==mypars->fldfile))
+			mypars->fldfile=strdup(mypars->fldfile);
+		if((filelist.mypars.back().flexresfile) &&
+		   (filelist.mypars.back().flexresfile==mypars->flexresfile))
+			mypars->flexresfile=strdup(mypars->flexresfile);
+		if((filelist.mypars.back().xrayligandfile) &&
+		   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
+			mypars->xrayligandfile=strdup(mypars->xrayligandfile);
+	}
+	// Keep track of fld files
+	if (filelist.fld_files.size()==0){
+		if(mygrid->fld_name.length()>0){ // already read a map file in with dpf import
+			printf("Using map file from dpf import.\n\n");
+		} else{
+			printf("Error: No map file on record yet. Please specify a .fld file before the first ligand (%s).\n",filelist.ligand_files.back().c_str());
+			return 1;
+		}
+	}
+	// Add the parameter block
+	filelist.mypars.push_back(*mypars);
+	return 0;
+}
 int get_filelist(
                  const int*      argc,
                        char**    argv,
@@ -870,15 +903,35 @@ int get_filelist(
 		}
 		std::string line;
 		bool prev_line_was_fld=false;
+		bool lone_flex_or_covalent=false;
 		int prev_fld_line;
 		unsigned int initial_res_count = filelist.resnames.size();
 		int len;
+		int ret;
 		int last_fld_idx=0;
 		int line_count=0;
 		while(std::getline(file, line)) {
 			line_count++;
 			trim(line); // Remove leading and trailing whitespace
 			len = line.size();
+			if(lone_flex_or_covalent &&
+			   (
+			    (len>=4 && line.compare(len-4,4,".fld") == 0) ||
+			    (len>=7 && line.compare(len-7,7,".pdbqt*") == 0) ||
+			    (len>=7 && line.compare(len-7,7,".pdbqt-") == 0)
+			   )
+			  ){
+				// Add the .pdbqt
+				filelist.ligand_files.push_back(mypars->flexresfile);
+				mypars->free_roaming_ligand=false;
+				// Add entry to filelist
+				if((ret=filelist_add(mypars,mygrid,filelist))) return ret;
+				// Keep track of fld lines actually used
+				last_fld_idx = filelist.fld_files.size();
+				prev_line_was_fld=false;
+				lone_flex_or_covalent=false;
+				mypars->free_roaming_ligand=true;
+			}
 			if (len>=4 && line.compare(len-4,4,".fld") == 0){
 				bool new_grid=true;
 				if (prev_line_was_fld){ // Overwrite the previous fld file if two in a row
@@ -917,37 +970,19 @@ int get_filelist(
 				// Add the reference (xray) ligand file
 				mypars->xrayligandfile = strndup(line.c_str(),len-1);
 				mypars->given_xrayligandfile = true;
+			} else if (len>=7 && line.compare(len-7,7,".pdbqt-") == 0){
+				// Add a new flexible residue
+				mypars->flexresfile = strndup(line.c_str(),len-1);
+				lone_flex_or_covalent=true;
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
 				// Add the .pdbqt
 				filelist.ligand_files.push_back(line);
-				mypars->list_nr++;
-				// Before pushing parameters and grids back make sure
-				// the filename pointers are unique in the filelist
-				if(filelist.mypars.size()>0){
-					if((filelist.mypars.back().fldfile) &&
-					   (filelist.mypars.back().fldfile==mypars->fldfile))
-						mypars->fldfile=strdup(mypars->fldfile);
-					if((filelist.mypars.back().flexresfile) &&
-					   (filelist.mypars.back().flexresfile==mypars->flexresfile))
-						mypars->flexresfile=strdup(mypars->flexresfile);
-					if((filelist.mypars.back().xrayligandfile) &&
-					   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
-						mypars->xrayligandfile=strdup(mypars->xrayligandfile);
-				}
-				// Keep track of fld files
-				if (filelist.fld_files.size()==0){
-					if(mygrid->fld_name.length()>0){ // already read a map file in with dpf import
-						printf("Using map file from dpf import.\n\n");
-					} else{
-						printf("Error: No map file on record yet. Please specify a .fld file before the first ligand (%s).\n",line.c_str());
-						return 1;
-					}
-				}
-				// Add the parameter block
-				filelist.mypars.push_back(*mypars);
+				// Add entry to filelist
+				if((ret=filelist_add(mypars,mygrid,filelist))) return ret;
 				// Keep track of fld lines actually used
 				last_fld_idx = filelist.fld_files.size();
 				prev_line_was_fld=false;
+				lone_flex_or_covalent=false;
 			} else if (len>0) {
 				// Anything else in the file is assumed to be the resname
 				filelist.resnames.push_back(line);
@@ -1004,11 +1039,12 @@ int get_filenames_and_ADcoeffs(
 // according to the proper command line arguments.
 {
 	int i;
-	int ffile_given, lfile_given;
+	int ffile_given, lfile_given, flex_given;
 	long tempint;
 	
 	ffile_given = (mypars->fldfile!=NULL);
 	lfile_given = (mypars->ligandfile!=NULL);
+	flex_given = (mypars->flexresfile!=NULL);
 	
 	for (i=1; i<(*argc)-1; i+=2)
 	{
@@ -1037,6 +1073,7 @@ int get_filenames_and_ADcoeffs(
 		// Argument: flexible residue pdbqt file name
 		if (argcmp("flexres", argv[i], 'F'))
 		{
+			flex_given = 1;
 			mypars->flexresfile = strdup(argv[i+1]);
 		}
 
@@ -1068,13 +1105,13 @@ int get_filenames_and_ADcoeffs(
 
 	if (ffile_given == 0 && !multiple_files && missing_error)
 	{
-		printf("Error: grid fld file was not defined. Use --ffile (-M) argument!\n");
+		printf("Error: Grid fld file was not defined. Use --ffile (-M) argument.\n");
 		print_options(argv[0]);
 	}
 
-	if (lfile_given == 0 && !multiple_files && missing_error)
+	if ((lfile_given == 0) && (flex_given == 0) && !multiple_files && missing_error)
 	{
-		printf("Error: ligand pdbqt file was not defined. Use --lfile (-L) argument!\n");
+		printf("Error: Ligand or flexres pdbqt file was not defined. Use --lfile (-L) or --flexres (-F) argument for regular or covalent ligands, respectively.\n");
 		print_options(argv[0]);
 	}
 
