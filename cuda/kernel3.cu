@@ -104,6 +104,8 @@ gpu_perform_LS_kernel(
 	__syncthreads();
 	
 
+	uint32_t gene_start = (cData.dockpars.true_ligand_atoms==0)*6;
+
 #ifdef SWAT3
 	float lig_scale = 1.0f/sqrt((float)cData.dockpars.num_of_atoms);
 	float gene_scale = 1.0f/sqrt((float)cData.dockpars.num_of_genes);
@@ -111,7 +113,7 @@ gpu_perform_LS_kernel(
 	while ((iteration_cnt < cData.dockpars.max_num_of_iters) && (rho > cData.dockpars.rho_lower_bound))
 	{
 		// New random deviate
-		for (uint32_t gene_counter = threadIdx.x;
+		for (uint32_t gene_counter = threadIdx.x+gene_start;
 		              gene_counter < cData.dockpars.num_of_genes;
 		              gene_counter+= blockDim.x)
 		{
@@ -145,7 +147,7 @@ gpu_perform_LS_kernel(
 		}
 
 		// Generating new genotype candidate
-		for (uint32_t gene_counter = threadIdx.x;
+		for (uint32_t gene_counter = threadIdx.x+gene_start;
 		              gene_counter < cData.dockpars.num_of_genes;
 		              gene_counter+= blockDim.x)
 		{
@@ -172,7 +174,7 @@ gpu_perform_LS_kernel(
 
 		if (candidate_energy < offspring_energy)	// If candidate is better, success
 		{
-			for (uint32_t gene_counter = threadIdx.x;
+			for (uint32_t gene_counter = threadIdx.x+gene_start;
 			              gene_counter < cData.dockpars.num_of_genes;
 			              gene_counter+= blockDim.x)
 			{
@@ -196,7 +198,7 @@ gpu_perform_LS_kernel(
 		else // If candidate is worse, check the opposite direction
 		{
 			// Generating the other genotype candidate
-			for (uint32_t gene_counter = threadIdx.x;
+			for (uint32_t gene_counter = threadIdx.x+gene_start;
 			              gene_counter < cData.dockpars.num_of_genes;
 			              gene_counter+= blockDim.x)
 			{
@@ -229,7 +231,7 @@ gpu_perform_LS_kernel(
 
 			if (candidate_energy < offspring_energy) // If candidate is better, success
 			{
-				for (uint32_t gene_counter = threadIdx.x;
+				for (uint32_t gene_counter = threadIdx.x+gene_start;
 				              gene_counter < cData.dockpars.num_of_genes;
 				              gene_counter+= blockDim.x)
 				{
@@ -241,7 +243,7 @@ gpu_perform_LS_kernel(
 
 				// Work-item 0 will overwrite the shared variables
 				// used in the previous if condition
-							__syncthreads();
+				__syncthreads();
 
 				if (threadIdx.x == 0)
 				{
@@ -252,7 +254,7 @@ gpu_perform_LS_kernel(
 			}
 			else	// Failure in both directions
 			{
-				for (uint32_t gene_counter = threadIdx.x;
+				for (uint32_t gene_counter = threadIdx.x+gene_start;
 				              gene_counter < cData.dockpars.num_of_genes;
 				              gene_counter+= blockDim.x)
 				{
@@ -294,7 +296,7 @@ gpu_perform_LS_kernel(
 
 	// Mapping torsion angles and writing out results
 	offset = (run_id*cData.dockpars.pop_size+entity_id)*GENOTYPE_LENGTH_IN_GLOBMEM;
-	for (uint32_t gene_counter = threadIdx.x;
+	for (uint32_t gene_counter = threadIdx.x+gene_start;
 	              gene_counter < cData.dockpars.num_of_genes;
 	              gene_counter+= blockDim.x)
 	{

@@ -201,22 +201,24 @@ void gpu_calc_energy(
 
 	// General rotation moving vector
 	float4 genrot_movingvec;
-	genrot_movingvec.x = genotype[0];
-	genrot_movingvec.y = genotype[1];
-	genrot_movingvec.z = genotype[2];
-	genrot_movingvec.w = 0.0f;
 	// Convert orientation genes from sex. to radians
 	float phi         = genotype[3] * DEG_TO_RAD;
 	float theta       = genotype[4] * DEG_TO_RAD;
 	float genrotangle = genotype[5] * DEG_TO_RAD;
 
 	float4 genrot_unitvec;
-	float sin_angle = native_sin(theta);
-	float s2 = native_sin(genrotangle*0.5f);
-	genrot_unitvec.x = s2*sin_angle*native_cos(phi);
-	genrot_unitvec.y = s2*sin_angle*native_sin(phi);
-	genrot_unitvec.z = s2*native_cos(theta);
-	genrot_unitvec.w = native_cos(genrotangle*0.5f);
+	if(dockpars_true_ligand_atoms){
+		genrot_movingvec.x = genotype[0];
+		genrot_movingvec.y = genotype[1];
+		genrot_movingvec.z = genotype[2];
+		genrot_movingvec.w = 0.0f;
+		float sin_angle = native_sin(theta);
+		float s2 = native_sin(genrotangle*0.5f);
+		genrot_unitvec.x = s2*sin_angle*native_cos(phi);
+		genrot_unitvec.y = s2*sin_angle*native_sin(phi);
+		genrot_unitvec.z = s2*native_cos(theta);
+		genrot_unitvec.w = native_cos(genrotangle*0.5f);
+	}
 
 	uint g1 = dockpars_gridsize_x;
 	uint g2 = dockpars_gridsize_x_times_y;
