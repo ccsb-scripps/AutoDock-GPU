@@ -2163,8 +2163,7 @@ float calc_intraE_f(
 				// FIXME: accumulated into vW ... is that correct?
 				if (((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) ||
 				    ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX))) {
-					if (((atom_id1<myligand->true_ligand_atoms) && (atom_id2<myligand->true_ligand_atoms)) ||
-					    ((atom_id1>=myligand->true_ligand_atoms) && (atom_id2>=myligand->true_ligand_atoms))) // if both atoms are of either a ligand or a flex res it's intra
+					if ((a_flex + b_flex) & 1) // if both atoms are of either a ligand or a flex res it's intra
 						vW += G * dist;
 					else
 						interflexE += G * dist;

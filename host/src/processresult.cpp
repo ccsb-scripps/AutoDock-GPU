@@ -893,12 +893,17 @@ void generate_output(
 			fprintf(fp, "DOCKED: USER\n");
 			if(mypars->xml2dlg || mypars->contact_analysis){
 				fprintf(fp, "DOCKED: USER    NEWDPF about 0.0 0.0 0.0\n");
-				fprintf(fp, "DOCKED: USER    NEWDPF tran0 %.6f %.6f %.6f\n", myresults[i].genotype[0]*mygrid->spacing, myresults[i].genotype[1]*mygrid->spacing, myresults[i].genotype[2]*mygrid->spacing);
-				if(!mypars->xml2dlg){
-					double phi = myresults[i].genotype[3]/180.0*PI;
-					double theta = myresults[i].genotype[4]/180.0*PI;
-					fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[i].genotype[5]);
-				} else fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", myresults[i].genotype[3], myresults[i].genotype[4], myresults[i].genotype[5], myresults[i].genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1]);
+				if(mypars->free_roaming_ligand){
+					fprintf(fp, "DOCKED: USER    NEWDPF tran0 %.6f %.6f %.6f\n", myresults[i].genotype[0]*mygrid->spacing, myresults[i].genotype[1]*mygrid->spacing, myresults[i].genotype[2]*mygrid->spacing);
+					if(!mypars->xml2dlg){
+						double phi = myresults[i].genotype[3]/180.0*PI;
+						double theta = myresults[i].genotype[4]/180.0*PI;
+						fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[i].genotype[5]);
+					} else fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", myresults[i].genotype[3], myresults[i].genotype[4], myresults[i].genotype[5], myresults[i].genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1]);
+				} else{
+					fprintf(fp, "DOCKED: USER    NEWDPF tran0 0.0 0.0 0.0\n");
+					fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 1.0 0.0 0.0 0.0\n");
+				}
 				fprintf(fp, "DOCKED: USER    NEWDPF dihe0");
 				for(j=0; j<ligand_ref->num_of_rotbonds; j++)
 					fprintf(fp, " %.6f", myresults[i].genotype[6+j]);
@@ -1204,10 +1209,15 @@ void generate_output(
 			fprintf(fp_xml, "\t\t\t<final_intermol_NRG> %.2f</final_intermol_NRG>\n", myresults[j].interE + myresults[j].interflexE);
 			fprintf(fp_xml, "\t\t\t<internal_ligand_NRG>%.2f</internal_ligand_NRG>\n", myresults[j].intraE + myresults[j].intraflexE);
 			fprintf(fp_xml, "\t\t\t<torsonial_free_NRG> %.2f</torsonial_free_NRG>\n", torsional_energy);
-			fprintf(fp_xml, "\t\t\t<tran0>%.6f %.6f %.6f</tran0>\n", myresults[j].genotype[0]*mygrid->spacing, myresults[j].genotype[1]*mygrid->spacing, myresults[j].genotype[2]*mygrid->spacing);
-			phi = myresults[j].genotype[3]/180.0*PI;
-			theta = myresults[j].genotype[4]/180.0*PI;
-			fprintf(fp_xml, "\t\t\t<axisangle0>%.8f %.8f %.8f %.6f</axisangle0>\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[j].genotype[5]);
+			if(mypars->free_roaming_ligand){
+				fprintf(fp_xml, "\t\t\t<tran0>%.6f %.6f %.6f</tran0>\n", myresults[j].genotype[0]*mygrid->spacing, myresults[j].genotype[1]*mygrid->spacing, myresults[j].genotype[2]*mygrid->spacing);
+				phi = myresults[j].genotype[3]/180.0*PI;
+				theta = myresults[j].genotype[4]/180.0*PI;
+				fprintf(fp_xml, "\t\t\t<axisangle0>%.8f %.8f %.8f %.6f</axisangle0>\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[j].genotype[5]);
+			} else{
+				fprintf(fp_xml, "\t\t\t<tran0>0.0 0.0 0.0</tran0>\n");
+				fprintf(fp_xml, "\t\t\t<axisangle0>1.0 0.0 0.0 0.0</axisangle0>\n");
+			}
 			fprintf(fp_xml, "\t\t\t<ndihe>%d</ndihe>\n", ligand_ref->num_of_rotbonds);
 			fprintf(fp_xml, "\t\t\t<dihe0>");
 			for(i=0; i<ligand_ref->num_of_rotbonds; i++)
