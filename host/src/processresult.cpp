@@ -79,7 +79,8 @@ void write_basic_info(
 	fprintf(fp, "         DOCKING PARAMETERS        \n");
 	fprintf(fp, "===================================\n\n");
 
-	fprintf(fp, "Ligand file:                               %s\n", mypars->ligandfile);
+	if(mypars->ligandfile)
+		fprintf(fp, "Ligand file:                               %s\n", mypars->ligandfile);
 	bool flexres = false;
 	if (mypars->flexresfile!=NULL){
 			if ( strlen(mypars->flexresfile)>0 ) {
@@ -211,7 +212,8 @@ void write_basic_info_dlg(
 	fprintf(fp, "    DOCKING PARAMETERS\n");
 	fprintf(fp, "    ________________________\n\n\n");
 
-	fprintf(fp, "Ligand file:                               %s\n", mypars->ligandfile);
+	if(mypars->ligandfile)
+		fprintf(fp, "Ligand file:                               %s\n", mypars->ligandfile);
 	bool flexres = false;
 	if (mypars->flexresfile!=NULL){
 			if ( strlen(mypars->flexresfile)>0 ) {
@@ -730,34 +732,35 @@ void generate_output(
 			fprintf(fp, "\n\n");
 		}
 		// writing input pdbqt file
-		fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
-		ligand_calc_output(fp, "INPUT-LIGAND-PDBQT: USER", tables, ligand_ref, mypars, mygrid, mypars->contact_analysis, output_ref_calcs);
 		unsigned int line_count = 0;
-		while (line_count < ligand_ref->ligand_line_count)
-		{
-			strcpy(tempstr,ligand_ref->file_content[line_count].c_str());
-			line_count++;
-			fprintf(fp, "INPUT-LIGAND-PDBQT: %s", tempstr);
-			if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
+		if(mypars->free_roaming_ligand){
+			fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
+			ligand_calc_output(fp, "INPUT-LIGAND-PDBQT: USER", tables, ligand_ref, mypars, mygrid, mypars->contact_analysis, output_ref_calcs);
+			while (line_count < ligand_ref->ligand_line_count)
 			{
-				tempstr[30] = '\0';
-				sprintf(lineout, "DOCKED: %s", tempstr);
-				pdbqt_template += lineout;
-				atom_data.push_back(pdbqt_template.length());
-			} else{
-				if (strncmp("ROOT", tempstr, 4) == 0)
+				strcpy(tempstr,ligand_ref->file_content[line_count].c_str());
+				line_count++;
+				fprintf(fp, "INPUT-LIGAND-PDBQT: %s", tempstr);
+				if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 				{
-					pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
-					pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
+					tempstr[30] = '\0';
+					sprintf(lineout, "DOCKED: %s", tempstr);
+					pdbqt_template += lineout;
+					atom_data.push_back(pdbqt_template.length());
+				} else{
+					if (strncmp("ROOT", tempstr, 4) == 0)
+					{
+						pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
+						pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
+					}
+					sprintf(lineout, "DOCKED: %s", tempstr);
+					pdbqt_template += lineout;
 				}
-				sprintf(lineout, "DOCKED: %s", tempstr);
-				pdbqt_template += lineout;
 			}
+			fprintf(fp, "\n\n");
 		}
-		fprintf(fp, "\n\n");
-		
 		// writing input flexres pdbqt file if specified
-		if (mypars->flexresfile!=NULL) {
+		if (mypars->flexresfile) {
 			if ( strlen(mypars->flexresfile)>0 ) {
 				fprintf(fp, "    INPUT FLEXRES PDBQT FILE:\n    ________________________\n\n\n");
 				while (line_count < ligand_ref->file_content.size())
