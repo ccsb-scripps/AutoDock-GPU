@@ -365,10 +365,8 @@ int runKernel1D(
 	cl_ulong stop;
 	clGetEventProfilingInfo(event,CL_PROFILING_COMMAND_START,sizeof(start),&start,NULL);
 	clGetEventProfilingInfo(event,CL_PROFILING_COMMAND_END,  sizeof(stop),&stop, NULL);
-	printf("queue %p, event %p here: %llu -> %llu (%llu)\n",cmd_queue,event,start,stop,stop-start);
 	clGetEventProfilingInfo(event,CL_PROFILING_COMMAND_QUEUED,sizeof(start),&start,NULL);
 	clGetEventProfilingInfo(event,CL_PROFILING_COMMAND_SUBMIT,  sizeof(stop),&stop, NULL);
-	printf("queue %p, event %p there: %llu -> %llu\n",cmd_queue,event,start,stop);
 
 	// Pass kernel exec time to calling function
 	*time_start = start;

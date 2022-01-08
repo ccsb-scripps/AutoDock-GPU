@@ -295,10 +295,12 @@ void write_basic_info_dlg(
 		fprintf(fp, "    LIGAND PARAMETERS\n");
 	fprintf(fp, "    ________________________\n\n\n");
 
-	fprintf(fp, "Ligand name:                               ");
-	int len = strlen(mypars->ligandfile) - 6;
-	for(i=0; i<len; i++) fputc(mypars->ligandfile[i], fp);
-	fputc('\n', fp);
+	if(mypars->ligandfile){
+		fprintf(fp, "Ligand name:                               ");
+		int len = strlen(mypars->ligandfile) - 6;
+		for(i=0; i<len; i++) fputc(mypars->ligandfile[i], fp);
+		fputc('\n', fp);
+	}
 	if(flexres){
 		fprintf(fp, "Flexres name:                              ");
 		int len = strlen(mypars->flexresfile) - 6;
@@ -320,7 +322,7 @@ void write_basic_info_dlg(
 		fprintf(fp, "DPF> outlev 1\n");
 		fprintf(fp, "DPF> ga_run %lu\n", mypars->num_of_runs);
 		fprintf(fp, "DPF> fld %s\n", mygrid->fld_name.c_str());
-		fprintf(fp, "DPF> move %s\n", mypars->ligandfile);
+		if(mypars->ligandfile) fprintf(fp, "DPF> move %s\n", mypars->ligandfile);
 		if(flexres) fprintf(fp, "DPF> flexres %s\n", mypars->flexresfile);
 		fprintf(fp, "\n\n");
 	}
@@ -358,7 +360,9 @@ void make_resfiles(
 	double entity_rmsds;
 	double init_atom_idxyzq[MAX_NUM_OF_ATOMS][5]; // type id .. 0, x .. 1, y .. 2, z .. 3, q ... 4
 	memcpy(init_atom_idxyzq, ligand_ref->atom_idxyzq, sizeof(ligand_ref->atom_idxyzq));
-	int len = strlen(mypars->ligandfile) - 6 + 24 + 10 + 10; // length with added bits for things below (numbers below 11 digits should be a safe enough threshold)
+	char* basefile = mypars->ligandfile;
+	if(!mypars->free_roaming_ligand) basefile = mypars->flexresfile;
+	int len = strlen(basefile) - 6 + 24 + 10 + 10; // length with added bits for things below (numbers below 11 digits should be a safe enough threshold)
 	char* temp_filename = (char*)malloc((len+1)*sizeof(char)); // +\0 at the end
 	char* name_ext_start;
 	float accurate_interE;
@@ -401,8 +405,8 @@ void make_resfiles(
 
 	// Writing out state of final population
 
-	strcpy(temp_filename, mypars->ligandfile);
-	name_ext_start = temp_filename + strlen(mypars->ligandfile) - 6; // without .pdbqt
+	strcpy(temp_filename, basefile);
+	name_ext_start = temp_filename + strlen(basefile) - 6; // without .pdbqt
 
 	bool rmsd_valid = true;
 	if (mypars->given_xrayligandfile == true) {
@@ -493,13 +497,13 @@ void make_resfiles(
 				best_energy_of_all = accurate_interE + accurate_intraE;
 
 				if (mypars->gen_best)
-					gen_new_pdbfile(mypars->ligandfile, "best.pdbqt", ligand_ref);
+					gen_new_pdbfile(basefile, "best.pdbqt", ligand_ref);
 			}
 
 		if (i < mypars->gen_pdbs) //if it is necessary, making new pdbqts for best entities
 		{
 			sprintf(name_ext_start, "_docked_run%d_entity%d.pdbqt", run_cnt+1, i+1); //name will be <original pdb filename>_docked_<number starting from 1>.pdb
-			gen_new_pdbfile(mypars->ligandfile, temp_filename, ligand_ref);
+			gen_new_pdbfile(basefile, temp_filename, ligand_ref);
 		}
 		if (mypars->gen_finalpop)
 		{
@@ -1122,7 +1126,8 @@ void generate_output(
 		if(mypars->list_nr>1)
 			fprintf(fp_xml, "\t<list_nr>%u</list_nr>\n",mypars->list_nr);
 		fprintf(fp_xml, "\t<grid>%s</grid>\n", mypars->fldfile);
-		fprintf(fp_xml, "\t<ligand>%s</ligand>\n", mypars->ligandfile);
+		if(mypars->ligandfile)
+			fprintf(fp_xml, "\t<ligand>%s</ligand>\n", mypars->ligandfile);
 		if(mypars->flexresfile)
 			fprintf(fp_xml, "\t<flexres>%s</flexres>\n",mypars->flexresfile);
 		fprintf(fp_xml, "\t<seed>");

@@ -373,13 +373,24 @@ int parse_dpf(
 									filelist.preload_maps=false;
 								}
 								// Add the ligand to filelist
-								filelist.ligand_files.push_back(mypars->ligandfile);
+								if(mypars->ligandfile != NULL){ // no free ligand file specified (test for covalent below)
+									filelist.ligand_files.push_back(mypars->ligandfile);
+									mypars->free_roaming_ligand = true;
+								} else{
+									if(mypars->flexresfile != NULL){
+										filelist.ligand_files.push_back(mypars->flexresfile);
+										mypars->free_roaming_ligand = false;
+									} else{ // error: no ligand specified
+										printf("\nError: No ligand (either non-covalent (with move) or covalent (with flexres)) specified for run at %s:%u.\n",tempstr,line_count);
+										return 1;
+									}
+								}
 								// Default resname is filelist basename
 								if(mypars->resname) free(mypars->resname);
-								len=strlen(mypars->ligandfile)-6; // .pdbqt = 6 chars
+								len=filelist.ligand_files.back().size()-6; // .pdbqt = 6 chars
 								if(len>0){
 									mypars->resname = (char*)malloc((len+1)*sizeof(char));
-									strncpy(mypars->resname,mypars->ligandfile,len); // Default is ligand file basename
+									strncpy(mypars->resname,filelist.ligand_files.back().c_str(),len); // Default is ligand file basename
 									mypars->resname[len]='\0';
 								} else mypars->resname = strdup("docking"); // Fallback to old default
 								filelist.resnames.push_back(mypars->resname);
@@ -1257,8 +1268,11 @@ int get_commandpars(
 		// default values
 		mypars->abs_max_dmov        = 6.0/(*spacing);             // +/-6A
 		mypars->base_dmov_mul_sqrt3 = 2.0/(*spacing)*sqrt(3.0);   // 2 A
-		if(mypars->xrayligandfile==NULL)
-			mypars->xrayligandfile      = strdup(mypars->ligandfile); // By default xray-ligand file is the same as the randomized input ligand
+		char* basefile = mypars->ligandfile;
+		if(!mypars->free_roaming_ligand) basefile = mypars->flexresfile;
+		if(mypars->xrayligandfile==NULL){
+			mypars->xrayligandfile      = strdup(basefile); // By default xray-ligand file is the same as the randomized input ligand
+		}
 		if(mypars->xml2dlg){
 			if(strlen(mypars->load_xml)>4){ // .xml = 4 chars
 				i=strlen(mypars->load_xml)-4;
@@ -1268,10 +1282,10 @@ int get_commandpars(
 			} else if(!mypars->resname) mypars->resname = strdup("docking"); // Fallback to old default
 		} else{
 			if(!mypars->resname){ // only need to set if it's not set yet
-				if(strlen(mypars->ligandfile)>6){ // .pdbqt = 6 chars
-					i=strlen(mypars->ligandfile)-6;
+				if(strlen(basefile)>6){ // .pdbqt = 6 chars
+					i=strlen(basefile)-6;
 					mypars->resname = (char*)malloc((i+1)*sizeof(char));
-					strncpy(mypars->resname,mypars->ligandfile,i);    // Default is ligand file basename
+					strncpy(mypars->resname,basefile,i);    // Default is ligand file basename
 					mypars->resname[i]='\0';
 				} else mypars->resname = strdup("docking");               // Fallback to old default
 			}
