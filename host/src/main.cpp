@@ -341,7 +341,8 @@ int main(int argc, char* argv[])
 					if (filelist.used){
 						printf(":\n");
 						printf("(   Grid map file: %s )\n",  mypars.fldfile);
-						printf("(   Ligand file: %s )\n", mypars.ligandfile); fflush(stdout);
+						if(mypars.ligandfile)
+							printf("(   Ligand file: %s )\n", mypars.ligandfile); fflush(stdout);
 						if(mypars.flexresfile)
 							printf("(   Flexible residue: %s )\n", mypars.flexresfile);
 						fflush(stdout);
@@ -405,7 +406,8 @@ int main(int argc, char* argv[])
 					para_printf(":\n");
 					para_printf("    Device: %s\n", tData[dev_nr].device_name);
 					para_printf("    Grid map file: %s\n",  mypars.fldfile);
-					para_printf("    Ligand file: %s\n", mypars.ligandfile); fflush(stdout);
+					if(mypars.ligandfile)
+						para_printf("    Ligand file: %s\n", mypars.ligandfile); fflush(stdout);
 					if(mypars.flexresfile)
 						para_printf("    Flexible residue: %s\n", mypars.flexresfile);
 					fflush(stdout);

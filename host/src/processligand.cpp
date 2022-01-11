@@ -2029,7 +2029,7 @@ float calc_interE_f(
 			peratom_vdw[atom_cnt] = v;
 #endif
 			peratom_elec[atom_cnt] = e;
-			*elecE += e;
+			if (atom_cnt < myligand->true_ligand_atoms) *elecE += e; // only want intermolecular contributions
 		}
 
 		if (debug == 1)

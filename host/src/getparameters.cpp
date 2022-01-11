@@ -183,7 +183,8 @@ int parse_dpf(
 						if(!mypars->xml2dlg){
 							sscanf(line.c_str(),"%*s %255s",argstr);
 							if(mypars->ligandfile) free(mypars->ligandfile);
-							mypars->ligandfile = strdup(argstr);
+							if(strincmp(argstr,"empty",5) != 0)
+								mypars->ligandfile = strdup(argstr);
 						}
 						break;
 				case DPF_FLEXRES: // flexibe residue file name
@@ -373,7 +374,7 @@ int parse_dpf(
 									filelist.preload_maps=false;
 								}
 								// Add the ligand to filelist
-								if(mypars->ligandfile != NULL){ // no free ligand file specified (test for covalent below)
+								if(mypars->ligandfile != NULL){ // free ligand file specified (test for covalent below)
 									filelist.ligand_files.push_back(mypars->ligandfile);
 									mypars->free_roaming_ligand = true;
 								} else{

@@ -468,7 +468,7 @@ void make_resfiles(
 				if (mypars->given_xrayligandfile)
 					entity_rmsds = calc_rmsd(ligand_xray->atom_idxyzq, ligand_ref->atom_idxyzq, ligand_xray->num_of_atoms, mypars->handle_symmetry); //calculating rmds compared to original xray file
 				else
-					entity_rmsds = calc_rmsd(ligand_from_pdb->atom_idxyzq, ligand_ref->atom_idxyzq, ligand_from_pdb->true_ligand_atoms, mypars->handle_symmetry); //calculating rmds compared to original pdb file
+					entity_rmsds = calc_rmsd(ligand_from_pdb->atom_idxyzq, ligand_ref->atom_idxyzq, (!ligand_from_pdb->true_ligand_atoms) ? ligand_from_pdb->num_of_atoms : ligand_from_pdb->true_ligand_atoms, mypars->handle_symmetry); //calculating rmds compared to original pdb file
 			} else entity_rmsds = 100000;
 		}
 
@@ -492,11 +492,11 @@ void make_resfiles(
 			}
 		}
 
-		// generating best.pdbqt
+		// generating best.pdbqt (based on scoring function)
 		if (i == 0)
-			if (best_energy_of_all > accurate_interE + accurate_intraE)
+			if (best_energy_of_all > accurate_interE + accurate_interflexE + accurate_intraE + accurate_intraflexE)
 			{
-				best_energy_of_all = accurate_interE + accurate_intraE;
+				best_energy_of_all = accurate_interE + accurate_interflexE + accurate_intraE + accurate_intraflexE;
 
 				if (mypars->gen_best)
 					gen_new_pdbfile(basefile, "best.pdbqt", ligand_ref);
@@ -516,9 +516,9 @@ void make_resfiles(
 			for (j=3; j<6+ligand_from_pdb->num_of_rotbonds; j++)
 				fprintf(fp, "    %10.3f    |", final_population [i*GENOTYPE_LENGTH_IN_GLOBMEM+j]);
 
-			fprintf(fp, " %21.3f |", accurate_intraE);
-			fprintf(fp, " %21.3f |", accurate_interE);
-			fprintf(fp, "  %21.3f / %21.3f / %21.3f |", accurate_intraE + accurate_interE, energies[i], energies[i] - (accurate_intraE + accurate_interE));
+			fprintf(fp, " %21.3f |", accurate_intraE + accurate_intraflexE);
+			fprintf(fp, " %21.3f |", accurate_interE + accurate_interflexE);
+			fprintf(fp, "  %21.3f / %21.3f / %21.3f |", accurate_interE + accurate_interflexE + accurate_intraE + accurate_intraflexE, energies[i], energies[i] - (accurate_interE + accurate_interflexE + accurate_intraE + accurate_intraflexE));
 
 			fprintf(fp, " %8.3lf | \n", entity_rmsds);
 		}
@@ -615,12 +615,16 @@ void ligand_calc_output(
 	}
 	if(output_energy){
 		double torsional_energy = mypars->coeffs.AD4_coeff_tors * calc_lig.true_ligand_rotbonds;
+		double inter = calc.interE + calc.interflexE;
+		double intra = calc.intraE + calc.intraflexE;
+		double unbound = 0.0;
+		if(mypars->free_roaming_ligand) unbound = intra;
 		fprintf(fp, "%s    Estimated Free Energy of Binding    =", prefix);
-		PRINT1000(fp, ((float) (calc.interE + calc.interflexE + torsional_energy)));
+		PRINT1000(fp, ((float) (inter + intra + torsional_energy - unbound)));
 		fprintf(fp, " kcal/mol  [=(1)+(2)+(3)-(4)]\n");
 		fprintf(fp, "%s\n", prefix);
 		fprintf(fp, "%s    (1) Final Intermolecular Energy     =", prefix);
-		PRINT1000(fp, ((float) (calc.interE + calc.interflexE)));
+		PRINT1000(fp, ((float) inter));
 		fprintf(fp, " kcal/mol\n");
 		fprintf(fp, "%s        vdW + Hbond + desolv Energy     =", prefix);
 		PRINT1000(fp, ((float) (calc.interE - calc.interE_elec)));
@@ -635,13 +639,13 @@ void ligand_calc_output(
 		PRINT1000(fp, ((float) calc.interflexE));
 		fprintf(fp, " kcal/mol\n");
 		fprintf(fp, "%s    (2) Final Total Internal Energy     =", prefix);
-		PRINT1000(fp, ((float) (calc.intraE + calc.intraflexE)));
+		PRINT1000(fp, ((float) intra));
 		fprintf(fp, " kcal/mol\n");
 		fprintf(fp, "%s    (3) Torsional Free Energy           =", prefix);
 		PRINT1000(fp, ((float) torsional_energy));
 		fprintf(fp, " kcal/mol\n");
 		fprintf(fp, "%s    (4) Unbound System's Energy         =", prefix);
-		PRINT1000(fp, ((float) (calc.intraE + calc.intraflexE)));
+		PRINT1000(fp, ((float) unbound));
 		fprintf(fp, " kcal/mol\n");
 		fprintf(fp, "%s\n", prefix);
 	}
@@ -790,6 +794,7 @@ void generate_output(
 		
 		// writing docked conformations
 		std::string curr_model;
+		double inter, intra, unbound;
 		for (i=0; i<num_of_runs; i++)
 		{
 			fprintf(fp, "    FINAL DOCKED STATE:\n    ________________________\n\n\n");
@@ -851,15 +856,19 @@ void generate_output(
 			fprintf(fp, "DOCKED: MODEL        %d\n", i+1);
 			fprintf(fp, "DOCKED: USER    Run = %d\n", i+1);
 			fprintf(fp, "DOCKED: USER\n");
+			inter = myresults[i].interE + myresults[i].interflexE;
+			intra = myresults[i].intraE + myresults[i].intraflexE;
+			unbound = 0.0;
+			if(mypars->free_roaming_ligand) unbound = intra;
 
 			fprintf(fp, "DOCKED: USER    Estimated Free Energy of Binding    =");
-			PRINT1000(fp, ((float) (myresults[i].interE + myresults[i].interflexE + torsional_energy)));
+			PRINT1000(fp, ((float) (inter + intra + torsional_energy - unbound)));
 			fprintf(fp, " kcal/mol  [=(1)+(2)+(3)-(4)]\n");
 
 			fprintf(fp, "DOCKED: USER\n");
 
 			fprintf(fp, "DOCKED: USER    (1) Final Intermolecular Energy     =");
-			PRINT1000(fp, ((float) (myresults[i].interE + myresults[i].interflexE)));
+			PRINT1000(fp, ((float) inter));
 			fprintf(fp, " kcal/mol\n");
 
 			fprintf(fp, "DOCKED: USER        vdW + Hbond + desolv Energy     =");
@@ -879,7 +888,7 @@ void generate_output(
 			fprintf(fp, " kcal/mol\n");
 
 			fprintf(fp, "DOCKED: USER    (2) Final Total Internal Energy     =");
-			PRINT1000(fp, ((float) (myresults[i].intraE + myresults[i].intraflexE)));
+			PRINT1000(fp, ((float) intra));
 			fprintf(fp, " kcal/mol\n");
 
 			fprintf(fp, "DOCKED: USER    (3) Torsional Free Energy           =");
@@ -887,7 +896,7 @@ void generate_output(
 			fprintf(fp, " kcal/mol\n");
 
 			fprintf(fp, "DOCKED: USER    (4) Unbound System's Energy         =");
-			PRINT1000(fp, ((float) (myresults[i].intraE + myresults[i].intraflexE)));
+			PRINT1000(fp, ((float) unbound));
 			fprintf(fp, " kcal/mol\n");
 
 			fprintf(fp, "DOCKED: USER\n");
@@ -945,6 +954,7 @@ void generate_output(
 	for (i=0; i<num_of_runs; i++){
 		energy_order[i] = i;
 		energies[i] = myresults [i].interE+myresults[i].interflexE; // mimics the behaviour of AD4 unbound_same_as_bound
+		if(!mypars->free_roaming_ligand) energies[i] += myresults [i].intraE+myresults[i].intraflexE;
 		myresults[i].clus_id = 0; // indicates that it hasn't been put into cluster yet (may as well do that here ...)
 	}
 	// sorting the indices instead of copying the results around will be faster
@@ -972,7 +982,7 @@ void generate_output(
 				if (myresults[j].clus_id > current_clust_center) // it is the center of a new cluster
 				{
 					current_clust_center = myresults[j].clus_id;
-					temp_rmsd = calc_rmsd(myresults[j].atom_idxyzq, myresults[i].atom_idxyzq, ligand_ref->true_ligand_atoms, mypars->handle_symmetry); // comparing current result with cluster center
+					temp_rmsd = calc_rmsd(myresults[j].atom_idxyzq, myresults[i].atom_idxyzq, (!ligand_ref->true_ligand_atoms) ? ligand_ref->num_of_atoms : ligand_ref->true_ligand_atoms, mypars->handle_symmetry); // comparing current result with cluster center
 					if (temp_rmsd <= cluster_tolerance) // in this case we put result i to cluster with center j
 					{
 						myresults[i].clus_id = current_clust_center;
@@ -1002,11 +1012,13 @@ void generate_output(
 				{
 					subrank++;
 					cluster_sizes[i-1]++;
-					sum_energy [i-1] += myresults[j].interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
+					sum_energy [i-1] += myresults[j].interE + myresults[j].interflexE + torsional_energy; // intraE can be commented when unbound_same_as_bound (if there is a free ligand)
+					if(!mypars->free_roaming_ligand) sum_energy[i-1] += myresults[j].intraE + myresults[j].intraflexE;
 					myresults[j].clus_subrank = subrank;
 					if (subrank == 1)
 					{
-						best_energy [i-1] = myresults[j].interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
+						best_energy [i-1] = myresults[j].interE + myresults[j].interflexE + torsional_energy; // intraE can be commented when unbound_same_as_bound (if there is a free ligand)
+						if(!mypars->free_roaming_ligand) best_energy[i-1] += myresults[j].intraE + myresults[j].intraflexE;
 						best_energy_runid  [i-1] = myresults[j].run_number;
 					}
 				}
@@ -1053,7 +1065,7 @@ void generate_output(
 			fprintf(fp, "    RMSD TABLE\n");
 			fprintf(fp, "    __________\n\n\n");
 
-			fprintf(fp, "_____________________________________________________________________\n");
+			fprintf(fp, "_______________________________________________________________________\n");
 			fprintf(fp, "     |      |      |           |         |                 |\n");
 			fprintf(fp, "Rank | Sub- | Run  | Binding   | Cluster | Reference       | Grep\n");
 			fprintf(fp, "     | Rank |      | Energy    | RMSD    | RMSD            | Pattern\n");
@@ -1069,7 +1081,8 @@ void generate_output(
 							             myresults[j].clus_id,
 							                   myresults[j].clus_subrank,
 							                         myresults[j].run_number,
-							                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
+							                              myresults[j].interE + myresults[j].interflexE + torsional_energy +
+							                              (!mypars->free_roaming_ligand) * (myresults[j].intraE + myresults[j].intraflexE),
 							                                       myresults[j].rmsd_from_cluscent,
 							                                              myresults[j].rmsd_from_ref);
 						else
@@ -1077,7 +1090,8 @@ void generate_output(
 							             myresults[j].clus_id,
 							                   myresults[j].clus_subrank,
 							                         myresults[j].run_number,
-							                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
+							                              myresults[j].interE + myresults[j].interflexE + torsional_energy +
+							                              (!mypars->free_roaming_ligand) * (myresults[j].intraE + myresults[j].intraflexE),
 							                                       myresults[j].rmsd_from_cluscent,
 							                                              myresults[j].rmsd_from_ref);
 					}
@@ -1205,7 +1219,7 @@ void generate_output(
 					fprintf(fp_xml, "\t\t\t</contact_analysis>\n");
 				}
 			}
-			fprintf(fp_xml, "\t\t\t<free_NRG_binding>   %.2f</free_NRG_binding>\n", myresults[j].interE + myresults[j].interflexE + torsional_energy);
+			fprintf(fp_xml, "\t\t\t<free_NRG_binding>   %.2f</free_NRG_binding>\n", myresults[j].interE + myresults[j].interflexE + torsional_energy + (!mypars->free_roaming_ligand) * (myresults[j].intraE + myresults[j].intraflexE));
 			fprintf(fp_xml, "\t\t\t<final_intermol_NRG> %.2f</final_intermol_NRG>\n", myresults[j].interE + myresults[j].interflexE);
 			fprintf(fp_xml, "\t\t\t<internal_ligand_NRG>%.2f</internal_ligand_NRG>\n", myresults[j].intraE + myresults[j].intraflexE);
 			fprintf(fp_xml, "\t\t\t<torsonial_free_NRG> %.2f</torsonial_free_NRG>\n", torsional_energy);
