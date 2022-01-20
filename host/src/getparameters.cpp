@@ -1079,6 +1079,7 @@ int get_filenames_and_ADcoeffs(
 			{
 				lfile_given = 1;
 				mypars->ligandfile = strdup(argv[i+1]);
+				mypars->free_roaming_ligand = true;
 			}
 		}
 
