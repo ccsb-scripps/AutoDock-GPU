@@ -942,7 +942,6 @@ int get_filelist(
 				last_fld_idx = filelist.fld_files.size();
 				prev_line_was_fld=false;
 				lone_flex_or_covalent=false;
-				mypars->free_roaming_ligand=true;
 			}
 			if (len>=4 && line.compare(len-4,4,".fld") == 0){
 				bool new_grid=true;
@@ -989,6 +988,7 @@ int get_filelist(
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
 				// Add the .pdbqt
 				filelist.ligand_files.push_back(line);
+				mypars->free_roaming_ligand=true;
 				// Add entry to filelist
 				if((ret=filelist_add(mypars,mygrid,filelist))) return ret;
 				// Keep track of fld lines actually used
