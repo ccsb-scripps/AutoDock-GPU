@@ -1000,6 +1000,14 @@ int get_filelist(
 				filelist.resnames.push_back(line);
 			}
 		}
+		// take care of potential last flex/covalent entry
+		if(lone_flex_or_covalent){
+			// Add the .pdbqt
+			filelist.ligand_files.push_back(mypars->flexresfile);
+			mypars->free_roaming_ligand=false;
+			// Add entry to filelist
+			if((ret=filelist_add(mypars,mygrid,filelist))) return ret;
+		}
 
 		filelist.nfiles = filelist.ligand_files.size();
 		if(filelist.nfiles>0) filelist.used = true;
