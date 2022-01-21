@@ -634,6 +634,9 @@ int get_bonds(Liganddata* myligand)
 		is_HD1=(strcmp(myligand->base_atom_types[atom_typeid1],"HD")==0);
 		for (atom_id2=atom_id1+1; atom_id2 < myligand->num_of_atoms; atom_id2++)
 		{
+			if(myligand->ligand_id[atom_id1]!=myligand->ligand_id[atom_id2]){
+				continue; // skip pairs that are on different ligands
+			}
 			atom_typeid2 = myligand->atom_idxyzq[atom_id2][0];
 			is_HD2=(strcmp(myligand->base_atom_types[atom_typeid2],"HD")==0);
 			temp_point1[0] = myligand->atom_idxyzq[atom_id1][1];
@@ -1148,6 +1151,7 @@ int parse_liganddata(
 	int branch_start;
 	int endbranch_counter = 0;
 	int branches [MAX_NUM_OF_ROTBONDS][3];
+	int ligand_count = 0;
 	int i,j,k;
 	unsigned int atom_rotbonds_temp [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ROTBONDS];
 	memset(atom_rotbonds_temp,0,MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(unsigned int));
@@ -1222,6 +1226,7 @@ int parse_liganddata(
 			line_count++;
 			sscanf(line.c_str(),"%255s",tempstr);
 			if ((l>0) && (strcmp(tempstr, "ROOT") == 0)){
+				ligand_count++;
 				flex_root = atom_counter;
 				atom_rot_start = atom_counter;
 				branch_start = branch_counter;
@@ -1239,6 +1244,7 @@ int parse_liganddata(
 						/* else it is 2, so it is closed, so nothing to be done... */
 
 				myligand->atom_rigid_structures [atom_counter] = current_rigid_struct_id; // using the id of the current rigid structure
+				myligand->ligand_id [atom_counter ] = ligand_count;
 
 				if (l>0)
 					if (atom_counter-flex_root<2)
