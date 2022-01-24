@@ -1,7 +1,15 @@
 cmake_minimum_required(VERSION 3.18)
 project(AutoDock-GPU CXX)
 
-add_definitions(-DVERSION="1.0.0")
+execute_process(COMMAND ${GIT_EXECUTABLE} describe --abbrev=40 --dirty --tags --always
+    OUTPUT_VARIABLE GIT_REPO_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(${GIT_REPO_VERSION} STREQUAL "")
+  file(READ BASE_VERSION GIT_REPO_VERSION)
+  set(GIT_REPO_VERSION "${GIT_REPO_VERSION}-release")
+endif()
+add_definitions(-DVERSION=${GIT_REPO_VERSION})
+message(STATUS "AutoDock-GPU Version ${GIT_REPO_VERSION}")
 
 option(BUILD_OPENCL "Build AutoDock-GPU with OpenCL backend" ON)
 option(BUILD_CUDA "Build AutoDock-GPU with CUDA backend" OFF)
