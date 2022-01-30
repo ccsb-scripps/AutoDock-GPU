@@ -28,7 +28,20 @@ jobs:
       run: cmake --build ${{github.workspace}}/build-cuda --config ${{env.BUILD_TYPE}}
       
     - name: Configure CMake OpenCL
-      run: cmake -DGIT_EXECUTABLE=git -DBUILD_OPENCL=1 -B ${{github.workspace}}/build-cuda -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake -DGIT_EXECUTABLE=git -DBUILD_OPENCL=1 -B ${{github.workspace}}/build-opencl -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build OpenCL
-      run: cmake --build ${{github.workspace}}/build-cuda --config ${{env.BUILD_TYPE}}
+      run: cmake --build ${{github.workspace}}/build-opencl --config ${{env.BUILD_TYPE}}
+
+    - name: Archive CUDA build
+      uses: actions/upload-artifact@v2
+      with:
+        name: adgpu-cuda
+        path: ${{github.workspace}}/build-cuda/adgpu
+
+    - name: Archive OpenCL build
+      uses: actions/upload-artifact@v2
+      with:
+        name: adgpu-cuda
+        path: ${{github.workspace}}/build-opencl/adgpu
+
