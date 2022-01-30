@@ -2,9 +2,9 @@ name: CMake
 
 on:
   push:
-    branches: [ develop, feat/ci-cmake-build ]
+    branches: [ develop ]
   pull_request:
-    branches: [ develop, feat/ci-cmake-build ]
+    branches: [ develop ]
 
 env:
   BUILD_TYPE: Release
