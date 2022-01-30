@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(AutoDock-GPU CXX)
 
+find_package(Git REQUIRED)
+
 execute_process(COMMAND ${GIT_EXECUTABLE} describe --abbrev=40 --dirty --tags --always
     OUTPUT_VARIABLE GIT_REPO_VERSION
     OUTPUT_STRIP_TRAILING_WHITESPACE)
