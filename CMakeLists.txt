@@ -8,7 +8,7 @@ if(${GIT_REPO_VERSION} STREQUAL "")
   file(READ BASE_VERSION GIT_REPO_VERSION)
   set(GIT_REPO_VERSION "${GIT_REPO_VERSION}-release")
 endif()
-add_definitions(-DVERSION=${GIT_REPO_VERSION})
+add_definitions(-DVERSION="${GIT_REPO_VERSION}")
 message(STATUS "AutoDock-GPU Version ${GIT_REPO_VERSION}")
 
 option(BUILD_OPENCL "Build AutoDock-GPU with OpenCL backend" ON)
