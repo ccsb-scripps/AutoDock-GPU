@@ -42,6 +42,6 @@ jobs:
     - name: Archive OpenCL build
       uses: actions/upload-artifact@v2
       with:
-        name: adgpu-cuda
+        name: adgpu-opencl
         path: ${{github.workspace}}/build-opencl/adgpu
 
