@@ -71,13 +71,13 @@ add_test(NAME test_ligand COMMAND
     -gfpop 0
     -lsmet sw
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-add_test(NAME test_astex COMMAND
-  ${CMAKE_CURRENT_BINARY_DIR}/adgpu
-	  -ffile ./input_tsri/search-set-astex/2bsm/protein.maps.fld
-	  -lfile ./input_tsri/search-set-astex/2bsm/flex-xray.pdbqt
-	  -nrun 10
-	  -psize 10
-	  -resnam test_astex
-	  -gfpop 1
-	  -lsmet sw
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+# add_test(NAME test_astex COMMAND
+#   ${CMAKE_CURRENT_BINARY_DIR}/adgpu
+# 	  -ffile ./input_tsri/search-set-astex/2bsm/protein.maps.fld
+# 	  -lfile ./input_tsri/search-set-astex/2bsm/flex-xray.pdbqt
+# 	  -nrun 10
+# 	  -psize 10
+# 	  -resnam test_astex
+# 	  -gfpop 1
+# 	  -lsmet sw
+#   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
