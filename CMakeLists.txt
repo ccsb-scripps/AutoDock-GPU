@@ -58,3 +58,26 @@ elseif(BUILD_OPENCL)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
   add_dependencies(adgpu stringify)
 endif()
+
+include(CTest)
+add_test(NAME test_ligand COMMAND
+  ${CMAKE_CURRENT_BINARY_DIR}/adgpu
+    -ffile ./input/3ce3/derived/3ce3_protein.maps.fld
+    -lfile ./input/3ce3/derived/3ce3_ligand.pdbqt
+    -nrun 100
+    -ngen 27000
+    -psize 150
+    -resnam test
+    -gfpop 0
+    -lsmet sw
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+add_test(NAME test_astex COMMAND
+  ${CMAKE_CURRENT_BINARY_DIR}/adgpu
+	  -ffile ./input_tsri/search-set-astex/2bsm/protein.maps.fld
+	  -lfile ./input_tsri/search-set-astex/2bsm/flex-xray.pdbqt
+	  -nrun 10
+	  -psize 10
+	  -resnam test_astex
+	  -gfpop 1
+	  -lsmet sw
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
