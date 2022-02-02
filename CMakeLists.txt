@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
+set (CMAKE_CXX_STANDARD 11)
 project(AutoDock-GPU CXX)
 
 find_package(Git REQUIRED)
@@ -27,8 +28,8 @@ if(BUILD_CUDA)
   enable_language(CUDA)
   include_directories(cuda)
   include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-  file(COPY_FILE host/inc/performdocking.h.Cuda host/inc/performdocking.h)
-  file(COPY_FILE host/src/performdocking.cpp.Cuda host/src/performdocking.cpp)
+  file(CREATE_LINK host/inc/performdocking.h.Cuda host/inc/performdocking.h COPY_ON_ERROR)
+  file(CREATE_LINK host/src/performdocking.cpp.Cuda host/src/performdocking.cpp COPY_ON_ERROR)
   list(APPEND ADGPU_SRC "cuda/kernels.cu" "host/src/performdocking.cpp")
 elseif(BUILD_OPENCL)
   message(STATUS "Building with OpenCL")
@@ -38,8 +39,8 @@ elseif(BUILD_OPENCL)
   file(GLOB ADGPU_SRC_OPENCL_CPP wrapcl/src/*.cpp)
   include_directories(${OpenCL_INCLUDE_DIRS} "device" "wrapcl/inc")
   link_directories(${OpenCL_LIBRARY})
-  file(COPY_FILE host/inc/performdocking.h.OpenCL host/inc/performdocking.h)
-  file(COPY_FILE host/src/performdocking.cpp.OpenCL host/src/performdocking.cpp)
+  file(CREATE_LINK host/inc/performdocking.h.OpenCL host/inc/performdocking.h COPY_ON_ERROR)
+  file(CREATE_LINK host/src/performdocking.cpp.OpenCL host/src/performdocking.cpp COPY_ON_ERROR)
   list(APPEND ADGPU_SRC ${ADGPU_SRC_OPENCL} ${ADGPU_SRC_OPENCL_CPP} "host/src/performdocking.cpp")
 else()
   message(FATAL_ERROR "Please specify -DBUILD_OPENCL or -DBUILD_CUDA option when invoking CMake")
@@ -71,13 +72,3 @@ add_test(NAME test_ligand COMMAND
     -gfpop 0
     -lsmet sw
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-# add_test(NAME test_astex COMMAND
-#   ${CMAKE_CURRENT_BINARY_DIR}/adgpu
-# 	  -ffile ./input_tsri/search-set-astex/2bsm/protein.maps.fld
-# 	  -lfile ./input_tsri/search-set-astex/2bsm/flex-xray.pdbqt
-# 	  -nrun 10
-# 	  -psize 10
-# 	  -resnam test_astex
-# 	  -gfpop 1
-# 	  -lsmet sw
-#   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
