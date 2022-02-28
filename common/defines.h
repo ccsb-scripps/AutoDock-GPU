@@ -93,11 +93,7 @@ enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.da
 // host/src/processligand.cpp/calc_intraE_f(),
 // and in kernel energy and gradient calculation.
 // Added definition to support flexrings.
-#ifdef __INTEL_LLVM_COMPILER
 #define G_AD 50.0f
-#else
-#define G 50.0f
-#endif
 
 // Use one more coefficient in the fit to the Mehler-Solmajer dielectric in energrad implementation
 // Although this improves the fit (particularly for the gradient), it costs a little bit more and

@@ -175,7 +175,7 @@ check-env-all: check-env-dev check-env-cpu check-env-gpu
 
 GIT_VERSION := $(shell git describe --abbrev=40 --dirty --always --tags)
 
-CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
+CFLAGS+=-DAD_VERSION=\"$(GIT_VERSION)\"
 
 # ------------------------------------------------------
 

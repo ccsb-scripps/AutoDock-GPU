@@ -532,11 +532,11 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
 		// ------------------------------------------------
 		// Required only for flexrings
 		// Checking if this is a CG-G0 atomic pair.
-		// If so, then adding energy term (E = G * distance).
+		// If so, then adding energy term (E = G_AD * distance).
 		// Initial specification required NON-SMOOTHED distance.
 		// This interaction is evaluated at any distance,
 		// so no cuttoffs considered here!
-		// vbond is G when calculating flexrings, 0.0 otherwise
+		// vbond is G_AD when calculating flexrings, 0.0 otherwise
 		float vbond = G_AD * (float)(((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) ||
 					  ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX)));
 		energy += vbond * atomic_distance;

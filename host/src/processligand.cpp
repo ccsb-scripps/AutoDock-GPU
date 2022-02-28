@@ -2196,7 +2196,7 @@ float calc_intraE_f(
 				// ------------------------------------------------
 				// Required only for flexrings
 				// Checking if this is a CG-G0 atomic pair.
-				// If so, then adding energy term (E = G * distance).
+				// If so, then adding energy term (E = G_AD * distance).
 				// Initial specification required NON-SMOOTHED distance.
 				// This interaction is evaluated at any distance,
 				// so no cuttoffs considered here!
@@ -2205,15 +2205,9 @@ float calc_intraE_f(
 				    ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX))) {
 					if (((atom_id1<myligand->true_ligand_atoms) && (atom_id2<myligand->true_ligand_atoms)) ||
 					    ((atom_id1>=myligand->true_ligand_atoms) && (atom_id2>=myligand->true_ligand_atoms))) // if both atoms are of either a ligand or a flex res it's intra
-#ifdef __INTEL_LLVM_COMPILER
 						vW += G_AD * dist;
 					else
 						interflexE += G_AD * dist;
-#else
-						vW += G * dist;
-					else
-						interflexE += G * dist;
-#endif
 					/*printf("OpenCL host - calc_intraE_f: CG-G0 pair found!\n");*/
 				}
 				// ------------------------------------------------

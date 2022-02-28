@@ -47,11 +47,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <sys/time.h>
 #endif
 
-// version is defined in oneapi/mkl/dfti.hpp
-#ifdef __INTEL_LLVM_COMPILER
-#define VERSION AD_VERSION
-#endif
-
 template<typename T>
 inline double seconds_since(T& time_start)
 {
@@ -156,7 +151,7 @@ int main(int argc, char* argv[])
 	std::vector<int> err(n_files,0);
 
 	// Print version info
-	printf("AutoDock-GPU version: %s\n", VERSION);
+	printf("AutoDock-GPU version: %s\n", AD_VERSION);
 
 	if(nr_devices==1){
 		cData[0].devnum = devnum;

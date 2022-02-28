@@ -26,11 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "processresult.h"
 
-// version is defined in oneapi/mkl/dfti.hpp
-#ifdef __INTEL_LLVM_COMPILER
-#define VERSION AD_VERSION
-#endif
-
 void arrange_result(
                           float* final_population,
                           float* energies,
@@ -186,7 +181,7 @@ void write_basic_info_dlg(
 {
 	int i;
 
-	fprintf(fp, "AutoDock-GPU version: %s\n\n", VERSION);
+	fprintf(fp, "AutoDock-GPU version: %s\n\n", AD_VERSION);
 
 	fprintf(fp, "**********************************************************\n");
 	fprintf(fp, "**    AutoDock-GPU AUTODOCKTOOLS-COMPATIBLE DLG FILE    **\n");
@@ -945,7 +940,7 @@ void clusanal_gendlg(
 
 		fprintf(fp_xml, "<?xml version=\"1.0\" ?>\n");
 		fprintf(fp_xml, "<autodock_gpu>\n");
-		fprintf(fp_xml, "\t<version>%s</version>\n",VERSION);
+		fprintf(fp_xml, "\t<version>%s</version>\n",AD_VERSION;
 		if((*argc)>1){
 			fprintf(fp_xml, "\t<arguments>");
 			for(i=1; i<(*argc); i++)
