@@ -3,6 +3,7 @@
 AutoDock-GPU, an OpenCL implementation of AutoDock 4.2 running a Lamarckian Genetic Algorithm
 Copyright (C) 2017 TU Darmstadt, Embedded Systems and Applications Group, Germany. All rights reserved.
 For some of the code, Copyright (C) 2019 Computational Structural Biology Center, the Scripps Research Institute.
+Copyright (C) 2022 Intel Corporation
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
@@ -2204,9 +2205,15 @@ float calc_intraE_f(
 				    ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX))) {
 					if (((atom_id1<myligand->true_ligand_atoms) && (atom_id2<myligand->true_ligand_atoms)) ||
 					    ((atom_id1>=myligand->true_ligand_atoms) && (atom_id2>=myligand->true_ligand_atoms))) // if both atoms are of either a ligand or a flex res it's intra
+#ifdef __INTEL_LLVM_COMPILER
+						vW += G_AD * dist;
+					else
+						interflexE += G_AD * dist;
+#else
 						vW += G * dist;
 					else
 						interflexE += G * dist;
+#endif
 					/*printf("OpenCL host - calc_intraE_f: CG-G0 pair found!\n");*/
 				}
 				// ------------------------------------------------

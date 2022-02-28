@@ -1,4 +1,5 @@
 # AutoDock-GPU Makefile
+# Copyright (C) 2022 Intel Corporation
 
 # ------------------------------------------------------
 # Note that environment variables must be defined
@@ -20,9 +21,11 @@
 # in any other case, OpenCL will be used
 # OpenCL GPU path can be explicitly used with
 # DEVICE=OCLGPU
+# Choose Xe/DPC++ Device
+# DEVICE=XeGPU
 # ------------------------------------------------------
 # Choose OpenCL device
-# Valid values: CPU, GPU, CUDA, OCLGPU
+# Valid values: CPU, GPU, CUDA, OCLGPU, XeGPU
 
 ifeq ($(DEVICE), $(filter $(DEVICE),GPU CUDA))
 TEST_CUDA := $(shell ./test_cuda.sh nvcc "$(GPU_INCLUDE_PATH)" "$(GPU_LIBRARY_PATH)")
@@ -37,9 +40,15 @@ override DEVICE:=GPU
 export
 include Makefile.Cuda
 else
+ifeq ($(DEVICE),XeGPU)
+override DEVICE:=GPU
+include Makefile.dpcpp
+export
+else
 ifeq ($(DEVICE),OCLGPU)
 override DEVICE:=GPU
 export
 endif
 include Makefile.OpenCL
+endif
 endif

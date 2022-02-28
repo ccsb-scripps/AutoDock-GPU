@@ -3,6 +3,7 @@
 AutoDock-GPU, an OpenCL implementation of AutoDock 4.2 running a Lamarckian Genetic Algorithm
 Copyright (C) 2017 TU Darmstadt, Embedded Systems and Applications Group, Germany. All rights reserved.
 For some of the code, Copyright (C) 2019 Computational Structural Biology Center, the Scripps Research Institute.
+Copyright (C) 2022 Intel Corporation
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
@@ -44,6 +45,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef _WIN32
 // Time measurement
 #include <sys/time.h>
+#endif
+
+// version is defined in oneapi/mkl/dfti.hpp
+#ifdef __INTEL_LLVM_COMPILER
+#define VERSION AD_VERSION
 #endif
 
 template<typename T>

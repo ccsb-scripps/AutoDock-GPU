@@ -1,4 +1,5 @@
-# AutoDock-GPU OpenCL Makefile
+## AutoDock-GPU DPCPP Makefile
+# Copyright (C) 2022 Intel Corporation
 
 # ------------------------------------------------------
 # Note that environment variables must be defined
@@ -7,116 +8,75 @@
 # if DEVICE=CPU: CPU_INCLUDE_PATH?, CPU_LIBRARY_PATH?
 # if DEVICE=GPU: GPU_INCLUDE_PATH?, GPU_LIBRARY_PATH?
 
+# Choose Xe/DPC++ Device
+# DEVICE=XeGPU
 # ------------------------------------------------------
 # Choose OpenCL device
 # Valid values: CPU, GPU
 
-CPP = g++
-LIB_OPENCL = -lOpenCL
+DPCPP = dpcpp
+CPP = dpcpp
 UNAME := $(shell uname)
 
-$(shell ./link_opencl.sh)
+# Assume $ONEAPIPATH/setvars.sh has been run
 
-ifeq ($(UNAME), Darwin)
-# In case ScoreP (for profiling/tracing) is used,
-# need to link to a *.dylib for instrumentation
-ifneq (,$(findstring scorep,$(CPP)))
-# We're assuming that if the user sets the library
-# path there is a libOpenCL.so/dylib in it,
-# otherwise, we'll create a symbolic link from the
-# framework to link against
-ifeq ($(GPU_LIBRARY_PATH),)
-$(shell ln -sf /System/Library/Frameworks/OpenCL.framework/OpenCL ./libOpenCL.dylib)
-LIB_OPENCL = -L./ -lOpenCL
-endif
-else
-# in the normal case we can just include the framework
-LIB_OPENCL = -framework OpenCL
-endif
-endif
-
+$(shell ./link_dpcpp.sh)
 ifeq ($(DEVICE), CPU)
 	DEV =-DCPU_DEVICE
-	OCLA_INC_PATH=$(CPU_INCLUDE_PATH)
-	OCLA_LIB_PATH=$(CPU_LIBRARY_PATH)
 else ifeq ($(DEVICE), GPU)
 	DEV =-DGPU_DEVICE
-	OCLA_INC_PATH=$(GPU_INCLUDE_PATH)
-	OCLA_LIB_PATH=$(GPU_LIBRARY_PATH)
 endif
 
 # ------------------------------------------------------
 # Project directories
 # opencl_lvs: wrapper for OpenCL APIs
 COMMON_DIR=./common
-OCL_INC_DIR=./wrapcl/inc
-OCL_SRC_DIR=./wrapcl/src
 HOST_INC_DIR=./host/inc
 HOST_SRC_DIR=./host/src
-KRNL_DIR=./device
+KRNL_DIR=./dpcpp
 KCMN_DIR=$(COMMON_DIR)
 BIN_DIR=./bin
+LIB_XeGPU = kernels.dp.o
 
 # Host sources
-OCL_SRC=$(wildcard $(OCL_SRC_DIR)/*.cpp)
 HOST_SRC=$(wildcard $(HOST_SRC_DIR)/*.cpp)
-SRC=$(OCL_SRC) $(HOST_SRC)
+SRC=$(HOST_SRC)
 
-IFLAGS=-I$(COMMON_DIR) -I$(OCL_INC_DIR) -I$(HOST_INC_DIR) -I$(KRNL_DIR) -I$(OCLA_INC_PATH)
-LFLAGS=-L$(OCLA_LIB_PATH)
-CFLAGS=-std=c++11 $(IFLAGS) $(LFLAGS)
-CFLAGS+=-DAD_VERSION=\"$(GIT_VERSION)\"
 
-# Device sources
-KRNL_MAIN=calcenergy.cl
-KRNL_SRC=$(KRNL_DIR)/$(KRNL_MAIN)
-# Kernel names
-K1_NAME="gpu_calc_initpop"
-K2_NAME="gpu_sum_evals"
-K3_NAME="perform_LS"
-K4_NAME="gpu_gen_and_eval_newpops"
-K5_NAME="gradient_minSD"
-K6_NAME="gradient_minFire"
-K7_NAME="gradient_minAD"
-K_NAMES=-DK1=$(K1_NAME) -DK2=$(K2_NAME) -DK3=$(K3_NAME) -DK4=$(K4_NAME) -DK5=$(K5_NAME) -DK6=$(K6_NAME) -DK7=$(K7_NAME)
-# Kernel flags
-KFLAGS=-DKRNL_SOURCE=$(KRNL_DIR)/$(KRNL_MAIN) -DKRNL_DIRECTORY=$(KRNL_DIR) -DKCMN_DIRECTORY=$(KCMN_DIR) $(K_NAMES)
+IFLAGS=-I$(COMMON_DIR) -I$(HOST_INC_DIR) -I$(KRNL_DIR)
+LFLAGS=-Wl,-rpath=$(GPU_LIBRARY_PATH):$(CPU_LIBRARY_PATH)
 
+ifdef $(GPU_INCLUDE_PATH)
+IFLAGS+=$(GPU_INCLUDE_PATH)
+endif
+
+ifdef $(GPU_LIBRARY_PATH)
+LFLAGS+=-L$(GPU_LIBRARY_PATH)
+endif
+
+CFLAGS= $(IFLAGS) $(LFLAGS)
+# -std=c++11
 TARGET := autodock
 ifeq ($(DEVICE), CPU)
 	TARGET:=$(TARGET)_cpu
 else ifeq ($(DEVICE), GPU)
 	NWI=-DN64WI
-	TARGET:=$(TARGET)_gpu
+	TARGET:=$(TARGET)_xegpu
 endif
 
 ifeq ($(OVERLAP), ON)
 	PIPELINE=-DUSE_PIPELINE -fopenmp
 endif
 
+
 BIN := $(wildcard $(TARGET)*)
 
 # ------------------------------------------------------
 # Number of work-items (wi)
-# Valid values: 16, 32, 64, 128
+# Valid values: 32, 64, 128, 256
 NUMWI=
 
-ifeq ($(NUMWI), 1)
-	NWI=-DN1WI
-	TARGET:=$(TARGET)_1wi
-else ifeq ($(NUMWI), 2)
-	NWI=-DN2WI
-	TARGET:=$(TARGET)_2wi
-else ifeq ($(NUMWI), 4)
-	NWI=-DN4WI
-	TARGET:=$(TARGET)_4wi
-else ifeq ($(NUMWI), 8)
-	NWI=-DN8WI
-	TARGET:=$(TARGET)_8wi
-else ifeq ($(NUMWI), 16)
-	NWI=-DN16WI
-	TARGET:=$(TARGET)_16wi
-else ifeq ($(NUMWI), 32)
+ifeq ($(NUMWI), 32)
 	NWI=-DN32WI
 	TARGET:=$(TARGET)_32wi
 else ifeq ($(NUMWI), 64)
@@ -128,6 +88,9 @@ else ifeq ($(NUMWI), 128)
 else ifeq ($(NUMWI), 256)
 		NWI=-DN256WI
 		TARGET:=$(TARGET)_256wi
+else ifeq ($(NUMWI), 512)
+		NWI=-DN512WI
+		TARGET:=$(TARGET)_512wi
 else
 	ifeq ($(DEVICE), CPU)
 		NWI=-DN16WI
@@ -143,32 +106,26 @@ endif
 # FDEBUG (full) : enables debugging on both host + device
 # LDEBUG (light): enables debugging on host
 # RELEASE
-CONFIG=RELEASE
-#CONFIG=FDEBUG
+#CONFIG=RELEASE
+CONFIG=FDEBUG
 
-OCL_DEBUG_BASIC=-DPLATFORM_ATTRIBUTES_DISPLAY\
-	      -DCMD_QUEUE_PROFILING_ENABLE \
-	        -DDEVICE_ATTRIBUTES_DISPLAY
-
-OCL_DEBUG_ALL=$(OCL_DEBUG_BASIC) \
-	      -DCONTEXT_INFO_DISPLAY \
-	      -DCMD_QUEUE_INFO_DISPLAY \
-	      -DCMD_QUEUE_PROFILING_ENABLE \
-	      -DPROGRAM_INFO_DISPLAY \
-	      -DPROGRAM_BUILD_INFO_DISPLAY \
-	      -DKERNEL_INFO_DISPLAY \
-	      -DKERNEL_WORK_GROUP_INFO_DISPLAY \
-	      -DBUFFER_OBJECT_INFO_DISPLAY
-ifneq ($(UNAME), Darwin) # out of order queues don't work on Mac OS X
-OCL_DEBUG_ALL += -DCMD_QUEUE_OUTORDER_ENABLE
-endif
 
 ifeq ($(CONFIG),FDEBUG)
-	OPT =-O0 -g3 -Wall $(OCL_DEBUG_ALL) -DDOCK_DEBUG
+#	OPT =-O0 -g3 -Wall -DDOCK_DEBUG
+	OPT =-g
+# for vtune
+	OPT +=-gline-tables-only -fdebug-info-for-profiling
+ifeq ($(DEVICE), GPU)
+# for AOT compile and debug
+#	OPT+=-fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xs "-device ats -internal_options -cl-kernel-debug-enable -options -cl-opt-disable"
+# for AOT compile
+#	OPT+=-fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xs "-device ats"
+endif    
 else ifeq ($(CONFIG),LDEBUG)
-	OPT =-O0 -g3 -Wall $(OCL_DEBUG_BASIC)
+	OPT =-O0 -g3 -Wall 
 else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
+#	OPT+=-fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xs "-device ats"
 else
 	OPT =
 endif
@@ -236,18 +193,18 @@ check-env-all: check-env-dev check-env-cpu check-env-gpu
 
 GIT_VERSION := $(shell git describe --abbrev=40 --dirty --always --tags)
 
-CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
+CFLAGS+=-DAD_VERSION=\"$(GIT_VERSION)\"
 
 # ------------------------------------------------------
 
-stringify:
-	./stringify_ocl_krnls.sh
+kernels: $(KERNEL_SRC)
+	$(DPCPP) $(NWI) $(REP) $(DPCPP_FLAGS) $(IFLAGS) $(OPT) $(DPCPP_INCLUDES) -c $(KRNL_DIR)/kernels.dp.cpp
 
-odock: check-env-all stringify $(SRC)
+odock: check-env-all kernels $(SRC)
 	$(CPP) \
 	$(SRC) \
 	$(CFLAGS) \
-	$(LIB_OPENCL) \
+	$(LIB_XeGPU) \
 	-o$(BIN_DIR)/$(TARGET) \
 	$(DEV) $(NWI) $(PIPELINE) $(OPT) $(DD) $(REP) $(KFLAGS)
 

@@ -3,6 +3,7 @@
 AutoDock-GPU, an OpenCL implementation of AutoDock 4.2 running a Lamarckian Genetic Algorithm
 Copyright (C) 2017 TU Darmstadt, Embedded Systems and Applications Group, Germany. All rights reserved.
 For some of the code, Copyright (C) 2019 Computational Structural Biology Center, the Scripps Research Institute.
+Copyright (C) 2022 Intel Corporation
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
@@ -104,7 +105,7 @@ typedef struct _Dockpars
 	char*                  xrayligandfile                  = NULL;  // by default will be ligand file name
 	char*                  resname                         = NULL; // by default will be ligand file basename
 	bool                   given_xrayligandfile            = false; // That is, not given (explicitly by the user)
-	float                  ref_ori_angles [3];             // is generated in gen_initpop_and_reflig(...)
+	float                  ref_ori_angles [3]             = {0, 0, 0};// is generated in gen_initpop_and_reflig(...)
 	bool                   autostop                        = true;
 	unsigned int           as_frequency                    = 5;
 	float                  stopstd                         = 0.15;
