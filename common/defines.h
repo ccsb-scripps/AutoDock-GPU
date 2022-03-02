@@ -3,6 +3,7 @@
 AutoDock-GPU, an OpenCL implementation of AutoDock 4.2 running a Lamarckian Genetic Algorithm
 Copyright (C) 2017 TU Darmstadt, Embedded Systems and Applications Group, Germany. All rights reserved.
 For some of the code, Copyright (C) 2019 Computational Structural Biology Center, the Scripps Research Institute.
+Copyright (C) 2022 Intel Corporation
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
@@ -105,7 +106,7 @@ enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.da
 // host/src/processligand.cpp/calc_intraE_f(),
 // and in kernel energy and gradient calculation.
 // Added definition to support flexrings.
-#define G 50.0f
+#define G_AD 50.0f
 
 // Enables full floating point gradient calculation.
 // Use is not advised as:

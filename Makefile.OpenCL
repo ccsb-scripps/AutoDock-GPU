@@ -235,8 +235,9 @@ check-env-all: check-env-dev check-env-cpu check-env-gpu
 
 GIT_VERSION := $(shell ./version_string.sh)
 
-CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
-TOOL_CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
+CFLAGS+=-DAD_VERSION=\"$(GIT_VERSION)\"
+TOOL_CFLAGS+=-DAD_VERSION=\"$(GIT_VERSION)\"
+
 
 # ------------------------------------------------------
 

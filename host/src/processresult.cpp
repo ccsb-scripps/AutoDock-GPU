@@ -3,6 +3,7 @@
 AutoDock-GPU, an OpenCL implementation of AutoDock 4.2 running a Lamarckian Genetic Algorithm
 Copyright (C) 2017 TU Darmstadt, Embedded Systems and Applications Group, Germany. All rights reserved.
 For some of the code, Copyright (C) 2019 Computational Structural Biology Center, the Scripps Research Institute.
+Copyright (C) 2022 Intel Corporation
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
@@ -200,7 +201,7 @@ void write_basic_info_dlg(
 	int i;
 
 	if(mypars->xml2dlg && mypars->dlg2stdout) fprintf(fp, "\nXML2DLG: %s\n", mypars->load_xml);
-	fprintf(fp, "AutoDock-GPU version: %s\n\n", VERSION);
+	fprintf(fp, "AutoDock-GPU version: %s\n\n", AD_VERSION);
 
 	fprintf(fp, "**********************************************************\n");
 	fprintf(fp, "**    AutoDock-GPU AUTODOCKTOOLS-COMPATIBLE DLG FILE    **\n");
@@ -1097,7 +1098,7 @@ void generate_output(
 
 		fprintf(fp_xml, "<?xml version=\"1.0\" ?>\n");
 		fprintf(fp_xml, "<autodock_gpu>\n");
-		fprintf(fp_xml, "\t<version>%s</version>\n",VERSION);
+		fprintf(fp_xml, "\t<version>%s</version>\n",AD_VERSION);
 		if((*argc)>1){
 			fprintf(fp_xml, "\t<arguments>");
 			for(i=1; i<(*argc); i++){

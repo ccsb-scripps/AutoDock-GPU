@@ -3,6 +3,7 @@
 AutoDock-GPU, an OpenCL implementation of AutoDock 4.2 running a Lamarckian Genetic Algorithm
 Copyright (C) 2017 TU Darmstadt, Embedded Systems and Applications Group, Germany. All rights reserved.
 For some of the code, Copyright (C) 2019 Computational Structural Biology Center, the Scripps Research Institute.
+Copyright (C) 2022 Intel Corporation
 
 AutoDock is a Trade Mark of the Scripps Research Institute.
 
@@ -21,8 +22,10 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
-
-
+#ifdef __INTEL_LLVM_COMPILER
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#endif
 #include <cstdint>
 #include <fstream>
 #include <algorithm>
@@ -30,6 +33,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <locale>
 
 #include "getparameters.h"
+#ifdef __INTEL_LLVM_COMPILER
+#include <cmath>
+#endif
 
 // trim from start (in place)
 static inline void ltrim(std::string &s) {
