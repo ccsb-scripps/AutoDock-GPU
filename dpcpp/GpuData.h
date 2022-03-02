@@ -51,7 +51,7 @@ You need to rewrite this code.
         if (status != 0) {                                                                     \
                 printf(                                                                 \
                     "%s %s\n", s,                                                       \
-                    "cudaGetErrorString not supported" /*cudaGetErrorString(status)*/); \
+                    "GetErrorString not supported" /*cudaGetErrorString(status)*/); \
                 assert(0);                                                                            \
                 dpct::get_current_device().reset();                                                   \
                 exit(-1);                                                                             \
@@ -72,7 +72,7 @@ You need to rewrite this code.
         {                                                                      \
                 int status = 0;                                                              \
                                                                                \
-                cudaDeviceSynchronize();                                            \
+                XeDeviceSynchronize();                                            \
                 RTERROR(status, s);                                                          \
         }
 #else

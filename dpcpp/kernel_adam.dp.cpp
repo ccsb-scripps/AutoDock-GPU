@@ -499,12 +499,4 @@ void gpu_gradient_minAdam(
         DPCT1001:82: The statement could not be removed.
         */
         LAUNCHERROR("gpu_gradient_minAdam_kernel");
-#if 0
-	cudaError_t status;
-	status = cudaDeviceSynchronize();
-	RTERROR(status, "gpu_gradient_minAdam_kernel");
-	status = cudaDeviceReset();
-	RTERROR(status, "failed to shut down");
-	exit(0);
-#endif
 }

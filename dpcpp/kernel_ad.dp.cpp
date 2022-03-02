@@ -509,12 +509,4 @@ void gpu_gradient_minAD(
         DPCT1001:74: The statement could not be removed.
         */
         LAUNCHERROR("gpu_gradient_minAD_kernel");
-#if 0
-	cudaError_t status;
-	status = cudaDeviceSynchronize();
-	RTERROR(status, "gpu_gradient_minAD_kernel");
-	status = cudaDeviceReset();
-	RTERROR(status, "failed to shut down");
-	exit(0);
-#endif
 }

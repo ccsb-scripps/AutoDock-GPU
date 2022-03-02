@@ -487,12 +487,4 @@ void gpu_gen_and_eval_newpops(
         DPCT1001:66: The statement could not be removed.
         */
         LAUNCHERROR("gpu_gen_and_eval_newpops_kernel");
-#if 0
-	cudaError_t status;
-	status = cudaDeviceSynchronize();
-	RTERROR(status, "gpu_gen_and_eval_newpops_kernel");
-	status = cudaDeviceReset();
-	RTERROR(status, "failed to shut down");
-	exit(0);
-#endif
 }

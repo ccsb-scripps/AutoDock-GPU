@@ -436,12 +436,4 @@ void gpu_perform_LS(
         DPCT1001:54: The statement could not be removed.
         */
         LAUNCHERROR("gpu_perform_LS_kernel");
-#if 0
-	cudaError_t status;
-	status = cudaDeviceSynchronize();
-	RTERROR(status, "gpu_perform_LS_kernel");
-	status = cudaDeviceReset();
-	RTERROR(status, "failed to shut down");
-	exit(0);
-#endif
 }
