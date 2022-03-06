@@ -1,4 +1,5 @@
-# AutoDock-GPU Cuda Makefile
+## AutoDock-GPU DPCPP Makefile
+# Copyright (C) 2022 Intel Corporation
 
 # ------------------------------------------------------
 # Note that environment variables must be defined
@@ -7,16 +8,18 @@
 # if DEVICE=CPU: CPU_INCLUDE_PATH?, CPU_LIBRARY_PATH?
 # if DEVICE=GPU: GPU_INCLUDE_PATH?, GPU_LIBRARY_PATH?
 
+# Choose Xe/DPC++ Device
+# DEVICE=XeGPU
 # ------------------------------------------------------
 # Choose OpenCL device
 # Valid values: CPU, GPU
 
-NVCC = nvcc
-CPP = g++
+DPCPP = dpcpp
+CPP = dpcpp
 UNAME := $(shell uname)
 
-TARGETS = 52 60 61 70 80
-CUDA_TARGETS=$(foreach target,$(TARGETS),-gencode arch=compute_$(target),code=sm_$(target))
+# Assume $ONEAPIPATH/setvars.sh has been run
+
 
 ifeq ($(DEVICE), CPU)
 	DEV =-DCPU_DEVICE
@@ -30,24 +33,24 @@ endif
 COMMON_DIR=./common
 HOST_INC_DIR=./host/inc
 HOST_SRC_DIR=./host/src
-KRNL_DIR=./cuda
+KRNL_DIR=./dpcpp
 KCMN_DIR=$(COMMON_DIR)
 BIN_DIR=./bin
-LIB_CUDA = kernels.o -lcurand -lcudart 
+LIB_XeGPU = kernels.dp.o
 
 TARGET := autodock
 TOOL_TARGET := adgpu_analysis
 
-IFLAGS=-I$(COMMON_DIR) -I$(HOST_INC_DIR) -I$(GPU_INCLUDE_PATH) -I$(KRNL_DIR)
-LFLAGS=-L$(GPU_LIBRARY_PATH) -Wl,-rpath=$(GPU_LIBRARY_PATH):$(CPU_LIBRARY_PATH)
-CFLAGS=-std=c++11 $(IFLAGS) $(LFLAGS)
+IFLAGS=-I$(COMMON_DIR) -I$(HOST_INC_DIR) -I$(KRNL_DIR)
+LFLAGS=-Wl,-rpath=$(GPU_LIBRARY_PATH):$(CPU_LIBRARY_PATH)
+CFLAGS= $(IFLAGS) $(LFLAGS)
 TOOL_CFLAGS=-std=c++11 -I$(COMMON_DIR) -I$(HOST_INC_DIR)
 
 ifeq ($(DEVICE), CPU)
 	TARGET:=$(TARGET)_cpu
 else ifeq ($(DEVICE), GPU)
 	NWI=-DN64WI
-	TARGET:=$(TARGET)_gpu
+	TARGET:=$(TARGET)_xegpu
 endif
 
 ifeq ($(OVERLAP), ON)
@@ -74,6 +77,9 @@ else ifeq ($(NUMWI), 128)
 else ifeq ($(NUMWI), 256)
 		NWI=-DN256WI
 		TARGET:=$(TARGET)_256wi
+else ifeq ($(NUMWI), 512)
+		NWI=-DN512WI
+		TARGET:=$(TARGET)_512wi
 else
 	ifeq ($(DEVICE), CPU)
 		NWI=-DN16WI
@@ -94,16 +100,21 @@ CONFIG=RELEASE
 
 ifeq ($(CONFIG),FDEBUG)
 	OPT =-O0 -g3 -Wall -DDOCK_DEBUG
-	CUDA_FLAGS = -G -use_fast_math --ptxas-options="-v" $(CUDA_TARGETS) -std=c++11
+# for vtune
+#	OPT +=-gline-tables-only -fdebug-info-for-profiling
+ifeq ($(DEVICE), GPU)
+# for AOT compile and debug
+#	OPT+=-fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xs "-device ats -internal_options -cl-kernel-debug-enable -options -cl-opt-disable"
+# for AOT compile
+#	OPT+=-fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xs "-device ats"
+endif    
 else ifeq ($(CONFIG),LDEBUG)
-	OPT =-O0 -g3 -Wall
-	CUDA_FLAGS = -use_fast_math --ptxas-options="-v" $(CUDA_TARGETS) -std=c++11
+	OPT =-g -Wall 
 else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
-	CUDA_FLAGS = -use_fast_math --ptxas-options="-v" $(CUDA_TARGETS) -std=c++11
+#	OPT+=-fsycl-targets=spir64_gen-unknown-unknown-sycldevice
 else
 	OPT =
-	CUDA_FLAGS = -use_fast_math --ptxas-options="-v" $(CUDA_TARGETS) -std=c++11
 endif
 
 # ------------------------------------------------------
@@ -117,21 +128,21 @@ else
 endif
 # ------------------------------------------------------
 
-all: otool odock
+#all: otool odock
+all: odock
 
 check-env-dev:
 	@if test -z "$$DEVICE"; then \
-		echo "Please set DEVICE to either CPU, GPU, CUDA, or OCLGPU to build docking software."; \
+		echo "Please set DEVICE to either CPU, GPU, CUDA, XeGPU, or OCLGPU to build docking software."; \
 		exit 1; \
 	else \
 		if [ "$$DEVICE" = "CPU" ]; then \
-			echo "DEVICE is set to $$DEVICE which is not a valid Cuda device."; \
-			exit 1; \
+			echo "DEVICE is set to $$DEVICE"; \
 		else \
 			if [ "$$DEVICE" = "GPU" ]; then \
 				echo "DEVICE is set to $$DEVICE"; \
 			else \
-				echo "DEVICE value is invalid. Please set DEVICE to either CPU, GPU, CUDA, or OCLGPU"; \
+				echo "DEVICE value is invalid. Please set DEVICE to either CPU, GPU, XeGPU or OCLGPU"; \
 				exit 1; \
 			fi; \
 		fi; \
@@ -167,7 +178,7 @@ check-env-gpu:
 check-env-all: check-env-dev check-env-cpu check-env-gpu
 
 # ------------------------------------------------------
-# Priting out its git version hash
+# Printing out its git version hash
 
 GIT_VERSION := $(shell ./version_string.sh)
 
@@ -177,14 +188,14 @@ TOOL_CFLAGS+=-DAD_VERSION=\"$(GIT_VERSION)\"
 # ------------------------------------------------------
 
 link-code:
-	ln -sf performdocking.h.Cuda $(HOST_INC_DIR)/performdocking.h
-	ln -sf performdocking.cpp.Cuda $(HOST_SRC_DIR)/performdocking.cpp
+	ln -sf performdocking.h.dpcpp $(HOST_INC_DIR)/performdocking.h
+	ln -sf performdocking.cpp.dpcpp $(HOST_SRC_DIR)/performdocking.cpp
 
 unlink-code:
 	rm -f $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
 
 kernels: $(KERNEL_SRC)
-	$(NVCC) $(NWI) $(REP) $(CUDA_FLAGS) $(IFLAGS) $(CUDA_INCLUDES) -c $(KRNL_DIR)/kernels.cu
+	$(DPCPP) $(NWI) $(REP) $(DPCPP_FLAGS) $(IFLAGS) $(OPT) $(DPCPP_INCLUDES) -c $(KRNL_DIR)/kernels.dp.cpp
 
 otool: unlink-code
 	@echo "Building" $(TOOL_TARGET) "..."
@@ -199,7 +210,7 @@ odock: check-env-all kernels link-code
 	$(CPP) \
 	$(shell ls $(HOST_SRC_DIR)/*.cpp) \
 	$(CFLAGS) \
-	$(LIB_CUDA) \
+	$(LIB_XeGPU) \
 	-o$(BIN_DIR)/$(TARGET) \
 	$(DEV) $(NWI) $(PIPELINE) $(OPT) $(DD) $(REP) $(KFLAGS)
 

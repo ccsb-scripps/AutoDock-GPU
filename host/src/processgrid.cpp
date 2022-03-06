@@ -213,6 +213,14 @@ int get_gridvalues(Gridinfo* mygrid)
 			fn+=mygrid->grid_mapping[ti];
 //			printf("Atom type %d (%s) uses map: %s\n",t,mygrid->grid_mapping[t].c_str(),fn.c_str());
 			fp.open(fn);
+			if (fp.fail()) 
+			{
+				fn = mygrid->grid_file_path;
+				fn += "/";
+				fn += mygrid->receptor_name;
+				fn += mygrid->grid_mapping[ti].substr(3);
+				fp.open(fn);
+			}
 		}
 		if (fp.fail())
 		{

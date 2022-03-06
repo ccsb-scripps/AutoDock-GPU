@@ -22,7 +22,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
 
-
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -79,7 +80,7 @@ inline void start_timer(T& time_start)
 int main(int argc, char* argv[])
 {
 	// Print version info
-	printf("AutoDock-GPU version: %s\n\n", VERSION);
+	printf("AutoDock-GPU version: %s\n\n", AD_VERSION);
 	// Print help screen if no parameters were specified
 	// (or if last parameter is "-help"; parameters in
 	//  between will be caught in initial_commandpars later)
@@ -204,8 +205,8 @@ int main(int argc, char* argv[])
 		printf("Running %d docking calculation",n_files);
 		if(n_files>1){
 			printf("s");
-			if(nr_devices>1) printf(" on %d devices",std::min(n_files,nr_devices));
-		}
+                        if (nr_devices > 1) printf(" on %d devices", std::min(n_files, nr_devices));
+                }
 		if(initial_pars.contact_analysis)
 			printf(" (contact analysis cutoffs: R=%.1f Å, H=%.1f Å, V=%.1f Å)\n", initial_pars.R_cutoff, initial_pars.H_cutoff, initial_pars.V_cutoff);
 		else
