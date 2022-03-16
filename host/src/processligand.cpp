@@ -1194,7 +1194,7 @@ int parse_liganddata(
 				if (set_liganddata_typeid(myligand, mygrid, atom_counter, tempstr) != 0) // the function sets the type index
 					return 1;
 				if(tempstr[0]=='G'){ // G-type are ignored for inter calc unless there is a map specified (checked above)
-					if(myligand->atom_idxyzq[atom_counter][0]==myligand->base_type_idx[(int)myligand->atom_idxyzq[atom_counter][0]])
+					if(strcmp(myligand->atom_types[(int)myligand->atom_idxyzq[atom_counter][0]],myligand->base_atom_types[(int)myligand->atom_idxyzq[atom_counter][0]])==0) // derived Gx type does not exists
 						myligand->ignore_inter[atom_counter] = true;
 				}
 				atom_counter++;
