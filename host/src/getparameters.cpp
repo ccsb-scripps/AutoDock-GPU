@@ -889,6 +889,7 @@ int get_filelist(
 			if(len<1) len=strlen(ligands[i]);
 			filelist.resnames.push_back(filelist.ligand_files[i].substr(0,len));
 			mypars->resname=strdup(filelist.resnames[i].c_str());
+			mypars->free_roaming_ligand=true;
 			// Add the parameter block
 			filelist.mypars.push_back(*mypars);
 		}
