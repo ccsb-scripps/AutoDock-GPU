@@ -66,7 +66,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #else
 	#define PI_FLOAT 3.14159265359f
 #endif
-#define PI_TIMES_2       2.0f*PI_FLOAT
+#define PI_TIMES_2       (2.0f*PI_FLOAT)
+#define PI_HALF          (0.5f*PI_FLOAT)
 
 // -------------------------------------------
 // Gradient-related defines
@@ -77,7 +78,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define INV_INFINITESIMAL_RADIAN        (1.0f/INFINITESIMAL_RADIAN)
 #define COS_HALF_INFINITESIMAL_RADIAN   cos(HALF_INFINITESIMAL_RADIAN)
 #define SIN_HALF_INFINITESIMAL_RADIAN   sin(HALF_INFINITESIMAL_RADIAN)
-#define inv_angle_delta                 500.0f / PI_FLOAT
+#define inv_angle_delta                 (500.0f / PI_FLOAT)
 
 /*
 #define TRANGENE_ALPHA 1E-3

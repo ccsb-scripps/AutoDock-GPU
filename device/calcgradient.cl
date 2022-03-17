@@ -147,10 +147,6 @@ void gpu_calc_gradient(
              __global const int*    rotbonds_atoms_const,
                  __constant int*    num_rotating_atoms_per_rotbond_const,
 
-             __global const float*  angle_const,
-                 __constant float*  dependence_on_theta_const,
-                 __constant float*  dependence_on_rotangle_const,
-
                             int     dockpars_num_of_genes,
                     __local float*  gradient_inter_x,
                     __local float*  gradient_inter_y,
@@ -1014,95 +1010,14 @@ void gpu_calc_gradient(
 		grad_theta    = orientation_scaling * (fmod(target_theta    - current_theta    + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
 		grad_rotangle = orientation_scaling * (fmod(target_rotangle - current_rotangle + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
 
-		#if defined (PRINT_GRAD_ROTATION_GENES)
-		printf("\n%s\n", "----------------------------------------------------------");
-		printf("%-30s \n", "grad_axisangle (1,2,3) - before empirical scaling: ");
-		printf("%-13s %-13s %-13s \n", "grad_phi", "grad_theta", "grad_rotangle");
-		printf("%-13.6f %-13.6f %-13.6f\n", grad_phi, grad_theta, grad_rotangle);
-		#endif
-
-		// Correcting theta gradients interpolating 
-		// values from correction look-up-tables
-		// (X0,Y0) and (X1,Y1) are known points
-		// How to find the Y value in the straight line between Y0 and Y1,
-		// corresponding to a certain X?
-		/*
-			| dependence_on_theta_const
-			| dependence_on_rotangle_const
-			|
-			|
-			|                        Y1
-			|
-			|             Y=?
-			|    Y0
-			|_________________________________ angle_const
-			     X0         X        X1
-		*/
-
-		// Finding the index-position of "grad_delta" in the "angle_const" array
-		//uint index_theta    = floor(native_divide(current_theta    - angle_const[0], angle_delta));
-		//uint index_rotangle = floor(native_divide(current_rotangle - angle_const[0], angle_delta));
-		uint index_theta    = floor((current_theta    - angle_const[0]) * inv_angle_delta);
-		uint index_rotangle = floor((current_rotangle - angle_const[0]) * inv_angle_delta);
-
-		// Interpolating theta values
-		// X0 -> index - 1
-		// X1 -> index + 1
-		// Expresed as weighted average:
-		// Y = [Y0 * ((X1 - X) / (X1-X0))] +  [Y1 * ((X - X0) / (X1-X0))]
-		// Simplified for GPU (less terms):
-		// Y = [Y0 * (X1 - X) + Y1 * (X - X0)] / (X1 - X0)
-		// Taking advantage of constant:
-		// Y = [Y0 * (X1 - X) + Y1 * (X - X0)] * inv_angle_delta
-
-		float X0, Y0;
-		float X1, Y1;
-		float dependence_on_theta; //Y = dependence_on_theta
-
-		// Using interpolation on out-of-bounds elements results in hang
-		if ((index_theta <= 0) || (index_theta >= 999))
-		{
-			dependence_on_theta = dependence_on_theta_const[stick_to_bounds(index_theta,0,999)];
-		} else
-		{
-			X0 = angle_const[index_theta];
-			X1 = angle_const[index_theta+1];
-			Y0 = dependence_on_theta_const[index_theta];
-			Y1 = dependence_on_theta_const[index_theta+1];
-			dependence_on_theta = (Y0 * (X1-current_theta) + Y1 * (current_theta-X0)) * inv_angle_delta;
-		}
-
-		#if defined (PRINT_GRAD_ROTATION_GENES)
-		printf("\n%s\n", "----------------------------------------------------------");
-		printf("%-30s %-10.6f\n", "dependence_on_theta: ", dependence_on_theta);
-		#endif
-
-		// Interpolating rotangle values
-		float dependence_on_rotangle; // Y = dependence_on_rotangle
-		// Using interpolation on previous and/or next elements results in hang
-		// Using interpolation on out-of-bounds elements results in hang
-		if ((index_rotangle <= 0) || (index_rotangle >= 999))
-		{
-			dependence_on_rotangle = dependence_on_rotangle_const[stick_to_bounds(index_rotangle,0,999)];
-		} else
-		{
-			X0 = angle_const[index_rotangle];
-			X1 = angle_const[index_rotangle+1];
-			Y0 = dependence_on_rotangle_const[index_rotangle];
-			Y1 = dependence_on_rotangle_const[index_rotangle+1];
-			dependence_on_rotangle = (Y0 * (X1-current_rotangle) + Y1 * (current_rotangle-X0)) * inv_angle_delta;
-		}
-
-		#if defined (PRINT_GRAD_ROTATION_GENES)
-		printf("\n%s\n", "----------------------------------------------------------");
-		printf("%-30s %-10.6f\n", "dependence_on_rotangle: ", dependence_on_rotangle);
-		#endif
-
+		float rot_angle_corr = native_sin(current_rotangle*0.5f); // 4*sin(rotangle/2)
+		rot_angle_corr *= rot_angle_corr * 4.0f;
+		
 		// Setting gradient rotation-related genotypes in cube
 		// Multiplicating by DEG_TO_RAD is to make it uniform to DEG (see torsion gradients)
-		gradient_genotype[3] = native_divide(grad_phi, (dependence_on_theta * dependence_on_rotangle)) * DEG_TO_RAD;
-		gradient_genotype[4] = native_divide(grad_theta, dependence_on_rotangle)                       * DEG_TO_RAD;
-		gradient_genotype[5] = grad_rotangle                                                           * DEG_TO_RAD;
+		gradient_genotype[3] = grad_phi * (0.5f*native_sin(2.0f*current_theta-PI_HALF)+0.5f) * rot_angle_corr * DEG_TO_RAD;
+		gradient_genotype[4] = grad_theta * rot_angle_corr * DEG_TO_RAD;
+		gradient_genotype[5] = grad_rotangle * DEG_TO_RAD;
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-30s \n", "grad_axisangle (1,2,3) - after empirical scaling: ");
