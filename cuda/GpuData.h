@@ -129,9 +129,6 @@ struct GpuData {
 	int*                            pMem_rotbonds_const;
 	int*                            pMem_rotbonds_atoms_const;
 	int*                            pMem_num_rotating_atoms_per_rotbond_const;
-	float*                          pMem_angle_const;
-	float*                          pMem_dependence_on_theta_const;
-	float*                          pMem_dependence_on_rotangle_const;
 	
 	// CUDA-specific constants
 	unsigned int                    warpmask;
