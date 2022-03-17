@@ -708,25 +708,22 @@ __device__ void gpu_calc_energrad(
 		// Derived from rotation.py/axisangle_to_q()
 		// genes[3:7] = rotation.axisangle_to_q(torque, rad)
 		float torque_length = norm3df(torque_rot.x, torque_rot.y, torque_rot.z);
-		torque_length += (torque_length<1e-20f)*1e-20f;
-		
+		float orientation_scaling = orientation_scaling = (torque_length<INFINITESIMAL_RADIAN) ? 1.0f : torque_length * INV_INFINITESIMAL_RADIAN;
+
+		torque_rot *= (torque_length<INFINITESIMAL_RADIAN) ? 0.5f + native_divide(torque_length,48.0f) : native_divide(SIN_HALF_INFINITESIMAL_RADIAN,torque_length);
+
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-20s %-10.6f\n", "torque length: ", torque_length);
 		#endif
 
-		/*
-		// Infinitesimal rotation in radians
-		const float infinitesimal_radian = 1E-5;
-		*/
-
 		// Finding the quaternion that performs
 		// the infinitesimal rotation around torque axis
 		float4 quat_torque;
-		quat_torque.x = torque_rot.x * SIN_HALF_INFINITESIMAL_RADIAN / torque_length;
-		quat_torque.y = torque_rot.y * SIN_HALF_INFINITESIMAL_RADIAN / torque_length;
-		quat_torque.z = torque_rot.z * SIN_HALF_INFINITESIMAL_RADIAN / torque_length;
-		quat_torque.w = COS_HALF_INFINITESIMAL_RADIAN;
+		quat_torque.x = torque_rot.x;
+		quat_torque.y = torque_rot.y;
+		quat_torque.z = torque_rot.z;
+		quat_torque.w = (torque_length<INFINITESIMAL_RADIAN) ? 1.0f-torque_length*torque_length*0.125f : COS_HALF_INFINITESIMAL_RADIAN;
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -779,13 +776,6 @@ __device__ void gpu_calc_energrad(
 		// The correct amount of displacement in shoemake space is obtained
 		// by multiplying the infinitesimal displacement by shoemake_scaling:
 		//float shoemake_scaling = native_divide(torque_length, INFINITESIMAL_RADIAN/*infinitesimal_radian*/);
-		float orientation_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
-
-		#if defined (PRINT_GRAD_ROTATION_GENES)
-		printf("\n%s\n", "----------------------------------------------------------");
-		printf("%-30s %-10.6f\n", "orientation_scaling: ", orientation_scaling);
-		#endif
-
 		// Derivates in cube3
 		float grad_phi, grad_theta, grad_rotangle;
 		grad_phi      = orientation_scaling * (fmod_pi2(target_phi      - current_phi      + PI_FLOAT) - PI_FLOAT);

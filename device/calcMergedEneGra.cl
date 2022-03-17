@@ -759,7 +759,9 @@ void gpu_calc_energrad(
 			// Derived from rotation.py/axisangle_to_q()
 			// genes[3:7] = rotation.axisangle_to_q(torque, rad)
 			float torque_length = native_sqrt(torque_rot.x*torque_rot.x+torque_rot.y*torque_rot.y+torque_rot.z*torque_rot.z);
-			torque_length += (torque_length<1e-20f)*1e-20f;
+			float orientation_scaling = orientation_scaling = (torque_length<INFINITESIMAL_RADIAN) ? 1.0f : torque_length * INV_INFINITESIMAL_RADIAN;
+
+			torque_rot *= (torque_length<INFINITESIMAL_RADIAN) ? 0.5f + native_divide(torque_length,48.0f) : native_divide(SIN_HALF_INFINITESIMAL_RADIAN,torque_length);
 
 			#if defined (PRINT_GRAD_ROTATION_GENES)
 			printf("\n%s\n", "----------------------------------------------------------");
@@ -768,8 +770,11 @@ void gpu_calc_energrad(
 
 			// Finding the quaternion that performs
 			// the infinitesimal rotation around torque axis
-			float4 quat_torque = native_divide(torque_rot * SIN_HALF_INFINITESIMAL_RADIAN, torque_length);
-			quat_torque.w = COS_HALF_INFINITESIMAL_RADIAN;
+			float4 quat_torque;
+			quat_torque.x = torque_rot.x;
+			quat_torque.y = torque_rot.y;
+			quat_torque.z = torque_rot.z;
+			quat_torque.w = (torque_length<INFINITESIMAL_RADIAN) ? 1.0f-torque_length*torque_length*0.125f : COS_HALF_INFINITESIMAL_RADIAN;
 
 			#if defined (PRINT_GRAD_ROTATION_GENES)
 			printf("\n%s\n", "----------------------------------------------------------");
@@ -821,7 +826,6 @@ void gpu_calc_energrad(
 			// the displacement in shoemake space is not distorted.
 			// The correct amount of displacement in shoemake space is obtained
 			// by multiplying the infinitesimal displacement by shoemake_scaling:
-			float orientation_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
 
 			#if defined (PRINT_GRAD_ROTATION_GENES)
 			printf("\n%s\n", "----------------------------------------------------------");
@@ -829,10 +833,9 @@ void gpu_calc_energrad(
 			#endif
 
 			// Derivates in cube3
-			float grad_phi, grad_theta, grad_rotangle;
-			grad_phi      = orientation_scaling * (fmod_pi2(target_phi      - current_phi      + PI_FLOAT) - PI_FLOAT);
-			grad_theta    = orientation_scaling * (fmod_pi2(target_theta    - current_theta    + PI_FLOAT) - PI_FLOAT);
-			grad_rotangle = orientation_scaling * (fmod_pi2(target_rotangle - current_rotangle + PI_FLOAT) - PI_FLOAT);
+			float grad_phi      = orientation_scaling * (fmod_pi2(target_phi      - current_phi      + PI_FLOAT) - PI_FLOAT);
+			float grad_theta    = orientation_scaling * (fmod_pi2(target_theta    - current_theta    + PI_FLOAT) - PI_FLOAT);
+			float grad_rotangle = orientation_scaling * (fmod_pi2(target_rotangle - current_rotangle + PI_FLOAT) - PI_FLOAT);
 
 			float rot_angle_corr = 4.0f * sin_half_rotangle * sin_half_rotangle; // 4*sin(rotangle/2)
 			

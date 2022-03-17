@@ -861,7 +861,9 @@ void gpu_calc_gradient(
 		// Derived from rotation.py/axisangle_to_q()
 		// genes[3:7] = rotation.axisangle_to_q(torque, rad)
 		float torque_length = native_sqrt(torque_rot.x*torque_rot.x+torque_rot.y*torque_rot.y+torque_rot.z*torque_rot.z);
-		torque_length += (torque_length<1e-20f)*1e-20f;
+		float orientation_scaling = orientation_scaling = (torque_length<INFINITESIMAL_RADIAN) ? 1.0f : torque_length * INV_INFINITESIMAL_RADIAN;
+
+		torque_rot *= (torque_length<INFINITESIMAL_RADIAN) ? 0.5f + native_divide(torque_length,48.0f) : native_divide(SIN_HALF_INFINITESIMAL_RADIAN,torque_length);
 		
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -871,17 +873,10 @@ void gpu_calc_gradient(
 		// Finding the quaternion that performs
 		// the infinitesimal rotation around torque axis
 		float4 quat_torque;
-		#if 0
-		quat_torque.w = native_cos(HALF_INFINITESIMAL_RADIAN);
-		quat_torque.x = fast_normalize(torque_rot).x * native_sin(HALF_INFINITESIMAL_RADIAN);
-		quat_torque.y = fast_normalize(torque_rot).y * native_sin(HALF_INFINITESIMAL_RADIAN);
-		quat_torque.z = fast_normalize(torque_rot).z * native_sin(HALF_INFINITESIMAL_RADIAN);
-		#endif
-
-		quat_torque.w = COS_HALF_INFINITESIMAL_RADIAN;
-		quat_torque.x = fast_normalize(torque_rot).x * SIN_HALF_INFINITESIMAL_RADIAN;
-		quat_torque.y = fast_normalize(torque_rot).y * SIN_HALF_INFINITESIMAL_RADIAN;
-		quat_torque.z = fast_normalize(torque_rot).z * SIN_HALF_INFINITESIMAL_RADIAN;
+		quat_torque.x = torque_rot.x;
+		quat_torque.y = torque_rot.y;
+		quat_torque.z = torque_rot.z;
+		quat_torque.w = (torque_length<INFINITESIMAL_RADIAN) ? 1.0f-torque_length*torque_length*0.125f : COS_HALF_INFINITESIMAL_RADIAN;
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		#if 0		
@@ -992,23 +987,9 @@ void gpu_calc_gradient(
 		// the displacement in shoemake space is not distorted.
 		// The correct amount of displacement in shoemake space is obtained
 		// by multiplying the infinitesimal displacement by shoemake_scaling:
-		float orientation_scaling = torque_length * INV_INFINITESIMAL_RADIAN;
-
-		#if defined (PRINT_GRAD_ROTATION_GENES)
-		printf("\n%s\n", "----------------------------------------------------------");
-		printf("%-30s %-10.6f\n", "orientation_scaling: ", orientation_scaling);
-		#endif
-
-		// Derivates in cube3
-		float grad_phi, grad_theta, grad_rotangle;
-		/*
-		grad_phi      = orientation_scaling * (target_phi      - current_phi);
-		grad_theta    = orientation_scaling * (target_theta    - current_theta);
-		grad_rotangle = orientation_scaling * (target_rotangle - current_rotangle);
-		*/
-		grad_phi      = orientation_scaling * (fmod(target_phi 	 - current_phi 	    + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
-		grad_theta    = orientation_scaling * (fmod(target_theta    - current_theta    + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
-		grad_rotangle = orientation_scaling * (fmod(target_rotangle - current_rotangle + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
+		float grad_phi      = orientation_scaling * (fmod(target_phi 	 - current_phi 	    + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
+		float grad_theta    = orientation_scaling * (fmod(target_theta    - current_theta    + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
+		float grad_rotangle = orientation_scaling * (fmod(target_rotangle - current_rotangle + PI_FLOAT, PI_TIMES_2) - PI_FLOAT);
 
 		float rot_angle_corr = native_sin(current_rotangle*0.5f); // 4*sin(rotangle/2)
 		rot_angle_corr *= rot_angle_corr * 4.0f;
