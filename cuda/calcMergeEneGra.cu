@@ -804,7 +804,7 @@ __device__ void gpu_calc_energrad(
 		// Setting gradient rotation-related genotypes in cube
 		// Multiplicating by DEG_TO_RAD is to make it uniform to DEG (see torsion gradients)
 #ifdef FLOAT_GRADIENTS
-		fgradient_genotype[3] = grad_phi * (0.5f*native_sin(2.0f*current_theta-PI_HALF)+0.5f) * rot_angle_corr * DEG_TO_RAD;
+		fgradient_genotype[3] = grad_phi * (0.5f*sin(2.0f*current_theta-PI_HALF)+0.5f) * rot_angle_corr * DEG_TO_RAD;
 		fgradient_genotype[4] = grad_theta * rot_angle_corr * DEG_TO_RAD;
 		fgradient_genotype[5] = grad_rotangle * DEG_TO_RAD;
 		#if defined (PRINT_GRAD_ROTATION_GENES)
@@ -814,8 +814,8 @@ __device__ void gpu_calc_energrad(
 		printf("%-13.6f %-13.6f %-13.6f\n", fgradient_genotype[3], fgradient_genotype[4], fgradient_genotype[5]);
 		#endif
 #else
-		gradient_genotype[3] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * grad_phi * (0.5f*native_sin(2.0f*current_theta-PI_HALF)+0.5f) * rot_angle_corr * DEG_TO_RAD));
-		gradient_genotype[4] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * grad_theta * rot_angle_corr * DEG_TO_RAD));
+		gradient_genotype[3] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * grad_phi * (0.5f*sin(2.0f*current_theta-PI_HALF)+0.5f) * rot_angle_corr * DEG_TO_RAD)));
+		gradient_genotype[4] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * grad_theta * rot_angle_corr * DEG_TO_RAD)));
 		gradient_genotype[5] = lrintf(fminf(MAXTERM, fmaxf(-MAXTERM, TERMSCALE * grad_rotangle * DEG_TO_RAD)));
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
