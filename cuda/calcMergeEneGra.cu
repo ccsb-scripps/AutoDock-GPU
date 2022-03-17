@@ -548,8 +548,6 @@ __device__ void gpu_calc_energrad(
 			float lower = atomic_distance * (DIEL_A * exp_el_DIEL_K + DIEL_B * exp_el);
 			lower *= lower;*/
 
-//			priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * q1 * q2 * native_divide (upper, lower) -
-//			                                       0.0771605f * atomic_distance * desolv_energy;
 			priv_gradient_per_intracontributor +=  -(es_energy / atomic_distance) * diel
 #ifndef DIEL_FIT_ABC
 			                                       -es_energy * 2.21718f / (dist2*dist_shift)
@@ -710,7 +708,7 @@ __device__ void gpu_calc_energrad(
 		float torque_length = norm3df(torque_rot.x, torque_rot.y, torque_rot.z);
 		float orientation_scaling = orientation_scaling = (torque_length<INFINITESIMAL_RADIAN) ? 1.0f : torque_length * INV_INFINITESIMAL_RADIAN;
 
-		torque_rot *= (torque_length<INFINITESIMAL_RADIAN) ? 0.5f + native_divide(torque_length,48.0f) : native_divide(SIN_HALF_INFINITESIMAL_RADIAN,torque_length);
+		float torque_scale = (torque_length<INFINITESIMAL_RADIAN) ? 0.5f + torque_length/48.0f : SIN_HALF_INFINITESIMAL_RADIAN/torque_length;
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
@@ -720,9 +718,9 @@ __device__ void gpu_calc_energrad(
 		// Finding the quaternion that performs
 		// the infinitesimal rotation around torque axis
 		float4 quat_torque;
-		quat_torque.x = torque_rot.x;
-		quat_torque.y = torque_rot.y;
-		quat_torque.z = torque_rot.z;
+		quat_torque.x = torque_rot.x * torque_scale;
+		quat_torque.y = torque_rot.y * torque_scale;
+		quat_torque.z = torque_rot.z * torque_scale;
 		quat_torque.w = (torque_length<INFINITESIMAL_RADIAN) ? 1.0f-torque_length*torque_length*0.125f : COS_HALF_INFINITESIMAL_RADIAN;
 
 		#if defined (PRINT_GRAD_ROTATION_GENES)
@@ -774,8 +772,7 @@ __device__ void gpu_calc_energrad(
 		// in shoemake space. This is to guarantee that the direction of
 		// the displacement in shoemake space is not distorted.
 		// The correct amount of displacement in shoemake space is obtained
-		// by multiplying the infinitesimal displacement by shoemake_scaling:
-		//float shoemake_scaling = native_divide(torque_length, INFINITESIMAL_RADIAN/*infinitesimal_radian*/);
+		// by multiplying the infinitesimal displacement by shoemake_scaling
 		// Derivates in cube3
 		float grad_phi, grad_theta, grad_rotangle;
 		grad_phi      = orientation_scaling * (fmod_pi2(target_phi      - current_phi      + PI_FLOAT) - PI_FLOAT);
