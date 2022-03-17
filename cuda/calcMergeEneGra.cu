@@ -96,10 +96,6 @@ __device__ void gpu_calc_energrad(
 
 	// General rotation moving vector
 	float4 genrot_movingvec;
-	genrot_movingvec.x = genotype[0];
-	genrot_movingvec.y = genotype[1];
-	genrot_movingvec.z = genotype[2];
-	genrot_movingvec.w = 0.0f;
 
 	// Convert orientation genes from sex. to radians
 	float phi         = genotype[3] * DEG_TO_RAD;
@@ -107,13 +103,20 @@ __device__ void gpu_calc_energrad(
 	float genrotangle = genotype[5] * DEG_TO_RAD;
 
 	float4 genrot_unitvec;
-	float sin_angle = sin(theta);
-	float s2 = sin(genrotangle*0.5f);
-	genrot_unitvec.x = s2*sin_angle*cos(phi);
-	genrot_unitvec.y = s2*sin_angle*sin(phi);
-	genrot_unitvec.z = s2*cos(theta);
-	genrot_unitvec.w = cos(genrotangle*0.5f);
-	float is_theta_gt_pi = 1.0f-2.0f*(float)(sin_angle < 0.0f);
+	float is_theta_gt_pi;
+	if(cData.dockpars.true_ligand_atoms){
+		genrot_movingvec.x = genotype[0];
+		genrot_movingvec.y = genotype[1];
+		genrot_movingvec.z = genotype[2];
+		genrot_movingvec.w = 0.0f;
+		float sin_angle = sin(theta);
+		float s2 = sin(genrotangle*0.5f);
+		genrot_unitvec.x = s2*sin_angle*cos(phi);
+		genrot_unitvec.y = s2*sin_angle*sin(phi);
+		genrot_unitvec.z = s2*cos(theta);
+		genrot_unitvec.w = cos(genrotangle*0.5f);
+		is_theta_gt_pi = 1.0f-2.0f*(float)(sin_angle < 0.0f);
+	}
 
 	uint32_t  g1 = cData.dockpars.gridsize_x;
 	uint32_t  g2 = cData.dockpars.gridsize_x_times_y;
@@ -662,7 +665,7 @@ __device__ void gpu_calc_energrad(
 #ifndef FLOAT_GRADIENTS
 	int* gradient_genotype = (int*)fgradient_genotype;
 #endif
-	if (threadIdx.x == 0) {
+	if ((threadIdx.x == 0) && (cData.dockpars.true_ligand_atoms)) {
 		// Scaling gradient for translational genes as
 		// their corresponding gradients were calculated in the space
 		// where these genes are in Angstrom,
@@ -696,7 +699,7 @@ __device__ void gpu_calc_energrad(
 	// ------------------------------------------
 	// Obtaining rotation-related gradients
 	// ------------------------------------------
-	if (threadIdx.x == 0) {
+	if ((threadIdx.x == 0) && (cData.dockpars.true_ligand_atoms)) {
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
 		printf("%-20s %-10.6f %-10.6f %-10.6f\n", "final torque: ", torque_rot.x, torque_rot.y, torque_rot.z);

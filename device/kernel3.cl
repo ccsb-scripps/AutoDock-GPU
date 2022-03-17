@@ -90,6 +90,7 @@ __constant       kernelconstant_conform*      kerconst_conform
 	__local float candidate_energy;
 	__local int   evaluation_cnt;
 	int gene_counter;
+	int gene_start = (dockpars_true_ligand_atoms==0)*6;
 
 	__local float offspring_genotype[ACTUAL_GENOTYPE_LENGTH];
 	__local int run_id;
@@ -158,7 +159,7 @@ __constant       kernelconstant_conform*      kerconst_conform
 	while ((iteration_cnt < dockpars_max_num_of_iters) && (rho > dockpars_rho_lower_bound))
 	{
 		// New random deviate
-		for (gene_counter = tidx;
+		for (gene_counter = tidx+gene_start;
 		     gene_counter < dockpars_num_of_genes;
 		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
@@ -192,7 +193,7 @@ __constant       kernelconstant_conform*      kerconst_conform
 		}
 
 		// Generating new genotype candidate
-		for (gene_counter = tidx;
+		for (gene_counter = tidx+gene_start;
 		     gene_counter < dockpars_num_of_genes;
 		     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 		{
@@ -259,7 +260,7 @@ __constant       kernelconstant_conform*      kerconst_conform
 
 		if (candidate_energy < offspring_energy) // If candidate is better, success
 		{
-			for (gene_counter = tidx;
+			for (gene_counter = tidx+gene_start;
 			     gene_counter < dockpars_num_of_genes;
 			     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 			{
@@ -284,7 +285,7 @@ __constant       kernelconstant_conform*      kerconst_conform
 		else // If candidate is worse, check the opposite direction
 		{
 			// Generating the other genotype candidate
-			for (gene_counter = tidx;
+			for (gene_counter = tidx+gene_start;
 			     gene_counter < dockpars_num_of_genes;
 			     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 			{
@@ -352,7 +353,7 @@ __constant       kernelconstant_conform*      kerconst_conform
 
 			if (candidate_energy < offspring_energy) // If candidate is better, success
 			{
-				for (gene_counter = tidx;
+				for (gene_counter = tidx+gene_start;
 				     gene_counter < dockpars_num_of_genes;
 				     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 				{
@@ -376,7 +377,7 @@ __constant       kernelconstant_conform*      kerconst_conform
 			}
 			else // Failure in both directions
 			{
-				for (gene_counter = tidx;
+				for (gene_counter = tidx+gene_start;
 				     gene_counter < dockpars_num_of_genes;
 				     gene_counter+= NUM_OF_THREADS_PER_BLOCK)
 					// Updating genotype_bias

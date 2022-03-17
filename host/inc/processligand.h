@@ -56,6 +56,8 @@ typedef struct _Liganddata
 	int            num_of_rotbonds;
 // true_ligand_rotbonds:  Number of rotatable bonds in the ligand only.
 	int            true_ligand_rotbonds;
+// ligand id: which ligand does a given atom belong to
+	int            ligand_id             [MAX_NUM_OF_ATOMS];
 // atom_names:            Each row (first index) contain the ligand atom name
 	char           atom_names            [MAX_NUM_OF_ATOMS][5];
 // atom_types:            Each row (first index) contain an atom type (as two characters),

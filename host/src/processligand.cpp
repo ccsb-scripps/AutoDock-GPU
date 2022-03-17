@@ -62,16 +62,24 @@ int init_liganddata(
 	char tempstr [256];
 	std::string line;
 
+	unsigned int ls=0;
+	if ( ligfilename==NULL ) {
+		ls++;
+	}
 	unsigned int lnr=1;
-	if ( flexresfilename!=NULL) {
+	if ( flexresfilename!=NULL ) {
 		if ( strlen(flexresfilename)>0 )
 			lnr++;
+	}
+	if ( lnr-ls <= 0){
+		printf("Error: No ligand or flex res file specified.\n");
+		return 1;
 	}
 
 	num_of_atypes = 0;
 	num_of_base_atypes = 0;
 	unsigned int atom_cnt = 0;
-	for (unsigned int l=0; l<lnr; l++)
+	for (unsigned int l=ls; l<lnr; l++)
 	{
 		if(l==0)
 			fp.open(ligfilename);
@@ -626,6 +634,9 @@ int get_bonds(Liganddata* myligand)
 		is_HD1=(strcmp(myligand->base_atom_types[atom_typeid1],"HD")==0);
 		for (atom_id2=atom_id1+1; atom_id2 < myligand->num_of_atoms; atom_id2++)
 		{
+			if(myligand->ligand_id[atom_id1]!=myligand->ligand_id[atom_id2]){
+				continue; // skip pairs that are on different ligands
+			}
 			atom_typeid2 = myligand->atom_idxyzq[atom_id2][0];
 			is_HD2=(strcmp(myligand->base_atom_types[atom_typeid2],"HD")==0);
 			temp_point1[0] = myligand->atom_idxyzq[atom_id1][1];
@@ -1140,6 +1151,7 @@ int parse_liganddata(
 	int branch_start;
 	int endbranch_counter = 0;
 	int branches [MAX_NUM_OF_ROTBONDS][3];
+	int ligand_count = 0;
 	int i,j,k;
 	unsigned int atom_rotbonds_temp [MAX_NUM_OF_ATOMS][MAX_NUM_OF_ROTBONDS];
 	memset(atom_rotbonds_temp,0,MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(unsigned int));
@@ -1182,7 +1194,7 @@ int parse_liganddata(
 				if (set_liganddata_typeid(myligand, mygrid, atom_counter, tempstr) != 0) // the function sets the type index
 					return 1;
 				if(tempstr[0]=='G'){ // G-type are ignored for inter calc unless there is a map specified (checked above)
-					if(myligand->atom_idxyzq[atom_counter][0]==myligand->base_type_idx[(int)myligand->atom_idxyzq[atom_counter][0]])
+					if(strcmp(myligand->atom_types[(int)myligand->atom_idxyzq[atom_counter][0]],myligand->base_atom_types[(int)myligand->atom_idxyzq[atom_counter][0]])==0) // derived Gx type does not exists
 						myligand->ignore_inter[atom_counter] = true;
 				}
 				atom_counter++;
@@ -1214,6 +1226,7 @@ int parse_liganddata(
 			line_count++;
 			sscanf(line.c_str(),"%255s",tempstr);
 			if ((l>0) && (strcmp(tempstr, "ROOT") == 0)){
+				ligand_count++;
 				flex_root = atom_counter;
 				atom_rot_start = atom_counter;
 				branch_start = branch_counter;
@@ -1231,6 +1244,7 @@ int parse_liganddata(
 						/* else it is 2, so it is closed, so nothing to be done... */
 
 				myligand->atom_rigid_structures [atom_counter] = current_rigid_struct_id; // using the id of the current rigid structure
+				myligand->ligand_id [atom_counter ] = ligand_count;
 
 				if (l>0)
 					if (atom_counter-flex_root<2)
@@ -2021,7 +2035,7 @@ float calc_interE_f(
 			peratom_vdw[atom_cnt] = v;
 #endif
 			peratom_elec[atom_cnt] = e;
-			*elecE += e;
+			if (atom_cnt < myligand->true_ligand_atoms) *elecE += e; // only want intermolecular contributions
 		}
 
 		if (debug == 1)
@@ -2155,8 +2169,7 @@ float calc_intraE_f(
 				// FIXME: accumulated into vW ... is that correct?
 				if (((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) ||
 				    ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX))) {
-					if (((atom_id1<myligand->true_ligand_atoms) && (atom_id2<myligand->true_ligand_atoms)) ||
-					    ((atom_id1>=myligand->true_ligand_atoms) && (atom_id2>=myligand->true_ligand_atoms))) // if both atoms are of either a ligand or a flex res it's intra
+					if ((a_flex + b_flex) & 1) // if both atoms are of either a ligand or a flex res it's intra
 						vW += G * dist;
 					else
 						interflexE += G * dist;

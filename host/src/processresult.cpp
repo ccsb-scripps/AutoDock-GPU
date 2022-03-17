@@ -79,7 +79,8 @@ void write_basic_info(
 	fprintf(fp, "         DOCKING PARAMETERS        \n");
 	fprintf(fp, "===================================\n\n");
 
-	fprintf(fp, "Ligand file:                               %s\n", mypars->ligandfile);
+	if(mypars->ligandfile)
+		fprintf(fp, "Ligand file:                               %s\n", mypars->ligandfile);
 	bool flexres = false;
 	if (mypars->flexresfile!=NULL){
 			if ( strlen(mypars->flexresfile)>0 ) {
@@ -211,7 +212,8 @@ void write_basic_info_dlg(
 	fprintf(fp, "    DOCKING PARAMETERS\n");
 	fprintf(fp, "    ________________________\n\n\n");
 
-	fprintf(fp, "Ligand file:                               %s\n", mypars->ligandfile);
+	if(mypars->ligandfile)
+		fprintf(fp, "Ligand file:                               %s\n", mypars->ligandfile);
 	bool flexres = false;
 	if (mypars->flexresfile!=NULL){
 			if ( strlen(mypars->flexresfile)>0 ) {
@@ -295,10 +297,12 @@ void write_basic_info_dlg(
 		fprintf(fp, "    LIGAND PARAMETERS\n");
 	fprintf(fp, "    ________________________\n\n\n");
 
-	fprintf(fp, "Ligand name:                               ");
-	int len = strlen(mypars->ligandfile) - 6;
-	for(i=0; i<len; i++) fputc(mypars->ligandfile[i], fp);
-	fputc('\n', fp);
+	if(mypars->ligandfile){
+		fprintf(fp, "Ligand name:                               ");
+		int len = strlen(mypars->ligandfile) - 6;
+		for(i=0; i<len; i++) fputc(mypars->ligandfile[i], fp);
+		fputc('\n', fp);
+	}
 	if(flexres){
 		fprintf(fp, "Flexres name:                              ");
 		int len = strlen(mypars->flexresfile) - 6;
@@ -320,7 +324,7 @@ void write_basic_info_dlg(
 		fprintf(fp, "DPF> outlev 1\n");
 		fprintf(fp, "DPF> ga_run %lu\n", mypars->num_of_runs);
 		fprintf(fp, "DPF> fld %s\n", mygrid->fld_name.c_str());
-		fprintf(fp, "DPF> move %s\n", mypars->ligandfile);
+		if(mypars->ligandfile) fprintf(fp, "DPF> move %s\n", mypars->ligandfile);
 		if(flexres) fprintf(fp, "DPF> flexres %s\n", mypars->flexresfile);
 		fprintf(fp, "\n\n");
 	}
@@ -358,7 +362,9 @@ void make_resfiles(
 	double entity_rmsds;
 	double init_atom_idxyzq[MAX_NUM_OF_ATOMS][5]; // type id .. 0, x .. 1, y .. 2, z .. 3, q ... 4
 	memcpy(init_atom_idxyzq, ligand_ref->atom_idxyzq, sizeof(ligand_ref->atom_idxyzq));
-	int len = strlen(mypars->ligandfile) - 6 + 24 + 10 + 10; // length with added bits for things below (numbers below 11 digits should be a safe enough threshold)
+	char* basefile = mypars->ligandfile;
+	if(!mypars->free_roaming_ligand) basefile = mypars->flexresfile;
+	int len = strlen(basefile) - 6 + 24 + 10 + 10; // length with added bits for things below (numbers below 11 digits should be a safe enough threshold)
 	char* temp_filename = (char*)malloc((len+1)*sizeof(char)); // +\0 at the end
 	char* name_ext_start;
 	float accurate_interE;
@@ -401,8 +407,8 @@ void make_resfiles(
 
 	// Writing out state of final population
 
-	strcpy(temp_filename, mypars->ligandfile);
-	name_ext_start = temp_filename + strlen(mypars->ligandfile) - 6; // without .pdbqt
+	strcpy(temp_filename, basefile);
+	name_ext_start = temp_filename + strlen(basefile) - 6; // without .pdbqt
 
 	bool rmsd_valid = true;
 	if (mypars->given_xrayligandfile == true) {
@@ -462,7 +468,7 @@ void make_resfiles(
 				if (mypars->given_xrayligandfile)
 					entity_rmsds = calc_rmsd(ligand_xray->atom_idxyzq, ligand_ref->atom_idxyzq, ligand_xray->num_of_atoms, mypars->handle_symmetry); //calculating rmds compared to original xray file
 				else
-					entity_rmsds = calc_rmsd(ligand_from_pdb->atom_idxyzq, ligand_ref->atom_idxyzq, ligand_from_pdb->true_ligand_atoms, mypars->handle_symmetry); //calculating rmds compared to original pdb file
+					entity_rmsds = calc_rmsd(ligand_from_pdb->atom_idxyzq, ligand_ref->atom_idxyzq, (!ligand_from_pdb->true_ligand_atoms) ? ligand_from_pdb->num_of_atoms : ligand_from_pdb->true_ligand_atoms, mypars->handle_symmetry); //calculating rmds compared to original pdb file
 			} else entity_rmsds = 100000;
 		}
 
@@ -486,20 +492,20 @@ void make_resfiles(
 			}
 		}
 
-		// generating best.pdbqt
+		// generating best.pdbqt (based on scoring function)
 		if (i == 0)
-			if (best_energy_of_all > accurate_interE + accurate_intraE)
+			if (best_energy_of_all > accurate_interE + accurate_interflexE + accurate_intraE + accurate_intraflexE)
 			{
-				best_energy_of_all = accurate_interE + accurate_intraE;
+				best_energy_of_all = accurate_interE + accurate_interflexE + accurate_intraE + accurate_intraflexE;
 
 				if (mypars->gen_best)
-					gen_new_pdbfile(mypars->ligandfile, "best.pdbqt", ligand_ref);
+					gen_new_pdbfile(basefile, "best.pdbqt", ligand_ref);
 			}
 
 		if (i < mypars->gen_pdbs) //if it is necessary, making new pdbqts for best entities
 		{
 			sprintf(name_ext_start, "_docked_run%d_entity%d.pdbqt", run_cnt+1, i+1); //name will be <original pdb filename>_docked_<number starting from 1>.pdb
-			gen_new_pdbfile(mypars->ligandfile, temp_filename, ligand_ref);
+			gen_new_pdbfile(basefile, temp_filename, ligand_ref);
 		}
 		if (mypars->gen_finalpop)
 		{
@@ -510,9 +516,9 @@ void make_resfiles(
 			for (j=3; j<6+ligand_from_pdb->num_of_rotbonds; j++)
 				fprintf(fp, "    %10.3f    |", final_population [i*GENOTYPE_LENGTH_IN_GLOBMEM+j]);
 
-			fprintf(fp, " %21.3f |", accurate_intraE);
-			fprintf(fp, " %21.3f |", accurate_interE);
-			fprintf(fp, "  %21.3f / %21.3f / %21.3f |", accurate_intraE + accurate_interE, energies[i], energies[i] - (accurate_intraE + accurate_interE));
+			fprintf(fp, " %21.3f |", accurate_intraE + accurate_intraflexE);
+			fprintf(fp, " %21.3f |", accurate_interE + accurate_interflexE);
+			fprintf(fp, "  %21.3f / %21.3f / %21.3f |", accurate_interE + accurate_interflexE + accurate_intraE + accurate_intraflexE, energies[i], energies[i] - (accurate_interE + accurate_interflexE + accurate_intraE + accurate_intraflexE));
 
 			fprintf(fp, " %8.3lf | \n", entity_rmsds);
 		}
@@ -609,12 +615,16 @@ void ligand_calc_output(
 	}
 	if(output_energy){
 		double torsional_energy = mypars->coeffs.AD4_coeff_tors * calc_lig.true_ligand_rotbonds;
+		double inter = calc.interE + calc.interflexE;
+		double intra = calc.intraE + calc.intraflexE;
+		double unbound = 0.0;
+		if(mypars->free_roaming_ligand) unbound = intra;
 		fprintf(fp, "%s    Estimated Free Energy of Binding    =", prefix);
-		PRINT1000(fp, ((float) (calc.interE + calc.interflexE + torsional_energy)));
+		PRINT1000(fp, ((float) (inter + intra + torsional_energy - unbound)));
 		fprintf(fp, " kcal/mol  [=(1)+(2)+(3)-(4)]\n");
 		fprintf(fp, "%s\n", prefix);
 		fprintf(fp, "%s    (1) Final Intermolecular Energy     =", prefix);
-		PRINT1000(fp, ((float) (calc.interE + calc.interflexE)));
+		PRINT1000(fp, ((float) inter));
 		fprintf(fp, " kcal/mol\n");
 		fprintf(fp, "%s        vdW + Hbond + desolv Energy     =", prefix);
 		PRINT1000(fp, ((float) (calc.interE - calc.interE_elec)));
@@ -629,13 +639,13 @@ void ligand_calc_output(
 		PRINT1000(fp, ((float) calc.interflexE));
 		fprintf(fp, " kcal/mol\n");
 		fprintf(fp, "%s    (2) Final Total Internal Energy     =", prefix);
-		PRINT1000(fp, ((float) (calc.intraE + calc.intraflexE)));
+		PRINT1000(fp, ((float) intra));
 		fprintf(fp, " kcal/mol\n");
 		fprintf(fp, "%s    (3) Torsional Free Energy           =", prefix);
 		PRINT1000(fp, ((float) torsional_energy));
 		fprintf(fp, " kcal/mol\n");
 		fprintf(fp, "%s    (4) Unbound System's Energy         =", prefix);
-		PRINT1000(fp, ((float) (calc.intraE + calc.intraflexE)));
+		PRINT1000(fp, ((float) unbound));
 		fprintf(fp, " kcal/mol\n");
 		fprintf(fp, "%s\n", prefix);
 	}
@@ -726,34 +736,35 @@ void generate_output(
 			fprintf(fp, "\n\n");
 		}
 		// writing input pdbqt file
-		fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
-		ligand_calc_output(fp, "INPUT-LIGAND-PDBQT: USER", tables, ligand_ref, mypars, mygrid, mypars->contact_analysis, output_ref_calcs);
 		unsigned int line_count = 0;
-		while (line_count < ligand_ref->ligand_line_count)
-		{
-			strcpy(tempstr,ligand_ref->file_content[line_count].c_str());
-			line_count++;
-			fprintf(fp, "INPUT-LIGAND-PDBQT: %s", tempstr);
-			if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
+		if(mypars->free_roaming_ligand){
+			fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
+			ligand_calc_output(fp, "INPUT-LIGAND-PDBQT: USER", tables, ligand_ref, mypars, mygrid, mypars->contact_analysis, output_ref_calcs);
+			while (line_count < ligand_ref->ligand_line_count)
 			{
-				tempstr[30] = '\0';
-				sprintf(lineout, "DOCKED: %s", tempstr);
-				pdbqt_template += lineout;
-				atom_data.push_back(pdbqt_template.length());
-			} else{
-				if (strncmp("ROOT", tempstr, 4) == 0)
+				strcpy(tempstr,ligand_ref->file_content[line_count].c_str());
+				line_count++;
+				fprintf(fp, "INPUT-LIGAND-PDBQT: %s", tempstr);
+				if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 				{
-					pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
-					pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
+					tempstr[30] = '\0';
+					sprintf(lineout, "DOCKED: %s", tempstr);
+					pdbqt_template += lineout;
+					atom_data.push_back(pdbqt_template.length());
+				} else{
+					if (strncmp("ROOT", tempstr, 4) == 0)
+					{
+						pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
+						pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
+					}
+					sprintf(lineout, "DOCKED: %s", tempstr);
+					pdbqt_template += lineout;
 				}
-				sprintf(lineout, "DOCKED: %s", tempstr);
-				pdbqt_template += lineout;
 			}
+			fprintf(fp, "\n\n");
 		}
-		fprintf(fp, "\n\n");
-		
 		// writing input flexres pdbqt file if specified
-		if (mypars->flexresfile!=NULL) {
+		if (mypars->flexresfile) {
 			if ( strlen(mypars->flexresfile)>0 ) {
 				fprintf(fp, "    INPUT FLEXRES PDBQT FILE:\n    ________________________\n\n\n");
 				while (line_count < ligand_ref->file_content.size())
@@ -783,6 +794,7 @@ void generate_output(
 		
 		// writing docked conformations
 		std::string curr_model;
+		double inter, intra, unbound;
 		for (i=0; i<num_of_runs; i++)
 		{
 			fprintf(fp, "    FINAL DOCKED STATE:\n    ________________________\n\n\n");
@@ -844,15 +856,19 @@ void generate_output(
 			fprintf(fp, "DOCKED: MODEL        %d\n", i+1);
 			fprintf(fp, "DOCKED: USER    Run = %d\n", i+1);
 			fprintf(fp, "DOCKED: USER\n");
+			inter = myresults[i].interE + myresults[i].interflexE;
+			intra = myresults[i].intraE + myresults[i].intraflexE;
+			unbound = 0.0;
+			if(mypars->free_roaming_ligand) unbound = intra;
 
 			fprintf(fp, "DOCKED: USER    Estimated Free Energy of Binding    =");
-			PRINT1000(fp, ((float) (myresults[i].interE + myresults[i].interflexE + torsional_energy)));
+			PRINT1000(fp, ((float) (inter + intra + torsional_energy - unbound)));
 			fprintf(fp, " kcal/mol  [=(1)+(2)+(3)-(4)]\n");
 
 			fprintf(fp, "DOCKED: USER\n");
 
 			fprintf(fp, "DOCKED: USER    (1) Final Intermolecular Energy     =");
-			PRINT1000(fp, ((float) (myresults[i].interE + myresults[i].interflexE)));
+			PRINT1000(fp, ((float) inter));
 			fprintf(fp, " kcal/mol\n");
 
 			fprintf(fp, "DOCKED: USER        vdW + Hbond + desolv Energy     =");
@@ -872,7 +888,7 @@ void generate_output(
 			fprintf(fp, " kcal/mol\n");
 
 			fprintf(fp, "DOCKED: USER    (2) Final Total Internal Energy     =");
-			PRINT1000(fp, ((float) (myresults[i].intraE + myresults[i].intraflexE)));
+			PRINT1000(fp, ((float) intra));
 			fprintf(fp, " kcal/mol\n");
 
 			fprintf(fp, "DOCKED: USER    (3) Torsional Free Energy           =");
@@ -880,18 +896,23 @@ void generate_output(
 			fprintf(fp, " kcal/mol\n");
 
 			fprintf(fp, "DOCKED: USER    (4) Unbound System's Energy         =");
-			PRINT1000(fp, ((float) (myresults[i].intraE + myresults[i].intraflexE)));
+			PRINT1000(fp, ((float) unbound));
 			fprintf(fp, " kcal/mol\n");
 
 			fprintf(fp, "DOCKED: USER\n");
 			if(mypars->xml2dlg || mypars->contact_analysis){
 				fprintf(fp, "DOCKED: USER    NEWDPF about 0.0 0.0 0.0\n");
-				fprintf(fp, "DOCKED: USER    NEWDPF tran0 %.6f %.6f %.6f\n", myresults[i].genotype[0]*mygrid->spacing, myresults[i].genotype[1]*mygrid->spacing, myresults[i].genotype[2]*mygrid->spacing);
-				if(!mypars->xml2dlg){
-					double phi = myresults[i].genotype[3]/180.0*PI;
-					double theta = myresults[i].genotype[4]/180.0*PI;
-					fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[i].genotype[5]);
-				} else fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", myresults[i].genotype[3], myresults[i].genotype[4], myresults[i].genotype[5], myresults[i].genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1]);
+				if(mypars->free_roaming_ligand){
+					fprintf(fp, "DOCKED: USER    NEWDPF tran0 %.6f %.6f %.6f\n", myresults[i].genotype[0]*mygrid->spacing, myresults[i].genotype[1]*mygrid->spacing, myresults[i].genotype[2]*mygrid->spacing);
+					if(!mypars->xml2dlg){
+						double phi = myresults[i].genotype[3]/180.0*PI;
+						double theta = myresults[i].genotype[4]/180.0*PI;
+						fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[i].genotype[5]);
+					} else fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 %.8f %.8f %.8f %.6f\n", myresults[i].genotype[3], myresults[i].genotype[4], myresults[i].genotype[5], myresults[i].genotype[GENOTYPE_LENGTH_IN_GLOBMEM-1]);
+				} else{
+					fprintf(fp, "DOCKED: USER    NEWDPF tran0 0.0 0.0 0.0\n");
+					fprintf(fp, "DOCKED: USER    NEWDPF axisangle0 1.0 0.0 0.0 0.0\n");
+				}
 				fprintf(fp, "DOCKED: USER    NEWDPF dihe0");
 				for(j=0; j<ligand_ref->num_of_rotbonds; j++)
 					fprintf(fp, " %.6f", myresults[i].genotype[6+j]);
@@ -933,6 +954,7 @@ void generate_output(
 	for (i=0; i<num_of_runs; i++){
 		energy_order[i] = i;
 		energies[i] = myresults [i].interE+myresults[i].interflexE; // mimics the behaviour of AD4 unbound_same_as_bound
+		if(!mypars->free_roaming_ligand) energies[i] += myresults [i].intraE+myresults[i].intraflexE;
 		myresults[i].clus_id = 0; // indicates that it hasn't been put into cluster yet (may as well do that here ...)
 	}
 	// sorting the indices instead of copying the results around will be faster
@@ -960,7 +982,7 @@ void generate_output(
 				if (myresults[j].clus_id > current_clust_center) // it is the center of a new cluster
 				{
 					current_clust_center = myresults[j].clus_id;
-					temp_rmsd = calc_rmsd(myresults[j].atom_idxyzq, myresults[i].atom_idxyzq, ligand_ref->true_ligand_atoms, mypars->handle_symmetry); // comparing current result with cluster center
+					temp_rmsd = calc_rmsd(myresults[j].atom_idxyzq, myresults[i].atom_idxyzq, (!ligand_ref->true_ligand_atoms) ? ligand_ref->num_of_atoms : ligand_ref->true_ligand_atoms, mypars->handle_symmetry); // comparing current result with cluster center
 					if (temp_rmsd <= cluster_tolerance) // in this case we put result i to cluster with center j
 					{
 						myresults[i].clus_id = current_clust_center;
@@ -990,11 +1012,13 @@ void generate_output(
 				{
 					subrank++;
 					cluster_sizes[i-1]++;
-					sum_energy [i-1] += myresults[j].interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
+					sum_energy [i-1] += myresults[j].interE + myresults[j].interflexE + torsional_energy; // intraE can be commented when unbound_same_as_bound (if there is a free ligand)
+					if(!mypars->free_roaming_ligand) sum_energy[i-1] += myresults[j].intraE + myresults[j].intraflexE;
 					myresults[j].clus_subrank = subrank;
 					if (subrank == 1)
 					{
-						best_energy [i-1] = myresults[j].interE + myresults[j].interflexE + /*(myresults [j]).intraE +*/ torsional_energy; // intraE can be commented when unbound_same_as_bound
+						best_energy [i-1] = myresults[j].interE + myresults[j].interflexE + torsional_energy; // intraE can be commented when unbound_same_as_bound (if there is a free ligand)
+						if(!mypars->free_roaming_ligand) best_energy[i-1] += myresults[j].intraE + myresults[j].intraflexE;
 						best_energy_runid  [i-1] = myresults[j].run_number;
 					}
 				}
@@ -1041,7 +1065,7 @@ void generate_output(
 			fprintf(fp, "    RMSD TABLE\n");
 			fprintf(fp, "    __________\n\n\n");
 
-			fprintf(fp, "_____________________________________________________________________\n");
+			fprintf(fp, "_______________________________________________________________________\n");
 			fprintf(fp, "     |      |      |           |         |                 |\n");
 			fprintf(fp, "Rank | Sub- | Run  | Binding   | Cluster | Reference       | Grep\n");
 			fprintf(fp, "     | Rank |      | Energy    | RMSD    | RMSD            | Pattern\n");
@@ -1057,7 +1081,8 @@ void generate_output(
 							             myresults[j].clus_id,
 							                   myresults[j].clus_subrank,
 							                         myresults[j].run_number,
-							                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
+							                              myresults[j].interE + myresults[j].interflexE + torsional_energy +
+							                              (!mypars->free_roaming_ligand) * (myresults[j].intraE + myresults[j].intraflexE),
 							                                       myresults[j].rmsd_from_cluscent,
 							                                              myresults[j].rmsd_from_ref);
 						else
@@ -1065,7 +1090,8 @@ void generate_output(
 							             myresults[j].clus_id,
 							                   myresults[j].clus_subrank,
 							                         myresults[j].run_number,
-							                              myresults[j].interE + myresults[j].interflexE + torsional_energy,
+							                              myresults[j].interE + myresults[j].interflexE + torsional_energy +
+							                              (!mypars->free_roaming_ligand) * (myresults[j].intraE + myresults[j].intraflexE),
 							                                       myresults[j].rmsd_from_cluscent,
 							                                              myresults[j].rmsd_from_ref);
 					}
@@ -1122,7 +1148,8 @@ void generate_output(
 		if(mypars->list_nr>1)
 			fprintf(fp_xml, "\t<list_nr>%u</list_nr>\n",mypars->list_nr);
 		fprintf(fp_xml, "\t<grid>%s</grid>\n", mypars->fldfile);
-		fprintf(fp_xml, "\t<ligand>%s</ligand>\n", mypars->ligandfile);
+		if(mypars->ligandfile)
+			fprintf(fp_xml, "\t<ligand>%s</ligand>\n", mypars->ligandfile);
 		if(mypars->flexresfile)
 			fprintf(fp_xml, "\t<flexres>%s</flexres>\n",mypars->flexresfile);
 		fprintf(fp_xml, "\t<seed>");
@@ -1183,7 +1210,7 @@ void generate_output(
 					}
 					fprintf(fp_xml, "\t\t\t\t<contact_analysis_types>  %s</contact_analysis_types>\n", types.c_str());
 					fprintf(fp_xml, "\t\t\t\t<contact_analysis_ligid>  %s</contact_analysis_ligid>\n", lig_id.c_str());
-					fprintf(fp_xml, "\t\t\t\t<contact_analysis_ligname>%s</contact_analsyis_ligname>\n", ligname.c_str());
+					fprintf(fp_xml, "\t\t\t\t<contact_analysis_ligname>%s</contact_analysis_ligname>\n", ligname.c_str());
 					fprintf(fp_xml, "\t\t\t\t<contact_analysis_recid>  %s</contact_analysis_recid>\n", rec_id.c_str());
 					fprintf(fp_xml, "\t\t\t\t<contact_analysis_recname>%s</contact_analysis_recname>\n", rec_name.c_str());
 					fprintf(fp_xml, "\t\t\t\t<contact_analysis_residue>%s</contact_analysis_residue>\n", residue.c_str());
@@ -1192,14 +1219,19 @@ void generate_output(
 					fprintf(fp_xml, "\t\t\t</contact_analysis>\n");
 				}
 			}
-			fprintf(fp_xml, "\t\t\t<free_NRG_binding>   %.2f</free_NRG_binding>\n", myresults[j].interE + myresults[j].interflexE + torsional_energy);
+			fprintf(fp_xml, "\t\t\t<free_NRG_binding>   %.2f</free_NRG_binding>\n", myresults[j].interE + myresults[j].interflexE + torsional_energy + (!mypars->free_roaming_ligand) * (myresults[j].intraE + myresults[j].intraflexE));
 			fprintf(fp_xml, "\t\t\t<final_intermol_NRG> %.2f</final_intermol_NRG>\n", myresults[j].interE + myresults[j].interflexE);
 			fprintf(fp_xml, "\t\t\t<internal_ligand_NRG>%.2f</internal_ligand_NRG>\n", myresults[j].intraE + myresults[j].intraflexE);
 			fprintf(fp_xml, "\t\t\t<torsonial_free_NRG> %.2f</torsonial_free_NRG>\n", torsional_energy);
-			fprintf(fp_xml, "\t\t\t<tran0>%.6f %.6f %.6f</tran0>\n", myresults[j].genotype[0]*mygrid->spacing, myresults[j].genotype[1]*mygrid->spacing, myresults[j].genotype[2]*mygrid->spacing);
-			phi = myresults[j].genotype[3]/180.0*PI;
-			theta = myresults[j].genotype[4]/180.0*PI;
-			fprintf(fp_xml, "\t\t\t<axisangle0>%.8f %.8f %.8f %.6f</axisangle0>\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[j].genotype[5]);
+			if(mypars->free_roaming_ligand){
+				fprintf(fp_xml, "\t\t\t<tran0>%.6f %.6f %.6f</tran0>\n", myresults[j].genotype[0]*mygrid->spacing, myresults[j].genotype[1]*mygrid->spacing, myresults[j].genotype[2]*mygrid->spacing);
+				phi = myresults[j].genotype[3]/180.0*PI;
+				theta = myresults[j].genotype[4]/180.0*PI;
+				fprintf(fp_xml, "\t\t\t<axisangle0>%.8f %.8f %.8f %.6f</axisangle0>\n", sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta), myresults[j].genotype[5]);
+			} else{
+				fprintf(fp_xml, "\t\t\t<tran0>0.0 0.0 0.0</tran0>\n");
+				fprintf(fp_xml, "\t\t\t<axisangle0>1.0 0.0 0.0 0.0</axisangle0>\n");
+			}
 			fprintf(fp_xml, "\t\t\t<ndihe>%d</ndihe>\n", ligand_ref->num_of_rotbonds);
 			fprintf(fp_xml, "\t\t\t<dihe0>");
 			for(i=0; i<ligand_ref->num_of_rotbonds; i++)
