@@ -144,19 +144,20 @@ void gpu_calc_energrad(
 	float genrotangle = genotype[5] * DEG_TO_RAD;
 
 	float4 genrot_unitvec;
-	float is_theta_gt_pi, sin_half_rotangle;
+	float is_theta_gt_pi, sin_half_rotangle, sin_theta;
 	if(dockpars_true_ligand_atoms){
 		genrot_movingvec.x = genotype[0];
 		genrot_movingvec.y = genotype[1];
 		genrot_movingvec.z = genotype[2];
 		genrot_movingvec.w = 0.0f;
-		float sin_angle = native_sin(theta);
+		sin_theta = native_sin(theta);
+		float cos_theta = native_cos(theta);
 		sin_half_rotangle = native_sin(genrotangle*0.5f);
-		genrot_unitvec.x = sin_half_rotangle*sin_angle*native_cos(phi);
-		genrot_unitvec.y = sin_half_rotangle*sin_angle*native_sin(phi);
-		genrot_unitvec.z = sin_half_rotangle*native_cos(theta);
+		genrot_unitvec.x = sin_half_rotangle*sin_theta*native_cos(phi);
+		genrot_unitvec.y = sin_half_rotangle*sin_theta*native_sin(phi);
+		genrot_unitvec.z = sin_half_rotangle*cos_theta;
 		genrot_unitvec.w = native_cos(genrotangle*0.5f);
-		is_theta_gt_pi = 1.0f-2.0f*(float)(sin_angle < 0.0f);
+		is_theta_gt_pi = 1.0f-2.0f*(float)(sin_theta < 0.0f);
 	}
 
 	uint g1 = dockpars_gridsize_x;
@@ -837,16 +838,16 @@ void gpu_calc_energrad(
 			float grad_theta    = orientation_scaling * (fmod_pi2(target_theta    - current_theta    + PI_FLOAT) - PI_FLOAT);
 			float grad_rotangle = orientation_scaling * (fmod_pi2(target_rotangle - current_rotangle + PI_FLOAT) - PI_FLOAT);
 
-			float rot_angle_corr = 4.0f * sin_half_rotangle * sin_half_rotangle; // 4*sin(rotangle/2)
+			float rot_angle_corr = 4.0f * sin_half_rotangle * sin_half_rotangle; // 4*sin(rotangle/2)^2
 			
 			// Setting gradient rotation-related genotypes in cube
 			// Multiplicating by DEG_TO_RAD is to make it uniform to DEG (see torsion gradients)
 #ifdef FLOAT_GRADIENTS
-			gradient_genotype[3] = grad_phi * (0.5f*native_sin(2.0f*current_theta-PI_HALF)+0.5f) * rot_angle_corr * DEG_TO_RAD;
+			gradient_genotype[3] = grad_phi * sin_theta * sin_theta * rot_angle_corr * DEG_TO_RAD;
 			gradient_genotype[4] = grad_theta * rot_angle_corr * DEG_TO_RAD;
 			gradient_genotype[5] = grad_rotangle * DEG_TO_RAD;
 #else
-			i_gradient_genotype[3] = float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * grad_phi * (0.5f*native_sin(2.0f*current_theta-PI_HALF)+0.5f) * rot_angle_corr * DEG_TO_RAD)));
+			i_gradient_genotype[3] = float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * grad_phi * sin_theta * sin_theta * rot_angle_corr * DEG_TO_RAD)));
 			i_gradient_genotype[4] = float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * grad_theta * rot_angle_corr * DEG_TO_RAD)));
 			i_gradient_genotype[5] = float2int_round(fmin(MAXTERM, fmax(-MAXTERM, TERMSCALE * grad_rotangle * DEG_TO_RAD)));
 #endif
