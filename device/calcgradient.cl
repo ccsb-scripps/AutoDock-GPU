@@ -799,7 +799,7 @@ void gpu_calc_gradient(
 		float torque_length = native_sqrt(torque_rot.x*torque_rot.x+torque_rot.y*torque_rot.y+torque_rot.z*torque_rot.z);
 		float orientation_scaling = orientation_scaling = (torque_length<INFINITESIMAL_RADIAN) ? 1.0f : torque_length * INV_INFINITESIMAL_RADIAN;
 
-		torque_rot *= (torque_length<INFINITESIMAL_RADIAN) ? 0.5f + native_divide(torque_length,48.0f) : native_divide(SIN_HALF_INFINITESIMAL_RADIAN,torque_length);
+		torque_rot *= (torque_length<INFINITESIMAL_RADIAN) ? 0.5f - native_divide(torque_length*torque_length,48.0f) : native_divide(SIN_HALF_INFINITESIMAL_RADIAN,torque_length);
 		
 		#if defined (PRINT_GRAD_ROTATION_GENES)
 		printf("\n%s\n", "----------------------------------------------------------");
