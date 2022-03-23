@@ -850,9 +850,6 @@ parameters argc and argv:
 			setKernelArg(tData.kernel5,32,sizeof(cData.mem_rotbonds_const),                &cData.mem_rotbonds_const);
 			setKernelArg(tData.kernel5,33,sizeof(cData.mem_rotbonds_atoms_const),          &cData.mem_rotbonds_atoms_const);
 			setKernelArg(tData.kernel5,34,sizeof(cData.mem_num_rotating_atoms_per_rotbond_const), &cData.mem_num_rotating_atoms_per_rotbond_const);
-			setKernelArg(tData.kernel5,35,sizeof(cData.mem_angle_const),                   &cData.mem_angle_const);
-			setKernelArg(tData.kernel5,36,sizeof(cData.mem_dependence_on_theta_const),     &cData.mem_dependence_on_theta_const);
-			setKernelArg(tData.kernel5,37,sizeof(cData.mem_dependence_on_rotangle_const),  &cData.mem_dependence_on_rotangle_const);
 
 			kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
 			kernel5_lxsize = threadsPerBlock;
@@ -899,9 +896,6 @@ parameters argc and argv:
 			setKernelArg(tData.kernel6,32,sizeof(cData.mem_rotbonds_const),                &cData.mem_rotbonds_const);
 			setKernelArg(tData.kernel6,33,sizeof(cData.mem_rotbonds_atoms_const),          &cData.mem_rotbonds_atoms_const);
 			setKernelArg(tData.kernel6,34,sizeof(cData.mem_num_rotating_atoms_per_rotbond_const), &cData.mem_num_rotating_atoms_per_rotbond_const);
-			setKernelArg(tData.kernel6,35,sizeof(cData.mem_angle_const),                   &cData.mem_angle_const);
-			setKernelArg(tData.kernel6,36,sizeof(cData.mem_dependence_on_theta_const),     &cData.mem_dependence_on_theta_const);
-			setKernelArg(tData.kernel6,37,sizeof(cData.mem_dependence_on_rotangle_const),  &cData.mem_dependence_on_rotangle_const);
 			kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
 			kernel6_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
@@ -948,9 +942,6 @@ parameters argc and argv:
 			setKernelArg(tData.kernel7,32,sizeof(cData.mem_rotbonds_const),                &cData.mem_rotbonds_const);
 			setKernelArg(tData.kernel7,33,sizeof(cData.mem_rotbonds_atoms_const),          &cData.mem_rotbonds_atoms_const);
 			setKernelArg(tData.kernel7,34,sizeof(cData.mem_num_rotating_atoms_per_rotbond_const), &cData.mem_num_rotating_atoms_per_rotbond_const);
-			setKernelArg(tData.kernel7,35,sizeof(cData.mem_angle_const),                   &cData.mem_angle_const);
-			setKernelArg(tData.kernel7,36,sizeof(cData.mem_dependence_on_theta_const),     &cData.mem_dependence_on_theta_const);
-			setKernelArg(tData.kernel7,37,sizeof(cData.mem_dependence_on_rotangle_const),  &cData.mem_dependence_on_rotangle_const);
 			kernel7_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
 			kernel7_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG

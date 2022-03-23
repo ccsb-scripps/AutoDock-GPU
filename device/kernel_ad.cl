@@ -96,11 +96,7 @@ gradient_minAD(
 
     __constant       int*   rotbonds_const,
       __global const int*   rotbonds_atoms_const,
-    __constant       int*   num_rotating_atoms_per_rotbond_const,
-
-      __global const float* angle_const,
-    __constant       float* dependence_on_theta_const,
-    __constant       float* dependence_on_rotangle_const
+    __constant       int*   num_rotating_atoms_per_rotbond_const
               )
 // The GPU global function performs gradient-based minimization on (some) entities of conformations_next.
 // The number of OpenCL compute units (CU) which should be started equals to num_of_minEntities*num_of_runs.
@@ -392,9 +388,6 @@ gradient_minAD(
 		                  rotbonds_const,
 		                  rotbonds_atoms_const,
 		                  num_rotating_atoms_per_rotbond_const,
-		                  angle_const,
-		                  dependence_on_theta_const,
-		                  dependence_on_rotangle_const,
 		                  // Gradient-related arguments
 		                  dockpars_num_of_genes,
 		                  gradient_x, gradient_y, gradient_z,

@@ -173,26 +173,12 @@ void setup_gpu_for_docking(
 	RTERROR(status, "cData.pKerconst_conform: failed to allocate GPU memory.\n");
 
 	// Allocate mem data
-	status = cudaMalloc((void**)&cData.pMem_angle_const, 1000 * sizeof(float));
-	RTERROR(status, "cData.pMem_angle_const: failed to allocate GPU memory.\n");
-	status = cudaMalloc((void**)&cData.pMem_dependence_on_theta_const, 1000 * sizeof(float));
-	RTERROR(status, "cData.pMem_dependence_on_theta_const: failed to allocate GPU memory.\n");
-	status = cudaMalloc((void**)&cData.pMem_dependence_on_rotangle_const, 1000 * sizeof(float));
-	RTERROR(status, "cData.pMem_dependence_on_rotangle_const: failed to allocate GPU memory.\n");
 	status = cudaMalloc((void**)&cData.pMem_rotbonds_const, 2*MAX_NUM_OF_ROTBONDS*sizeof(int));
 	RTERROR(status, "cData.pMem_rotbonds_const: failed to allocate GPU memory.\n");
 	status = cudaMalloc((void**)&cData.pMem_rotbonds_atoms_const, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
 	RTERROR(status, "cData.pMem_rotbonds_atoms_const: failed to allocate GPU memory.\n");
 	status = cudaMalloc((void**)&cData.pMem_num_rotating_atoms_per_rotbond_const, MAX_NUM_OF_ROTBONDS*sizeof(int));
 	RTERROR(status, "cData.pMem_num_rotiating_atoms_per_rotbond_const: failed to allocate GPU memory.\n");
-
-	// Upload mem data
-	cudaMemcpy(cData.pMem_angle_const, angle, 1000 * sizeof(float), cudaMemcpyHostToDevice);
-	RTERROR(status, "cData.pMem_angle_const: failed to upload to GPU memory.\n");
-	cudaMemcpy(cData.pMem_dependence_on_theta_const, dependence_on_theta, 1000 * sizeof(float), cudaMemcpyHostToDevice);
-	RTERROR(status, "cData.pMem_dependence_on_theta_const: failed to upload to GPU memory.\n");
-	cudaMemcpy(cData.pMem_dependence_on_rotangle_const, dependence_on_rotangle, 1000 * sizeof(float), cudaMemcpyHostToDevice);
-	RTERROR(status, "cData.pMem_dependence_on_rotangle_const: failed to upload to GPU memory.\n");
 
 	// Allocate temporary data - JL TODO - Are these sizes correct?
 	if(cData.preallocated_gridsize>0){
@@ -249,12 +235,6 @@ void finish_gpu_from_docking(
 	RTERROR(status, "cudaFree: error freeing cData.pMem_rotbonds_atoms_const");
 	status = cudaFree(cData.pMem_num_rotating_atoms_per_rotbond_const);
 	RTERROR(status, "cudaFree: error freeing cData.pMem_num_rotating_atoms_per_rotbond_const");
-	status = cudaFree(cData.pMem_angle_const);
-	RTERROR(status, "cudaFree: error freeing cData.pMem_angle_const");
-	status = cudaFree(cData.pMem_dependence_on_theta_const);
-	RTERROR(status, "cudaFree: error freeing cData.pMem_dependence_on_theta_const");
-	status = cudaFree(cData.pMem_dependence_on_rotangle_const);
-	RTERROR(status, "cudaFree: error freeing cData.pMem_dependence_on_rotangle_const");
 
 	// Non-constant
 	if(tData.pMem_fgrids){
