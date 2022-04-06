@@ -27,8 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define GPUDATADOTH
 #include <float.h>
 
-typedef struct
-{
+struct GpuDockparameters{
 	int             num_of_atoms;
 	int             true_ligand_atoms;
 	int             num_of_atypes;
@@ -63,13 +62,13 @@ typedef struct
 	float           adam_beta1;
 	float           adam_beta2;
 	float           adam_epsilon;
-} GpuDockparameters;
+};
 
 struct GpuData {
 	int                             devnum;
 	int                             devid;
 	int                             preallocated_gridsize;
-	GpuDockparameters               dockpars;
+//	GpuDockparameters               dockpars;
 	
 	// Consolidated constants and memory pointers to reduce kernel launch overhead
 	kernelconstant_interintra*      pKerconst_interintra;

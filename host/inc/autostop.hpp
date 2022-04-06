@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef AUTOSTOP_HPP
 #define AUTOSTOP_HPP
 
+#include <algorithm>
 #include <vector>
 #include <cmath>
 #include <stdio.h>

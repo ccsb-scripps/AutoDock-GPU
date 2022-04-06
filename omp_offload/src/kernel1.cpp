@@ -35,82 +35,92 @@ void gpu_calc_initpop(	uint32_t pops_by_runs,
 			GpuDockparameters dockpars )
 {
 
-    #pragma omp target teams distribute\
-    num_teams(pops_by_runs) thread_limit(NUM_OF_THREADS_PER_BLOCK) 
-    for (int idx = 0; idx < pops_by_runs; idx++)
-    {  
+#pragma omp target teams thread_limit(NUM_OF_THREADS_PER_BLOCK)\
+	     num_teams(pops_by_runs)
+	{    
         float3struct calc_coords[MAX_NUM_OF_ATOMS];
-	//#pragma omp allocate(calc_coords) allocator(omp_pteam_mem_alloc)  
+	float energy_accumulate = 0.0f;
+
+		#pragma omp parallel
+		{
+		const int threadIdx = omp_get_thread_num();
+  		const int blockDim = omp_get_num_threads();
+  		const int blockIdx = omp_get_team_num();
+  		const int gridDim = omp_get_num_teams();
+		for (uint32_t idx = blockIdx; idx < pops_by_runs; idx+=gridDim) { 
         
-        int run_id = idx / dockpars.pop_size;
-        float* pGenotype = pMem_conformations_current + idx * GENOTYPE_LENGTH_IN_GLOBMEM;
+        		int run_id = idx / dockpars.pop_size;
+        		float* pGenotype = pMem_conformations_current + idx * GENOTYPE_LENGTH_IN_GLOBMEM;
         //======================= Calculating Energy ===============//  
-        float energy = 0.0f;
- 	#pragma omp parallel for
-        for (uint atom_id = 0;
-          	  atom_id < dockpars.num_of_atoms;
-          	  atom_id+= 1) {
-            get_atompos( atom_id, calc_coords, cData );
-        }
-        // General rotation moving vector
-        float4struct genrot_movingvec;
-        genrot_movingvec.x = pGenotype[0];
-        genrot_movingvec.y = pGenotype[1];
-        genrot_movingvec.z = pGenotype[2];
-        genrot_movingvec.w = 0.0f;
-        // Convert orientation genes from sex. to radians
-        const float phi         = pGenotype[3] * DEG_TO_RAD;
-        const float theta       = pGenotype[4] * DEG_TO_RAD;
-        const float genrotangle = pGenotype[5] * DEG_TO_RAD;
+        		float energy = 0.0f;
 
-        float4struct genrot_unitvec;
-        const float sin_angle = sin(theta);
-        const float s2 = sin(genrotangle * 0.5f);
-        genrot_unitvec.x = s2*sin_angle*cos(phi);
-        genrot_unitvec.y = s2*sin_angle*sin(phi);
-        genrot_unitvec.z = s2*cos(theta);
-        genrot_unitvec.w = cos(genrotangle*0.5f);
-            
-        //__threadfence();
-        //__syncthreads();
-        
-	int num_of_rotcyc = dockpars.rotbondlist_length/work_pteam;
-        for(int rot=0; rot < num_of_rotcyc; rot++){
-            int start = rot*work_pteam;
-	    int end = start +work_pteam;
-	    if ( end > dockpars.rotbondlist_length ) end = dockpars.rotbondlist_length; 
-            #pragma omp parallel for  
-            for (int rotation_counter  = start;
-                 rotation_counter  < end; 
-                 rotation_counter++){
-            rotate_atoms(rotation_counter, calc_coords, cData, dockpars, run_id, pGenotype, genrot_unitvec, genrot_movingvec);
-	    }
-	} // End rotation_counter for-loop
+        			for (int atom_id = threadIdx;
+                  			atom_id < dockpars.num_of_atoms;
+                  			atom_id+= blockDim) {
+            				get_atompos( atom_id, calc_coords, cData );
+        			}
+				
+       				 // General rotation moving vector
+        			float4struct genrot_movingvec;
+        			genrot_movingvec.x = pGenotype[0];
+        			genrot_movingvec.y = pGenotype[1];
+        			genrot_movingvec.z = pGenotype[2];
+        			genrot_movingvec.w = 0.0f;
+        			// Convert orientation genes from sex. to radians
+        			const float phi         = pGenotype[3] * DEG_TO_RAD;
+        			const float theta       = pGenotype[4] * DEG_TO_RAD;
+        			const float genrotangle = pGenotype[5] * DEG_TO_RAD;
 
-        //float inter_energy = 0.0f;
-        #pragma omp parallel for reduction(+:energy)
-        for (uint atom_id = 0;
-                  atom_id < dockpars.num_of_atoms;
-                  atom_id+= 1){
-            energy += calc_interenergy( atom_id, cData, dockpars, calc_coords );
-        } // End atom_id for-loop (INTERMOLECULAR ENERGY)
+        			float4struct genrot_unitvec;
+        			const float sin_angle = sin(theta);
+        			const float s2 = sin(genrotangle * 0.5f);
+        			genrot_unitvec.x = s2*sin_angle*cos(phi);
+        			genrot_unitvec.y = s2*sin_angle*sin(phi);
+        			genrot_unitvec.z = s2*cos(theta);
+        			genrot_unitvec.w = cos(genrotangle*0.5f);
 
-         //  printf("inter energy: %f \n", energy);
-        //float intra_energy = 0.0f;
-        #pragma omp parallel for reduction(+:energy)
-        for (uint contributor_counter = 0;
-             contributor_counter < dockpars.num_of_intraE_contributors;
-             contributor_counter += 1){
-             energy += calc_intraenergy( contributor_counter, cData, dockpars, calc_coords );
-        }
-            //printf("intra energy: %f \n", energy);
-        //energy = (inter_energy +intra_energy);
+			#pragma omp barrier
+        			//__threadfence();
+        			//__syncthreads();
+			
+            				for (int rotation_counter  = threadIdx;
+                 				rotation_counter  < dockpars.rotbondlist_length;
+                 				rotation_counter +=blockDim){
+            					rotate_atoms(rotation_counter, calc_coords, cData, dockpars, run_id, pGenotype, genrot_unitvec, genrot_movingvec);
+					#pragma omp barrier
+            				}
+
+                    		for (int atom_id = threadIdx;
+                              		atom_id < dockpars.num_of_atoms;
+                              		atom_id+= blockDim){
+                        		energy += calc_interenergy( atom_id, cData, dockpars, calc_coords );
+                   		 } // End atom_id for-loop (INTERMOLECULAR ENERGY)
+
+                    		for (int contributor_counter = threadIdx;
+                         		contributor_counter < dockpars.num_of_intraE_contributors;
+                         		contributor_counter += blockDim){
+                         		energy += calc_intraenergy( contributor_counter, cData, dockpars, calc_coords );
+                	    	}
+				if (threadIdx == 0) energy_accumulate = 0;
+				#pragma omp barrier
+        	                //printf("intra energy: %f \n", intra_energy);
+				#pragma omp atomic update
+	                    	energy_accumulate +=energy;
+				#pragma omp barrier
+				energy = energy_accumulate;
         // ======================================= 
-          // printf("energy: %f \n", energy);
+         //  printf("energy: %f \n", energy);
         // Write out final energy
+	if (threadIdx== 0) 
+    	{
         pMem_energies_current[idx] = energy;
         cData.pMem_evals_of_new_entities[idx] = 1;
-    }// End for a set of teams
+	}
+
+     	}  // End for a set of teams
+        } // end parallel section
+        } // end team region
+
 
 }
 

@@ -22,8 +22,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
 
-#include "calcenergy.h"
+//#include "calcenergy.h"
+#include "kernels.hpp"
 #include "calcenergy.hpp"
+
 //#define DEBUG_ENERGY_KERNEL
 
 // No needed to be included as all kernel sources are stringified
@@ -135,7 +137,6 @@ inline float calc_interenergy(
     	uint g2 = dockpars.gridsize_x_times_y;
     	uint g3 = dockpars.gridsize_x_times_y_times_z;
 	float weights[8];
-	float cube[8];
     	float partial_energy = 0.0f;
     	if (cData.pKerconst_interintra->ignore_inter_const[atom_id]>0) // first two atoms of a flex res are to be ignored here
 			return partial_energy; // get on with loop as our work here is done (we crashed into the walls)
@@ -176,49 +177,23 @@ inline float calc_interenergy(
 		weights [idx_111] = dx*dy*dz;
 
 		ulong mul_tmp = atom_typeid*g3<<2;
-		cube[0] = *(grid_value_000+mul_tmp+0);
-		cube[1] = *(grid_value_000+mul_tmp+1);
-		cube[2] = *(grid_value_000+mul_tmp+2);
-		cube[3] = *(grid_value_000+mul_tmp+3);
-		cube[4] = *(grid_value_000+mul_tmp+4);
-		cube[5] = *(grid_value_000+mul_tmp+5);
-		cube[6] = *(grid_value_000+mul_tmp+6);
-		cube[7] = *(grid_value_000+mul_tmp+7);
-		
-		// Calculating affinity energy
-		partial_energy += cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7];
+	
+	partial_energy += TRILININTERPOL((grid_value_000+mul_tmp), weights);
 
-		// Capturing electrostatic values
-		atom_typeid = dockpars.num_of_map_atypes;
+    	// Capturing electrostatic values
+    	atom_typeid = dockpars.num_of_map_atypes;
 
-		mul_tmp = atom_typeid*g3<<2; // different atom type id to get charge IA
-		cube[0] = *(grid_value_000+mul_tmp+0);
-		cube[1] = *(grid_value_000+mul_tmp+1);
-		cube[2] = *(grid_value_000+mul_tmp+2);
-		cube[3] = *(grid_value_000+mul_tmp+3);
-		cube[4] = *(grid_value_000+mul_tmp+4);
-		cube[5] = *(grid_value_000+mul_tmp+5);
-		cube[6] = *(grid_value_000+mul_tmp+6);
-		cube[7] = *(grid_value_000+mul_tmp+7);
+    	mul_tmp = atom_typeid*g3<<2;
+    	// Calculating electrostatic energy
+	partial_energy += q * TRILININTERPOL((grid_value_000+mul_tmp), weights);
 
-		// Calculating affinity energy
-		partial_energy += q * (cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
+    	// Capturing desolvation values
+    	atom_typeid = dockpars.num_of_map_atypes+1;
 
-		// Need only magnitude of charge from here on down
-		q = fabs(q);
-		// Capturing desolvation values (atom_typeid+1 compared to above => mul_tmp + g3*4)
-		mul_tmp += g3<<2;
-		cube[0] = *(grid_value_000+mul_tmp+0);
-		cube[1] = *(grid_value_000+mul_tmp+1);
-		cube[2] = *(grid_value_000+mul_tmp+2);
-		cube[3] = *(grid_value_000+mul_tmp+3);
-		cube[4] = *(grid_value_000+mul_tmp+4);
-		cube[5] = *(grid_value_000+mul_tmp+5);
-		cube[6] = *(grid_value_000+mul_tmp+6);
-		cube[7] = *(grid_value_000+mul_tmp+7);
+   	 mul_tmp = atom_typeid*g3<<2;
+    	// Calculating desolvation energy
+    	partial_energy += fabs(q) * TRILININTERPOL((grid_value_000+mul_tmp), weights);
 
-		// Calculating affinity energy
-		partial_energy += q * (cube[0]*weights[0] + cube[1]*weights[1] + cube[2]*weights[2] + cube[3]*weights[3] + cube[4]*weights[4] + cube[5]*weights[5] + cube[6]*weights[6] + cube[7]*weights[7]);
 	return partial_energy;
 }
 

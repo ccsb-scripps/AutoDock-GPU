@@ -53,16 +53,18 @@ void gpu_perform_LS(uint32_t pops_by_runs,
 	#pragma omp target teams thread_limit(NUM_OF_THREADS_PER_BLOCK)\
 	     num_teams(pops_by_runs)
 	{
-		float genotype_candidate[ACTUAL_GENOTYPE_LENGTH];
+/*		float genotype_candidate[ACTUAL_GENOTYPE_LENGTH];
                 float genotype_deviate[ACTUAL_GENOTYPE_LENGTH];
                 float genotype_bias[ACTUAL_GENOTYPE_LENGTH];
+		*/
+		float sFloatBuff[3 * MAX_NUM_OF_ATOMS + 4 * ACTUAL_GENOTYPE_LENGTH];
                 float rho;
                 uint32_t cons_succ;
                 uint32_t cons_fail;
                 uint32_t iteration_cnt;
                 int evaluation_cnt;
-                float3struct calc_coords[MAX_NUM_OF_ATOMS];
-                float offspring_genotype[ACTUAL_GENOTYPE_LENGTH];
+                //float3struct calc_coords[MAX_NUM_OF_ATOMS];
+                //float offspring_genotype[ACTUAL_GENOTYPE_LENGTH];
                 float offspring_energy;
                 int entity_id;
                 float energy_accumulate = 0.0f;
@@ -95,10 +97,16 @@ void gpu_perform_LS(uint32_t pops_by_runs,
 		float candidate_energy = 0.0f;
 		const int run_id = blockIdx / dockpars.num_of_lsentities;
 
+		float3struct* calc_coords = (float3struct*)sFloatBuff;
+		float* genotype_candidate = (float*)(calc_coords + MAX_NUM_OF_ATOMS);
+		float* genotype_deviate = (float*)(genotype_candidate + ACTUAL_GENOTYPE_LENGTH);
+		float* genotype_bias = (float*)(genotype_deviate + ACTUAL_GENOTYPE_LENGTH);
+		float* offspring_genotype = (float*)(genotype_bias + ACTUAL_GENOTYPE_LENGTH);
+
 		// Determining run ID and entity ID
 		// Initializing offspring genotype
 //		run_id = idx / dockpars.num_of_lsentities;
-	if (threadIdx == 0)
+		if (threadIdx == 0)
 		{
 			//int j = 0;
 			entity_id = blockIdx % dockpars.num_of_lsentities;
