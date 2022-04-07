@@ -44,7 +44,7 @@ TOOL_TARGET := adgpu_analysis
 IFLAGS=-I$(COMMON_DIR) -I$(HOST_INC_DIR) -I$(KRNL_DIR)
 LFLAGS=-Wl,-rpath=$(GPU_LIBRARY_PATH):$(CPU_LIBRARY_PATH)
 CFLAGS= $(IFLAGS) $(LFLAGS)
-TOOL_CFLAGS=-std=c++11 -I$(COMMON_DIR) -I$(HOST_INC_DIR)
+TOOL_CFLAGS=-std=c++17 -I$(COMMON_DIR) -I$(HOST_INC_DIR)
 
 ifeq ($(DEVICE), CPU)
 	TARGET:=$(TARGET)_cpu
@@ -112,7 +112,7 @@ else ifeq ($(CONFIG),LDEBUG)
 	OPT =-g -Wall 
 else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
-#	OPT+=-fsycl-targets=spir64_gen-unknown-unknown-sycldevice
+#	OPT+=-fsycl-targets=spir64_gen -Xs "-device 0x0BD6 -version_id 6"
 else
 	OPT =
 endif
