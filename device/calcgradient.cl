@@ -681,7 +681,7 @@ void gpu_calc_gradient(
 		if (((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) ||
 		    ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX)))
 		{
-			priv_gradient_per_intracontributor += G;
+			priv_gradient_per_intracontributor += G_AD;
 		}
 		// ------------------------------------------------
 

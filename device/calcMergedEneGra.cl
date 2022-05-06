@@ -488,7 +488,7 @@ void gpu_calc_energrad(
 		// This interaction is evaluated at any distance,
 		// so no cuttoffs considered here!
 		// vbond is G when calculating flexrings, 0.0 otherwise
-		float vbond = G * (float)(((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) ||
+		float vbond = G_AD * (float)(((atom1_type_vdw_hb == ATYPE_CG_IDX) && (atom2_type_vdw_hb == ATYPE_G0_IDX)) ||
 					  ((atom1_type_vdw_hb == ATYPE_G0_IDX) && (atom2_type_vdw_hb == ATYPE_CG_IDX)));
 		partial_energies[tidx] += vbond * atomic_distance;
 		priv_gradient_per_intracontributor += vbond;
