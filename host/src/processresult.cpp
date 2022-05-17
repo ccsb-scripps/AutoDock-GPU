@@ -285,6 +285,9 @@ void write_basic_info_dlg(
 	fprintf(fp, "Receptor name:                             %s\n", mygrid->receptor_name.c_str());
 	fprintf(fp, "Number of grid points (x, y, z):           %d, %d, %d\n", mygrid->size_xyz [0],
 			mygrid->size_xyz [1], mygrid->size_xyz [2]);
+	fprintf(fp, "Grid center (x, y, z):                     %lf, %lf, %lfA\n", mygrid->origo_real_xyz [0] + mygrid->size_xyz_angstr [0] / 2.0,
+			                                                           mygrid->origo_real_xyz [1] + mygrid->size_xyz_angstr [1] / 2.0,
+			                                                           mygrid->origo_real_xyz [2] + mygrid->size_xyz_angstr [2] / 2.0);
 	fprintf(fp, "Grid size (x, y, z):                       %lf, %lf, %lfA\n", mygrid->size_xyz_angstr [0],
 			mygrid->size_xyz_angstr [1], mygrid->size_xyz_angstr [2]);
 	fprintf(fp, "Grid spacing:                              %lfA\n", mygrid->spacing);
