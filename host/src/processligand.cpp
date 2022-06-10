@@ -1720,7 +1720,7 @@ std::vector<AnalysisData> analyze_ligand_receptor(
                                                  )
 // The function performs a simple distance based ligand-receptor analysis
 {
-	int atom_cnt;
+	int atom_cnt = 0;
 	float x, y, z;
 	int atomtypeid;
 	std::vector<AnalysisData> result;
@@ -1734,8 +1734,11 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 
 	const unsigned int* receptor_list;
 	AnalysisData datum;
-
-	for (atom_cnt=0; atom_cnt<myligand->true_ligand_atoms; atom_cnt++) // for each ligand atom
+	
+	// use moving ligand atoms if specified or flex res (aka covalently bound ligand) atoms otherwise
+	int nr_atoms = (myligand->true_ligand_atoms > 0) ? myligand->true_ligand_atoms : myligand->num_of_atoms;
+	
+	for (; atom_cnt<nr_atoms; atom_cnt++) // for each ligand atom (or flex res for simple covalent dockings)
 	{
 		atomtypeid = myligand->base_type_idx[(int)myligand->atom_idxyzq [atom_cnt][0]];
 		x = myligand->atom_idxyzq [atom_cnt][1];
