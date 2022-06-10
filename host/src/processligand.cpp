@@ -1735,10 +1735,8 @@ std::vector<AnalysisData> analyze_ligand_receptor(
 	const unsigned int* receptor_list;
 	AnalysisData datum;
 	
-	int nr_atoms = myligand->true_ligand_atoms;
-	if(nr_atoms==0){
-		nr_atoms = myligand->num_of_atoms; // simple covalent dockings don't have a moving ligand
-	}
+	// use moving ligand atoms if specified or flex res (aka covalently bound ligand) atoms otherwise
+	int nr_atoms = (myligand->true_ligand_atoms > 0) ? myligand->true_ligand_atoms : myligand->num_of_atoms;
 	
 	for (; atom_cnt<nr_atoms; atom_cnt++) // for each ligand atom (or flex res for simple covalent dockings)
 	{
