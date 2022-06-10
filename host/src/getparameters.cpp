@@ -715,6 +715,7 @@ int initial_commandpars(
 			                   mypars->flexresfile,
 			                   mypars->list_nr,
 			                   mypars->seed);
+			mypars->free_roaming_ligand = (mypars->ligandfile != NULL);
 
 			// Filling mygrid according to the specified fld file
 			if (get_gridinfo(mypars->fldfile, mygrid) != 0)
