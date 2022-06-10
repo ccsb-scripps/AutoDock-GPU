@@ -706,6 +706,7 @@ int initial_commandpars(
 			mypars->fldfile=NULL;
 			mypars->ligandfile=NULL;
 			mypars->flexresfile=NULL;
+			mypars->free_roaming_ligand = false;
 			// load_xml is the xml file from which the other parameters will be set
 			mypars->load_xml = strdup(xml_files[i].c_str());
 			read_xml_filenames(mypars->load_xml,
@@ -746,7 +747,7 @@ int initial_commandpars(
 				filelist.preload_maps=false;
 			
 			// Add the ligand filename in the xml to the filelist
-			filelist.ligand_files.push_back(mypars->ligandfile);
+			if(mypars->free_roaming_ligand) filelist.ligand_files.push_back(mypars->ligandfile);
 			filelist.mypars.push_back(*mypars);
 		}
 		if(mypars->xml_files>100) printf("\n\n");
@@ -2189,7 +2190,7 @@ void read_xml_filenames(
 	}
 	int error=0;
 	bool grid_found=false;
-	bool ligand_found=false;
+	bool lig_or_flex_found=false;
 	std::string line;
 	char tmpstr[256];
 	size_t line_nr=0;
@@ -2222,7 +2223,7 @@ void read_xml_filenames(
 				break;
 			}
 			if(ligand_filename==NULL) ligand_filename=strdup(tmpstr);
-			ligand_found = true;
+			lig_or_flex_found = true;
 		}
 		if(line.find("<flexres>")==0){
 			if(!sscanf(line.c_str(),"<flexres>%255[^<]/flexres>",tmpstr)){
@@ -2230,6 +2231,7 @@ void read_xml_filenames(
 				break;
 			}
 			if(flexres_filename==NULL) flexres_filename=strdup(tmpstr);
+			lig_or_flex_found = true;
 		}
 		if(line.find("<seed>")==0){
 			if(!sscanf(line.c_str(),"<seed>%d %d %d</seed>",&seed[0],&seed[1],&seed[2])){
@@ -2244,7 +2246,7 @@ void read_xml_filenames(
 			}
 		}
 	}
-	if(!grid_found || !ligand_found) error |= 16;
+	if(!grid_found || !lig_or_flex_found) error |= 16;
 	if(error){
 		printf("Error: XML file is not in AutoDock-GPU format (error #%d in line %lu).\n",error,line_nr);
 		exit(error);
