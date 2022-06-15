@@ -304,10 +304,10 @@ gpu_gradient_minAdam_kernel(
 		}
 #endif
                 float beta1p =
-                    1.0f - sycl::pow<double>(cData.dockpars.adam_beta1,
+                    1.0f - sycl::pow<float>(cData.dockpars.adam_beta1,
                                              1.0f + iteration_cnt);
                 float beta2p =
-                    1.0f - sycl::pow<double>(cData.dockpars.adam_beta2,
+                    1.0f - sycl::pow<float>(cData.dockpars.adam_beta2,
                                              1.0f + iteration_cnt);
 
                 for (int i = item_ct1.get_local_id(2);
