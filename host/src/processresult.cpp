@@ -500,15 +500,13 @@ void make_resfiles(
 			if (best_energy_of_all > accurate_interE + accurate_interflexE + accurate_intraE + accurate_intraflexE)
 			{
 				best_energy_of_all = accurate_interE + accurate_interflexE + accurate_intraE + accurate_intraflexE;
-
-				if (mypars->gen_best)
-					gen_new_pdbfile(basefile, "best.pdbqt", ligand_ref);
+				if (mypars->gen_best) gen_new_pdbfile("best.pdbqt", ligand_ref);
 			}
 
 		if (i < mypars->gen_pdbs) //if it is necessary, making new pdbqts for best entities
 		{
 			sprintf(name_ext_start, "_docked_run%d_entity%d.pdbqt", run_cnt+1, i+1); //name will be <original pdb filename>_docked_<number starting from 1>.pdb
-			gen_new_pdbfile(basefile, temp_filename, ligand_ref);
+			gen_new_pdbfile(temp_filename, ligand_ref);
 		}
 		if (mypars->gen_finalpop)
 		{
@@ -786,7 +784,7 @@ void generate_output(
 						{
 							pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
 							pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
-							}
+						}
 						sprintf(lineout, "DOCKED: %s", tempstr);
 						pdbqt_template += lineout;
 					}
@@ -1119,7 +1117,7 @@ void generate_output(
 		strcpy(xml_file_name, mypars->resname);
 		strcat(xml_file_name, ".xml");
 		fp_xml = fopen(xml_file_name, "w");
-		if(fp==NULL){
+		if(fp_xml==NULL){
 			printf("Error: Cannot create xml output file %s: %s\n",xml_file_name,strerror(errno));
 			exit(9);
 		}

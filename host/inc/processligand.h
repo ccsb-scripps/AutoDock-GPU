@@ -228,7 +228,7 @@ int parse_liganddata(
                            pair_mod*    mod_atype_pairs
                     );
 
-int gen_new_pdbfile(const char*, const char*, const Liganddata*);
+int gen_new_pdbfile(const char*, const Liganddata*);
 
 void get_movvec_to_origo(const Liganddata*, double []);
 

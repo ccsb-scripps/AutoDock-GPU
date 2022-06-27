@@ -1323,73 +1323,42 @@ int parse_liganddata(
 }
 
 int gen_new_pdbfile(
-                    const char* oldpdb,
-                    const char* newpdb,
+                    const char* filename,
                     const       Liganddata* myligand
                    )
-// The function opens old pdb file, which is supposed to be an AutoDock4 pdbqt file, and
-// copies it to newpdb file, but switches the coordinate values to the atomic coordinates
-// of myligand, so newpdb file will be identical to oldpdb except the coordinate values.
-// Myligand has to be the ligand which was originally read from oldpdb.
+// The function write the pdbqt file specified by filename with the current ligand's atomic coordinates
 // If the operation was successful, the function returns 0, if not, it returns 1.
 {
-	FILE* fp_old;
-	FILE* fp_new;
+	FILE* fp;
 	char tempstr [256];
-	char tempstr_short [32];
-	int acnt_oldlig;
-	int i,j;
 
-	acnt_oldlig = 0;
-
-	fp_old = fopen(oldpdb, "rb"); // fp_old = fopen(oldpdb, "r");
-	if (fp_old == NULL)
+	fp = fopen(filename, "w");
+	if (fp == NULL)
 	{
-		printf("Error: Can't open file %s.\n", oldpdb);
+		printf("Error: Can't create pdbqt output file %s.\n", filename);
 		return 1;
 	}
 
-	fp_new = fopen(newpdb, "w");
-	if (fp_new == NULL)
+	unsigned int line_count = 0;
+	unsigned int atom_cnt = 0;
+	while (line_count < myligand->file_content.size())
 	{
-		printf("Error: Can't create file %s.\n", newpdb);
-		fclose(fp_old);
-		return 1;
-	}
-
-	while (fgets(tempstr, 255, fp_old) != NULL) // reading a whole row from oldpdb
-	{
-		sscanf(tempstr, "%s", tempstr_short);
-		if ((strcmp(tempstr_short, "HETATM") == 0) || (strcmp(tempstr_short, "ATOM") == 0)) // if the row begins with HETATM/ATOM, coordinates must be switched
+		strcpy(tempstr,myligand->file_content[line_count].c_str());
+		line_count++;
+		if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 		{
-			if (acnt_oldlig >= myligand->num_of_atoms)
-			{
-				printf("Error: Ligand in file %s includes more atoms than current ligand.\n",oldpdb);
-				fclose(fp_old);
-				fclose(fp_new);
-				return 1;
-			}
-			for (i=0; i<3; i++)
-			{
-				sprintf(tempstr_short, "%7.3lf", myligand->atom_idxyzq [acnt_oldlig][1+i]);
-				for (j=0; j<7; j++)
-					tempstr [31+8*i+j] = tempstr_short [j];
-			}
-			acnt_oldlig++;
-		}
-		fprintf(fp_new, "%s", tempstr); // writing the row to newpdb
+			tempstr[30] = '\0';
+			fprintf(fp, "%s%8.3lf%8.3lf%8.3lf  0.00  0.00    %+6.3lf %-2s\n", tempstr,
+			                                                                  myligand->atom_idxyzq[atom_cnt][1], // x
+			                                                                  myligand->atom_idxyzq[atom_cnt][2], // y
+			                                                                  myligand->atom_idxyzq[atom_cnt][3], // z
+			                                                                  myligand->atom_idxyzq[atom_cnt][4], // q
+			                                                                  myligand->atom_types[((int)myligand->atom_idxyzq[atom_cnt][0])]); // type
+			atom_cnt++;
+		} else fputs(tempstr, fp);
 	}
 
-	if (acnt_oldlig != myligand->num_of_atoms)
-	{
-		printf("%d %d \n", acnt_oldlig, myligand->num_of_atoms);
-		printf("Warning: New ligand consists of more atoms than original one (i.e. w/ flexres).\n");
-		printf("         Not all the atoms have been written to file!\n");
-	}
-
-	fclose(fp_old);
-	fclose(fp_new);
-
+	fclose(fp);
 	return 0;
 }
 
