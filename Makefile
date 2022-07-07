@@ -45,10 +45,18 @@ override DEVICE:=GPU
 include Makefile.dpcpp
 export
 else
+# run SYCL version on NVidia GPU
+ifeq ($(DEVICE),NvGPU)
+override DEVICE:=GPU
+PLATFORM=NvGPU
+include Makefile.dpcpp
+export
+else
 ifeq ($(DEVICE),OCLGPU)
 override DEVICE:=GPU
 export
 endif
 include Makefile.OpenCL
+endif
 endif
 endif

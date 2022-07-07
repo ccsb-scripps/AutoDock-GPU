@@ -25,6 +25,11 @@ ifeq ($(DEVICE), CPU)
 	DEV =-DCPU_DEVICE
 else ifeq ($(DEVICE), GPU)
 	DEV =-DGPU_DEVICE
+	ifeq ($(PLATFORM), NvGPU)
+		DPCPP=clang++
+		CPP=clang++
+		IFLAGS=-fsycl -fsycl-targets=nvptx64-nvidia-cuda -Xsycl-target-backend --cuda-gpu-arch=sm_80 -Xcuda-ptxas --verbose --cuda-path=${CUDA_TOOLKIT_ROOT_DIR}
+	endif
 endif
 
 # ------------------------------------------------------
@@ -41,7 +46,11 @@ LIB_XeGPU = kernels.dp.o
 TARGET := autodock
 TOOL_TARGET := adgpu_analysis
 
-IFLAGS=-I$(COMMON_DIR) -I$(HOST_INC_DIR) -I$(KRNL_DIR)
+IFLAGS+=-I$(COMMON_DIR) -I$(HOST_INC_DIR) -I$(KRNL_DIR)
+# set DPCT_INCUDE_PATH in the environment if DPCT helper functions are used for SYCL on non Intel platforms
+ifdef DPCT_INCLUDE_PATH
+	IFLAGS+=-I$(DPCT_INCLUDE_PATH)
+endif
 LFLAGS=-Wl,-rpath=$(GPU_LIBRARY_PATH):$(CPU_LIBRARY_PATH)
 CFLAGS= $(IFLAGS) $(LFLAGS)
 TOOL_CFLAGS=-std=c++17 -I$(COMMON_DIR) -I$(HOST_INC_DIR)
@@ -65,7 +74,13 @@ BIN := $(wildcard $(TARGET)*)
 # Valid values: 32, 64, 128, 256
 NUMWI=
 
-ifeq ($(NUMWI), 32)
+ifeq ($(NUMWI), 8)
+	NWI=-DN8WI
+	TARGET:=$(TARGET)_8wi
+else ifeq ($(NUMWI), 16)
+	NWI=-DN16WI
+	TARGET:=$(TARGET)_16wi
+else ifeq ($(NUMWI), 32)
 	NWI=-DN32WI
 	TARGET:=$(TARGET)_32wi
 else ifeq ($(NUMWI), 64)
@@ -80,6 +95,9 @@ else ifeq ($(NUMWI), 256)
 else ifeq ($(NUMWI), 512)
 		NWI=-DN512WI
 		TARGET:=$(TARGET)_512wi
+else ifeq ($(NUMWI), 1024)
+		NWI=-DN1024WI
+		TARGET:=$(TARGET)_1024wi
 else
 	ifeq ($(DEVICE), CPU)
 		NWI=-DN16WI
@@ -99,20 +117,22 @@ CONFIG=RELEASE
 #CONFIG=FDEBUG
 
 ifeq ($(CONFIG),FDEBUG)
-	OPT =-O0 -g3 -Wall -DDOCK_DEBUG
-# for vtune
-#	OPT +=-gline-tables-only -fdebug-info-for-profiling
-ifeq ($(DEVICE), GPU)
-# for AOT compile and debug
-#	OPT+=-fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xs "-device ats -internal_options -cl-kernel-debug-enable -options -cl-opt-disable"
-# for AOT compile
-#	OPT+=-fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xs "-device ats"
-endif    
+	OPT =-g -Wall -DDOCK_DEBUG
+	ifeq ($(DEVICE), GPU)
+	# for AOT compile and debug
+	#	OPT+=-fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xs "-device ats -internal_options -cl-kernel-debug-enable -options -cl-opt-disable"
+	# for AOT compile
+	#	OPT+=-fsycl-targets=spir64_gen-unknown-unknown-sycldevice -Xs "-device ats"
+	endif    
+else ifeq ($(CONFIG),FDEBUG_VTUNE)
+	OPT =-g -Wall -DDOCK_DEBUG -gline-tables-only -fdebug-info-for-profiling
 else ifeq ($(CONFIG),LDEBUG)
 	OPT =-g -Wall 
 else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
-#	OPT+=-fsycl-targets=spir64_gen -Xs "-device 0x0BD6 -version_id 6"
+	ifeq ($(PLATFORM),PVC)
+		OPT+=-fsycl-targets=spir64_gen -Xs "-device 0x0BD6 -revision_id 7"
+	endif
 else
 	OPT =
 endif
