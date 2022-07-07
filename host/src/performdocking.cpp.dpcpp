@@ -1273,11 +1273,11 @@ int docking_with_gpu(const Gridinfo *mygrid, Dockpars *mypars,
 	#ifdef DOCK_DEBUG
 		para_printf("\nExecution starts:\n\n");
 		para_printf("%-25s", "\tK_INIT");fflush(stdout);
-		cudaDeviceSynchronize();
+		XeDeviceSynchronize();
 	#endif
 	gpu_calc_initpop(kernel1_gxsize, kernel1_lxsize, pMem_conformations_current, pMem_energies_current);
 	#ifdef DOCK_DEBUG
-		cudaDeviceSynchronize();
+		XeDeviceSynchronize();
 		para_printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 	// End of Kernel1
@@ -1288,7 +1288,7 @@ int docking_with_gpu(const Gridinfo *mygrid, Dockpars *mypars,
 	#endif
 	gpu_sum_evals(kernel2_gxsize, kernel2_lxsize);
 	#ifdef DOCK_DEBUG
-		cudaDeviceSynchronize();
+		XeDeviceSynchronize();
 		para_printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 	// End of Kernel2
