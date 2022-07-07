@@ -88,15 +88,15 @@ DPCT1007:39: Migration of this CUDA API is not supported by the Intel(R) DPC++
 Compatibility Tool.
 */
 #define REDUCEINTEGERSUM(value, pAccumulator) \
-        int val = sycl::ext::oneapi::reduce(item_ct1.get_group(), value, std::plus<>());\
+        int val = sycl::reduce_over_group(item_ct1.get_group(), value, std::plus<>());\
         *pAccumulator = val;\
         item_ct1.barrier();
 
 #define ATOMICADDI32(pAccumulator, value)                               \
-        sycl::ext::oneapi::atomic_ref<int, sycl::ext::oneapi::memory_order::acq_rel, sycl::ext::oneapi::memory_scope::device, sycl::access::address_space::local_space>(*pAccumulator) += ((int) (value))
+        sycl::atomic_ref<int, sycl::memory_order::acq_rel, sycl::memory_scope::device, sycl::access::address_space::local_space>(*pAccumulator) += ((int) (value))
 
 #define ATOMICSUBI32(pAccumulator, value)                               \
-        sycl::ext::oneapi::atomic_ref<int, sycl::ext::oneapi::memory_order::acq_rel, sycl::ext::oneapi::memory_scope::device, sycl::access::address_space::local_space>(*pAccumulator) -= ((int) (value))
+        sycl::atomic_ref<int, sycl::memory_order::acq_rel, sycl::memory_scope::device, sycl::access::address_space::local_space>(*pAccumulator) -= ((int) (value))
 
 /*
 DPCT1058:94: "atomicAdd" is not migrated because it is not called in the code.
@@ -128,7 +128,7 @@ Compatibility Tool.
 */
 
 #define REDUCEFLOATSUM(value, pAccumulator) \
-        value = sycl::ext::oneapi::reduce(item_ct1.get_group(), value, std::plus<>());\
+        value = sycl::reduce_over_group(item_ct1.get_group(), value, std::plus<>());\
         *pAccumulator = (float) value;\
         item_ct1.barrier();
 
