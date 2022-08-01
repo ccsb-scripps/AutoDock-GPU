@@ -565,8 +565,8 @@ void ligand_calc_output(
 			for(unsigned int k=0; k<calc.analysis.size()-j-1; k++)
 				if(calc.analysis[k].type>calc.analysis[k+1].type) // percolate larger types numbers up
 					std::swap(calc.analysis[k], calc.analysis[k+1]);
+		fprintf(fp, "ANALYSIS: COUNT %lu\n", calc.analysis.size());
 		if(calc.analysis.size()>0){
-			fprintf(fp, "ANALYSIS: COUNT %lu\n", calc.analysis.size());
 			std::string types    = "TYPE    {";
 			std::string lig_id   = "LIGID   {";
 			std::string ligname  = "LIGNAME {";
@@ -804,8 +804,8 @@ void generate_output(
 			fprintf(fp, "Time taken for this run:   %.3lfs\n\n", docking_avg_runtime);
 
 			if(mypars->contact_analysis){
+				fprintf(fp, "ANALYSIS: COUNT %lu\n", myresults[i].analysis.size());
 				if(myresults[i].analysis.size()>0){
-					fprintf(fp, "ANALYSIS: COUNT %lu\n", myresults[i].analysis.size());
 					std::string types    = "TYPE    {";
 					std::string lig_id   = "LIGID   {";
 					std::string ligname  = "LIGNAME {";
@@ -1170,8 +1170,8 @@ void generate_output(
 			j = energy_order[u];
 			fprintf(fp_xml, "\t\t<run id=\"%d\">\n",(myresults [j]).run_number);
 			if(mypars->contact_analysis){
+				fprintf(fp_xml, "\t\t\t<contact_analysis count=\"%lu\">\n", myresults[j].analysis.size());
 				if(myresults[j].analysis.size()>0){
-					fprintf(fp_xml, "\t\t\t<contact_analysis count=\"%lu\">\n", myresults[j].analysis.size());
 					std::string types;
 					std::string lig_id;
 					std::string ligname;
