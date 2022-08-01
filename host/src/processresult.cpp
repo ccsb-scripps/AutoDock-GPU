@@ -1217,8 +1217,8 @@ void generate_output(
 					fprintf(fp_xml, "\t\t\t\t<contact_analysis_residue>%s</contact_analysis_residue>\n", residue.c_str());
 					fprintf(fp_xml, "\t\t\t\t<contact_analysis_resid>  %s</contact_analysis_resid>\n", res_id.c_str());
 					fprintf(fp_xml, "\t\t\t\t<contact_analysis_chain>  %s</contact_analysis_chain>\n", chain.c_str());
-					fprintf(fp_xml, "\t\t\t</contact_analysis>\n");
 				}
+				fprintf(fp_xml, "\t\t\t</contact_analysis>\n");
 			}
 			fprintf(fp_xml, "\t\t\t<free_NRG_binding>   %.2f</free_NRG_binding>\n", myresults[j].interE + myresults[j].interflexE + torsional_energy + (!mypars->free_roaming_ligand) * (myresults[j].intraE + myresults[j].intraflexE));
 			fprintf(fp_xml, "\t\t\t<final_intermol_NRG> %.2f</final_intermol_NRG>\n", myresults[j].interE + myresults[j].interflexE);
