@@ -179,7 +179,7 @@ SYCL_EXTERNAL void gpu_calc_energy(float *pGenotype, float &energy, int &run_id,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -268,7 +268,7 @@ SYCL_EXTERNAL void gpu_calc_energy(float *pGenotype, float &energy, int &run_id,
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier();
+                item_ct1.barrier(sycl::access::fence_space::local_space);
 
         } // End rotation_counter for-loop
 

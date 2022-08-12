@@ -116,7 +116,7 @@ gpu_gen_and_eval_newpops_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier();
+                item_ct1.barrier(sycl::access::fence_space::local_space);
 
                 // Perform final reduction in warp 0
 		if (warpID == 0)
@@ -146,7 +146,7 @@ gpu_gen_and_eval_newpops_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier();
+                item_ct1.barrier(sycl::access::fence_space::local_space);
 
                 // Copy best genome to next generation
                 int dOffset = item_ct1.get_group(2) * GENOTYPE_LENGTH_IN_GLOBMEM;
@@ -186,7 +186,7 @@ gpu_gen_and_eval_newpops_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier();
+                item_ct1.barrier(sycl::access::fence_space::local_space);
 
                 if (item_ct1.get_local_id(2) <
                     4) // it is not ensured that the four candidates will be
@@ -206,7 +206,7 @@ gpu_gen_and_eval_newpops_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier();
+                item_ct1.barrier(sycl::access::fence_space::local_space);
 
                 if (item_ct1.get_local_id(2) < 2)
                 {
@@ -254,7 +254,7 @@ gpu_gen_and_eval_newpops_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier();
+                item_ct1.barrier(sycl::access::fence_space::local_space);
 
                 // Performing crossover
 		// Notice: dockpars_crossover_rate was scaled down to [0,1] in host
@@ -273,7 +273,7 @@ gpu_gen_and_eval_newpops_kernel(
                         by the Intel(R) DPC++ Compatibility Tool.
                         */
                         __threadfence();
-                        item_ct1.barrier();
+                        item_ct1.barrier(sycl::access::fence_space::local_space);
 
                         // covr_point[0] should store the lower crossover-point
                         if (item_ct1.get_local_id(2) == 0) {
@@ -289,7 +289,7 @@ gpu_gen_and_eval_newpops_kernel(
                         by the Intel(R) DPC++ Compatibility Tool.
                         */
                         __threadfence();
-                        item_ct1.barrier();
+                        item_ct1.barrier(sycl::access::fence_space::local_space);
 
                         for (uint32_t gene_counter = item_ct1.get_local_id(2);
                              gene_counter < cData.dockpars.num_of_genes;
@@ -328,7 +328,7 @@ gpu_gen_and_eval_newpops_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier();
+                item_ct1.barrier(sycl::access::fence_space::local_space);
 
                 // Performing mutation
                 for (uint32_t gene_counter = item_ct1.get_local_id(2);
@@ -370,7 +370,7 @@ gpu_gen_and_eval_newpops_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier();
+                item_ct1.barrier(sycl::access::fence_space::local_space);
 
                 gpu_calc_energy(offspring_genotype, energy, run_id, calc_coords,
                                 sFloatAccumulator, item_ct1, cData);

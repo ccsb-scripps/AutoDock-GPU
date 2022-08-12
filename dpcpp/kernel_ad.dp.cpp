@@ -159,7 +159,7 @@ gpu_gradient_minAD_kernel(
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
         energy = pMem_energies_next[run_id * cData.dockpars.pop_size + *entity_id];
 
         int offset = (run_id * cData.dockpars.pop_size + *entity_id) *
@@ -190,7 +190,7 @@ gpu_gradient_minAD_kernel(
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // Initializing vectors
         for (uint32_t i = item_ct1.get_local_id(2);
@@ -246,7 +246,7 @@ gpu_gradient_minAD_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier();
+                item_ct1.barrier(sycl::access::fence_space::local_space);
 
                 gpu_calc_energrad(
                     // Some OpenCL compilers don't allow declaring
@@ -333,7 +333,7 @@ gpu_gradient_minAD_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier();
+                item_ct1.barrier(sycl::access::fence_space::local_space);
 
 #if defined (DEBUG_SQDELTA_ADADELTA)
 		if (/*(get_group_id(0) == 0) &&*/ (threadIdx.x == 0)) {
@@ -396,7 +396,7 @@ gpu_gradient_minAD_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier(); // making sure that iteration_cnt is up-to-date
+                item_ct1.barrier(sycl::access::fence_space::local_space); // making sure that iteration_cnt is up-to-date
 #ifdef ADADELTA_AUTOSTOP
         } while ((iteration_cnt < cData.dockpars.max_num_of_iters) && (*rho > 0.01f));
 #else
@@ -419,7 +419,7 @@ gpu_gradient_minAD_kernel(
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         offset = (run_id * cData.dockpars.pop_size + *entity_id) *
                  GENOTYPE_LENGTH_IN_GLOBMEM;
