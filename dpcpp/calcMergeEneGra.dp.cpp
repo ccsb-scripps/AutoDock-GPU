@@ -262,7 +262,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
 	float weights[8];
 	float cube[8];
 	#ifdef SYCL_NATIVE_MATH
-	float inv_grid_spacing=1.0f * sycl::native::recip(cData.dockpars.grid_spacing);
+	float inv_grid_spacing=sycl::native::recip(cData.dockpars.grid_spacing);
 	#else
 	float inv_grid_spacing=1.0f/cData.dockpars.grid_spacing;
 	#endif
@@ -679,13 +679,13 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
 			#endif
 #ifndef DIEL_FIT_ABC
 													#ifdef SYCL_NATIVE_MATH
-													-sycl::native::divide(es_energy * 2.21718f, (dist2*dist_shift))
+													-sycl::native::divide(es_energy * 2.21718f, dist2 * dist_shift)
 													#else
 													-es_energy * 2.21718f / (dist2*dist_shift)
 													#endif
 #else
 													#ifdef SYCL_NATIVE_MATH
-													-es_energy * (sycl::native::divide(2.808f, dist2*dist_shift) + sycl::native::divide(0.288f, disth4*disth_shift))
+													-es_energy * (sycl::native::divide(2.808f, dist2 * dist_shift) + sycl::native::divide(0.288f, disth4 * disth_shift))
 													#else
 			                                       	-es_energy * ((2.808f / (dist2*dist_shift)) + (0.288f / (disth4*disth_shift)))
 													#endif

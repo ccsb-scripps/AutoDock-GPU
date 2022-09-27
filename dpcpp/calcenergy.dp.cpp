@@ -527,8 +527,8 @@ SYCL_EXTERNAL void gpu_calc_energy(float *pGenotype, float &energy, int &run_id,
 			float dist_shift=atomic_distance+1.26366f;
 			dist2=dist_shift*dist_shift;
                         #ifdef SYCL_NATIVE_MATH
-                        float diel = (1.10859f * sycl::native::recip(dist2)) + 0.010358f;
-                        float es_energy = cData.dockpars.coeff_elec * q1 * q2 * sycl::native::recip(atomic_distance);
+                        float diel = sycl::native::divide(1.10859f, dist2) + 0.010358f;
+                        float es_energy = sycl::native::divide(cData.dockpars.coeff_elec * q1 * q2, atomic_distance);
                         #else
 			float diel = (1.10859f / dist2)+0.010358f;
 			float es_energy = cData.dockpars.coeff_elec * q1 * q2 / atomic_distance;
