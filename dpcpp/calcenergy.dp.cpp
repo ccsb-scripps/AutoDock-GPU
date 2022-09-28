@@ -1,5 +1,6 @@
 #include <CL/sycl.hpp>
 #include <dpct/dpct.hpp>
+#include "defines.h"
 /*
 
 AutoDock-GPU, an OpenCL implementation of AutoDock 4.2 running a Lamarckian
@@ -26,8 +27,6 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
-
-//#define SYCL_NATIVE_MATH
 
 //#define DEBUG_ENERGY_KERNEL
 
