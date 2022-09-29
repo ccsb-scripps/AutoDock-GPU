@@ -1,5 +1,6 @@
 #include <CL/sycl.hpp>
 #include <dpct/dpct.hpp>
+#include "defines.h"
 /*
 
 AutoDock-GPU, an OpenCL implementation of AutoDock 4.2 running a Lamarckian
@@ -127,12 +128,12 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
 	float genrotangle = genotype[5] * DEG_TO_RAD;
 
         sycl::float4 genrot_unitvec;
-        float sin_angle = sycl::sin(theta);
-        float s2 = sycl::sin(genrotangle * 0.5f);
-        genrot_unitvec.x() = s2 * sin_angle * sycl::cos(phi);
-        genrot_unitvec.y() = s2 * sin_angle * sycl::sin(phi);
-        genrot_unitvec.z() = s2 * sycl::cos(theta);
-        genrot_unitvec.w() = sycl::cos(genrotangle * 0.5f);
+		float sin_angle = SYCL_SIN(theta);
+		float s2 = SYCL_SIN(genrotangle * 0.5f);
+		genrot_unitvec.x() = s2 * sin_angle * SYCL_COS(phi);
+		genrot_unitvec.y() = s2 * sin_angle * SYCL_SIN(phi);
+		genrot_unitvec.z() = s2 * SYCL_COS(theta);
+		genrot_unitvec.w() = SYCL_COS(genrotangle * 0.5f);
         float is_theta_gt_pi = 1.0f-2.0f*(float)(sin_angle < 0.0f);
 
 	uint32_t  g1 = cData.dockpars.gridsize_x;
@@ -188,7 +189,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
 				uint32_t rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
 
 				float rotation_angle = genotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
-                                float s = sycl::sin(rotation_angle);
+                                float s = SYCL_SIN(rotation_angle);
                                 rotation_unitvec.x() =
                                     s * cData.pKerconst_conform
                                             ->rotbonds_unit_vectors_const
@@ -201,7 +202,8 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
                                     s * cData.pKerconst_conform
                                             ->rotbonds_unit_vectors_const
                                                 [3 * rotbond_id + 2];
-                                rotation_unitvec.w() = sycl::cos(rotation_angle);
+                                rotation_unitvec.w() = SYCL_COS(rotation_angle);
+
                                 rotation_movingvec.x() =
                                     cData.pKerconst_conform
                                         ->rotbonds_moving_vectors_const
@@ -242,7 +244,8 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
 	// ================================================
 	float weights[8];
 	float cube[8];
-	float inv_grid_spacing=1.0f/cData.dockpars.grid_spacing;
+	float inv_grid_spacing = SYCL_RECIP(cData.dockpars.grid_spacing);
+
         for (uint32_t atom_id = item_ct1.get_local_id(2);
              atom_id < cData.dockpars.num_of_atoms;
              atom_id += item_ct1.get_local_range().get(2))
@@ -502,7 +505,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
                 float subz = calc_coords[atom1_id].z() - calc_coords[atom2_id].z();
 
                 // Calculating atomic_distance
-                float dist = sycl::sqrt(subx * subx + suby * suby + subz * subz);
+				float dist = SYCL_SQRT(subx * subx + suby * suby + subz * subz);
                 float atomic_distance = dist * cData.dockpars.grid_spacing;
 
 		// Getting type IDs
@@ -551,9 +554,10 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
                         float rm = sycl::pown(smoothed_distance, -m);
                         energy += (cData.pKerconst_intra->VWpars_AC_const[idx]
 			           -rmn*cData.pKerconst_intra->VWpars_BD_const[idx])*rm;
-			priv_gradient_per_intracontributor += (n*cData.pKerconst_intra->VWpars_BD_const[idx]*rmn
-			                                      -m*cData.pKerconst_intra->VWpars_AC_const[idx])*rm
-			                                      /smoothed_distance;
+
+			priv_gradient_per_intracontributor += SYCL_DIVIDE((n*cData.pKerconst_intra->VWpars_BD_const[idx]*rmn
+			                                      -m*cData.pKerconst_intra->VWpars_AC_const[idx])*rm, smoothed_distance);
+
 			#if defined (DEBUG_ENERGY_KERNEL)
 			intraE += (cData.pKerconst_intra->VWpars_AC_const[idx]
 			           -rmn*cData.pKerconst_intra->VWpars_BD_const[idx])*rm
@@ -583,27 +587,27 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
                               cData.dockpars.qasp * sycl::fabs(q2)) *
                                  cData.pKerconst_intra
                                      ->dspars_V_const[atom1_typeid]) *
-                            (cData.dockpars.coeff_desolv *
-                             (12.96f -
-                              0.1063f * dist2 * (1.0f - 0.001947f * dist2)) /
-                             (12.96f +
-                              dist2 * (0.4137f + dist2 * (0.00357f +
-                                                          0.000112f * dist2))));
+							SYCL_DIVIDE
+                            (
+								cData.dockpars.coeff_desolv * (12.96f - 0.1063f * dist2 * (1.0f - 0.001947f * dist2)),
+								(12.96f + dist2 * (0.4137f + dist2 * (0.00357f + 0.000112f * dist2)))
+							);
 
                         // Calculating electrostatic term
 #ifndef DIEL_FIT_ABC
 			float dist_shift=atomic_distance+1.26366f;
 			dist2=dist_shift*dist_shift;
-			float diel = 1.10859f / dist2 + 0.010358f;
+			float diel = SYCL_DIVIDE(1.10859f, dist2) + 0.010358f;
 #else
 			float dist_shift=atomic_distance+1.588f;
 			dist2=dist_shift*dist_shift;
 			float disth_shift=atomic_distance+0.794f;
 			float disth4=disth_shift*disth_shift;
 			disth4*=disth4;
-			float diel = 1.404f / dist2 + 0.072f / disth4 + 0.00831f;
+			float diel = SYCL_DIVIDE(1.404f, dist2) + SYCL_DIVIDE(0.072f, disth4) + 0.00831f;
 #endif
-			float es_energy = cData.dockpars.coeff_elec * q1 * q2 / atomic_distance;
+
+			float es_energy = SYCL_DIVIDE(cData.dockpars.coeff_elec * q1 * q2, atomic_distance);
 			energy += diel * es_energy + desolv_energy;
 
 			#if defined (DEBUG_ENERGY_KERNEL)
@@ -619,11 +623,13 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
 
 //			priv_gradient_per_intracontributor +=  -dockpars_coeff_elec * q1 * q2 * native_divide (upper, lower) -
 //			                                       0.0771605f * atomic_distance * desolv_energy;
-			priv_gradient_per_intracontributor +=  -(es_energy / atomic_distance) * diel
+
+			priv_gradient_per_intracontributor +=  SYCL_DIVIDE(-es_energy, atomic_distance) * diel
+
 #ifndef DIEL_FIT_ABC
-			                                       -es_energy * 2.21718f / (dist2*dist_shift)
+													-SYCL_DIVIDE(es_energy * 2.21718f, dist2 * dist_shift)
 #else
-			                                       -es_energy * ((2.808f / (dist2*dist_shift)) + (0.288f / (disth4*disth_shift)))
+													-es_energy * (SYCL_DIVIDE(2.808f, dist2 * dist_shift) + SYCL_DIVIDE(0.288f, disth4 * disth_shift))
 #endif
 			                                       -0.0771605f * atomic_distance * desolv_energy; // 1/3.6^2 = 1/12.96 = 0.0771605
 		} // if cuttoff2 - internuclear-distance at 20.48A
@@ -632,7 +638,8 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
 		// into the contribution of each atom of the pair.
 		// Distances in Angstroms of vector that goes from
 		// "atom1_id"-to-"atom2_id", therefore - subx, - suby, and - subz are used
-		float grad_div_dist = -priv_gradient_per_intracontributor / dist;
+		float grad_div_dist = SYCL_DIVIDE(-priv_gradient_per_intracontributor, dist);
+
 #ifdef FLOAT_GRADIENTS
 		float priv_intra_gradient_x = subx * grad_div_dist;
 		float priv_intra_gradient_y = suby * grad_div_dist;
@@ -862,12 +869,9 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
 		// Finding the quaternion that performs
 		// the infinitesimal rotation around torque axis
                 sycl::float4 quat_torque;
-                quat_torque.x() = torque_rot.x() *
-                                  SIN_HALF_INFINITESIMAL_RADIAN / torque_length;
-                quat_torque.y() = torque_rot.y() *
-                                  SIN_HALF_INFINITESIMAL_RADIAN / torque_length;
-                quat_torque.z() = torque_rot.z() *
-                                  SIN_HALF_INFINITESIMAL_RADIAN / torque_length;
+				quat_torque.x() = SYCL_DIVIDE(torque_rot.x() * SIN_HALF_INFINITESIMAL_RADIAN, torque_length);
+                quat_torque.y() = SYCL_DIVIDE(torque_rot.y() * SIN_HALF_INFINITESIMAL_RADIAN, torque_length);
+                quat_torque.z() = SYCL_DIVIDE(torque_rot.z() * SIN_HALF_INFINITESIMAL_RADIAN, torque_length);
                 quat_torque.w() = COS_HALF_INFINITESIMAL_RADIAN;
 
 #if defined (PRINT_GRAD_ROTATION_GENES)
@@ -905,12 +909,11 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
 		// Derived from autodockdev/motions.py/quaternion_to_oclacube()
 		// In our terms means quaternion_to_oclacube(target_q{w|x|y|z}, theta_larger_than_pi)
                 target_rotangle = 2.0f * fast_acos(target_q.w()); // = 2.0f * ang;
-                float sin_ang = sycl::sqrt(
-                    1.0f - target_q.w() * target_q.w()); // = native_sin(ang);
 
-                target_theta =
-                    PI_TIMES_2 +
-                    is_theta_gt_pi * fast_acos(target_q.z() / sin_ang);
+				float sin_ang = SYCL_SQRT(1.0f - target_q.w() * target_q.w()); // = native_sin(ang);
+
+                target_theta = PI_TIMES_2 + is_theta_gt_pi * fast_acos(SYCL_DIVIDE(target_q.z(), sin_ang));
+
                 target_phi =
                     fmod_pi2((sycl::atan2(is_theta_gt_pi * target_q.y(),
                                           is_theta_gt_pi * target_q.x()) +
@@ -1032,17 +1035,12 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
 		// Multiplicating by DEG_TO_RAD is to make it uniform to DEG (see torsion gradients)
                 gradient_genotype[3] = sycl::rint(sycl::fmin(
                     (float)MAXTERM,
-                    sycl::fmax(-MAXTERM,
-                               TERMSCALE *
-                                   (grad_phi / (dependence_on_theta *
-                                                dependence_on_rotangle)) *
-                                   DEG_TO_RAD)));
+                    sycl::fmax(-MAXTERM, TERMSCALE * SYCL_DIVIDE(grad_phi, dependence_on_theta * dependence_on_rotangle) * DEG_TO_RAD)));
+
                 gradient_genotype[4] = sycl::rint(sycl::fmin(
                     (float)MAXTERM,
-                    sycl::fmax(-MAXTERM,
-                               TERMSCALE *
-                                   (grad_theta / dependence_on_rotangle) *
-                                   DEG_TO_RAD)));
+                    sycl::fmax(-MAXTERM, TERMSCALE * SYCL_DIVIDE(grad_theta, dependence_on_rotangle) * DEG_TO_RAD)));
+
                 gradient_genotype[5] = sycl::rint(
                     sycl::fmin((float)MAXTERM,
                                sycl::fmax(-MAXTERM, TERMSCALE * grad_rotangle *
@@ -1093,7 +1091,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
                 functionality. Check the potential precision and/or performance
                 issues for the generated code.
                 */
-                float l = sycl::native::recip(sycl::fast_length(
+                float l = SYCL_RECIP(sycl::fast_length(
                     sycl::float3(rotation_unitvec.x(), rotation_unitvec.y(),
                                  rotation_unitvec.z())));
                 rotation_unitvec.x() *= l;

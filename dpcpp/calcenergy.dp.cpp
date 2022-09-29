@@ -1,5 +1,6 @@
 #include <CL/sycl.hpp>
 #include <dpct/dpct.hpp>
+#include "defines.h"
 /*
 
 AutoDock-GPU, an OpenCL implementation of AutoDock 4.2 running a Lamarckian
@@ -66,8 +67,8 @@ SYCL_EXTERNAL __dpct_inline__ float fast_acos(float cosine)
              fast_acos_c) *
                 x +
             fast_acos_d +
-            fast_acos_e * sycl::sqrt(2.0f - sycl::sqrt(2.0f + 2.0f * x)) -
-            fast_acos_f * sycl::sqrt(2.0f - 2.0f * x);
+                fast_acos_e * SYCL_SQRT(2.0f - SYCL_SQRT(2.0f + 2.0f * x)) -
+                fast_acos_f * SYCL_SQRT(2.0f - 2.0f * x);
         return sycl::copysign(ac, cosine) + (cosine < 0.0f) * PI_FLOAT;
 }
 
@@ -163,12 +164,12 @@ SYCL_EXTERNAL void gpu_calc_energy(float *pGenotype, float &energy, int &run_id,
 	float genrotangle = pGenotype[5] * DEG_TO_RAD;
 
         sycl::float4 genrot_unitvec;
-        float sin_angle = sycl::sin(theta);
-        float s2 = sycl::sin(genrotangle * 0.5f);
-        genrot_unitvec.x() = s2 * sin_angle * sycl::cos(phi);
-        genrot_unitvec.y() = s2 * sin_angle * sycl::sin(phi);
-        genrot_unitvec.z() = s2 * sycl::cos(theta);
-        genrot_unitvec.w() = sycl::cos(genrotangle * 0.5f);
+        float sin_angle = SYCL_SIN(theta);
+        float s2 = SYCL_SIN(genrotangle * 0.5f);
+        genrot_unitvec.x() = s2 * sin_angle * SYCL_COS(phi);
+        genrot_unitvec.y() = s2 * sin_angle * SYCL_SIN(phi);
+        genrot_unitvec.z() = s2 * SYCL_COS(theta);
+        genrot_unitvec.w() = SYCL_COS(genrotangle * 0.5f);
 
         uint g1 = cData.dockpars.gridsize_x;
 	uint g2 = cData.dockpars.gridsize_x_times_y;
@@ -223,7 +224,7 @@ SYCL_EXTERNAL void gpu_calc_energy(float *pGenotype, float &energy, int &run_id,
 				uint rotbond_id = (rotation_list_element & RLIST_RBONDID_MASK) >> RLIST_RBONDID_SHIFT;
 
 				float rotation_angle = pGenotype[6+rotbond_id]*DEG_TO_RAD*0.5f;
-                                float s = sycl::sin(rotation_angle);
+                                float s = SYCL_SIN(rotation_angle);
                                 rotation_unitvec.x() =
                                     s * cData.pKerconst_conform
                                             ->rotbonds_unit_vectors_const
@@ -236,7 +237,8 @@ SYCL_EXTERNAL void gpu_calc_energy(float *pGenotype, float &energy, int &run_id,
                                     s * cData.pKerconst_conform
                                             ->rotbonds_unit_vectors_const
                                                 [3 * rotbond_id + 2];
-                                rotation_unitvec.w() = sycl::cos(rotation_angle);
+                                rotation_unitvec.w() = SYCL_COS(rotation_angle);
+
                                 rotation_movingvec.x() =
                                     cData.pKerconst_conform
                                         ->rotbonds_moving_vectors_const
@@ -402,7 +404,7 @@ SYCL_EXTERNAL void gpu_calc_energy(float *pGenotype, float &energy, int &run_id,
                 float subz = calc_coords[atom1_id].z() - calc_coords[atom2_id].z();
 
                 // Calculating atomic_distance
-                float dist = sycl::sqrt(subx * subx + suby * suby + subz * subz);
+                float dist = SYCL_SQRT(subx * subx + suby * suby + subz * subz);
                 float atomic_distance = dist * cData.dockpars.grid_spacing;
 		if(atomic_distance<0.01f) atomic_distance=0.01f;
 
@@ -482,17 +484,16 @@ SYCL_EXTERNAL void gpu_calc_energy(float *pGenotype, float &energy, int &run_id,
                               cData.dockpars.qasp * sycl::fabs(q2)) *
                                  cData.pKerconst_intra
                                      ->dspars_V_const[atom1_typeid]) *
-                            (cData.dockpars.coeff_desolv *
-                             (12.96f -
-                              0.1063f * dist2 * (1.0f - 0.001947f * dist2)) /
-                             (12.96f +
-                              dist2 * (0.4137f + dist2 * (0.00357f +
-                                                          0.000112f * dist2))));
+                                SYCL_DIVIDE(
+                                        cData.dockpars.coeff_desolv * (12.96f - 0.1063f * dist2 * (1.0f - 0.001947f * dist2)),
+                                        (12.96f + dist2 * (0.4137f + dist2 * (0.00357f + 0.000112f * dist2)))
+                                );
+
                         // Calculating electrostatic term
 			float dist_shift=atomic_distance+1.26366f;
 			dist2=dist_shift*dist_shift;
-			float diel = (1.10859f / dist2)+0.010358f;
-			float es_energy = cData.dockpars.coeff_elec * q1 * q2 / atomic_distance;
+                        float diel = SYCL_DIVIDE(1.10859f, dist2) + 0.010358f;
+                        float es_energy = SYCL_DIVIDE(cData.dockpars.coeff_elec * q1 * q2, atomic_distance);
 			energy += diel * es_energy + desolv_energy;
 
 			#if defined (DEBUG_ENERGY_KERNEL)

@@ -130,4 +130,21 @@ enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.da
 // Output for the -modpair keyword
 // #define MODPAIR_INFO
 
+// Enables switching between native and non-native math in device code
+//#define SYCL_NATIVE_MATH
+
+#ifdef SYCL_NATIVE_MATH
+	#define SYCL_SQRT(x) sycl::native::sqrt(x)
+	#define SYCL_SIN(x) sycl::native::sin(x)
+	#define SYCL_COS(x) sycl::native::cos(x)
+	#define SYCL_DIVIDE(x,y) sycl::native::divide(x,y)
+	#define SYCL_RECIP(x) sycl::native::recip(x)
+#else
+	#define SYCL_SQRT(x) sycl::sqrt(x)
+	#define SYCL_SIN(x) sycl::sin(x)
+	#define SYCL_COS(x) sycl::cos(x)
+	#define SYCL_DIVIDE(x,y) (x/y)
+	#define SYCL_RECIP(x) (1.0f/x)
+#endif
+
 #endif /* DEFINES_H_ */
