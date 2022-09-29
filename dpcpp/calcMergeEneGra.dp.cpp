@@ -145,7 +145,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -236,7 +236,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier();
+                item_ct1.barrier(sycl::access::fence_space::local_space);
         } // End rotation_counter for-loop
 
 	// ================================================
@@ -470,7 +470,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // Inter- and intra-molecular energy calculation
 	// are independent from each other, so NO barrier is needed here.
@@ -682,7 +682,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // Transform gradients_inter_{x|y|z} 
 	// into local_gradients[i] (with four quaternion genes)
@@ -833,7 +833,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // ------------------------------------------
 	// Obtaining rotation-related gradients
@@ -1057,7 +1057,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         // ------------------------------------------
 	// Obtaining torsion-related gradients
@@ -1148,7 +1148,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
         for (uint32_t gene_cnt = item_ct1.get_local_id(2);
              gene_cnt < cData.dockpars.num_of_genes;
@@ -1160,7 +1160,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 
 #if defined (CONVERT_INTO_ANGSTROM_RADIAN)
         for (uint32_t gene_cnt =
@@ -1176,6 +1176,6 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(sycl::access::fence_space::local_space);
 #endif
 }
