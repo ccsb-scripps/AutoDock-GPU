@@ -327,7 +327,7 @@ gpu_gradient_minAdam_kernel(
 			float vp = vt[i] / beta2p;
 
 			// Applying update
-                        genotype[i] -= mp / (sycl::sqrt(vp) + cData.dockpars.adam_epsilon);
+                        genotype[i] -= mp / (SYCL_SQRT(vp) + cData.dockpars.adam_epsilon);
                 }
                 /*
                 DPCT1007:79: Migration of this CUDA API is not supported by the

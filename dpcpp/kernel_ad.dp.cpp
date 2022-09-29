@@ -318,8 +318,7 @@ gpu_gradient_minAD_kernel(
 			// Computing update (eq.9 in the paper)
                         float delta =
                             -1.0f * gradient[i] *
-                            sycl::sqrt((float)(square_delta[i] + EPSILON) /
-                                       (float)(square_gradient[i] + EPSILON));
+								SYCL_SQRT(SYCL_DIVIDE((float)(square_delta[i] + EPSILON), (float)(square_gradient[i] + EPSILON)));
 
                         // Accumulating update^2
 			// square_delta corresponds to E[dx^2]

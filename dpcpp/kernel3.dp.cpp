@@ -124,8 +124,8 @@ gpu_perform_LS_kernel(
         item_ct1.barrier(SYCL_MEMORY_SPACE);
 
 #ifdef SWAT3
-        float lig_scale = 1.0f / sycl::sqrt((float)cData.dockpars.num_of_atoms);
-        float gene_scale = 1.0f / sycl::sqrt((float)cData.dockpars.num_of_genes);
+		float lig_scale = SYCL_RSQRT((float)cData.dockpars.num_of_atoms);
+		float gene_scale = SYCL_RSQRT((float)cData.dockpars.num_of_genes);
 #endif
         while ((*iteration_cnt < cData.dockpars.max_num_of_iters) &&
                (*rho > cData.dockpars.rho_lower_bound))
