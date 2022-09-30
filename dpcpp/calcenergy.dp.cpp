@@ -1,6 +1,5 @@
 #include <CL/sycl.hpp>
 #include <dpct/dpct.hpp>
-#include "defines.h"
 /*
 
 AutoDock-GPU, an OpenCL implementation of AutoDock 4.2 running a Lamarckian
@@ -180,7 +179,7 @@ SYCL_EXTERNAL void gpu_calc_energy(float *pGenotype, float &energy, int &run_id,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
         // ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -270,7 +269,7 @@ SYCL_EXTERNAL void gpu_calc_energy(float *pGenotype, float &energy, int &run_id,
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier(sycl::access::fence_space::local_space);
+                item_ct1.barrier(SYCL_MEMORY_SPACE);
 
         } // End rotation_counter for-loop
 

@@ -145,7 +145,7 @@ gpu_gradient_minAdam_kernel(
 		printf("%20s %.6f\n", "initial energy: ", energy);
 		#endif
 	}
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
         /*
         DPCT1007:75: Migration of this CUDA API is not supported by the Intel(R)
         DPC++ Compatibility Tool.
@@ -185,7 +185,7 @@ gpu_gradient_minAdam_kernel(
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
         // Enable this for debugging ADADELTA from a defined initial genotype
 
@@ -241,7 +241,7 @@ gpu_gradient_minAdam_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier(sycl::access::fence_space::local_space);
+                item_ct1.barrier(SYCL_MEMORY_SPACE);
 
                 gpu_calc_energrad(genotype, energy, run_id, calc_coords,
 #if defined (DEBUG_ENERGY_KERNEL)
@@ -323,18 +323,18 @@ gpu_gradient_minAdam_kernel(
 			// Update Adam parameters
 			mt[i] = cData.dockpars.adam_beta1 * mt[i] + (1.0f - cData.dockpars.adam_beta1) * gradient[i];
 			vt[i] = cData.dockpars.adam_beta2 * vt[i] + (1.0f - cData.dockpars.adam_beta2) * gradient[i] * gradient[i];
-			float mp = mt[i] / beta1p;
-			float vp = vt[i] / beta2p;
+			float mp = SYCL_DIVIDE(mt[i], beta1p);
+			float vp = SYCL_DIVIDE(vt[i], beta2p);
 
 			// Applying update
-                        genotype[i] -= mp / (sycl::sqrt(vp) + cData.dockpars.adam_epsilon);
+                        genotype[i] -= SYCL_DIVIDE(mp, (SYCL_SQRT(vp) + cData.dockpars.adam_epsilon));
                 }
                 /*
                 DPCT1007:79: Migration of this CUDA API is not supported by the
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier(sycl::access::fence_space::local_space);
+                item_ct1.barrier(SYCL_MEMORY_SPACE);
 
 #if defined (DEBUG_SQDELTA_ADADELTA)
 		if (/*(get_group_id(0) == 0) &&*/ (threadIdx.x == 0)) {
@@ -397,7 +397,7 @@ gpu_gradient_minAdam_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier(sycl::access::fence_space::local_space); // making sure that iteration_cnt is up-to-date
+                item_ct1.barrier(SYCL_MEMORY_SPACE); // making sure that iteration_cnt is up-to-date
 #ifdef AD_RHO_CRITERION
 	} while ((iteration_cnt < cData.dockpars.max_num_of_iters)  && (rho > 0.01f));
 #else
@@ -421,7 +421,7 @@ gpu_gradient_minAdam_kernel(
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
         offset = (run_id * cData.dockpars.pop_size + *entity_id) *
                  GENOTYPE_LENGTH_IN_GLOBMEM;

@@ -1,6 +1,5 @@
 #include <CL/sycl.hpp>
 #include <dpct/dpct.hpp>
-#include "defines.h"
 /*
 
 AutoDock-GPU, an OpenCL implementation of AutoDock 4.2 running a Lamarckian
@@ -145,7 +144,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
         // ================================================
 	// CALCULATING ATOMIC POSITIONS AFTER ROTATIONS
@@ -236,7 +235,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier();
+                item_ct1.barrier(SYCL_MEMORY_SPACE);
         } // End rotation_counter for-loop
 
 	// ================================================
@@ -470,7 +469,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
         // Inter- and intra-molecular energy calculation
 	// are independent from each other, so NO barrier is needed here.
@@ -682,7 +681,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
         // Transform gradients_inter_{x|y|z} 
 	// into local_gradients[i] (with four quaternion genes)
@@ -833,7 +832,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
         // ------------------------------------------
 	// Obtaining rotation-related gradients
@@ -1057,7 +1056,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
         // ------------------------------------------
 	// Obtaining torsion-related gradients
@@ -1148,7 +1147,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
         for (uint32_t gene_cnt = item_ct1.get_local_id(2);
              gene_cnt < cData.dockpars.num_of_genes;
@@ -1160,7 +1159,7 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
 #if defined (CONVERT_INTO_ANGSTROM_RADIAN)
         for (uint32_t gene_cnt =
@@ -1176,6 +1175,6 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier();
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 #endif
 }

@@ -90,7 +90,7 @@ Compatibility Tool.
 #define REDUCEINTEGERSUM(value, pAccumulator)                                          \
         int val = sycl::reduce_over_group(item_ct1.get_group(), value, std::plus<>()); \
         *pAccumulator = val;                                                           \
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
 #define ATOMICADDI32(pAccumulator, value)                               \
         sycl::atomic_ref<int, sycl::memory_order::acq_rel, sycl::memory_scope::device, sycl::access::address_space::local_space>(*pAccumulator) += ((int) (value))
@@ -130,7 +130,7 @@ Compatibility Tool.
 #define REDUCEFLOATSUM(value, pAccumulator) \
         value = sycl::reduce_over_group(item_ct1.get_group(), value, std::plus<>());\
         *pAccumulator = (float) value;\
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
 
 static dpct::constant_memory<GpuData, 0> cData;

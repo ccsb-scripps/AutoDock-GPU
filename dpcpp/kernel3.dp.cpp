@@ -105,7 +105,7 @@ gpu_perform_LS_kernel(
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
         size_t offset = (run_id * cData.dockpars.pop_size + *entity_id) *
                         GENOTYPE_LENGTH_IN_GLOBMEM;
@@ -121,11 +121,11 @@ gpu_perform_LS_kernel(
         DPC++ Compatibility Tool.
         */
         __threadfence();
-        item_ct1.barrier(sycl::access::fence_space::local_space);
+        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
 #ifdef SWAT3
-        float lig_scale = 1.0f / sycl::sqrt((float)cData.dockpars.num_of_atoms);
-        float gene_scale = 1.0f / sycl::sqrt((float)cData.dockpars.num_of_genes);
+		float lig_scale = SYCL_RSQRT((float)cData.dockpars.num_of_atoms);
+		float gene_scale = SYCL_RSQRT((float)cData.dockpars.num_of_genes);
 #endif
         while ((*iteration_cnt < cData.dockpars.max_num_of_iters) &&
                (*rho > cData.dockpars.rho_lower_bound))
@@ -185,7 +185,7 @@ gpu_perform_LS_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier(sycl::access::fence_space::local_space);
+                item_ct1.barrier(SYCL_MEMORY_SPACE);
 
                 // =================================================================
                 gpu_calc_energy(genotype_candidate, candidate_energy, run_id,
@@ -200,7 +200,7 @@ gpu_perform_LS_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier(sycl::access::fence_space::local_space);
+                item_ct1.barrier(SYCL_MEMORY_SPACE);
 
                 if (candidate_energy < *offspring_energy) // If candidate is better, success
                 {
@@ -221,7 +221,7 @@ gpu_perform_LS_kernel(
                         by the Intel(R) DPC++ Compatibility Tool.
                         */
                         __threadfence();
-                        item_ct1.barrier(sycl::access::fence_space::local_space);
+                        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
                         if (item_ct1.get_local_id(2) == 0)
                         {
@@ -248,7 +248,7 @@ gpu_perform_LS_kernel(
                         by the Intel(R) DPC++ Compatibility Tool.
                         */
                         __threadfence();
-                        item_ct1.barrier(sycl::access::fence_space::local_space);
+                        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
                         // =================================================================
                         gpu_calc_energy(genotype_candidate, candidate_energy,
@@ -268,7 +268,7 @@ gpu_perform_LS_kernel(
                         by the Intel(R) DPC++ Compatibility Tool.
                         */
                         __threadfence();
-                        item_ct1.barrier(sycl::access::fence_space::local_space);
+                        item_ct1.barrier(SYCL_MEMORY_SPACE);
 
                         if (candidate_energy < *offspring_energy) // If candidate is better, success
                         {
@@ -292,7 +292,7 @@ gpu_perform_LS_kernel(
                                 Tool.
                                 */
                                 __threadfence();
-                                item_ct1.barrier(sycl::access::fence_space::local_space);
+                                item_ct1.barrier(SYCL_MEMORY_SPACE);
 
                                 if (item_ct1.get_local_id(2) == 0)
                                 {
@@ -339,7 +339,7 @@ gpu_perform_LS_kernel(
                 Intel(R) DPC++ Compatibility Tool.
                 */
                 __threadfence();
-                item_ct1.barrier(sycl::access::fence_space::local_space);
+                item_ct1.barrier(SYCL_MEMORY_SPACE);
         }
 
 	// Updating eval counter and energy
