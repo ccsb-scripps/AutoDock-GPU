@@ -224,7 +224,7 @@ void setup_gpu_for_docking(GpuData &cData, GpuTempData &tData) try {
 	RTERROR(status, "cudaDeviceSetLimit failed");
 #endif
 	auto const t1 = std::chrono::steady_clock::now();
-	printf("\nXeGPU Setup time %fs\n", elapsed_seconds(t0 ,t1));
+	printf("\nxPU Setup time %fs\n", elapsed_seconds(t0 ,t1));
 /* Remove
 	size_t sz_interintra_const      = MAX_NUM_OF_ATOMS*sizeof(float) +
 	                                  MAX_NUM_OF_ATOMS*sizeof(uint32_t) +

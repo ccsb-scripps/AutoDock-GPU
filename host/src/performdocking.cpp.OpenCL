@@ -101,11 +101,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 
 #define OPT_PROG INC KNWI REP KGDB
+#include <chrono>
 
 #include "autostop.hpp"
 #include "performdocking.h"
 #include "stringify.h"
 #include "correct_grad_axisangle.h"
+template <typename Clock, typename Duration1, typename Duration2>
+double elapsed_seconds(
+	std::chrono::time_point<Clock, Duration1> start,
+	std::chrono::time_point<Clock, Duration2> end)
+{
+	using FloatingPointSeconds = std::chrono::duration<double, std::ratio<1>>;
+	return std::chrono::duration_cast<FloatingPointSeconds>(end - start).count();
+}
 
 std::vector<int> get_gpu_pool()
 {
@@ -181,6 +190,7 @@ void setup_gpu_for_docking(
 		printf("Info: User specified OpenCL platform number does not exist, using first platform (\"%s\").\n",platform_name);
 		free(platform_name);
 	}
+	auto const t0 = std::chrono::steady_clock::now();
 
 	// Get all devices of first platform
 	if (getDevices(platform_id[platform_nr],platformCount,&device_ids,&deviceCount) != 0){
@@ -261,6 +271,8 @@ void setup_gpu_for_docking(
 #else
 	if (ImportSourceToProgram(calcenergy_ocl, &device_id, tData.context, &tData.program, options_program) != 0) exit(-1);
 #endif
+	auto const t1 = std::chrono::steady_clock::now();
+	printf("\nxPU Setup time %fs\n", elapsed_seconds(t0, t1));
 
 	// Create kernels
 	if (createKernel(&device_id, &tData.program, name_k1, &tData.kernel1) != 0) exit(-1);
@@ -384,6 +396,7 @@ parameters argc and argv:
 	char* outbuf;
 	if(output!=NULL) outbuf = (char*)malloc(256*sizeof(char));
 
+	auto const t1 = std::chrono::steady_clock::now();
 	// Times
 	cl_ulong time_start_kernel;
 	cl_ulong time_end_kernel;
@@ -996,6 +1009,9 @@ parameters argc and argv:
 	generation_cnt = 0;
 	unsigned long total_evals;
 	// print progress bar
+	auto const t2 = std::chrono::steady_clock::now();
+	para_printf("\nRest of Setup time %fs\n", elapsed_seconds(t1, t2));
+
 	AutoStop autostop(mypars->pop_size, mypars->num_of_runs, mypars->stopstd, mypars->as_frequency, output);
 #ifndef DOCK_DEBUG
 	if (mypars->autostop)
@@ -1211,6 +1227,8 @@ parameters argc and argv:
 			fflush(stdout);
 		}
 	}
+	auto const t3 = std::chrono::steady_clock::now();
+
 	// ===============================================================================
 	// Modification based on:
 	// http://www.cc.gatech.edu/~vetter/keeneland/tutorial-2012-02-20/08-opencl.pdf
@@ -1227,8 +1245,7 @@ parameters argc and argv:
 
 	// Final autostop statistics output
 	if (mypars->autostop) autostop.output_final_stddev(generation_cnt, sim_state.cpu_energies.data(), total_evals);
-
-	para_printf("\n");
+	para_printf("\nDocking time %fs\n", elapsed_seconds(t2, t3));
 #if defined (DOCK_DEBUG)
 	for (int cnt_pop=0;cnt_pop<size_populations/sizeof(float);cnt_pop++)
 		para_printf("total_num_pop: %u, cpu_final_populations[%u]: %f\n",(unsigned int)(size_populations/sizeof(float)),cnt_pop,cpu_final_populations[cnt_pop]);
@@ -1263,6 +1280,9 @@ parameters argc and argv:
 	delete KerConst_grads;
 
 	free(cpu_prng_seeds);
+	auto const t4 = std::chrono::steady_clock::now();
+	para_printf("\nShutdown time %fs\n", elapsed_seconds(t3, t4));
+
 	if(output!=NULL) free(outbuf);
 
 	return 0;
