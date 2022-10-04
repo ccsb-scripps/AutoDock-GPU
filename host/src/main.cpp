@@ -190,13 +190,13 @@ int main(int argc, char* argv[])
 #endif
 #endif
 	if(initial_pars.xml2dlg){
-		if(initial_pars.contact_analysis)
+		if(initial_pars.output_contact_analysis)
 			printf("Analyzing ");
 		else
 			printf("Converting ");
 		printf("%d xml file",n_files);
 		if(n_files>1) printf("s");
-		if(initial_pars.contact_analysis)
+		if(initial_pars.output_contact_analysis)
 			printf(" (contact analysis cutoffs: R=%.1f Å, H=%.1f Å, V=%.1f Å)\n", initial_pars.R_cutoff, initial_pars.H_cutoff, initial_pars.V_cutoff);
 		else
 			printf(" to dlg\n");
@@ -206,7 +206,7 @@ int main(int argc, char* argv[])
 			printf("s");
 			if(nr_devices>1) printf(" on %d devices",std::min(n_files,nr_devices));
 		}
-		if(initial_pars.contact_analysis)
+		if(initial_pars.output_contact_analysis)
 			printf(" (contact analysis cutoffs: R=%.1f Å, H=%.1f Å, V=%.1f Å)\n", initial_pars.R_cutoff, initial_pars.H_cutoff, initial_pars.V_cutoff);
 		else
 			printf("\n");

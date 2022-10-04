@@ -100,6 +100,7 @@ typedef struct _Dockpars
 	char*                     load_xml                        = NULL;
 	bool                      xml2dlg                         = false;
 	bool                      contact_analysis                = false; // by default no distance-based contact analysis is performed
+	bool                      output_contact_analysis         = false; // the automatic cluster pose output depends on the cluster analysis but it is most logical to only output it upon user request
 	std::vector<ReceptorAtom> receptor_atoms;
 	unsigned int              nr_receptor_atoms               = 0;
 	unsigned int*             receptor_map                    = NULL;
@@ -112,6 +113,7 @@ typedef struct _Dockpars
 	unsigned int              filelist_grid_idx               = 0;
 	bool                      dlg2stdout                      = false;
 	int                       gen_pdbs                        = 0;
+	int                       nr_cluster_poses                = 0; // by default output all poses of a cluster (-1 ... auto, 0 ... all, >0 ... up to specified number)
 	char*                     dpffile                         = NULL;
 	char*                     fldfile                         = NULL;
 	char*                     ligandfile                      = NULL;

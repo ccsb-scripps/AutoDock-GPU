@@ -425,7 +425,7 @@ int setup(
 			printf("Input");
 		printf(" ligand energies");
 #ifdef TOOLMODE
-		if(mypars->contact_analysis) printf(" and contact analysis");
+		if(mypars->output_contact_analysis) printf(" and contact analysis");
 #endif
 		printf(":\n");
 		if (mypars->given_xrayligandfile)
@@ -436,7 +436,7 @@ int setup(
 			                   mypars,
 			                   mygrid,
 #ifdef TOOLMODE
-			                   mypars->contact_analysis,
+			                   mypars->output_contact_analysis,
 #else
 			                   false,
 #endif
@@ -449,7 +449,7 @@ int setup(
 			                   mypars,
 			                   mygrid,
 #ifdef TOOLMODE
-			                   mypars->contact_analysis,
+			                   mypars->output_contact_analysis,
 #else
 			                   false,
 #endif
