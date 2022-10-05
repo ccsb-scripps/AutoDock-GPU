@@ -93,10 +93,10 @@ Compatibility Tool.
         item_ct1.barrier(SYCL_MEMORY_SPACE);
 
 #define ATOMICADDI32(pAccumulator, value)                               \
-        sycl::atomic_ref<int, sycl::memory_order::acq_rel, sycl::memory_scope::device, sycl::access::address_space::local_space>(*pAccumulator) += ((int) (value))
+        sycl::atomic_ref<int, sycl::memory_order::acq_rel, sycl::memory_scope::work_group, sycl::access::address_space::local_space>(*pAccumulator) += ((int) (value))
 
 #define ATOMICSUBI32(pAccumulator, value)                               \
-        sycl::atomic_ref<int, sycl::memory_order::acq_rel, sycl::memory_scope::device, sycl::access::address_space::local_space>(*pAccumulator) -= ((int) (value))
+        sycl::atomic_ref<int, sycl::memory_order::acq_rel, sycl::memory_scope::work_group, sycl::access::address_space::local_space>(*pAccumulator) -= ((int) (value))
 
 /*
 DPCT1058:94: "atomicAdd" is not migrated because it is not called in the code.

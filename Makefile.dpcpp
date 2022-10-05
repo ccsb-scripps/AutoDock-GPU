@@ -28,7 +28,7 @@ else ifeq ($(DEVICE), GPU)
 	ifeq ($(PLATFORM), NvGPU)
 		DPCPP=clang++
 		CPP=clang++
-		IFLAGS=-fsycl -fsycl-targets=nvptx64-nvidia-cuda -Xsycl-target-backend --cuda-gpu-arch=sm_80 -Xcuda-ptxas --verbose --cuda-path=${CUDA_TOOLKIT_ROOT_DIR}
+		IFLAGS=-fsycl -fsycl-targets=nvptx64-nvidia-cuda -fgpu-inline-threshold=100000 -Xsycl-target-backend --cuda-gpu-arch=sm_80 -Xcuda-ptxas --verbose --cuda-path=${CUDA_TOOLKIT_ROOT_DIR}
 	endif
 endif
 
