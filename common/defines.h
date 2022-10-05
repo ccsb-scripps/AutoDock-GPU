@@ -158,4 +158,12 @@ enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.da
 	#define SYCL_MEMORY_SPACE
 #endif
 
+#define SYCL_ATOMICS_WG_MEM_SCOPE
+
+#ifdef SYCL_ATOMICS_WG_MEM_SCOPE
+	#define SYCL_ATOMICS_MEM_SCOPE sycl::memory_scope::work_group
+#else
+	#define SYCL_ATOMICS_MEM_SCOPE sycl::memory_scope::device
+#endif
+
 #endif /* DEFINES_H_ */
