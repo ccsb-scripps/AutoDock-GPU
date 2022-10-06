@@ -773,9 +773,10 @@ void generate_output(
 						myresults[j].output = true;
 						if(mypars->nr_cluster_poses < 0){ // automatic cluster pose output depending on R and H interactions
 							for(unsigned int k=0; k<myresults[j].analysis.size(); k++){
-								if(myresults[j].analysis[k].type <= 1) // 0 ... R , 1 ... H
+								if(myresults[j].analysis[k].type <= 1){ // 0 ... R , 1 ... H
 									cluster_rh_interactions.push_back(j);
 									cluster_rh_interactions.push_back(k);
+								}
 							}
 						}
 					} else{
