@@ -1330,7 +1330,6 @@ int gen_new_pdbfile(
 // If the operation was successful, the function returns 0, if not, it returns 1.
 {
 	FILE* fp;
-	char tempstr [256];
 
 	fp = fopen(filename, "w");
 	if (fp == NULL)
@@ -1341,10 +1340,10 @@ int gen_new_pdbfile(
 
 	unsigned int line_count = 0;
 	unsigned int atom_cnt = 0;
+	char tempstr [32];
 	while (line_count < myligand->file_content.size())
 	{
-		strcpy(tempstr,myligand->file_content[line_count].c_str());
-		line_count++;
+		strncpy(tempstr,myligand->file_content[line_count].c_str(),32);
 		if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 		{
 			tempstr[30] = '\0';
@@ -1355,7 +1354,8 @@ int gen_new_pdbfile(
 			                                                                  myligand->atom_idxyzq[atom_cnt][4], // q
 			                                                                  myligand->atom_types[((int)myligand->atom_idxyzq[atom_cnt][0])]); // type
 			atom_cnt++;
-		} else fputs(tempstr, fp);
+		} else fputs(myligand->file_content[line_count].c_str(), fp);
+		line_count++;
 	}
 
 	fclose(fp);
