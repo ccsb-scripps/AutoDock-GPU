@@ -728,8 +728,8 @@ void generate_output(
 			unsigned int line_count = 0;
 			while (line_count < ligand_xray->ligand_line_count)
 			{
-				line_count++;
 				fprintf(fp, "XRAY-LIGAND-PDBQT: %s", ligand_xray->file_content[line_count].c_str());
+				line_count++;
 			}
 			fprintf(fp, "\n\n");
 		}
