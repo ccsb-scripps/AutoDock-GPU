@@ -683,7 +683,6 @@ void generate_output(
 	double sum_energy [1000];
 	double best_energy [1000];
 	int best_energy_runid [1000];
-	char tempstr [256];
 
 	double cluster_tolerance = mypars->rmsd_tolerance;
 
@@ -832,7 +831,6 @@ void generate_output(
 
 		std::string pdbqt_template;
 		std::vector<unsigned int> atom_data;
-		char lineout [264];
 		bool output_ref_calcs = mypars->reflig_en_required;
 		if(mypars->given_xrayligandfile){
 			// writing xray ligand pdbqt file
@@ -843,9 +841,8 @@ void generate_output(
 			unsigned int line_count = 0;
 			while (line_count < ligand_xray->ligand_line_count)
 			{
-				strcpy(tempstr,ligand_xray->file_content[line_count].c_str());
+				fprintf(fp, "XRAY-LIGAND-PDBQT: %s", ligand_xray->file_content[line_count].c_str());
 				line_count++;
-				fprintf(fp, "XRAY-LIGAND-PDBQT: %s", tempstr);
 			}
 			fprintf(fp, "\n\n");
 		}
@@ -854,16 +851,16 @@ void generate_output(
 		if(mypars->free_roaming_ligand){
 			fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
 			ligand_calc_output(fp, "INPUT-LIGAND-PDBQT: USER", tables, ligand_ref, mypars, mygrid, mypars->output_contact_analysis, output_ref_calcs);
+			char tempstr [32];
 			while (line_count < ligand_ref->ligand_line_count)
 			{
-				strcpy(tempstr,ligand_ref->file_content[line_count].c_str());
-				line_count++;
-				fprintf(fp, "INPUT-LIGAND-PDBQT: %s", tempstr);
+				strncpy(tempstr,ligand_ref->file_content[line_count].c_str(),32);
+				fprintf(fp, "INPUT-LIGAND-PDBQT: %s", ligand_ref->file_content[line_count].c_str());
 				if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 				{
 					tempstr[30] = '\0';
-					sprintf(lineout, "DOCKED: %s", tempstr);
-					pdbqt_template += lineout;
+					pdbqt_template += "DOCKED: ";
+					pdbqt_template += tempstr;
 					atom_data.push_back(pdbqt_template.length());
 				} else{
 					if (strncmp("ROOT", tempstr, 4) == 0)
@@ -871,9 +868,9 @@ void generate_output(
 						pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
 						pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
 					}
-					sprintf(lineout, "DOCKED: %s", tempstr);
-					pdbqt_template += lineout;
+					pdbqt_template += "DOCKED: " + ligand_ref->file_content[line_count];
 				}
+				line_count++;
 			}
 			fprintf(fp, "\n\n");
 		}
@@ -881,16 +878,16 @@ void generate_output(
 		if (mypars->flexresfile) {
 			if ( strlen(mypars->flexresfile)>0 ) {
 				fprintf(fp, "    INPUT FLEXRES PDBQT FILE:\n    ________________________\n\n\n");
+				char tempstr [32];
 				while (line_count < ligand_ref->file_content.size())
 				{
-					strcpy(tempstr,ligand_ref->file_content[line_count].c_str());
-					line_count++;
-					fprintf(fp, "INPUT-FLEXRES-PDBQT: %s", tempstr);
+					strncpy(tempstr,ligand_ref->file_content[line_count].c_str(),32);
+					fprintf(fp, "INPUT-FLEXRES-PDBQT: %s", ligand_ref->file_content[line_count].c_str());
 					if ((strncmp("ATOM", tempstr, 4) == 0) || (strncmp("HETATM", tempstr, 6) == 0))
 					{
 						tempstr[30] = '\0';
-						sprintf(lineout, "DOCKED: %s", tempstr);
-						pdbqt_template += lineout;
+						pdbqt_template += "DOCKED: ";
+						pdbqt_template += tempstr;
 						atom_data.push_back(pdbqt_template.length());
 					} else{
 						if (strncmp("ROOT", tempstr, 4) == 0)
@@ -898,9 +895,9 @@ void generate_output(
 							pdbqt_template += "DOCKED: USER                              x       y       z     vdW  Elec       q    Type\n";
 							pdbqt_template += "DOCKED: USER                           _______ _______ _______ _____ _____    ______ ____\n";
 						}
-						sprintf(lineout, "DOCKED: %s", tempstr);
-						pdbqt_template += lineout;
+						pdbqt_template += "DOCKED: " + ligand_ref->file_content[line_count];
 					}
+					line_count++;
 				}
 				fprintf(fp, "\n\n");
 			}
@@ -1044,6 +1041,7 @@ void generate_output(
 			curr_model = pdbqt_template;
 			// inserting text from the end means prior text positions won't shift
 			// so there's less to keep track off ;-)
+			char lineout[51];
 			for(atom_cnt = ligand_ref->num_of_atoms; atom_cnt-->0;)
 			{
 				char* line = lineout;
