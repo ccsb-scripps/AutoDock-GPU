@@ -502,7 +502,7 @@ int main(int argc, char* argv[])
 	if(n_files>1){
 		printf("Savings from multithreading: %.3f sec\n",(total_setup_time+total_processing_time+total_exec_time) - seconds_since(time_start));
 		if(!initial_pars.xml2dlg) // in xml2dlg mode, there's only "idle time" (aka overlapped processing)
-			printf("Idle time of execution thread: %.3f sec\n",seconds_since(time_start) - total_exec_time);
+			printf("Idle time of execution thread: %.3f sec\n",total_setup_time+total_processing_time);
 		if (get_profiles && filelist.used && !initial_pars.xml2dlg) // output profile with filelist name or dpf file name (depending on what is available)
 			profiler.write_profiles_to_file((filelist.filename!=NULL) ? filelist.filename : initial_pars.dpffile);
 	} else printf("Processing time: %.3f sec\n",total_processing_time);
