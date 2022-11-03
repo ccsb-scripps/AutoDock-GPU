@@ -100,6 +100,14 @@ void rotate(double [], const double [], const double [], const double*, int);
 
 std::string get_filepath(const char* filename);
 
+// trim input string range -- careful: no range checking
+static inline void range_trim_to_char(std::string s, unsigned int start, unsigned int end, char* c) {
+	unsigned int count = 0;
+	for(unsigned int i = start; i<end; i++)
+		if(!std::isspace(s[i])) c[count++] = s[i];
+	c[count] = '\0';
+}
+
 #if 0
 // -------------------------------------------------------------------
 // Replacing rotation genes: from spherical space to Shoemake space

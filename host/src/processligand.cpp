@@ -102,10 +102,8 @@ int init_liganddata(
 			if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 			{
 				new_type = 1; // supposing this will be a new atom type
-				sscanf(&line.c_str()[77], "%3s", tempstr); // reading atom type
-				tempstr[3] = '\0'; //just to be sure strcpy wont fail even if something is wrong with position
-				line[16]='\0';
-				sscanf(&line.c_str()[12], "%4s", myligand->atom_names[atom_cnt]);
+				range_trim_to_char(line, 77, 80, tempstr);
+				range_trim_to_char(line, 12, 16, myligand->atom_names[atom_cnt]);
 				atom_cnt++;
 
 				// checking if this atom has been already found
@@ -1184,13 +1182,13 @@ int parse_liganddata(
 					printf("       Maximum number of atoms is %d.\n", MAX_NUM_OF_ATOMS);
 					return 1;
 				}
-				line.insert(38,1,' '); // add spaces to make reading coordinates easier
-				line.insert(47,1,' ');
+				line.insert(54,1,' '); // add spaces to make reading coordinates easier
+				line.insert(46,1,' ');
+				line.insert(38,1,' ');
 				sscanf(&line.c_str()[30], "%lf %lf %lf", &(myligand->atom_idxyzq [atom_counter][1]), &(myligand->atom_idxyzq [atom_counter][2]), &(myligand->atom_idxyzq [atom_counter][3]));
-				// the last two are shifted by two chars (the two spaces we added above)
-				sscanf(&line.c_str()[72], "%lf", &(myligand->atom_idxyzq [atom_counter][4])); // reading charge
-				sscanf(&line.c_str()[79], "%3s", tempstr); // reading atom type
-				tempstr[3]='\0';
+				// moved by the three spaces above
+				range_trim_to_char(line, 80, 83, tempstr); // reading atom type
+				sscanf(&line.c_str()[73], "%lf", &(myligand->atom_idxyzq [atom_counter][4])); // reading charge (there's a space behind it)
 				if (set_liganddata_typeid(myligand, mygrid, atom_counter, tempstr) != 0) // the function sets the type index
 					return 1;
 				if(tempstr[0]=='G'){ // G-type are ignored for inter calc unless there is a map specified (checked above)

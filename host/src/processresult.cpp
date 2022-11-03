@@ -377,7 +377,7 @@ void make_resfiles(
 
 	int pop_size = mypars->pop_size;
 
-	sprintf(temp_filename, "final_population_run%d.txt", run_cnt+1);
+	snprintf(temp_filename, len+1, "final_population_run%d.txt", run_cnt+1);
 
 	if (mypars->gen_finalpop) // if final population files are not required, no file will be opened.
 	{
@@ -411,7 +411,7 @@ void make_resfiles(
 	// Writing out state of final population
 
 	strcpy(temp_filename, basefile);
-	name_ext_start = temp_filename + strlen(basefile) - 6; // without .pdbqt
+	name_ext_start = temp_filename + strlen(basefile) - 6; // without .pdbqt -- can be at most len - strlen(basefile) + 7
 
 	bool rmsd_valid = true;
 	if (mypars->given_xrayligandfile == true) {
@@ -505,7 +505,7 @@ void make_resfiles(
 
 		if (i < mypars->gen_pdbs) //if it is necessary, making new pdbqts for best entities
 		{
-			sprintf(name_ext_start, "_docked_run%d_entity%d.pdbqt", run_cnt+1, i+1); //name will be <original pdb filename>_docked_<number starting from 1>.pdb
+			snprintf(name_ext_start, len - strlen(basefile) + 7, "_docked_run%d_entity%d.pdbqt", run_cnt+1, i+1); //name will be <original pdb filename>_docked_<number starting from 1>.pdb
 			gen_new_pdbfile(temp_filename, ligand_ref);
 		}
 		if (mypars->gen_finalpop)
@@ -596,13 +596,13 @@ void ligand_calc_output(
 					case 2: types += "   \"V\"";
 					        break;
 				}
-				sprintf(item, "%5d ", calc.analysis[j].lig_id);   lig_id+=item;
-				sprintf(item, "\"%s\"", calc.analysis[j].lig_name); sprintf(pad, "%6s", item); ligname+=pad;
-				sprintf(item, "%5d ", calc.analysis[j].rec_id);   rec_id+=item;
-				sprintf(item, "\"%s\"", calc.analysis[j].rec_name); sprintf(pad, "%6s", item); rec_name+=pad;
-				sprintf(item, "\"%s\"", calc.analysis[j].residue); sprintf(pad, "%6s", item);  residue+=pad;
-				sprintf(item, "%5d ", calc.analysis[j].res_id);   res_id+=item;
-				sprintf(item, "\"%s\"", calc.analysis[j].chain); sprintf(pad, "%6s", item);    chain+=pad;
+				snprintf(item, 8, "%5d ",   calc.analysis[j].lig_id);   lig_id += item;
+				snprintf(item, 8, "\"%s\"", calc.analysis[j].lig_name); snprintf(pad, 8, "%6s", item); ligname  += pad;
+				snprintf(item, 8, "%5d ",   calc.analysis[j].rec_id);   rec_id += item;
+				snprintf(item, 8, "\"%s\"", calc.analysis[j].rec_name); snprintf(pad, 8, "%6s", item); rec_name += pad;
+				snprintf(item, 8, "\"%s\"", calc.analysis[j].residue);  snprintf(pad, 8, "%6s", item); residue  += pad;
+				snprintf(item, 8, "%5d ",   calc.analysis[j].res_id);   res_id += item;
+				snprintf(item, 8, "\"%s\"", calc.analysis[j].chain);    snprintf(pad, 8, "%6s", item); chain    += pad;
 			}
 			fprintf(fp, "ANALYSIS: %s}\n", types.c_str());
 			fprintf(fp, "ANALYSIS: %s}\n", lig_id.c_str());
@@ -832,13 +832,13 @@ void generate_output(
 							case 2: types += "   \"V\"";
 							        break;
 						}
-						sprintf(item, "%5d ", myresults[i].analysis[j].lig_id);   lig_id+=item;
-						sprintf(item, "\"%s\"", myresults[i].analysis[j].lig_name); sprintf(pad, "%6s", item); ligname+=pad;
-						sprintf(item, "%5d ", myresults[i].analysis[j].rec_id);   rec_id+=item;
-						sprintf(item, "\"%s\"", myresults[i].analysis[j].rec_name); sprintf(pad, "%6s", item); rec_name+=pad;
-						sprintf(item, "\"%s\"", myresults[i].analysis[j].residue); sprintf(pad, "%6s", item);  residue+=pad;
-						sprintf(item, "%5d ", myresults[i].analysis[j].res_id);   res_id+=item;
-						sprintf(item, "\"%s\"", myresults[i].analysis[j].chain); sprintf(pad, "%6s", item);    chain+=pad;
+						snprintf(item, 8, "%5d ",   myresults[i].analysis[j].lig_id);   lig_id += item;
+						snprintf(item, 8, "\"%s\"", myresults[i].analysis[j].lig_name); snprintf(pad, 8, "%6s", item); ligname  += pad;
+						snprintf(item, 8, "%5d ",   myresults[i].analysis[j].rec_id);   rec_id += item;
+						snprintf(item, 8, "\"%s\"", myresults[i].analysis[j].rec_name); snprintf(pad, 8, "%6s", item); rec_name += pad;
+						snprintf(item, 8, "\"%s\"", myresults[i].analysis[j].residue);  snprintf(pad, 8, "%6s", item); residue  += pad;
+						snprintf(item, 8, "%5d ",   myresults[i].analysis[j].res_id);   res_id += item;
+						snprintf(item, 8, "\"%s\"", myresults[i].analysis[j].chain);    snprintf(pad, 8, "%6s", item); chain    += pad;
 					}
 					fprintf(fp, "ANALYSIS: %s}\n", types.c_str());
 					fprintf(fp, "ANALYSIS: %s}\n", lig_id.c_str());
@@ -927,17 +927,17 @@ void generate_output(
 			curr_model = pdbqt_template;
 			// inserting text from the end means prior text positions won't shift
 			// so there's less to keep track off ;-)
-			char lineout[51];
+			char lineout[52];
 			for(atom_cnt = ligand_ref->num_of_atoms; atom_cnt-->0;)
 			{
 				char* line = lineout;
-				line += sprintf(line, "%8.3lf", myresults[i].atom_idxyzq[atom_cnt][1]); // x
-				line += sprintf(line, "%8.3lf", myresults[i].atom_idxyzq[atom_cnt][2]); // y
-				line += sprintf(line, "%8.3lf", myresults[i].atom_idxyzq[atom_cnt][3]); // z
-				line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw
-				line += sprintf(line, "%+6.2lf", copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec
-				line += sprintf(line, "    %+6.3lf ", myresults[i].atom_idxyzq[atom_cnt][4]); // q
-				line += sprintf(line, "%-2s\n", ligand_ref->atom_types[((int)myresults[i].atom_idxyzq[atom_cnt][0])]); // type
+				line += snprintf(line, 9, "%8.3lf",       myresults[i].atom_idxyzq[atom_cnt][1]); // x
+				line += snprintf(line, 9, "%8.3lf",       myresults[i].atom_idxyzq[atom_cnt][2]); // y
+				line += snprintf(line, 9, "%8.3lf",       myresults[i].atom_idxyzq[atom_cnt][3]); // z
+				line += snprintf(line, 7, "%+6.2lf",      copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw
+				line += snprintf(line, 7, "%+6.2lf",      copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec
+				line += snprintf(line, 13, "    %+6.3lf ", myresults[i].atom_idxyzq[atom_cnt][4]); // q
+				line += snprintf(line, 4, "%-3s\n",       ligand_ref->atom_types[((int)myresults[i].atom_idxyzq[atom_cnt][0])]); // type
 				curr_model.insert(atom_data[atom_cnt],lineout);
 			}
 			fprintf(fp, "%s", curr_model.c_str());
@@ -1199,13 +1199,13 @@ void generate_output(
 							case 2: types += "   \"V\"";
 							        break;
 						}
-						sprintf(item, "%5d ", myresults[j].analysis[i].lig_id);   lig_id+=item;
-						sprintf(item, "\"%s\"", myresults[j].analysis[i].lig_name); sprintf(pad, "%6s", item); ligname+=pad;
-						sprintf(item, "%5d ", myresults[j].analysis[i].rec_id);   rec_id+=item;
-						sprintf(item, "\"%s\"", myresults[j].analysis[i].rec_name); sprintf(pad, "%6s", item); rec_name+=pad;
-						sprintf(item, "\"%s\"", myresults[j].analysis[i].residue); sprintf(pad, "%6s", item);  residue+=pad;
-						sprintf(item, "%5d ", myresults[j].analysis[i].res_id);   res_id+=item;
-						sprintf(item, "\"%s\"", myresults[j].analysis[i].chain); sprintf(pad, "%6s", item);    chain+=pad;
+						snprintf(item, 8, "%5d ",   myresults[j].analysis[i].lig_id);   lig_id+=item;
+						snprintf(item, 8, "\"%s\"", myresults[j].analysis[i].lig_name); snprintf(pad, 8, "%6s", item); ligname  += pad;
+						snprintf(item, 8, "%5d ",   myresults[j].analysis[i].rec_id);   rec_id+=item;
+						snprintf(item, 8, "\"%s\"", myresults[j].analysis[i].rec_name); snprintf(pad, 8, "%6s", item); rec_name += pad;
+						snprintf(item, 8, "\"%s\"", myresults[j].analysis[i].residue);  snprintf(pad, 8, "%6s", item); residue  += pad;
+						snprintf(item, 8, "%5d ",   myresults[j].analysis[i].res_id);   res_id+=item;
+						snprintf(item, 8, "\"%s\"", myresults[j].analysis[i].chain);    snprintf(pad, 8, "%6s", item); chain    += pad;
 					}
 					fprintf(fp_xml, "\t\t\t\t<contact_analysis_types>  %s</contact_analysis_types>\n", types.c_str());
 					fprintf(fp_xml, "\t\t\t\t<contact_analysis_ligid>  %s</contact_analysis_ligid>\n", lig_id.c_str());

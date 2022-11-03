@@ -2046,13 +2046,18 @@ std::vector<ReceptorAtom> read_receptor_atoms(
 		sscanf(line.c_str(),"%255s",tempstr);
 		if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 		{
-			line.insert(38,1,' '); // add spaces to make reading coordinates easier
-			line.insert(47,1,' ');
+			line.insert(54,1,' '); // add spaces to make reading coordinates easier
+			line.insert(46,1,' ');
+			line.insert(38,1,' ');
 			sscanf(&line.c_str()[30], "%f %f %f", &(current.x), &(current.y), &(current.z));
-			// moved by the two spaces above
-			sscanf(&line.c_str()[79], "%3s", current.atom_type);
-			line[27]='\0';
-			sscanf(line.c_str(), "%*s %d %4s %3s %1s %d", &(current.id), current.name, current.res_name, current.chain_id, &(current.res_id));
+			range_trim_to_char(line, 12, 16, current.name);
+			range_trim_to_char(line, 17, 20, current.res_name);
+			range_trim_to_char(line, 21, 22, current.chain_id);
+			// moved by the three spaces above
+			range_trim_to_char(line, 80, 83, current.atom_type);
+			line[26]='\0'; // make sure res_is only 4 digits
+			sscanf(&line.c_str()[6], "%d", &(current.id)); // there's a space behind the number according to the format
+			sscanf(&line.c_str()[22], "%d", &(current.res_id));
 			// assign H-bond acceptors (is going to fail for flexres with modified atom types)
 			current.acceptor = is_H_acceptor(current.atom_type);
 			// initialize/setup H-bond donors (is going to fail for flexres with modified atom types)
