@@ -147,7 +147,7 @@ void setup_gpu_for_docking(
 	RTERROR(cudaGetDeviceProperties(&props,cData.devnum),"cudaGetDeviceProperties failed");
 	tData.device_name = (char*) malloc(strlen(props.name)+32); // make sure array is large enough to hold device number text too
 	strcpy(tData.device_name, props.name);
-	if(gpuCount>1) sprintf(&tData.device_name[strlen(props.name)], " (#%d / %d)",cData.devnum+1,gpuCount);
+	if(gpuCount>1) snprintf(&tData.device_name[strlen(props.name)], strlen(props.name)+32, " (#%d / %d)",cData.devnum+1,gpuCount);
 	printf("Cuda device:                              %s\n",tData.device_name);
 	RTERROR(cudaMemGetInfo(&freemem,&totalmem), "cudaGetMemInfo failed");
 	printf("Available memory on device:               %lu MB (total: %lu MB)\n",(freemem>>20),(totalmem>>20));
