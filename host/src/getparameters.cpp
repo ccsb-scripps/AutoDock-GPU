@@ -596,7 +596,7 @@ int initial_commandpars(
 	mypars->xml2dlg = true;
 	read_more_xml_files = true;
 #endif
-	int error;
+	int error, number;
 	for (int i=1; i<(*argc)-1+(read_more_xml_files); i++)
 	{
 		if (argcmp("help", argv[i], 'h')){
@@ -655,17 +655,50 @@ int initial_commandpars(
 				sscanf(argv[i+1], "%f,%f,%f", &(mypars->R_cutoff), &(mypars->H_cutoff), &(mypars->V_cutoff));
 				mypars->contact_analysis = true;
 			}
+			if(mypars->contact_analysis) mypars->output_contact_analysis = true;
 			i++;
 		}
 		
 		// Argument: print dlg output to stdout instead of to a file
 		if (argcmp("dlg2stdout", argv [i], '2'))
 		{
-			sscanf(argv [i+1], "%d", &error);
-			if (error == 0)
+			sscanf(argv [i+1], "%d", &number);
+			if (number == 0)
 				mypars->dlg2stdout = false;
 			else
 				mypars->dlg2stdout = true;
+			i++;
+		}
+		
+		// Argument: output up to a certain number of poses per cluster
+		// -1 ... auto based on contact analysis
+		//  0 ... all poses per cluster are output (default)
+		// >0 ... up to this many per cluster
+		if (argcmp("output-cluster-poses", argv [i]))
+		{
+			error = sscanf(argv [i+1], "%d", &number);
+			if(error == 0){ // no number found
+				error = -1;
+				if(stricmp(argv [i+1], "all")==0){
+					error = 0;
+					number = 0;
+				} else{
+					if(stricmp(argv [i+1], "auto")==0){
+						error = 0;
+						number = -1;
+						mypars->contact_analysis = true; // auto needs contact analysis
+						mypars->calc_clustering  = true; // and clustering
+					}
+				}
+			} else{
+				if(number < 0) error = -1;
+				if(number > 0) mypars->calc_clustering  = true; // need clustering when >0
+			}
+			if(error < 0){
+				printf("Error: Value of --output-cluster-poses argument must be 'all', 'auto', or an integer greater than or equal to zero .\n");
+				return -1;
+			}
+			mypars->nr_cluster_poses = number;
 			i++;
 		}
 #ifdef TOOLMODE
@@ -682,7 +715,7 @@ int initial_commandpars(
 		mypars->xml_files = xml_files.size();
 		if(mypars->xml_files>100){ // output progress bar
 			printf("Preparing ");
-			if(mypars->contact_analysis)
+			if(mypars->output_contact_analysis)
 				printf("analysis\n");
 			else
 				printf("conversion\n");
@@ -1171,6 +1204,7 @@ void print_options(
 	printf("--npdb                 | # pose pdbqt files from populations of each LGA run   | 0\n");
 	printf("--gbest                | Output single best pose as pdbqt file                 | 0 (no)\n");
 	printf("--clustering           | Output clustering analysis in dlg and/or xml file     | 1 (yes)\n");
+	printf("--output-cluster-poses | Output up to a certain number of poses per cluster    | 0 (all)\n");
 	printf("--hsym                 | Handle symmetry in RMSD calc.                         | 1 (yes)\n");
 	printf("--rmstol               | RMSD clustering tolerance                             | 2 (Å)\n");
 #ifndef TOOLMODE
@@ -1656,6 +1690,15 @@ int get_commandpars(
 
 		// Argument: print dlg output to stdout instead of to a file
 		if (argcmp("dlg2stdout", argv [i], '2'))
+		{
+			arg_recognized = 1;
+		}
+
+		// Argument: output up to a certain number of poses per cluster
+		// -1 ... auto based on contact analysis
+		//  0 ... all poses per cluster are output (default)
+		// >0 ... up to this many per cluster
+		if (argcmp("output-cluster-poses", argv [i]))
 		{
 			arg_recognized = 1;
 		}

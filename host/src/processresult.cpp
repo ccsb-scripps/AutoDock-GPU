@@ -690,6 +690,119 @@ void generate_output(
 	double torsional_energy = mypars->coeffs.AD4_coeff_tors * ligand_ref->true_ligand_rotbonds;
 
 	int len = strlen(mypars->resname) + 4 + 1;
+
+	// arranging results according to energy, myresults [energy_order[0]] will be the best one (with lowest energy)
+	std::vector<int> energy_order(num_of_runs);
+	std::vector<double> energies(num_of_runs);
+	for (i=0; i<num_of_runs; i++){
+		energy_order[i] = i;
+		energies[i] = myresults [i].interE+myresults[i].interflexE; // mimics the behaviour of AD4 unbound_same_as_bound
+		if(!mypars->free_roaming_ligand) energies[i] += myresults [i].intraE+myresults[i].intraflexE;
+		myresults[i].clus_id = 0; // indicates that it hasn't been put into cluster yet (may as well do that here ...)
+		myresults[i].output = true; // start with all poses being output
+	}
+	// sorting the indices instead of copying the results around will be faster
+	for(i=0; i<num_of_runs-1; i++)
+		for(j=0; j<num_of_runs-i-1; j++)
+			if(energies[energy_order[j]]>energies[energy_order[j+1]]) // swap indices to percolate larger energies up
+				std::swap(energy_order[j], energy_order[j+1]);
+	// PERFORM CLUSTERING
+	if(mypars->calc_clustering){
+
+		// the best result is the center of the first cluster
+		myresults[energy_order[0]].clus_id = 1;
+		myresults[energy_order[0]].rmsd_from_cluscent = 0;
+		num_of_clusters = 1;
+
+		for (int w=1; w<num_of_runs; w++) // for each result
+		{
+			i=energy_order[w];
+			current_clust_center = 0;
+			result_clustered = 0;
+
+			for (int u=0; u<w; u++) // results with lower id-s are clustered, look for cluster centers
+			{
+				j=energy_order[u];
+				if (myresults[j].clus_id > current_clust_center) // it is the center of a new cluster
+				{
+					current_clust_center = myresults[j].clus_id;
+					temp_rmsd = calc_rmsd(myresults[j].atom_idxyzq, myresults[i].atom_idxyzq, (!ligand_ref->true_ligand_atoms) ? ligand_ref->num_of_atoms : ligand_ref->true_ligand_atoms, mypars->handle_symmetry); // comparing current result with cluster center
+					if (temp_rmsd <= cluster_tolerance) // in this case we put result i to cluster with center j
+					{
+						myresults[i].clus_id = current_clust_center;
+						myresults[i].rmsd_from_cluscent = temp_rmsd;
+						result_clustered = 1;
+						break;
+					}
+				}
+			}
+
+			if (result_clustered != 1) // if no suitable cluster was found, this is the center of a new one
+			{
+				num_of_clusters++;
+				myresults[i].clus_id = num_of_clusters; // new cluster id
+				myresults[i].rmsd_from_cluscent = 0;
+			}
+		}
+
+		std::vector<unsigned int> cluster_rh_interactions;
+		bool found;
+		for (i=1; i<=num_of_clusters; i++) // printing cluster info to file
+		{
+			subrank = 0;
+			cluster_sizes [i-1] = 0;
+			sum_energy [i-1] = 0;
+			cluster_rh_interactions.clear();
+			for (int u=0; u<num_of_runs; u++){
+				j = energy_order[u];
+				if (myresults [j].clus_id == i)
+				{
+					subrank++;
+					cluster_sizes[i-1]++;
+					sum_energy [i-1] += myresults[j].interE + myresults[j].interflexE + torsional_energy; // intraE can be commented when unbound_same_as_bound (if there is a free ligand)
+					if(!mypars->free_roaming_ligand) sum_energy[i-1] += myresults[j].intraE + myresults[j].intraflexE;
+					myresults[j].clus_subrank = subrank;
+					// output number filtering
+					myresults[j].output = !((mypars->nr_cluster_poses > 0) && (subrank > mypars->nr_cluster_poses)) && (mypars->nr_cluster_poses >= 0);
+					if (subrank == 1)
+					{
+						best_energy [i-1] = myresults[j].interE + myresults[j].interflexE + torsional_energy; // intraE can be commented when unbound_same_as_bound (if there is a free ligand)
+						if(!mypars->free_roaming_ligand) best_energy[i-1] += myresults[j].intraE + myresults[j].intraflexE;
+						best_energy_runid  [i-1] = myresults[j].run_number;
+						myresults[j].output = true;
+						if(mypars->nr_cluster_poses < 0){ // automatic cluster pose output depending on R and H interactions
+							for(unsigned int k=0; k<myresults[j].analysis.size(); k++){
+								if(myresults[j].analysis[k].type <= 1){ // 0 ... R , 1 ... H
+									cluster_rh_interactions.push_back(j);
+									cluster_rh_interactions.push_back(k);
+								}
+							}
+						}
+					} else{
+						if(mypars->nr_cluster_poses < 0){ // automatic cluster pose output depending on R and H interactions
+							for(unsigned int k=0; k<myresults[j].analysis.size(); k++){
+								if(myresults[j].analysis[k].type <= 1){ // 0 ... R , 1 ... H
+									// see if particular interaction is already part of output
+									found = false;
+									for(unsigned int l=0; l<(cluster_rh_interactions.size()>>1); l++){
+										if(myresults[j].analysis[k]==myresults[cluster_rh_interactions[l<<1]].analysis[cluster_rh_interactions[(l<<1)+1]]){
+											found = true;
+											break;
+										}
+									}
+									if(!found){ // output particular pose (we are energy sorted after all) and store new interaction
+										myresults[j].output = true;
+										cluster_rh_interactions.push_back(j);
+										cluster_rh_interactions.push_back(k);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	
 	// GENERATING DLG FILE
 	if(mypars->output_dlg){
@@ -723,7 +836,7 @@ void generate_output(
 			// writing xray ligand pdbqt file
 			fprintf(fp, "    XRAY LIGAND PDBQT FILE:\n");
 			fprintf(fp, "    ________________________\n\n\n");
-			ligand_calc_output(fp, "XRAY-LIGAND-PDBQT: USER", tables, ligand_xray, mypars, mygrid, mypars->contact_analysis, output_ref_calcs);
+			ligand_calc_output(fp, "XRAY-LIGAND-PDBQT: USER", tables, ligand_xray, mypars, mygrid, mypars->output_contact_analysis, output_ref_calcs);
 			if(output_ref_calcs) output_ref_calcs=false;
 			unsigned int line_count = 0;
 			while (line_count < ligand_xray->ligand_line_count)
@@ -737,7 +850,7 @@ void generate_output(
 		unsigned int line_count = 0;
 		if(mypars->free_roaming_ligand){
 			fprintf(fp, "    INPUT LIGAND PDBQT FILE:\n    ________________________\n\n\n");
-			ligand_calc_output(fp, "INPUT-LIGAND-PDBQT: USER", tables, ligand_ref, mypars, mygrid, mypars->contact_analysis, output_ref_calcs);
+			ligand_calc_output(fp, "INPUT-LIGAND-PDBQT: USER", tables, ligand_ref, mypars, mygrid, mypars->output_contact_analysis, output_ref_calcs);
 			char tempstr [32];
 			while (line_count < ligand_ref->ligand_line_count)
 			{
@@ -789,18 +902,19 @@ void generate_output(
 				fprintf(fp, "\n\n");
 			}
 		}
-		
+
 		// writing docked conformations
 		std::string curr_model;
 		double inter, intra, unbound;
 		for (i=0; i<num_of_runs; i++)
 		{
+			if(!myresults[i].output) continue; // don't output poses not requested
 			fprintf(fp, "    FINAL DOCKED STATE:\n    ________________________\n\n\n");
 
 			fprintf(fp, "Run:   %d / %lu\n", i+1, mypars->num_of_runs);
 			fprintf(fp, "Time taken for this run:   %.3lfs\n\n", docking_avg_runtime);
 
-			if(mypars->contact_analysis){
+			if(mypars->output_contact_analysis){
 				fprintf(fp, "ANALYSIS: COUNT %lu\n", myresults[i].analysis.size());
 				if(myresults[i].analysis.size()>0){
 					std::string types    = "TYPE    {";
@@ -898,7 +1012,7 @@ void generate_output(
 			fprintf(fp, " kcal/mol\n");
 
 			fprintf(fp, "DOCKED: USER\n");
-			if(mypars->xml2dlg || mypars->contact_analysis){
+			if(mypars->xml2dlg || mypars->output_contact_analysis){
 				fprintf(fp, "DOCKED: USER    NEWDPF about 0.0 0.0 0.0\n");
 				if(mypars->free_roaming_ligand){
 					fprintf(fp, "DOCKED: USER    NEWDPF tran0 %.6f %.6f %.6f\n", myresults[i].genotype[0]*mygrid->spacing, myresults[i].genotype[1]*mygrid->spacing, myresults[i].genotype[2]*mygrid->spacing);
@@ -946,84 +1060,8 @@ void generate_output(
 			fprintf(fp, "________________________________________________________________________________\n\n\n");
 		}
 	}
-	
-	// arranging results according to energy, myresults [energy_order[0]] will be the best one (with lowest energy)
-	std::vector<int> energy_order(num_of_runs);
-	std::vector<double> energies(num_of_runs);
-	for (i=0; i<num_of_runs; i++){
-		energy_order[i] = i;
-		energies[i] = myresults [i].interE+myresults[i].interflexE; // mimics the behaviour of AD4 unbound_same_as_bound
-		if(!mypars->free_roaming_ligand) energies[i] += myresults [i].intraE+myresults[i].intraflexE;
-		myresults[i].clus_id = 0; // indicates that it hasn't been put into cluster yet (may as well do that here ...)
-	}
-	// sorting the indices instead of copying the results around will be faster
-	for(i=0; i<num_of_runs-1; i++)
-		for(j=0; j<num_of_runs-i-1; j++)
-			if(energies[energy_order[j]]>energies[energy_order[j+1]]) // swap indices to percolate larger energies up
-				std::swap(energy_order[j], energy_order[j+1]);
-	// PERFORM CLUSTERING
+
 	if(mypars->calc_clustering){
-
-		// the best result is the center of the first cluster
-		myresults[energy_order[0]].clus_id = 1;
-		myresults[energy_order[0]].rmsd_from_cluscent = 0;
-		num_of_clusters = 1;
-
-		for (int w=1; w<num_of_runs; w++) // for each result
-		{
-			i=energy_order[w];
-			current_clust_center = 0;
-			result_clustered = 0;
-
-			for (int u=0; u<w; u++) // results with lower id-s are clustered, look for cluster centers
-			{
-				j=energy_order[u];
-				if (myresults[j].clus_id > current_clust_center) // it is the center of a new cluster
-				{
-					current_clust_center = myresults[j].clus_id;
-					temp_rmsd = calc_rmsd(myresults[j].atom_idxyzq, myresults[i].atom_idxyzq, (!ligand_ref->true_ligand_atoms) ? ligand_ref->num_of_atoms : ligand_ref->true_ligand_atoms, mypars->handle_symmetry); // comparing current result with cluster center
-					if (temp_rmsd <= cluster_tolerance) // in this case we put result i to cluster with center j
-					{
-						myresults[i].clus_id = current_clust_center;
-						myresults[i].rmsd_from_cluscent = temp_rmsd;
-						result_clustered = 1;
-						break;
-					}
-				}
-			}
-
-			if (result_clustered != 1) // if no suitable cluster was found, this is the center of a new one
-			{
-				num_of_clusters++;
-				myresults[i].clus_id = num_of_clusters; // new cluster id
-				myresults[i].rmsd_from_cluscent = 0;
-			}
-		}
-
-		for (i=1; i<=num_of_clusters; i++) // printing cluster info to file
-		{
-			subrank = 0;
-			cluster_sizes [i-1] = 0;
-			sum_energy [i-1] = 0;
-			for (int u=0; u<num_of_runs; u++){
-				j = energy_order[u];
-				if (myresults [j].clus_id == i)
-				{
-					subrank++;
-					cluster_sizes[i-1]++;
-					sum_energy [i-1] += myresults[j].interE + myresults[j].interflexE + torsional_energy; // intraE can be commented when unbound_same_as_bound (if there is a free ligand)
-					if(!mypars->free_roaming_ligand) sum_energy[i-1] += myresults[j].intraE + myresults[j].intraflexE;
-					myresults[j].clus_subrank = subrank;
-					if (subrank == 1)
-					{
-						best_energy [i-1] = myresults[j].interE + myresults[j].interflexE + torsional_energy; // intraE can be commented when unbound_same_as_bound (if there is a free ligand)
-						if(!mypars->free_roaming_ligand) best_energy[i-1] += myresults[j].intraE + myresults[j].intraflexE;
-						best_energy_runid  [i-1] = myresults[j].run_number;
-					}
-				}
-			}
-		}
-
 		if(mypars->output_dlg){
 			// WRITING CLUSTER INFORMATION
 			fprintf(fp, "    CLUSTERING HISTOGRAM\n    ____________________\n\n\n");
@@ -1074,6 +1112,7 @@ void generate_output(
 			{
 				for (int u=0; u<num_of_runs; u++){
 					j = energy_order[u];
+					if (!myresults[j].output) continue;
 					if (myresults[j].clus_id == i+1) {
 						if (myresults[j].interE + myresults[j].interflexE + torsional_energy > 999999.99)
 							fprintf(fp, "%4d   %4d   %4d  %+10.2e  %8.2f  %8.2f           RANKING\n",
@@ -1167,7 +1206,7 @@ void generate_output(
 		for(int u=0; u<num_of_runs; u++){
 			j = energy_order[u];
 			fprintf(fp_xml, "\t\t<run id=\"%d\">\n",(myresults [j]).run_number);
-			if(mypars->contact_analysis){
+			if(mypars->output_contact_analysis){
 				fprintf(fp_xml, "\t\t\t<contact_analysis count=\"%lu\">\n", myresults[j].analysis.size());
 				if(myresults[j].analysis.size()>0){
 					std::string types;

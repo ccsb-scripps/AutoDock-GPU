@@ -166,7 +166,7 @@ typedef struct
 	bool         donor;
 } ReceptorAtom;
 
-typedef struct
+struct AnalysisData
 {
 	unsigned int type;     // 0 .. reactive, 1 .. hydrogen bond, 2 .. vdW
 	unsigned int lig_id;   // ligand atom id
@@ -176,7 +176,16 @@ typedef struct
 	const char*  residue;  // residue name
 	unsigned int res_id;   // residue id
 	const char*  chain;    // chain id
-} AnalysisData;
+	bool operator==(const AnalysisData& lhs) // compare if two interactions are the same
+	{
+		return (lhs.type==type) && (lhs.lig_id==lig_id) &&
+		       (lhs.rec_id==rec_id) && (lhs.res_id==res_id) &&
+		       (strcmp(lhs.lig_name,lig_name)==0) &&
+		       (strcmp(lhs.rec_name,rec_name)==0) &&
+		       (strcmp(lhs.residue,residue)==0) &&
+		       (strcmp(lhs.chain,chain)==0); // the strings are self-consistent as they're based on the same input
+	}
+};
 
 int init_liganddata(
                     const char*,
