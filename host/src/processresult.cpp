@@ -931,13 +931,13 @@ void generate_output(
 			for(atom_cnt = ligand_ref->num_of_atoms; atom_cnt-->0;)
 			{
 				char* line = lineout;
-				line += snprintf(line, 9, "%8.3lf",       myresults[i].atom_idxyzq[atom_cnt][1]); // x
-				line += snprintf(line, 9, "%8.3lf",       myresults[i].atom_idxyzq[atom_cnt][2]); // y
-				line += snprintf(line, 9, "%8.3lf",       myresults[i].atom_idxyzq[atom_cnt][3]); // z
-				line += snprintf(line, 7, "%+6.2lf",      copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw
-				line += snprintf(line, 7, "%+6.2lf",      copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec
-				line += snprintf(line, 13, "    %+6.3lf ", myresults[i].atom_idxyzq[atom_cnt][4]); // q
-				line += snprintf(line, 4, "%-3s\n",       ligand_ref->atom_types[((int)myresults[i].atom_idxyzq[atom_cnt][0])]); // type
+				line += snprintf(line, 9, "%8.3lf",       myresults[i].atom_idxyzq[atom_cnt][1]); // x (line = [0..8])
+				line += snprintf(line, 9, "%8.3lf",       myresults[i].atom_idxyzq[atom_cnt][2]); // y (line = [8..16])
+				line += snprintf(line, 9, "%8.3lf",       myresults[i].atom_idxyzq[atom_cnt][3]); // z (line = [16..24])
+				line += snprintf(line, 7, "%+6.2lf",      copysign(fmin(fabs(myresults[i].peratom_vdw[atom_cnt]),99.99),myresults[i].peratom_vdw[atom_cnt])); // vdw (line = [24..30])
+				line += snprintf(line, 7, "%+6.2lf",      copysign(fmin(fabs(myresults[i].peratom_elec[atom_cnt]),99.99),myresults[i].peratom_elec[atom_cnt])); // elec (line = [30..36])
+				line += snprintf(line, 12, "    %+6.3lf ", myresults[i].atom_idxyzq[atom_cnt][4]); // q (line = [36..47]
+				line += snprintf(line, 5, "%-3s\n",       ligand_ref->atom_types[((int)myresults[i].atom_idxyzq[atom_cnt][0])]); // type (line = [48..51])
 				curr_model.insert(atom_data[atom_cnt],lineout);
 			}
 			fprintf(fp, "%s", curr_model.c_str());
