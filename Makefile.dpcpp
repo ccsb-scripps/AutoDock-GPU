@@ -14,8 +14,8 @@
 # Choose OpenCL device
 # Valid values: CPU, GPU
 
-DPCPP = dpcpp
-CPP = dpcpp
+DPCPP = icpx -fsycl
+CPP = icpx -fsycl
 UNAME := $(shell uname)
 
 # Assume $ONEAPIPATH/setvars.sh has been run
@@ -114,6 +114,7 @@ endif
 # LDEBUG (light): enables debugging on host
 # RELEASE
 CONFIG=RELEASE
+PLATFORM=PVC
 #CONFIG=FDEBUG
 
 ifeq ($(CONFIG),FDEBUG)
