@@ -166,4 +166,14 @@ enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.da
 	#define SYCL_ATOMICS_MEM_SCOPE sycl::memory_scope::device
 #endif
 
+#define SYCL_ATOMICS_RELAXED_ORDER
+
+#if defined(SYCL_ATOMICS_RELAXED_ORDER)
+	#define SYCL_ATOMICS_MEMORY_ORDER	sycl::memory_order::relaxed
+#elif defined(SYCL_ATOMICS_RELEASE_ORDER)
+	#define SYCL_ATOMICS_MEMORY_ORDER sycl::memory_order::release
+#else
+	#define SYCL_ATOMICS_MEMORY_ORDER sycl::memory_order::acq_rel
+#endif 
+
 #endif /* DEFINES_H_ */
