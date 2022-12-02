@@ -127,6 +127,8 @@ ifeq ($(CONFIG),FDEBUG)
 	endif    
 else ifeq ($(CONFIG),FDEBUG_VTUNE)
 	OPT =-g -Wall -DDOCK_DEBUG -gline-tables-only -fdebug-info-for-profiling
+else ifeq ($(CONFIG),LDEBUG_VTUNE)
+	OPT =-g -Wall -gline-tables-only -fdebug-info-for-profiling	
 else ifeq ($(CONFIG),LDEBUG)
 	OPT =-g -Wall 
 else ifeq ($(CONFIG),RELEASE)
