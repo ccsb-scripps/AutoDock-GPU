@@ -134,6 +134,8 @@ else ifeq ($(CONFIG),RELEASE)
 	OPT =-O3
 	ifeq ($(PLATFORM),PVC)
 		OPT+=-fsycl-targets=spir64_gen -Xs "-device 0x0BD6 -revision_id 7"
+	else ifeq ($(PLATFORM),ICX)
+		OPT+=-fsycl-targets=spir64_gen -Xs "-device icllp"
 	endif
 else
 	OPT =
