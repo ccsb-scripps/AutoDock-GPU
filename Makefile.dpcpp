@@ -114,7 +114,6 @@ endif
 # LDEBUG (light): enables debugging on host
 # RELEASE
 CONFIG=RELEASE
-PLATFORM=PVC
 #CONFIG=FDEBUG
 
 ifeq ($(CONFIG),FDEBUG)
