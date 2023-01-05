@@ -46,6 +46,7 @@ LIB_XeGPU = kernels.dp.o
 TARGET := autodock
 TOOL_TARGET := adgpu_analysis
 
+IFLAGS+=-cl-fast-relaxed-math -cl-single-precision-constant
 IFLAGS+=-I$(COMMON_DIR) -I$(HOST_INC_DIR) -I$(KRNL_DIR)
 # set DPCT_INCUDE_PATH in the environment if DPCT helper functions are used for SYCL on non Intel platforms
 ifdef DPCT_INCLUDE_PATH

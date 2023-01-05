@@ -386,33 +386,15 @@ void gpu_perform_LS(
 
                 auto cData_ptr_ct1 = cData.get_ptr();
 
-                sycl::accessor<uint8_t, 1, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    dpct_local_acc_ct1(sycl::range<1>(sz_shared), cgh);
-                sycl::accessor<float, 0, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    rho_acc_ct1(cgh);
-                sycl::accessor<int, 0, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    cons_succ_acc_ct1(cgh);
-                sycl::accessor<int, 0, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    cons_fail_acc_ct1(cgh);
-                sycl::accessor<int, 0, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    iteration_cnt_acc_ct1(cgh);
-                sycl::accessor<int, 0, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    evaluation_cnt_acc_ct1(cgh);
-                sycl::accessor<float, 0, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    offspring_energy_acc_ct1(cgh);
-                sycl::accessor<float, 0, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    sFloatAccumulator_acc_ct1(cgh);
-                sycl::accessor<int, 0, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    entity_id_acc_ct1(cgh);
+                sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(sycl::range<1>(sz_shared), cgh);
+                sycl::local_accessor<float, 0> rho_acc_ct1(cgh);
+                sycl::local_accessor<int, 0> cons_succ_acc_ct1(cgh);
+                sycl::local_accessor<int, 0> cons_fail_acc_ct1(cgh);
+                sycl::local_accessor<int, 0> iteration_cnt_acc_ct1(cgh);
+                sycl::local_accessor<int, 0> evaluation_cnt_acc_ct1(cgh);
+                sycl::local_accessor<float, 0> offspring_energy_acc_ct1(cgh);
+                sycl::local_accessor<float, 0> sFloatAccumulator_acc_ct1(cgh);
+                sycl::local_accessor<int, 0> entity_id_acc_ct1(cgh);
 
                 cgh.parallel_for(
                     sycl::nd_range<3>(sycl::range<3>(1, 1, blocks) *
