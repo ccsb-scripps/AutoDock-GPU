@@ -469,18 +469,10 @@ void gpu_gradient_minAdam(
 
                 auto cData_ptr_ct1 = cData.get_ptr();
 
-                sycl::accessor<uint8_t, 1, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    dpct_local_acc_ct1(sycl::range<1>(sz_shared), cgh);
-                sycl::accessor<int, 0, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    entity_id_acc_ct1(cgh);
-                sycl::accessor<float, 0, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    best_energy_acc_ct1(cgh);
-                sycl::accessor<float, 0, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    sFloatAccumulator_acc_ct1(cgh);
+                sycl::local_accessor<uint8_t, 1> dpct_local_acc_ct1(sycl::range<1>(sz_shared), cgh);
+                sycl::local_accessor<int, 0> entity_id_acc_ct1(cgh);
+                sycl::local_accessor<float, 0> best_energy_acc_ct1(cgh);
+                sycl::local_accessor<float, 0> sFloatAccumulator_acc_ct1(cgh);
 
                 cgh.parallel_for(
                     sycl::nd_range<3>(sycl::range<3>(1, 1, blocks) *
