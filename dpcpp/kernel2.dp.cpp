@@ -71,7 +71,6 @@ void gpu_sum_evals(uint32_t blocks, uint32_t threadsPerBlock)
 
                 auto cData_ptr_ct1 = cData.get_ptr();
 
-                //sycl::accessor<int, 0, sycl::access::mode::read_write, sycl::access::target::local> sSum_evals_acc_ct1(cgh);
                 sycl::local_accessor<int, 0> sSum_evals_acc_ct1(cgh);
 
                 cgh.parallel_for(
