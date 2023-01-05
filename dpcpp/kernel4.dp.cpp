@@ -428,38 +428,26 @@ void gpu_gen_and_eval_newpops(
 
                 auto cData_ptr_ct1 = cData.get_ptr();
 
-                sycl::accessor<float, 1, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    offspring_genotype_acc_ct1(
-                        sycl::range<1>(64 /*ACTUAL_GENOTYPE_LENGTH*/), cgh);
-                sycl::accessor<int, 1, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    parent_candidates_acc_ct1(sycl::range<1>(4), cgh);
-                sycl::accessor<float, 1, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    candidate_energies_acc_ct1(sycl::range<1>(4), cgh);
-                sycl::accessor<int, 1, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    parents_acc_ct1(sycl::range<1>(2), cgh);
-                sycl::accessor<int, 1, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    covr_point_acc_ct1(sycl::range<1>(2), cgh);
-                sycl::accessor<float, 1, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    randnums_acc_ct1(sycl::range<1>(10), cgh);
-                sycl::accessor<float, 1, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    sBestEnergy_acc_ct1(sycl::range<1>(32), cgh);
-                sycl::accessor<int, 1, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    sBestID_acc_ct1(sycl::range<1>(32), cgh);
-                sycl::accessor<sycl::float3, 1, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    calc_coords_acc_ct1(
-                        sycl::range<1>(256 /*MAX_NUM_OF_ATOMS*/), cgh);
-                sycl::accessor<float, 0, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    sFloatAccumulator_acc_ct1(cgh);
+                //sycl::accessor<float, 1, sycl::access::mode::read_write, sycl::access::target::local> offspring_genotype_acc_ct1(sycl::range<1>(64 /*ACTUAL_GENOTYPE_LENGTH*/), cgh);
+                //sycl::accessor<int, 1, sycl::access::mode::read_write, sycl::access::target::local> parent_candidates_acc_ct1(sycl::range<1>(4), cgh);
+                //sycl::accessor<float, 1, sycl::access::mode::read_write, sycl::access::target::local> candidate_energies_acc_ct1(sycl::range<1>(4), cgh);
+                //sycl::accessor<int, 1, sycl::access::mode::read_write, sycl::access::target::local> parents_acc_ct1(sycl::range<1>(2), cgh);
+                //sycl::accessor<int, 1, sycl::access::mode::read_write, sycl::access::target::local> covr_point_acc_ct1(sycl::range<1>(2), cgh);
+                //sycl::accessor<float, 1, sycl::access::mode::read_write, sycl::access::target::local> randnums_acc_ct1(sycl::range<1>(10), cgh);
+                //sycl::accessor<float, 1, sycl::access::mode::read_write, sycl::access::target::local> sBestEnergy_acc_ct1(sycl::range<1>(32), cgh);
+                //sycl::accessor<int, 1, sycl::access::mode::read_write, sycl::access::target::local> sBestID_acc_ct1(sycl::range<1>(32), cgh);
+                //sycl::accessor<sycl::float3, 1, sycl::access::mode::read_write, sycl::access::target::local> calc_coords_acc_ct1(sycl::range<1>(256 /*MAX_NUM_OF_ATOMS*/), cgh);
+                //sycl::accessor<float, 0, sycl::access::mode::read_write, sycl::access::target::local> sFloatAccumulator_acc_ct1(cgh);  
+                sycl::local_accessor<float, 1> offspring_genotype_acc_ct1(sycl::range<1>(64 /*ACTUAL_GENOTYPE_LENGTH*/), cgh);
+                sycl::local_accessor<int, 1> parent_candidates_acc_ct1(sycl::range<1>(4), cgh);
+                sycl::local_accessor<float, 1> candidate_energies_acc_ct1(sycl::range<1>(4), cgh);
+                sycl::local_accessor<int, 1> parents_acc_ct1(sycl::range<1>(2), cgh);
+                sycl::local_accessor<int, 1> covr_point_acc_ct1(sycl::range<1>(2), cgh);
+                sycl::local_accessor<float, 1> randnums_acc_ct1(sycl::range<1>(10), cgh);
+                sycl::local_accessor<float, 1> sBestEnergy_acc_ct1(sycl::range<1>(32), cgh);
+                sycl::local_accessor<int, 1> sBestID_acc_ct1(sycl::range<1>(32), cgh);
+                sycl::local_accessor<sycl::float3, 1> calc_coords_acc_ct1(sycl::range<1>(256 /*MAX_NUM_OF_ATOMS*/), cgh);
+                sycl::local_accessor<float, 0> sFloatAccumulator_acc_ct1(cgh);
 
                 cgh.parallel_for(
                     sycl::nd_range<3>(sycl::range<3>(1, 1, blocks) *

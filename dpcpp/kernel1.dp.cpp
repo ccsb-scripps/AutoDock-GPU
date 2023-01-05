@@ -76,13 +76,10 @@ void gpu_calc_initpop(
 
                 auto cData_ptr_ct1 = cData.get_ptr();
 
-                sycl::accessor<sycl::float3, 1, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    calc_coords_acc_ct1(
-                        sycl::range<1>(/*256*/ MAX_NUM_OF_ATOMS), cgh);
-                sycl::accessor<float, 0, sycl::access::mode::read_write,
-                               sycl::access::target::local>
-                    sFloatAccumulator_acc_ct1(cgh);
+                //sycl::accessor<sycl::float3, 1, sycl::access::mode::read_write, sycl::access::target::local> calc_coords_acc_ct1(sycl::range<1>(/*256*/ MAX_NUM_OF_ATOMS), cgh);
+                //sycl::accessor<float, 0, sycl::access::mode::read_write, sycl::access::target::local> sFloatAccumulator_acc_ct1(cgh);
+                sycl::local_accessor<sycl::float3, 1> calc_coords_acc_ct1(sycl::range<1>(/*256*/ MAX_NUM_OF_ATOMS), cgh);
+                sycl::local_accessor<float, 0> sFloatAccumulator_acc_ct1(cgh);
 
                 cgh.parallel_for(
                     sycl::nd_range<3>(sycl::range<3>(1, 1, blocks) *
