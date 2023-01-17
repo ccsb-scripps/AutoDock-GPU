@@ -218,18 +218,18 @@ class AutoStop{
 		return autostopped;
 	}
 
-	inline void output_final_stddev(int generation_cnt, const float* energies, unsigned long total_evals){
+	inline void output_final_stddev(int generation_cnt, const float* energies, unsigned long total_evals, bool autostop){
 		if (autostopped){
 			para_printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
 			para_printf("\n%43s evaluation after reaching\n%40.2f +/-%8.2f kcal/mol combined.\n%34i samples, best energy %8.2f kcal/mol.\n","Finished",average(&average_sd2_N[0]),stddev(&average_sd2_N[0]),(unsigned int)average_sd2_N[2],overall_best_energy);
 		} else {
 			// Stopped without autostop; output stddev statistics regardless
-
 			tabulate_energies(energies);  // Fills average_sd2_N and overall_best_energy
 			set_stats(); // set curr_avg, curr_std, bestN, average_sd2_N
-
-			para_printf("%11u | %12lu |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/num_of_runs,threshold,curr_avg,curr_std,bestN,overall_best_energy);
-			para_printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
+			if (autostop) {				
+				para_printf("%11u | %12lu |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/num_of_runs,threshold,curr_avg,curr_std,bestN,overall_best_energy);
+				para_printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
+			}
 			para_printf("\n%43s evaluation after reaching\n%33lu evaluations. Best energy %8.2f kcal/mol.\n","Finished",total_evals/num_of_runs,overall_best_energy);
 		}
 		fflush(stdout);

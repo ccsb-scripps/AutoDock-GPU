@@ -1545,8 +1545,9 @@ int docking_with_gpu(const Gridinfo *mygrid, Dockpars *mypars,
         RTERROR(status, "cudaMemcpy: couldn't copy pMem_energies_current to host.\n");
 
         // Final autostop statistics output
-	if (mypars->autostop) autostop.output_final_stddev(generation_cnt, sim_state.cpu_energies.data(), total_evals);
-	para_printf("\nDocking time %fs\n", elapsed_seconds(t2, t3));
+	//if (mypars->autostop) 
+        autostop.output_final_stddev(generation_cnt, sim_state.cpu_energies.data(), total_evals, mypars->autostop);
+        para_printf("\nDocking time %fs\n", elapsed_seconds(t2, t3));
 #if defined (DOCK_DEBUG)
 	for (int cnt_pop=0;cnt_pop<size_populations/sizeof(float);cnt_pop++)
 		para_printf("total_num_pop: %u, cpu_final_populations[%u]: %f\n",(unsigned int)(size_populations/sizeof(float)),cnt_pop,cpu_final_populations[cnt_pop]);
