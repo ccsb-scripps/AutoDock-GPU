@@ -549,8 +549,8 @@ SYCL_EXTERNAL void gpu_calc_energrad(float *genotype, float &global_energy,
                                                    opt_dist_delta);
                         } else smoothed_distance = opt_distance;
 			// Calculating van der Waals / hydrogen bond term
-                        float rmn = sycl::pown(smoothed_distance, m - n);
-                        float rm = sycl::pown(smoothed_distance, -m);
+                        float rmn = SYCL_POWN(smoothed_distance, (m - n));
+                        float rm = SYCL_POWN(smoothed_distance, (-m));
                         energy += (cData.pKerconst_intra->VWpars_AC_const[idx]
 			           -rmn*cData.pKerconst_intra->VWpars_BD_const[idx])*rm;
 

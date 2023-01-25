@@ -450,9 +450,9 @@ SYCL_EXTERNAL void gpu_calc_energy(float *pGenotype, float &energy, int &run_id,
 			// Calculating van der Waals / hydrogen bond term
                         energy +=
                             (cData.pKerconst_intra->VWpars_AC_const[idx] -
-                             sycl::pown(smoothed_distance, m - n) *
+                             SYCL_POWN(smoothed_distance, (m - n)) *
                                  cData.pKerconst_intra->VWpars_BD_const[idx]) *
-                            sycl::pown(smoothed_distance, -m);
+                            SYCL_POWN(smoothed_distance, (-m));
 #if defined (DEBUG_ENERGY_KERNEL)
 			intraE += (cData.pKerconst_intra->VWpars_AC_const[idx]
 			           -__powf(smoothed_distance,m-n)*cData.pKerconst_intra->VWpars_BD_const[idx])
