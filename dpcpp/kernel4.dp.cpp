@@ -443,8 +443,7 @@ void gpu_gen_and_eval_newpops(
                     sycl::nd_range<3>(sycl::range<3>(1, 1, blocks) *
                                           sycl::range<3>(1, 1, threadsPerBlock),
                                       sycl::range<3>(1, 1, threadsPerBlock)),
-                    [=](sycl::nd_item<3> item_ct1) 
-                    [[intel::reqd_sub_group_size(32)]] {
+                    [=](sycl::nd_item<3> item_ct1) {
                             gpu_gen_and_eval_newpops_kernel(
                                 pMem_conformations_current,
                                 pMem_energies_current, pMem_conformations_next,
