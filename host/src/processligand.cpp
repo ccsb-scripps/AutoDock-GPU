@@ -739,7 +739,7 @@ pair_mod* is_mod_pair(
                             pair_mod* mod_atype_pairs
                      )
 {
-	for(int i=0; i<nr_mod_atype_pairs; i++) // need to make sure there isn't a modified pair
+	for(int i=nr_mod_atype_pairs; i-->0;) // find modified pair from last to first (so last specified ones, i.e. on command line, have priority)
 		if ( ((strcmp(mod_atype_pairs[i].A, A) == 0) && (strcmp(mod_atype_pairs[i].B, B) == 0)) ||
 		     ((strcmp(mod_atype_pairs[i].A, B) == 0) && (strcmp(mod_atype_pairs[i].B, A) == 0)))
 			return &mod_atype_pairs[i];
