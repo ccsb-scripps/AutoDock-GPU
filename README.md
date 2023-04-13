@@ -9,7 +9,7 @@ AutoDock-GPU: AutoDock for GPUs and other accelerators
 * OpenCL and Cuda accelerated version of AutoDock4.2.6. It leverages its embarrasingly parallelizable LGA by processing ligand-receptor poses in parallel over multiple compute units.
 * The OpenCL version was developed in collaboration with TU-Darmstadt and is able to target CPU, GPU, and FPGA architectures. This version itself was based on work done by Imre Pechan from evopro Innovation Kft.
 * The Cuda version was developed in collaboration with Nvidia to run AutoDock-GPU on the Oak Ridge National Laboratory's (ORNL) Summit, and it included a batched ligand pipeline developed by Aaron Scheinberg from Jubilee Development.
-* The DPCPP version was developed in collaboration with Intel.
+* The SYCL version was developed in collaboration with Intel. This version can run CPU, GPU, and FPGA architectures.
 
 # Citation
 
@@ -28,7 +28,7 @@ See [more relevant papers](https://github.com/ccsb-scripps/AutoDock-GPU/wiki/Pub
 
 | Operating system                         | CPU                          | GPU                                                  |
 |:----------------------------------------:|:----------------------------:|:----------------------------------------------------:|
-|CentOS 6.7 & 6.8 / Ubuntu 14.04 & 16.04   | Intel SDK for OpenCL 2017    | AMD APP SDK v3.0 / CUDA 9, 10, and 11 / oneAPI 2022.1|
+|CentOS 6.7 & 6.8 / Ubuntu 14.04, 16.04, 20.04, 22.04   | Intel SDK for OpenCL 2017, oneAPI 2023.1    | AMD APP SDK v3.0 / CUDA 9, 10, and 11, 12 / oneAPI 2023.1|
 |macOS Catalina 10.15.1                    | Apple / Intel                | Apple / Intel Iris, Radeon Vega 64, Radeon VII       |
 
 
@@ -39,6 +39,8 @@ Other environments or configurations likely work as well, but are untested.
 The first step is to set environmental variables `GPU_INCLUDE_PATH` and `GPU_LIBRARY_PATH`,
 as described here: https://github.com/ccsb-scripps/AutoDock-GPU/wiki/Guideline-for-users
 
+For SYCL, setup the environment as described here: https://www.intel.com/content/www/us/en/docs/oneapi/programming-guide/2023-0/oneapi-development-environment-setup.html
+
 ```zsh
 make DEVICE=<TYPE> NUMWI=<NWI>
 ```
@@ -46,11 +48,11 @@ make DEVICE=<TYPE> NUMWI=<NWI>
 | Parameters | Description                  | Values                                             |
 |:----------:|:----------------------------:|:--------------------------------------------------:|
 | `<TYPE>`   | Accelerator chosen           | `CPU`, `GPU`, `CUDA`, `OCLGPU`, `XeGPU`            |
-| `<NWI>`    | work-group/thread block size | `1`, `2`, `4`, `8`, `16`, `32`, `64`, `128`, `256` |
+| `<NWI>`    | work-group/thread block size | `1`, `2`, `4`, `8`, `16`, `32`, `64`, `128`, `256`, `512`, `1024` |
 
 When `DEVICE=GPU` is chosen, the Makefile will automatically tests if it can compile Cuda succesfully. To override, use `DEVICE=CUDA` or `DEVICE=OCLGPU` or `DEVICE=XeGPU`. The cpu target is only supported using OpenCL. Furthermore, an OpenMP-enabled overlapped pipeline (for setup and processing) can be compiled with `OVERLAP=ON`.
 Note that the version compiled with `DEVICE=XeGPU` can also run on CPUs.
-Hints: The best work-group size depends on the GPU and workload. Try `NUMWI=128` or `NUMWI=64` for modern cards with the example workloads. On macOS, use `NUMWI=1` for CPUs.
+Hints: The best work-group size depends on the GPU and workload. Try `NUMWI=128` or `NUMWI=64` for modern cards with the example workloads. Not all work-group sizes work with all accelerators. On macOS, use `NUMWI=1` for CPUs.
 
 After successful compilation, the host binary **autodock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
 
