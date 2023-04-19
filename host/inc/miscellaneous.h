@@ -98,6 +98,8 @@ void vec_point2line(const double [], const double [], const double [], double []
 
 void rotate(double [], const double [], const double [], const double*, int);
 
+bool has_absolute_path(const char* filename);
+
 std::string get_filepath(const char* filename);
 
 // trim input string range -- careful: no range checking

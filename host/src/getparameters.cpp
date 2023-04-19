@@ -144,6 +144,14 @@ int parse_dpf(
 			printf("\nError: Could not open dpf file %s. Check path and permissions.\n",mypars->dpffile);
 			return 1;
 		}
+		std::string dpf_path = get_filepath(mypars->dpffile);
+		if(dpf_path==".") dpf_path="";
+		bool check_path = false;
+		if(dpf_path.size()>0){
+			dpf_path  += "/";
+			check_path = true;
+		}
+		
 		mypars->elec_min_distance = 0.5; // default for AD4
 		std::string line;
 		char tempstr[256], argstr[256];
@@ -183,15 +191,24 @@ int parse_dpf(
 						if(!mypars->xml2dlg){
 							sscanf(line.c_str(),"%*s %255s",argstr);
 							if(mypars->ligandfile) free(mypars->ligandfile);
-							if(strincmp(argstr,"empty",5) != 0)
-								mypars->ligandfile = strdup(argstr);
+							if(strincmp(argstr,"empty",5) != 0){
+								if(check_path && !has_absolute_path(argstr)){
+									len = strlen(argstr);
+									mypars->ligandfile = (char*)malloc((dpf_path.size()+len+1)*sizeof(char));
+									strncat(strncpy(mypars->ligandfile, dpf_path.c_str(), dpf_path.size()), argstr, len);
+								} else mypars->ligandfile = strdup(argstr);
+							}
 						}
 						break;
 				case DPF_FLEXRES: // flexibe residue file name
 						if(!mypars->xml2dlg){
 							sscanf(line.c_str(),"%*s %255s",argstr);
 							if(mypars->flexresfile) free(mypars->flexresfile);
-							mypars->flexresfile = strdup(argstr);
+							if(check_path && !has_absolute_path(argstr)){
+								len = strlen(argstr);
+								mypars->flexresfile = (char*)malloc((dpf_path.size()+len+1)*sizeof(char));
+								strncat(strncpy(mypars->flexresfile, dpf_path.c_str(), dpf_path.size()), argstr, len);
+							} else mypars->flexresfile = strdup(argstr);
 						}
 						break;
 				case DPF_FLD: // grid data file name
@@ -199,7 +216,11 @@ int parse_dpf(
 							sscanf(line.c_str(),"%*s %255s",argstr);
 							// Add the .fld file
 							if(mypars->fldfile) free(mypars->fldfile);
-							mypars->fldfile = strdup(argstr); // this allows using the dpf to set up all parameters but the ligand
+							if(check_path && !has_absolute_path(argstr)){
+								len = strlen(argstr);
+								mypars->fldfile = (char*)malloc((dpf_path.size()+len+1)*sizeof(char));
+								strncat(strncpy(mypars->fldfile, dpf_path.c_str(), dpf_path.size()), argstr, len);
+							} else mypars->fldfile = strdup(argstr); // this allows using the dpf to set up all parameters but the ligand
 							// Filling mygrid according to the specified fld file
 							if (get_gridinfo(mypars->fldfile, mygrid) != 0)
 							{
@@ -889,7 +910,7 @@ int get_filelist(
 		if (get_filenames_and_ADcoeffs(argc, argv, mypars, filelist.used, false) != 0){
 			return 1;
 		}
-		// use current (aka last specified) fld file to for this file list
+		// use current (aka last specified) fld file for this file list
 		if(mypars->fldfile==NULL){
 			printf("Error: Argument --filelist (-B) with ligand files needs a grid file. Please specify through --ffile (-M) or --import_dpf (-I).\n");
 			return 1;
@@ -949,6 +970,13 @@ int get_filelist(
 			printf("\nError: Could not open file list %s. Check path and permissions.\n",filelist.filename);
 			return 1;
 		}
+		std::string fl_path = get_filepath(filelist.filename);
+		if(fl_path==".") fl_path="";
+		bool check_path = false;
+		if(fl_path.size()>0){
+			fl_path  += "/";
+			check_path = true;
+		}
 		std::string line;
 		bool prev_line_was_fld=false;
 		bool lone_flex_or_covalent=false;
@@ -976,11 +1004,12 @@ int get_filelist(
 				if((ret=filelist_add(mypars,mygrid,filelist))) return ret;
 				// Keep track of fld lines actually used
 				last_fld_idx = filelist.fld_files.size();
-				prev_line_was_fld=false;
-				lone_flex_or_covalent=false;
+				prev_line_was_fld = false;
+				lone_flex_or_covalent = false;
 			}
 			if (len>=4 && line.compare(len-4,4,".fld") == 0){
 				bool new_grid=true;
+				if(check_path && !has_absolute_path(line.c_str())) line = fl_path + line;
 				if (prev_line_was_fld){ // Overwrite the previous fld file if two in a row
 					filelist.mygrids.pop_back(); // previous map is invalid now and will be overwritten by new one
 					filelist.fld_files.back() = {line,filelist.mygrids.size()};
@@ -995,7 +1024,6 @@ int get_filelist(
 						}
 					} else filelist.fld_files.push_back({line,filelist.mygrids.size()});
 					prev_line_was_fld=true;
-
 					// If more than one unique protein, cant do map preloading yet
 					if (filelist.fld_files.size()>0){
 						filelist.preload_maps=false;
@@ -1015,14 +1043,17 @@ int get_filelist(
 				if(new_grid) filelist.mygrids.push_back(*mygrid);
 			} else if (len>=7 && line.compare(len-7,7,".pdbqt*") == 0){
 				// Add the reference (xray) ligand file
+				if(check_path && !has_absolute_path(line.c_str())) line = fl_path + line;
 				mypars->xrayligandfile = strndup(line.c_str(),len-1);
 				mypars->given_xrayligandfile = true;
 			} else if (len>=7 && line.compare(len-7,7,".pdbqt-") == 0){
 				// Add a new flexible residue
+				if(check_path && !has_absolute_path(line.c_str())) line = fl_path + line;
 				mypars->flexresfile = strndup(line.c_str(),len-1);
 				lone_flex_or_covalent=true;
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
 				// Add the .pdbqt
+				if(check_path && !has_absolute_path(line.c_str())) line = fl_path + line;
 				filelist.ligand_files.push_back(line);
 				mypars->free_roaming_ligand=true;
 				// Add entry to filelist
@@ -1044,10 +1075,8 @@ int get_filelist(
 			// Add entry to filelist
 			if((ret=filelist_add(mypars,mygrid,filelist))) return ret;
 		}
-
 		filelist.nfiles = filelist.ligand_files.size();
 		if(filelist.nfiles>0) filelist.used = true;
-
 		if (filelist.ligand_files.size()==0){
 			printf("Error: No ligands, through lines ending with the .pdbqt suffix, have been specified.\n");
 			return 1;
@@ -1080,7 +1109,6 @@ int get_filelist(
 		mypars->receptor_atoms = read_receptor(receptor_name.c_str(),mygrid,mypars->receptor_map,mypars->receptor_map_list);
 		mypars->nr_receptor_atoms = mypars->receptor_atoms.size();
 	}
-
 	return 0;
 }
 
