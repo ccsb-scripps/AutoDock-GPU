@@ -1050,12 +1050,12 @@ int get_filelist(
 			} else if (len>=7 && line.compare(len-7,7,".pdbqt*") == 0){
 				// Add the reference (xray) ligand file
 				if(check_path && !has_absolute_path(line.c_str())) line = fl_path + line;
-				mypars->xrayligandfile = strndup(line.c_str(),len-1);
+				mypars->xrayligandfile = strndup(line.c_str(),line.size()-1);
 				mypars->given_xrayligandfile = true;
 			} else if (len>=7 && line.compare(len-7,7,".pdbqt-") == 0){
 				// Add a new flexible residue
 				if(check_path && !has_absolute_path(line.c_str())) line = fl_path + line;
-				mypars->flexresfile = strndup(line.c_str(),len-1);
+				mypars->flexresfile = strndup(line.c_str(),line.size()-1);
 				lone_flex_or_covalent=true;
 			} else if (len>=6 && line.compare(len-6,6,".pdbqt") == 0){
 				// Add the .pdbqt
