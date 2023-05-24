@@ -1070,6 +1070,7 @@ int get_filelist(
 				lone_flex_or_covalent=false;
 			} else if (len>0) {
 				// Anything else in the file is assumed to be the resname
+				if(check_path && !has_absolute_path(line.c_str())) line = fl_path + line;
 				filelist.resnames.push_back(line);
 			}
 		}
