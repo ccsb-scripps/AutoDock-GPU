@@ -186,6 +186,9 @@ int parse_dpf(
 				int comment_loc = line.find("#");
 				if(comment_loc>0) line.erase(comment_loc,line.size()-comment_loc);
 			}
+			argstr[0] = '\0';
+			tempint = 0;
+			tempfloat = -1;
 			switch(token_id){
 				case DPF_MOVE: // movable ligand file name
 						if(!mypars->xml2dlg){
@@ -481,6 +484,7 @@ int parse_dpf(
 						}
 						break;
 				case GA_num_generations: // number of generations
+				                tempint = 0;
 						sscanf(line.c_str(),"%*s %d",&tempint);
 						if ((tempint > 0) && (tempint < 16250000)){
 							mypars->num_of_generations = (unsigned long) tempint;
@@ -530,6 +534,7 @@ int parse_dpf(
 						break;
 				case SW_max_succ: // cons. success limit
 				case SW_max_fail: // cons. failure limit
+						
 						sscanf(line.c_str(),"%*s %d",&tempint);
 						if ((tempint > 0) && (tempint < 256)){
 							mypars->cons_limit = (unsigned long) (tempint);
@@ -564,6 +569,7 @@ int parse_dpf(
 						}
 						break;
 				case DPF_COMMENT: // we use comments to allow specifying AD-GPU command lines
+						tempstr[0] = '\0';
 						sscanf(line.c_str(),"%*s %255s %255s",tempstr,argstr);
 						if(tempstr[0]=='-'){ // potential command line argument
 							i=2; // one command line argument to be parsed
@@ -2114,7 +2120,7 @@ std::vector<ReceptorAtom> read_receptor_atoms(
 	ReceptorAtom current;
 	while(std::getline(file, line))
 	{
-		sscanf(line.c_str(),"%255s",tempstr);
+		if(sscanf(line.c_str(),"%255s",tempstr) != 1) continue;
 		if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 		{
 			line.insert(54,1,' '); // add spaces to make reading coordinates easier
