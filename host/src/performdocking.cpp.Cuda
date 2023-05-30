@@ -185,29 +185,6 @@ void setup_gpu_for_docking(
 		status = cudaMalloc((void**)&(tData.pMem_fgrids), cData.preallocated_gridsize*sizeof(float));
 		RTERROR(status, "pMem_fgrids: failed to allocate GPU memory.\n");
 	}
-	size_t size_populations = MAX_NUM_OF_RUNS * MAX_POPSIZE * GENOTYPE_LENGTH_IN_GLOBMEM*sizeof(float);
-	status = cudaMalloc((void**)&(tData.pMem_conformations1), size_populations);
-	RTERROR(status, "pMem_conformations1: failed to allocate GPU memory.\n");
-	status = cudaMalloc((void**)&(tData.pMem_conformations2), size_populations);
-	RTERROR(status, "pMem_conformations2: failed to allocate GPU memory.\n");
-	size_t size_energies = MAX_POPSIZE * MAX_NUM_OF_RUNS * sizeof(float);
-	status = cudaMalloc((void**)&(tData.pMem_energies1), size_energies);
-	RTERROR(status, "pMem_energies1: failed to allocate GPU memory.\n");
-	status = cudaMalloc((void**)&(tData.pMem_energies2), size_energies);
-	RTERROR(status, "pMem_energies2: failed to allocate GPU memory.\n");  
-	status = cudaMalloc((void**)&(tData.pMem_evals_of_new_entities), MAX_POPSIZE*MAX_NUM_OF_RUNS*sizeof(int));
-	RTERROR(status, "pMem_evals_of_new_Entities: failed to allocate GPU memory.\n");
-	size_t size_evals_of_runs = MAX_NUM_OF_RUNS*sizeof(int);
-#if defined (MAPPED_COPY)
-	status = cudaMallocManaged((void**)&(tData.pMem_gpu_evals_of_runs), size_evals_of_runs, cudaMemAttachGlobal);
-#else
-	status = cudaMalloc((void**)&(tData.pMem_gpu_evals_of_runs), size_evals_of_runs);
-#endif
-	RTERROR(status, "pMem_gpu_evals_of_runs: failed to allocate GPU memory.\n");
-	size_t blocksPerGridForEachEntity = MAX_POPSIZE * MAX_NUM_OF_RUNS;
-	size_t size_prng_seeds = blocksPerGridForEachEntity * NUM_OF_THREADS_PER_BLOCK * sizeof(unsigned int);
-	status = cudaMalloc((void**)&(tData.pMem_prng_states), size_prng_seeds);
-	RTERROR(status, "pMem_prng_states: failed to allocate GPU memory.\n");
 }
 void finish_gpu_from_docking(
                              GpuData& cData,
@@ -241,20 +218,6 @@ void finish_gpu_from_docking(
 		status = cudaFree(tData.pMem_fgrids);
 		RTERROR(status, "cudaFree: error freeing pMem_fgrids");
 	}
-	status = cudaFree(tData.pMem_conformations1);
-	RTERROR(status, "cudaFree: error freeing pMem_conformations1");
-	status = cudaFree(tData.pMem_conformations2);
-	RTERROR(status, "cudaFree: error freeing pMem_conformations2");
-	status = cudaFree(tData.pMem_energies1);
-	RTERROR(status, "cudaFree: error freeing pMem_energies1");
-	status = cudaFree(tData.pMem_energies2);
-	RTERROR(status, "cudaFree: error freeing pMem_energies2");
-	status = cudaFree(tData.pMem_evals_of_new_entities);
-	RTERROR(status, "cudaFree: error freeing pMem_evals_of_new_entities");
-	status = cudaFree(tData.pMem_gpu_evals_of_runs);
-	RTERROR(status, "cudaFree: error freeing pMem_gpu_evals_of_runs");
-	status = cudaFree(tData.pMem_prng_states);
-	RTERROR(status, "cudaFree: error freeing pMem_prng_states");
 	free(tData.device_name);
 }
 
@@ -357,6 +320,26 @@ parameters argc and argv:
 	size_evals_of_runs = mypars->num_of_runs*sizeof(int);
 	sim_state.cpu_evals_of_runs.resize(size_evals_of_runs);
 	memset(sim_state.cpu_evals_of_runs.data(), 0, size_evals_of_runs);
+	
+	// allocating memory blocks for GPU
+	status = cudaMalloc((void**)&(tData.pMem_conformations1), size_populations);
+	RTERROR(status, "pMem_conformations1: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&(tData.pMem_conformations2), size_populations);
+	RTERROR(status, "pMem_conformations2: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&(tData.pMem_energies1), size_energies);
+	RTERROR(status, "pMem_energies1: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&(tData.pMem_energies2), size_energies);
+	RTERROR(status, "pMem_energies2: failed to allocate GPU memory.\n");  
+	status = cudaMalloc((void**)&(tData.pMem_evals_of_new_entities), MAX_POPSIZE*MAX_NUM_OF_RUNS*sizeof(int));
+	RTERROR(status, "pMem_evals_of_new_Entities: failed to allocate GPU memory.\n");
+#if defined (MAPPED_COPY)
+	status = cudaMallocManaged((void**)&(tData.pMem_gpu_evals_of_runs), size_evals_of_runs, cudaMemAttachGlobal);
+#else
+	status = cudaMalloc((void**)&(tData.pMem_gpu_evals_of_runs), size_evals_of_runs);
+#endif
+	RTERROR(status, "pMem_gpu_evals_of_runs: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&(tData.pMem_prng_states), size_prng_seeds);
+	RTERROR(status, "pMem_prng_states: failed to allocate GPU memory.\n");
 
 	// preparing the constant data fields for the GPU
 	kernelconstant_interintra*	KerConst_interintra = new kernelconstant_interintra;
@@ -892,6 +875,21 @@ parameters argc and argv:
 	sim_state.total_evals = total_evals;
 
 	free(cpu_prng_seeds);
+
+	status = cudaFree(tData.pMem_conformations1);
+	RTERROR(status, "cudaFree: error freeing pMem_conformations1");
+	status = cudaFree(tData.pMem_conformations2);
+	RTERROR(status, "cudaFree: error freeing pMem_conformations2");
+	status = cudaFree(tData.pMem_energies1);
+	RTERROR(status, "cudaFree: error freeing pMem_energies1");
+	status = cudaFree(tData.pMem_energies2);
+	RTERROR(status, "cudaFree: error freeing pMem_energies2");
+	status = cudaFree(tData.pMem_evals_of_new_entities);
+	RTERROR(status, "cudaFree: error freeing pMem_evals_of_new_entities");
+	status = cudaFree(tData.pMem_gpu_evals_of_runs);
+	RTERROR(status, "cudaFree: error freeing pMem_gpu_evals_of_runs");
+	status = cudaFree(tData.pMem_prng_states);
+	RTERROR(status, "cudaFree: error freeing pMem_prng_states");
 
 	delete KerConst_interintra;
 	delete KerConst_intracontrib;
