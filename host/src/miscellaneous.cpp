@@ -257,6 +257,18 @@ void rotate(double point [], const double movvec [], const double normvec [], co
 		        point [0], point [1], point [2]);
 }
 
+bool has_absolute_path(const char* filename)
+{
+	#ifndef _WIN32
+	return (filename[0]=='/');
+	#else
+	char drive_tmp[_MAX_DRIVE];
+	char path_tmp[_MAX_DIR];
+	_splitpath(filename, drive_tmp, path_tmp, NULL, NULL);
+	return ((strlen(drive_tmp)>0) || (path_tmp[0]=='\\') || (path_tmp[0]=='/'));
+	#endif
+}
+
 std::string get_filepath(const char* filename)
 {
 	#ifndef _WIN32

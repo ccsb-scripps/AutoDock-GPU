@@ -98,7 +98,7 @@ int init_liganddata(
 		while(std::getline(fp, line))
 		{
 			myligand->file_content.push_back(line+'\n'); // also stores flexres
-			sscanf(line.c_str(),"%255s",tempstr);
+			if(sscanf(line.c_str(),"%255s",tempstr) != 1) continue;
 			if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 			{
 				new_type = 1; // supposing this will be a new atom type
@@ -1173,7 +1173,7 @@ int parse_liganddata(
 		{
 			line = myligand->file_content[line_count];
 			line_count++;
-			sscanf(line.c_str(),"%255s",tempstr);
+			if(sscanf(line.c_str(),"%255s",tempstr) != 1) continue;
 			if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 			{
 				if (atom_counter > MAX_NUM_OF_ATOMS-1)
@@ -1222,7 +1222,7 @@ int parse_liganddata(
 		{
 			line = myligand->file_content[line_count];
 			line_count++;
-			sscanf(line.c_str(),"%255s",tempstr);
+			if(sscanf(line.c_str(),"%255s",tempstr) != 1) continue;
 			if ((l>0) && (strcmp(tempstr, "ROOT") == 0)){
 				ligand_count++;
 				flex_root = atom_counter;
