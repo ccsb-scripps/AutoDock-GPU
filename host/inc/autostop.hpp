@@ -162,7 +162,7 @@ class AutoStop{
 	inline void print_intro(unsigned long num_of_generations, unsigned long num_of_energy_evals)
 	{
 		para_printf("\nExecuting docking runs, stopping automatically after either reaching %.2f kcal/mol standard deviation of\nthe best molecules of the last 4 * %u generations, %lu generations, or %lu evaluations:\n\n",stopstd,as_frequency,num_of_generations,num_of_energy_evals);
-		para_printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples |    Best energy\n");
+		para_printf("Generations |  Evaluations |     Threshold    |  Average energy of best 10%%  | Samples | Best Inter + Intra\n");
 		para_printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
 	}
 
@@ -221,7 +221,7 @@ class AutoStop{
 	inline void output_final_stddev(int generation_cnt, const float* energies, unsigned long total_evals){
 		if (autostopped){
 			para_printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
-			para_printf("\n%43s evaluation after reaching\n%40.2f +/-%8.2f kcal/mol combined.\n%34i samples, best energy %8.2f kcal/mol.\n","Finished",average(&average_sd2_N[0]),stddev(&average_sd2_N[0]),(unsigned int)average_sd2_N[2],overall_best_energy);
+			para_printf("\n%43s evaluation after reaching\n%40.2f +/-%8.2f kcal/mol combined.\n%31i samples, best inter + intra %8.2f kcal/mol.\n","Finished",average(&average_sd2_N[0]),stddev(&average_sd2_N[0]),(unsigned int)average_sd2_N[2],overall_best_energy);
 		} else {
 			// Stopped without autostop; output stddev statistics regardless
 
@@ -230,7 +230,7 @@ class AutoStop{
 
 			para_printf("%11u | %12lu |%8.2f kcal/mol |%8.2f +/-%8.2f kcal/mol |%8i |%8.2f kcal/mol\n",generation_cnt,total_evals/num_of_runs,threshold,curr_avg,curr_std,bestN,overall_best_energy);
 			para_printf("------------+--------------+------------------+------------------------------+---------+-------------------\n");
-			para_printf("\n%43s evaluation after reaching\n%33lu evaluations. Best energy %8.2f kcal/mol.\n","Finished",total_evals/num_of_runs,overall_best_energy);
+			para_printf("\n%43s evaluation after reaching\n%30lu evaluations. Best inter + intra %8.2f kcal/mol.\n","Finished",total_evals/num_of_runs,overall_best_energy);
 		}
 		fflush(stdout);
 	}
