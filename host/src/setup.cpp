@@ -26,7 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
-#include <sys/stat.h>
 
 #include "filelist.hpp"
 #include "processgrid.h"
@@ -345,42 +344,8 @@ int setup(
 	//------------------------------------------------------------
 	// Capturing algorithm parameters (command line args)
 	//------------------------------------------------------------
-	char* orig_resname;
-	if(mypars->resname)
-		orig_resname = strdup(mypars->resname); // need to copy it since it might get free'd in the next line
-	else
-		orig_resname = strdup(""); // need an empty string for later if no resname has been specified
-
-	if(get_commandpars(&argc, argv, &(mygrid->spacing), mypars)<0)
+	if(get_commandpars(&argc, argv, &(mygrid->spacing), mypars, true, (filelist.nfiles>1)?i_file+1:0)<0)
 		return 1;
-
-	// command-line specified resname with more than one file
-	if (!mypars->xml2dlg){ // if the user specified an xml file, that's the one we want to use
-		if ((strcmp(orig_resname,mypars->resname)!=0) && (filelist.nfiles>1)){ // use resname as prefix
-			char* tmp = (char*)malloc(strlen(mypars->resname)+strlen(orig_resname)+1);
-			// take care of potential directory path
-			long long dir = strrchr(orig_resname,'/')-orig_resname+1;
-			if(dir>0){
-				strncpy(tmp, orig_resname, dir);
-				tmp[dir]='\0';
-				strcat(tmp, mypars->resname);
-				strcat(tmp, &orig_resname[dir]);
-			} else{
-				strcpy(tmp, mypars->resname);
-				strcat(tmp, orig_resname);
-			}
-			free(mypars->resname);
-			mypars->resname = tmp;
-		}
-	}
-	free(orig_resname);
-	
-	struct stat res_stat;
-	int res_int = stat(get_filepath(mypars->resname).c_str(), &res_stat);
-	if ((res_int != 0) || !(res_stat.st_mode & S_IFDIR)){
-		printf("\nError: Specified directory \"%s\" for output files (e.g. with `--resnam`) does not exist.\n",get_filepath(mypars->resname).c_str());
-		exit(11);
-	}
 
 	Gridinfo mydummygrid;
 	// if -lxrayfile provided, then read xray ligand data

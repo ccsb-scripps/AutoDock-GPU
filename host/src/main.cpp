@@ -410,6 +410,16 @@ int main(int argc, char* argv[])
 						para_printf("    Ligand file: %s\n", mypars.ligandfile); fflush(stdout);
 					if(mypars.flexresfile)
 						para_printf("    Flexible residue: %s\n", mypars.flexresfile);
+					if(mypars.output_dlg || mypars.output_xml){
+						para_printf("    Output file: %s", mypars.resname);
+						if(mypars.output_dlg){
+							para_printf(".dlg");
+							if(mypars.output_xml) para_printf(" (+ xml)");
+						} else{
+							if(mypars.output_xml) para_printf(".xml");
+						}
+						para_printf("\n");
+					}
 					fflush(stdout);
 				} else para_printf("\n");
 				// End idling timer, start exec timer

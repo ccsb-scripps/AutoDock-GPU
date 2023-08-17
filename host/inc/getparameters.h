@@ -213,7 +213,8 @@ int get_commandpars(
                           char**,
                           double*,
                           Dockpars*,
-                    const bool late_call = true
+                    const bool late_call = true,
+                    const int batch_nr = -1
                    );
 
 std::vector<ReceptorAtom> read_receptor_atoms(
