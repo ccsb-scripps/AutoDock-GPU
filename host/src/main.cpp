@@ -236,7 +236,7 @@ int main(int argc, char* argv[])
 	}
 #endif
 	// Set up run profiles for timing
-	bool get_profiles = true; // hard-coded switch to use ALS's job profiler
+	bool get_profiles = ((filelist.filename!=NULL) || (initial_pars.dpffile!=NULL)); // hard-coded switch to use ALS's job profiler
 	Profiler profiler;
 	for (int i=0;i<n_files;i++){
 		profiler.p.push_back(Profile(i));
