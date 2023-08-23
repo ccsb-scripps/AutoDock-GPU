@@ -19,8 +19,8 @@ See [more relevant papers](https://github.com/ccsb-scripps/AutoDock-GPU/wiki/Pub
 # Features
 
 * Gradient-based local search methods (e.g. ADADELTA), as well as an improved version of Solis-Wets from AutoDock 4.
-* It targets platforms based on GPU as well as multicore CPU accelerators.
-* Observed speedups of up to 4x (quad-core CPU) and 56x (GPU) over the original serial AutoDock 4.2 (Solis-Wets) on CPU. The Cuda version is currently even faster than the OpenCL version.
+* Cuda and OpenCL paths to support a wide variety of target platforms based on GPU as well as multicore CPU accelerators.
+* Observed speedups of up to 4x (quad-core CPU) and 56x (GPU) over the original serial AutoDock 4.2 (Solis-Wets) on CPU.
 * A batched ligand pipeline to run virtual screenings on the same receptor (both OpenCL and Cuda)
 
 # Setup
