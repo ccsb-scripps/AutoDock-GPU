@@ -9,6 +9,7 @@ AutoDock-GPU: AutoDock for GPUs and other accelerators
 * OpenCL and Cuda accelerated version of AutoDock4.2.6. It leverages its embarrasingly parallelizable LGA by processing ligand-receptor poses in parallel over multiple compute units.
 * The OpenCL version was developed in collaboration with TU-Darmstadt and is able to target CPU, GPU, and FPGA architectures. This version itself was based on work done by Imre Pechan from evopro Innovation Kft.
 * The Cuda version was developed in collaboration with Nvidia to run AutoDock-GPU on the Oak Ridge National Laboratory's (ORNL) Summit, and it included a batched ligand pipeline developed by Aaron Scheinberg from Jubilee Development.
+* A SYCL version, which also supports recent Intel GPUs, is under development as a joint work of TUDa and Intel [Link here](https://github.com/emascarenhas/AutoDock-GPU).
 
 # Citation
 
