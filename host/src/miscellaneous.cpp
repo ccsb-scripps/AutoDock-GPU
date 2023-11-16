@@ -23,6 +23,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
+#include <sys/stat.h>
+
 #include "miscellaneous.h"
 
 float map2float(const char* c)
@@ -257,6 +259,15 @@ void rotate(double point [], const double movvec [], const double normvec [], co
 		        point [0], point [1], point [2]);
 }
 
+bool is_dirname(const char* filename)
+{
+	if((filename[strlen(filename)-1] == '/') ||
+	   (filename[strlen(filename)-1] == '\\')) return true;
+	struct stat res_stat;
+	int res_int = stat(filename, &res_stat);
+	return (res_stat.st_mode & S_IFDIR);
+}
+
 bool has_absolute_path(const char* filename)
 {
 	#ifndef _WIN32
@@ -269,19 +280,24 @@ bool has_absolute_path(const char* filename)
 	#endif
 }
 
+std::string get_base_filename(const char* filename)
+{
+	std::string result = filename;
+	std::size_t path   = result.find_last_of("/\\");
+	if(path == std::string::npos) path = 0; else path++;
+	result = result.substr(path);
+	return result.substr(0, result.find_last_of("."));
+}
+
 std::string get_filepath(const char* filename)
 {
-	#ifndef _WIN32
-	char* ts1 = strdup(filename);
-	std::string result = dirname(ts1);
-	free(ts1);
-	return result;
-	#else
-	char drive_tmp[_MAX_DRIVE];
-	char path_tmp[_MAX_DIR];
-	_splitpath(filename, drive_tmp, path_tmp, NULL, NULL);
-	return drive_tmp + path_tmp;
-	#endif
+	std::string result = filename;
+	std::size_t path   = result.find_last_of("/\\");
+	if(path == std::string::npos){
+		if(is_dirname(filename)) return filename;
+		return ".";
+	}
+	return result.substr(0, path);
 }
 
 #if 0

@@ -87,7 +87,7 @@ enum {C=0,N=1,O=2,H=3,XX=4,P=5,S=6};  // see "bond_index" in the "AD4.1_bound.da
 #define MAX_INTRAE_CONTRIBUTORS    (MAX_NUM_OF_ATOMS * MAX_NUM_OF_ATOMS)
 #define MAX_NUM_OF_ROTATIONS       (MAX_NUM_OF_ATOMS * MAX_NUM_OF_ROTBONDS)
 #define MAX_POPSIZE                2048
-#define MAX_NUM_OF_RUNS            1000
+#define MAX_NUM_OF_RUNS            8192
 #define MAX_NUM_GRIDPOINTS         256
 
 // Must be larger than or equal to MAX_NUM_OF_ROTBONDS+6

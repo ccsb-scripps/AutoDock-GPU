@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <algorithm>
 #include <cctype>
 #include <locale>
+#include <sys/stat.h>
 
 #include "getparameters.h"
 
@@ -1333,7 +1334,8 @@ int get_commandpars(
                           char**    argv,
                           double*   spacing,
                           Dockpars* mypars,
-                    const bool      late_call
+                    const bool      late_call,
+                    const int       batch_nr
                    )
 // The function processes the command line arguments given with the argc and argv parameters,
 // and fills the proper fields of mypars according to that. If a parameter was not defined
@@ -1353,14 +1355,14 @@ int get_commandpars(
 		char* basefile = mypars->ligandfile;
 		if(!mypars->free_roaming_ligand) basefile = mypars->flexresfile;
 		if(mypars->xrayligandfile==NULL){
-			mypars->xrayligandfile      = strdup(basefile); // By default xray-ligand file is the same as the randomized input ligand
+			mypars->xrayligandfile = strdup(basefile); // By default xray-ligand file is the same as the randomized input ligand
 		}
 		if(mypars->xml2dlg){
 			if(strlen(mypars->load_xml)>4){ // .xml = 4 chars
 				i=strlen(mypars->load_xml)-4;
 				mypars->resname = (char*)malloc((i+1)*sizeof(char));
 				strncpy(mypars->resname,mypars->load_xml,i);    // Default is ligand file basename
-				mypars->resname[i]='\0';
+				mypars->resname[i] = '\0';
 			} else if(!mypars->resname) mypars->resname = strdup("docking"); // Fallback to old default
 		} else{
 			if(!mypars->resname){ // only need to set if it's not set yet
@@ -1368,7 +1370,7 @@ int get_commandpars(
 					i=strlen(basefile)-6;
 					mypars->resname = (char*)malloc((i+1)*sizeof(char));
 					strncpy(mypars->resname,basefile,i);    // Default is ligand file basename
-					mypars->resname[i]='\0';
+					mypars->resname[i] = '\0';
 				} else mypars->resname = strdup("docking");               // Fallback to old default
 			}
 		}
@@ -1986,7 +1988,28 @@ int get_commandpars(
 		{
 			arg_recognized = 1;
 			free(mypars->resname); // as we assign a default value dynamically created to it
-			mypars->resname = strdup(argv [i+1]);
+			if(is_dirname(argv [i+1])){
+				struct stat res_stat;
+				int res_int = stat(argv [i+1], &res_stat);
+				if ((res_int != 0) || !(res_stat.st_mode & S_IFDIR)){
+					printf("\nError: Specified directory \"%s\" for output files with `--resnam` does not exist.\n",argv [i+1]);
+					exit(12);
+				}
+				char* basefile = mypars->ligandfile;
+				if(!mypars->free_roaming_ligand) basefile = mypars->flexresfile;
+				if(mypars->xml2dlg) basefile = mypars->load_xml;
+				std::string dir_res = get_filepath(argv [i+1]) + "/" + get_base_filename(basefile);
+				mypars->resname = strdup(dir_res.c_str());
+			} else{
+				if(batch_nr>0){
+					char* nrtmp = strdup(std::to_string(batch_nr).c_str());
+					mypars->resname = (char*)malloc((strlen(argv [i+1])+strlen(nrtmp)+2)*sizeof(char));
+					strcpy(mypars->resname, argv [i+1]);
+					strcat(mypars->resname,"_");
+					strcat(mypars->resname, nrtmp);
+					free(nrtmp);
+				} else mypars->resname = strdup(argv [i+1]);
+			}
 		}
 
 		// Argument: use modified QASP (from VirtualDrug) instead of original one used by AutoDock

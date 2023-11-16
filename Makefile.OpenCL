@@ -16,6 +16,7 @@ LIB_OPENCL = -lOpenCL
 UNAME := $(shell uname)
 
 ifeq ($(UNAME), Darwin)
+CPP = clang++
 # In case ScoreP (for profiling/tracing) is used,
 # need to link to a *.dylib for instrumentation
 ifneq (,$(findstring scorep,$(CPP)))
