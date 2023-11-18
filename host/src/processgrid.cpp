@@ -236,7 +236,7 @@ int get_gridvalues(Gridinfo* mygrid)
 				for (x=0; x < mygrid->size_xyz[0]; x++)
 				{
 					if(!std::getline(fp, line)){ // sscanf(line.c_str(), "%f", mypoi);
-						printf("Error: Failed reading grid map data points %s: ", fn.c_str());
+						printf("Error: Failed reading grid map data points from %s: ", fn.c_str());
 						if(fp.eof()) printf("file to small.\n"); else printf("I/O error\n");
 						return 1;
 					}
