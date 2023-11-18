@@ -221,7 +221,13 @@ int get_gridvalues(Gridinfo* mygrid)
 		}
 
 		// seeking to first data
-		do std::getline(fp, line);
+		do{
+			if(!std::getline(fp, line)){
+				printf("Error: Failed reading preamble of grid map %s: ", fn.c_str());
+				if(fp.eof()) printf("file too small.\n"); else printf("I/O error\n");
+				return 1;
+			}
+		}
 		while (line.find("CENTER") != 0);
 
 		// reading values
@@ -229,7 +235,11 @@ int get_gridvalues(Gridinfo* mygrid)
 			for (y=0; y < mygrid->size_xyz[1]; y++)
 				for (x=0; x < mygrid->size_xyz[0]; x++)
 				{
-					std::getline(fp, line); // sscanf(line.c_str(), "%f", mypoi);
+					if(!std::getline(fp, line)){ // sscanf(line.c_str(), "%f", mypoi);
+						printf("Error: Failed reading grid map data points %s: ", fn.c_str());
+						if(fp.eof()) printf("file to small.\n"); else printf("I/O error\n");
+						return 1;
+					}
 					*mypoi = map2float(line.c_str());
 					// fill in duplicate data for linearized memory access in kernel
 					if(y>0) *(mypoi-4*g1+1) = *mypoi;
