@@ -739,7 +739,22 @@ int initial_commandpars(
 	if(specified_dpf){
 		if((error=parse_dpf(mypars,mygrid,filelist))) return error;
 	}
-	
+	if(xml_files.size() == 1){
+		if(is_dirname(xml_files[0].c_str())){
+			struct stat dir_stat;
+			int dir_int = stat(xml_files[0].c_str(), &dir_stat);
+			if ((dir_int != 0) || !(dir_stat.st_mode & S_IFDIR)){
+				printf("\nError: Specified directory \"%s\" for xml conversion does not exist.\n", xml_files[0].c_str());
+				exit(12);
+			}
+			std::string dir(xml_files[0]);
+			std::string ext(".xml");
+			xml_files.clear();
+			for(const std::filesystem::directory_entry& l : std::filesystem::directory_iterator(dir))
+				if(l.path().extension() == ext)
+					xml_files.push_back(l.path().string());
+		}
+	}
 	if(xml_files.size()>0){ // use filelist parameter list in case multiple xml files are converted
 		mypars->xml_files = xml_files.size();
 		if(mypars->xml_files>100){ // output progress bar
