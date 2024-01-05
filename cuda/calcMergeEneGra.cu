@@ -643,22 +643,62 @@ __device__ void gpu_calc_energrad(
 	}
 
 	// Do a reduction over the total gradient containing prepared "gradient_intra_*" values
-	REDUCEFLOATSUM(torque_rot.x, pFloatAccumulator);
-	REDUCEFLOATSUM(torque_rot.y, pFloatAccumulator);
-	REDUCEFLOATSUM(torque_rot.z, pFloatAccumulator);
+//	REDUCEFLOATSUM(torque_rot.x, pFloatAccumulator);
+//	REDUCEFLOATSUM(torque_rot.y, pFloatAccumulator);
+//	REDUCEFLOATSUM(torque_rot.z, pFloatAccumulator);
 
 	// TODO
 	// -------------------------------------------------------
 	// Obtaining energy and translation-related gradients
 	// -------------------------------------------------------
 	// reduction over partial energies and prepared "gradient_intra_*" values
-	REDUCEFLOATSUM(energy, pFloatAccumulator);
+//	REDUCEFLOATSUM(energy, pFloatAccumulator);
+
+	/* Begin: Reduction using tensor units */
+
+	// 1. Convert data-to-be-reduced from float to half
+	// and place it in a shared memory array
+	__shared__ __align__(256) half data_to_be_reduced[4*NUM_OF_THREADS_PER_BLOCK];
+	data_to_be_reduced[4*threadIdx.x] = __float2half(torque_rot.x);
+	data_to_be_reduced[4*threadIdx.x + 1] = __float2half(torque_rot.y);
+	data_to_be_reduced[4*threadIdx.x + 2] = __float2half(torque_rot.z);
+	data_to_be_reduced[4*threadIdx.x + 3] = __float2half(energy);
+
+	// 2. Perform reduction via tensor units
+	reduce_via_tensor_units(data_to_be_reduced);
+
+	// 3. Retrieve results from shared memory
+	torque_rot.x = __half2float(data_to_be_reduced[0]);
+	torque_rot.y = __half2float(data_to_be_reduced[1]);
+	torque_rot.z = __half2float(data_to_be_reduced[2]);
+	energy = __half2float(data_to_be_reduced[3]);
+
+	/* End: Reduction using tensor units */
+
 #if defined (DEBUG_ENERGY_KERNEL)
 	REDUCEFLOATSUM(intraE, pFloatAccumulator);
 #endif
-	REDUCEFLOATSUM(gx, pFloatAccumulator);
-	REDUCEFLOATSUM(gy, pFloatAccumulator);
-	REDUCEFLOATSUM(gz, pFloatAccumulator);
+//	REDUCEFLOATSUM(gx, pFloatAccumulator);
+//	REDUCEFLOATSUM(gy, pFloatAccumulator);
+//	REDUCEFLOATSUM(gz, pFloatAccumulator);
+
+	/* Begin: Reduction using tensor units */
+
+	// 1. Convert data-to-be-reduced from float to half
+	// and place it in a shared memory array
+	data_to_be_reduced[4*threadIdx.x] = __float2half(gx);
+	data_to_be_reduced[4*threadIdx.x + 1] = __float2half(gy);
+	data_to_be_reduced[4*threadIdx.x + 2] = __float2half(gz);
+
+	// 2. Perform reduction via tensor units
+	reduce_via_tensor_units(data_to_be_reduced);
+
+	// 3. Retrieve results from shared memory
+	gx = __half2float(data_to_be_reduced[0]);
+	gy = __half2float(data_to_be_reduced[1]);
+	gz = __half2float(data_to_be_reduced[2]);
+
+	/* End: Reduction using tensor units */
 
 	global_energy = energy;
 #ifndef FLOAT_GRADIENTS
