@@ -94,6 +94,11 @@ __device__ inline int64_t ullitolli(uint64_t u)
 #define ATOMICSUBF32(pAccumulator, value) atomicAdd(pAccumulator, -(value))
 
 /* Begin: Reduction using tensor units */
+
+// Implementation based on M.Sc. thesis by Gabin Schieffer at KTH:
+// "Accelerating a Molecular Docking Application by Leveraging Modern Heterogeneous Computing Systemx"
+// https://www.diva-portal.org/smash/get/diva2:1786161/FULLTEXT01.pdf
+
 /*
  * Half-precision support
  * https://docs.nvidia.com/cuda/cuda-math-api/group__CUDA__MATH____HALF__MISC.html
@@ -188,9 +193,6 @@ __device__ void fill_Q(half *Q_data) {
 	*/
 }
 
-// Implementation based on M.Sc. thesis by Gabin Schieffer at KTH:
-// "Accelerating a Molecular Docking Application by Leveraging Modern Heterogeneous Computing Systemx"
-// https://www.diva-portal.org/smash/get/diva2:1786161/FULLTEXT01.pdf
 __device__ void reduce_via_tensor_units(half *data_to_be_reduced) {
 
 	__syncthreads();

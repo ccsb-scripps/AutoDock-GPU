@@ -656,6 +656,10 @@ __device__ void gpu_calc_energrad(
 
 	/* Begin: Reduction using tensor units */
 
+	// Implementation based on M.Sc. thesis by Gabin Schieffer at KTH:
+	// "Accelerating a Molecular Docking Application by Leveraging Modern Heterogeneous Computing Systemx"
+	// https://www.diva-portal.org/smash/get/diva2:1786161/FULLTEXT01.pdf
+
 	// 1. Convert data-to-be-reduced from float to half
 	// and place it in a shared memory array
 	__shared__ __align__(256) half data_to_be_reduced[4*NUM_OF_THREADS_PER_BLOCK];
@@ -683,6 +687,10 @@ __device__ void gpu_calc_energrad(
 //	REDUCEFLOATSUM(gz, pFloatAccumulator);
 
 	/* Begin: Reduction using tensor units */
+
+	// Implementation based on M.Sc. thesis by Gabin Schieffer at KTH:
+	// "Accelerating a Molecular Docking Application by Leveraging Modern Heterogeneous Computing Systemx"
+	// https://www.diva-portal.org/smash/get/diva2:1786161/FULLTEXT01.pdf
 
 	// 1. Convert data-to-be-reduced from float to half
 	// and place it in a shared memory array
