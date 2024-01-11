@@ -93,6 +93,7 @@ __device__ inline int64_t ullitolli(uint64_t u)
 #define ATOMICADDF32(pAccumulator, value) atomicAdd(pAccumulator, (value))
 #define ATOMICSUBF32(pAccumulator, value) atomicAdd(pAccumulator, -(value))
 
+#ifdef USE_NVTENSOR
 /* Begin: Reduction using tensor units */
 
 // Implementation based on M.Sc. thesis by Gabin Schieffer at KTH:
@@ -240,6 +241,7 @@ __device__ void reduce_via_tensor_units(half *data_to_be_reduced) {
 }
 
 /* End: Reduction using tensor units */
+#endif
 
 #define REDUCEFLOATSUM(value, pAccumulator) \
 	if (threadIdx.x == 0) \

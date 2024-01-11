@@ -642,18 +642,7 @@ __device__ void gpu_calc_energrad(
 		torque_rot.z += tr.z;
 	}
 
-	// Do a reduction over the total gradient containing prepared "gradient_intra_*" values
-//	REDUCEFLOATSUM(torque_rot.x, pFloatAccumulator);
-//	REDUCEFLOATSUM(torque_rot.y, pFloatAccumulator);
-//	REDUCEFLOATSUM(torque_rot.z, pFloatAccumulator);
-
-	// TODO
-	// -------------------------------------------------------
-	// Obtaining energy and translation-related gradients
-	// -------------------------------------------------------
-	// reduction over partial energies and prepared "gradient_intra_*" values
-//	REDUCEFLOATSUM(energy, pFloatAccumulator);
-
+#ifdef USE_NVTENSOR
 	/* Begin: Reduction using tensor units */
 
 	// Implementation based on M.Sc. thesis by Gabin Schieffer at KTH:
@@ -678,14 +667,26 @@ __device__ void gpu_calc_energrad(
 	energy = __half2float(data_to_be_reduced[3]);
 
 	/* End: Reduction using tensor units */
+#else
+	// Reduction over the total gradient containing prepared "gradient_intra_*" values
+	REDUCEFLOATSUM(torque_rot.x, pFloatAccumulator);
+	REDUCEFLOATSUM(torque_rot.y, pFloatAccumulator);
+	REDUCEFLOATSUM(torque_rot.z, pFloatAccumulator);
+
+	// Reduction over partial energies and prepared "gradient_intra_*" values
+	REDUCEFLOATSUM(energy, pFloatAccumulator);
+#endif
+
+	// TODO
+	// -------------------------------------------------------
+	// Obtaining energy and translation-related gradients
+	// -------------------------------------------------------
 
 #if defined (DEBUG_ENERGY_KERNEL)
 	REDUCEFLOATSUM(intraE, pFloatAccumulator);
 #endif
-//	REDUCEFLOATSUM(gx, pFloatAccumulator);
-//	REDUCEFLOATSUM(gy, pFloatAccumulator);
-//	REDUCEFLOATSUM(gz, pFloatAccumulator);
 
+#ifdef USE_NVTENSOR
 	/* Begin: Reduction using tensor units */
 
 	// Implementation based on M.Sc. thesis by Gabin Schieffer at KTH:
@@ -707,6 +708,11 @@ __device__ void gpu_calc_energrad(
 	gz = __half2float(data_to_be_reduced[2]);
 
 	/* End: Reduction using tensor units */
+#else
+	REDUCEFLOATSUM(gx, pFloatAccumulator);
+	REDUCEFLOATSUM(gy, pFloatAccumulator);
+	REDUCEFLOATSUM(gz, pFloatAccumulator);
+#endif
 
 	global_energy = energy;
 #ifndef FLOAT_GRADIENTS
