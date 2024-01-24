@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <cstdint>
 #include <fstream>
+#include <filesystem>
 #include <algorithm>
 #include <cctype>
 #include <locale>
@@ -738,7 +739,22 @@ int initial_commandpars(
 	if(specified_dpf){
 		if((error=parse_dpf(mypars,mygrid,filelist))) return error;
 	}
-	
+	if(xml_files.size() == 1){
+		if(is_dirname(xml_files[0].c_str())){
+			struct stat dir_stat;
+			int dir_int = stat(xml_files[0].c_str(), &dir_stat);
+			if ((dir_int != 0) || !(dir_stat.st_mode & S_IFDIR)){
+				printf("\nError: Specified directory \"%s\" for xml conversion does not exist.\n", xml_files[0].c_str());
+				exit(12);
+			}
+			std::string dir(xml_files[0]);
+			std::string ext(".xml");
+			xml_files.clear();
+			for(const std::filesystem::directory_entry& l : std::filesystem::directory_iterator(dir))
+				if(l.path().extension() == ext)
+					xml_files.push_back(l.path().string());
+		}
+	}
 	if(xml_files.size()>0){ // use filelist parameter list in case multiple xml files are converted
 		mypars->xml_files = xml_files.size();
 		if(mypars->xml_files>100){ // output progress bar
@@ -882,7 +898,7 @@ int get_filelist(
 		return 0;
 	}
 	bool read_ligands = false;
-	std::vector<char*> ligands;
+	std::vector<std::string> ligands;
 	for (int i=1; i<(*argc)-1+(read_ligands); i+=1+(!read_ligands))
 	{
 		// wildcards for -filelist are allowed (or multiple file names)
@@ -912,7 +928,26 @@ int get_filelist(
 		}
 	}
 	mypars->filelist_files = ligands.size();
-	if(ligands.size()>1){
+	bool add_pdbqts = (ligands.size() > 1);
+	if(ligands.size() == 1){
+		if(is_dirname(ligands[0].c_str())){
+			struct stat dir_stat;
+			int dir_int = stat(ligands[0].c_str(), &dir_stat);
+			if ((dir_int != 0) || !(dir_stat.st_mode & S_IFDIR)){
+				printf("\nError: Specified directory \"%s\" for file list with `--filelist` does not exist.\n", ligands[0].c_str());
+				exit(12);
+			}
+			std::string dir(ligands[0]);
+			std::string ext(".pdbqt");
+			ligands.clear();
+			for(const std::filesystem::directory_entry& l : std::filesystem::directory_iterator(dir))
+				if(l.path().extension() == ext)
+					ligands.push_back(l.path().string());
+			// ligands may also contain receptor and/or flexres pdbqt - gets filtered out below
+			add_pdbqts = true;
+		} else filelist.filename = strdup(ligands[0].c_str());
+	}
+	if(add_pdbqts){
 		// Need to setup file names from command line in case they weren't set with a dpf
 		if (get_filenames_and_ADcoeffs(argc, argv, mypars, filelist.used, false) != 0){
 			return 1;
@@ -930,9 +965,17 @@ int get_filelist(
 			printf("Error: get_gridinfo failed with fld file specified in file list.\n");
 			return 1;
 		}
+		std::string receptor_name=mygrid->grid_file_path;
+		if(mygrid->grid_file_path.size()>0) receptor_name+="/";
+		receptor_name += mygrid->receptor_name + ".pdbqt";
 		// Add the grid info
 		filelist.mygrids.push_back(*mygrid);
 		for(unsigned int i=0; i<ligands.size(); i++){
+			bool skip = (receptor_name.compare(ligands[i]) == 0);
+			if(mypars->flexresfile != NULL){
+				skip |= (ligands[i].compare(mypars->flexresfile) == 0);
+			}
+			if(skip) continue;
 			// Need new mypars->fldfile char* block to preserve previous one
 			if(filelist.mypars.size()>0){
 				if((filelist.mypars.back().fldfile) &&
@@ -945,11 +988,11 @@ int get_filelist(
 				   (filelist.mypars.back().xrayligandfile==mypars->xrayligandfile))
 					mypars->xrayligandfile=strdup(mypars->xrayligandfile);
 			}
-			mypars->ligandfile = strdup(ligands[i]);
+			mypars->ligandfile = strdup(ligands[i].c_str());
 			filelist.ligand_files.push_back(ligands[i]);
 			mypars->list_nr++;
-			long long len = strrchr(ligands[i],'.')-ligands[i];
-			if(len<1) len=strlen(ligands[i]);
+			long long len = strrchr(mypars->ligandfile,'.')-mypars->ligandfile;
+			if(len<1) len=strlen(mypars->ligandfile);
 			filelist.resnames.push_back(filelist.ligand_files[i].substr(0,len));
 			mypars->resname=strdup(filelist.resnames[i].c_str());
 			mypars->free_roaming_ligand=true;
@@ -961,14 +1004,11 @@ int get_filelist(
 		
 		filelist.preload_maps&=filelist.used;
 		if(mypars->contact_analysis && filelist.preload_maps){
-			std::string receptor_name=mygrid->grid_file_path;
-			if(mygrid->grid_file_path.size()>0) receptor_name+="/";
-			receptor_name += mygrid->receptor_name + ".pdbqt";
 			mypars->receptor_atoms = read_receptor(receptor_name.c_str(),mygrid,mypars->receptor_map,mypars->receptor_map_list);
 			mypars->nr_receptor_atoms = mypars->receptor_atoms.size();
 		}
 		return 0;
-	} else if(ligands.size()==1) filelist.filename = strdup(ligands[0]);
+	}
 
 	if (filelist.filename){ // true when -filelist specifies a filename
 	                        // filelist.used may be true when dpf file is specified as it uses the filelist to store runs

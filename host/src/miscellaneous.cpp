@@ -263,9 +263,10 @@ bool is_dirname(const char* filename)
 {
 	if((filename[strlen(filename)-1] == '/') ||
 	   (filename[strlen(filename)-1] == '\\')) return true;
-	struct stat res_stat;
-	int res_int = stat(filename, &res_stat);
-	return (res_stat.st_mode & S_IFDIR);
+	// only other chance for filename to be a directory is if it exists
+	struct stat f_stat;
+	int f_int = stat(filename, &f_stat);
+	return ((f_int==0) && (f_stat.st_mode & S_IFDIR));
 }
 
 bool has_absolute_path(const char* filename)
