@@ -52,6 +52,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef _WIN32
 // Time measurement
 #include <sys/time.h>
+#else
+#include "profileapi.h"
 #endif
 
 template<typename T>
@@ -64,7 +66,10 @@ inline double seconds_since(T& time_start)
         double num_usec    = time_end.tv_usec - time_start.tv_usec;
         return (num_sec + (num_usec/1000000));
 #else
-	return 0.0;
+	LARGE_INTEGER time_end, freq;
+	QueryPerformanceFrequency(&freq);
+	QueryPerformanceCounter(&time_end);
+	return (double)(time_end.QuadPart - time_start.QuadPart) / (double)freq.QuadPart;
 #endif
 }
 
@@ -73,6 +78,8 @@ inline void start_timer(T& time_start)
 {
 #ifndef _WIN32
 	gettimeofday(&time_start,NULL);
+#else
+	QueryPerformanceCounter(&time_start);
 #endif
 }
 
@@ -88,12 +95,11 @@ int main(int argc, char* argv[])
 	// Timer initializations
 #ifndef _WIN32
 	timeval time_start, idle_timer;
+#else
+	LARGE_INTEGER time_start, idle_timer;
+#endif
 	start_timer(time_start);
 	start_timer(idle_timer);
-#else
-	// Dummy variables if timers off
-	double time_start, idle_timer;
-#endif
 	double total_setup_time=0;
 	double total_processing_time=0;
 	double total_exec_time=0;
@@ -107,15 +113,15 @@ int main(int argc, char* argv[])
 	if (get_filelist(&argc, argv, &initial_pars, &initial_grid, filelist) != 0)
 		return 1;
 	
-	int n_files;
+	unsigned int n_files;
 	if (filelist.used){
 		n_files = filelist.nfiles;
 	} else {
 		n_files = 1;
 	}
 #ifdef USE_PIPELINE
-	if(n_files>1) printf("Using %d OpenMP threads\n\n", std::min(omp_get_max_threads(),n_files));
-	if(initial_pars.dlg2stdout && (std::min(omp_get_max_threads(),n_files)>1)){
+	if(n_files>1) printf("Using %d OpenMP threads\n\n", std::min((unsigned int)omp_get_max_threads(), n_files));
+	if(initial_pars.dlg2stdout && (std::min((unsigned int)omp_get_max_threads(),n_files)>1)){
 		printf("Note: Parallel pipeline does not currently support dlg\n");
 		printf("      to stdout, redirecting to respective file output.\n\n"); fflush(stdout);
 		initial_pars.dlg2stdout = false;
@@ -173,7 +179,7 @@ int main(int argc, char* argv[])
 			}
 		}
 	}
-	int nr_devices=initial_pars.dev_pool.size();
+	unsigned int nr_devices=initial_pars.dev_pool.size();
 	if(devnum>=0){ // user-specified argument on command line has precedence
 		if(initial_pars.dev_pool.size()>1)
 			printf("Using (single GPU) --devnum (-D) specified as command line option.\n\n");
@@ -204,7 +210,7 @@ int main(int argc, char* argv[])
 		printf("Running %d docking calculation",n_files);
 		if(n_files>1){
 			printf("s");
-			if(nr_devices>1) printf(" on %d devices",std::min(n_files,nr_devices));
+			if(nr_devices>1) printf(" on %d devices", std::min(n_files, nr_devices));
 		}
 		if(initial_pars.output_contact_analysis)
 			printf(" (contact analysis cutoffs: R=%.1f Å, H=%.1f Å, V=%.1f Å)\n", initial_pars.R_cutoff, initial_pars.H_cutoff, initial_pars.V_cutoff);
@@ -216,10 +222,10 @@ int main(int argc, char* argv[])
 
 #ifndef TOOLMODE
 	// Objects that are arguments of docking_with_gpu
-	GpuData cData[nr_devices];
-	GpuTempData tData[nr_devices];
+	GpuData* cData        = new GpuData[nr_devices];
+	GpuTempData* tData    = new GpuTempData[nr_devices];
 #ifdef USE_PIPELINE
-	omp_lock_t gpu_locks[nr_devices];
+	omp_lock_t* gpu_locks = new omp_lock_t[nr_devices];
 #endif
 	for(int i=0; i<nr_devices; i++){
 		filelist.load_maps_gpu.push_back(true);
@@ -274,9 +280,10 @@ int main(int argc, char* argv[])
 		SimulationState sim_state;
 		int dev_nr = 0;
 #ifndef _WIN32
+	
 		timeval setup_timer, exec_timer, processing_timer;
 #else
-		double setup_timer, exec_timer, processing_timer;
+		LARGE_INTEGER setup_timer, exec_timer, processing_timer;
 #endif
 #ifdef USE_PIPELINE
 		#pragma omp for schedule(dynamic,1)
@@ -440,7 +447,6 @@ int main(int argc, char* argv[])
 					err[i_job] = 1;
 					continue;
 				} else { // Successful run
-#ifndef _WIN32
 #ifdef USE_PIPELINE
 					#pragma omp atomic update
 #endif
@@ -450,7 +456,6 @@ int main(int argc, char* argv[])
 						// Detailed timing information to .timing
 						profiler.p[i_job].exec_time = sim_state.exec_time;
 					}
-#endif
 				}
 #ifdef USE_PIPELINE
 				if(nr_devices>1){
@@ -505,7 +510,6 @@ int main(int argc, char* argv[])
 	if(initial_pars.xml2dlg && !initial_pars.dlg2stdout && (n_files>100)) printf("\n\n"); // finish progress bar
 
 	
-#ifndef _WIN32
 	// Total time measurement
 	printf("Run time of entire job set (%d file%s): %.3f sec\n", n_files, n_files>1?"s":"", seconds_since(time_start));
 #ifdef USE_PIPELINE
@@ -519,7 +523,6 @@ int main(int argc, char* argv[])
 #else
 	printf("Processing time: %.3f sec\n",total_processing_time);
 #endif
-#endif
 #ifndef TOOLMODE
 	for(int i=0; i<nr_devices; i++){
 #ifdef USE_PIPELINE
@@ -528,6 +531,11 @@ int main(int argc, char* argv[])
 		if(!initial_pars.xml2dlg)
 			finish_gpu_from_docking(cData[i],tData[i]);
 	}
+	delete[] cData;
+	delete[] tData;
+#ifdef USE_PIPELINE
+	delete[] gpu_locks;
+#endif
 #endif
 	// Alert user to ligands that failed to complete
 	int n_errors=0;

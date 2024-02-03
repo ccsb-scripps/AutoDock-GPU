@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{374B89C2-1964-4DD5-A282-DA79E3B2EE6A}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)\bin\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)\bin\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)\bin\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)\bin\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>NOMINMAX;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_PIPELINE;VERSION="Windows";N128WI;KRNL_SOURCE=./device/calcenergy.cl;KRNL_DIRECTORY=./device;KCMN_DIRECTORY=./common;K1=gpu_calc_initpop;K2=gpu_sum_evals;K3=perform_LS;K4=gpu_gen_and_eval_newpops;K5=gradient_minSD;K6=gradient_minFire;K7=gradient_minAD;GPU_DEVICE</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <AdditionalIncludeDirectories>windows\include;wrapcl\inc;host\inc;common;device</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <AdditionalLibraryDirectories>windows\Debug\lib\x86</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);OpenCL.lib</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>NOMINMAX;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_PIPELINE;VERSION="Windows";N128W;KRNL_SOURCE="./device/calcenergy.cl";KRNL_DIRECTORY="./device";KCMN_DIRECTORY="./common";K1="gpu_calc_initpop";K2="gpu_sum_evals";K3="perform_LS";K4="gpu_gen_and_eval_newpops";K5="gradient_minSD";K6="gradient_minFire";K7="gradient_minAD";GPU_DEVICE</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <AdditionalIncludeDirectories>windows\include;wrapcl\inc;host\inc;common;device</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <AdditionalLibraryDirectories>windows\Debug\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);OpenCL.lib</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>NOMINMAX;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_PIPELINE;VERSION="Windows";N128WI;KRNL_SOURCE="./device/calcenergy.cl";KRNL_DIRECTORY="./device";KCMN_DIRECTORY="./common";K1="gpu_calc_initpop";K2="gpu_sum_evals";K3="perform_LS";K4="gpu_gen_and_eval_newpops";K5="gradient_minSD";K6="gradient_minFire";K7="gradient_minAD";GPU_DEVICE</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <OpenMPSupport>true</OpenMPSupport>
+      <AdditionalIncludeDirectories>windows\include;wrapcl\inc;host\inc;common;device</AdditionalIncludeDirectories>
+      <AdditionalOptions>/openmp:llvm %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>windows\Release\lib\x86</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);OpenCL.lib</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>NOMINMAX;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_PIPELINE;VERSION="Windows";N128WI;KRNL_SOURCE="./device/calcenergy.cl";KRNL_DIRECTORY="./device";KCMN_DIRECTORY="./common";K1="gpu_calc_initpop";K2="gpu_sum_evals";K3="perform_LS";K4="gpu_gen_and_eval_newpops";K5="gradient_minSD";K6="gradient_minFire";K7="gradient_minAD";GPU_DEVICE</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <AdditionalIncludeDirectories>windows\include;wrapcl\inc;host\inc;common;device</AdditionalIncludeDirectories>
+      <OpenMPSupport>true</OpenMPSupport>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/openmp:llvm %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>windows\Release\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);OpenCL.lib</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="host\src\calcenergy.cpp" />
+    <ClCompile Include="host\src\getparameters.cpp" />
+    <ClCompile Include="host\src\main.cpp" />
+    <ClCompile Include="host\src\miscellaneous.cpp" />
+    <ClCompile Include="host\src\performdocking.cpp" />
+    <ClCompile Include="host\src\processgrid.cpp" />
+    <ClCompile Include="host\src\processligand.cpp" />
+    <ClCompile Include="host\src\processresult.cpp" />
+    <ClCompile Include="host\src\setup.cpp" />
+    <ClCompile Include="wrapcl\src\BufferObjects.cpp" />
+    <ClCompile Include="wrapcl\src\CommandQueues.cpp" />
+    <ClCompile Include="wrapcl\src\Contexts.cpp" />
+    <ClCompile Include="wrapcl\src\Devices.cpp" />
+    <ClCompile Include="wrapcl\src\ImportBinary.cpp" />
+    <ClCompile Include="wrapcl\src\ImportSource.cpp" />
+    <ClCompile Include="wrapcl\src\Kernels.cpp" />
+    <ClCompile Include="wrapcl\src\listAttributes.cpp" />
+    <ClCompile Include="wrapcl\src\Platforms.cpp" />
+    <ClCompile Include="wrapcl\src\Programs.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="common\calcenergy_basic.h" />
+    <ClInclude Include="common\defines.h" />
+    <ClInclude Include="device\GpuData.h" />
+    <ClInclude Include="host\inc\autostop.hpp" />
+    <ClInclude Include="host\inc\calcenergy.h" />
+    <ClInclude Include="host\inc\correct_grad_axisangle.h" />
+    <ClInclude Include="host\inc\filelist.hpp" />
+    <ClInclude Include="host\inc\getparameters.h" />
+    <ClInclude Include="host\inc\miscellaneous.h" />
+    <ClInclude Include="host\inc\performdocking.h" />
+    <ClInclude Include="host\inc\processgrid.h" />
+    <ClInclude Include="host\inc\processligand.h" />
+    <ClInclude Include="host\inc\processresult.h" />
+    <ClInclude Include="host\inc\profile.hpp" />
+    <ClInclude Include="host\inc\setup.hpp" />
+    <ClInclude Include="host\inc\simulation_state.hpp" />
+    <ClInclude Include="host\inc\stringify.h" />
+    <ClInclude Include="wrapcl\inc\BufferObjects.h" />
+    <ClInclude Include="wrapcl\inc\CommandQueues.h" />
+    <ClInclude Include="wrapcl\inc\commonMacros.h" />
+    <ClInclude Include="wrapcl\inc\Contexts.h" />
+    <ClInclude Include="wrapcl\inc\Devices.h" />
+    <ClInclude Include="wrapcl\inc\ImportBinary.h" />
+    <ClInclude Include="wrapcl\inc\ImportSource.h" />
+    <ClInclude Include="wrapcl\inc\Kernels.h" />
+    <ClInclude Include="wrapcl\inc\listAttributes.h" />
+    <ClInclude Include="wrapcl\inc\Platforms.h" />
+    <ClInclude Include="wrapcl\inc\Programs.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
