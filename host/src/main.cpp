@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
 		printf("Error: Code has been compiled without GPU support and only supports xml2dlg mode.\n");
 		exit(-1);
 	}
-	int nr_devices=0;
+	unsigned int nr_devices=0;
 #else
 	int devnum=-1;
 	// Get device number to run on
