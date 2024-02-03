@@ -82,7 +82,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>NOMINMAX;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_PIPELINE;VERSION="Windows";N128WI;KRNL_SOURCE=./device/calcenergy.cl;KRNL_DIRECTORY=./device;KCMN_DIRECTORY=./common;K1=gpu_calc_initpop;K2=gpu_sum_evals;K3=perform_LS;K4=gpu_gen_and_eval_newpops;K5=gradient_minSD;K6=gradient_minFire;K7=gradient_minAD;GPU_DEVICE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_PIPELINE;VERSION="v1.6|Debug|Win32";N128WI;KRNL_SOURCE=./device/calcenergy.cl;KRNL_DIRECTORY=./device;KCMN_DIRECTORY=./common;K1=gpu_calc_initpop;K2=gpu_sum_evals;K3=perform_LS;K4=gpu_gen_and_eval_newpops;K5=gradient_minSD;K6=gradient_minFire;K7=gradient_minAD;GPU_DEVICE</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <AdditionalIncludeDirectories>windows\include;wrapcl\inc;host\inc;common;device</AdditionalIncludeDirectories>
     </ClCompile>
@@ -95,7 +95,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>NOMINMAX;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_PIPELINE;VERSION="Windows";N128W;KRNL_SOURCE="./device/calcenergy.cl";KRNL_DIRECTORY="./device";KCMN_DIRECTORY="./common";K1="gpu_calc_initpop";K2="gpu_sum_evals";K3="perform_LS";K4="gpu_gen_and_eval_newpops";K5="gradient_minSD";K6="gradient_minFire";K7="gradient_minAD";GPU_DEVICE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_PIPELINE;VERSION="v1.6|Debug|x64";N128W;KRNL_SOURCE="./device/calcenergy.cl";KRNL_DIRECTORY="./device";KCMN_DIRECTORY="./common";K1="gpu_calc_initpop";K2="gpu_sum_evals";K3="perform_LS";K4="gpu_gen_and_eval_newpops";K5="gradient_minSD";K6="gradient_minFire";K7="gradient_minAD";GPU_DEVICE</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <AdditionalIncludeDirectories>windows\include;wrapcl\inc;host\inc;common;device</AdditionalIncludeDirectories>
     </ClCompile>
@@ -108,7 +108,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>NOMINMAX;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_PIPELINE;VERSION="Windows";N128WI;KRNL_SOURCE="./device/calcenergy.cl";KRNL_DIRECTORY="./device";KCMN_DIRECTORY="./common";K1="gpu_calc_initpop";K2="gpu_sum_evals";K3="perform_LS";K4="gpu_gen_and_eval_newpops";K5="gradient_minSD";K6="gradient_minFire";K7="gradient_minAD";GPU_DEVICE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_PIPELINE;VERSION="v1.6|Release|Win32";N128WI;KRNL_SOURCE="./device/calcenergy.cl";KRNL_DIRECTORY="./device";KCMN_DIRECTORY="./common";K1="gpu_calc_initpop";K2="gpu_sum_evals";K3="perform_LS";K4="gpu_gen_and_eval_newpops";K5="gradient_minSD";K6="gradient_minFire";K7="gradient_minAD";GPU_DEVICE</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <OpenMPSupport>true</OpenMPSupport>
       <AdditionalIncludeDirectories>windows\include;wrapcl\inc;host\inc;common;device</AdditionalIncludeDirectories>
@@ -125,7 +125,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>NOMINMAX;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_PIPELINE;VERSION="Windows";N128WI;KRNL_SOURCE="./device/calcenergy.cl";KRNL_DIRECTORY="./device";KCMN_DIRECTORY="./common";K1="gpu_calc_initpop";K2="gpu_sum_evals";K3="perform_LS";K4="gpu_gen_and_eval_newpops";K5="gradient_minSD";K6="gradient_minFire";K7="gradient_minAD";GPU_DEVICE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_PIPELINE;VERSION="v1.6|Release|x64";N128WI;KRNL_SOURCE="./device/calcenergy.cl";KRNL_DIRECTORY="./device";KCMN_DIRECTORY="./common";K1="gpu_calc_initpop";K2="gpu_sum_evals";K3="perform_LS";K4="gpu_gen_and_eval_newpops";K5="gradient_minSD";K6="gradient_minFire";K7="gradient_minAD";GPU_DEVICE</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <AdditionalIncludeDirectories>windows\include;wrapcl\inc;host\inc;common;device</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
