@@ -1,0 +1,3 @@
+[submodule "wmma_extension"]
+	path = wmma_extension
+	url = https://github.com/wmmae/wmma_extension
