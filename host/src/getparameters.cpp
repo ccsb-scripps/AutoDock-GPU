@@ -739,6 +739,7 @@ int initial_commandpars(
 	if(specified_dpf){
 		if((error=parse_dpf(mypars,mygrid,filelist))) return error;
 	}
+	mypars->xml_files = xml_files.size();
 	if(xml_files.size() == 1){
 		if(is_dirname(xml_files[0].c_str())){
 			struct stat dir_stat;
@@ -756,8 +757,7 @@ int initial_commandpars(
 		}
 	}
 	if(xml_files.size()>0){ // use filelist parameter list in case multiple xml files are converted
-		mypars->xml_files = xml_files.size();
-		if(mypars->xml_files>100){ // output progress bar
+		if(xml_files.size()>100){ // output progress bar
 			printf("Preparing ");
 			if(mypars->output_contact_analysis)
 				printf("analysis\n");
@@ -768,9 +768,9 @@ int initial_commandpars(
 		}
 		Dockpars orig_pars;
 		if(!specified_dpf) orig_pars = *mypars;
-		for(unsigned int i=0; i<mypars->xml_files; i++){
-			if(mypars->xml_files>100){
-				if((50*(i+1)) % mypars->xml_files < 50){
+		for(unsigned int i=0; i<xml_files.size(); i++){
+			if(xml_files.size()>100){
+				if((50*(i+1)) % xml_files.size() < 50){
 					printf("*"); fflush(stdout);
 				}
 			}
@@ -827,8 +827,8 @@ int initial_commandpars(
 			if(mypars->free_roaming_ligand) filelist.ligand_files.push_back(mypars->ligandfile);
 			filelist.mypars.push_back(*mypars);
 		}
-		if(mypars->xml_files>100) printf("\n\n");
-		filelist.nfiles = mypars->xml_files;
+		if(xml_files.size()>100) printf("\n\n");
+		filelist.nfiles = xml_files.size();
 	} else{
 #ifdef TOOLMODE
 		printf("Error: No xml files specified.\n\n");
