@@ -730,9 +730,6 @@ int initial_commandpars(
 			mypars->nr_cluster_poses = number;
 			i++;
 		}
-#ifdef TOOLMODE
-		read_more_xml_files = true;
-#endif
 	}
 	
 	bool specified_dpf = (mypars->dpffile!=NULL);
@@ -779,12 +776,10 @@ int initial_commandpars(
 				}
 			}
 			// make sure to NOT free the previous ones as otherwise the strings of other mypars will be gone too ...
-			char* prev_fld_file=mypars->fldfile;
 			if(!specified_dpf){
 				*mypars = orig_pars;
 				mypars->dpffile=NULL;
 			}
-			mypars->fldfile=NULL;
 			mypars->ligandfile=NULL;
 			mypars->flexresfile=NULL;
 			mypars->free_roaming_ligand = false;
@@ -1178,20 +1173,19 @@ int get_filenames_and_ADcoeffs(
 	int ffile_given, lfile_given, flex_given;
 	long tempint;
 	
-	ffile_given = (mypars->fldfile!=NULL);
-	lfile_given = (mypars->ligandfile!=NULL);
-	flex_given = (mypars->flexresfile!=NULL);
+	ffile_given = (mypars->fldfile     != NULL);
+	lfile_given = (mypars->ligandfile  != NULL);
+	flex_given  = (mypars->flexresfile != NULL);
 	
 	for (i=1; i<(*argc)-1; i+=2)
 	{
 #ifndef TOOLMODE
 		if (argcmp("filelist", argv[i], 'B'))
 			i+=mypars->filelist_files-1; // skip ahead in case there are multiple entries here
-		
+#endif
 		if (argcmp("xml2dlg", argv[i], 'X'))
 			i+=mypars->xml_files-1; // skip ahead in case there are multiple entries here
 		
-#endif
 		if (!multiple_files){
 			// Argument: grid parameter file name.
 			if (argcmp("ffile", argv[i], 'M'))
@@ -1199,6 +1193,7 @@ int get_filenames_and_ADcoeffs(
 				ffile_given = 1;
 				mypars->fldfile = strdup(argv[i+1]);
 			}
+#ifndef TOOLMODE
 			// Argument: ligand pdbqt file name
 			if (argcmp("lfile", argv[i], 'L'))
 			{
@@ -1206,6 +1201,7 @@ int get_filenames_and_ADcoeffs(
 				mypars->ligandfile = strdup(argv[i+1]);
 				mypars->free_roaming_ligand = true;
 			}
+#endif
 		}
 #ifndef TOOLMODE
 		// Argument: flexible residue pdbqt file name
