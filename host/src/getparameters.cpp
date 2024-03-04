@@ -1193,14 +1193,12 @@ int get_filenames_and_ADcoeffs(
 		
 #endif
 		if (!multiple_files){
-#ifndef TOOLMODE
 			// Argument: grid parameter file name.
 			if (argcmp("ffile", argv[i], 'M'))
 			{
 				ffile_given = 1;
 				mypars->fldfile = strdup(argv[i+1]);
 			}
-#endif
 			// Argument: ligand pdbqt file name
 			if (argcmp("lfile", argv[i], 'L'))
 			{
