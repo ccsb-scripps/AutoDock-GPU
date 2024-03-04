@@ -766,6 +766,10 @@ int initial_commandpars(
 			printf("0%%      20%%       40%%       60%%       80%%     100%%\n");
 			printf("---------+---------+---------+---------+---------+\n");
 		}
+		// Need to setup file names from command line in case they weren't set with a dpf
+		if (get_filenames_and_ADcoeffs(argc, argv, mypars, filelist.used, false) != 0){
+			return 1;
+		}
 		Dockpars orig_pars;
 		if(!specified_dpf) orig_pars = *mypars;
 		for(unsigned int i=0; i<xml_files.size(); i++){
@@ -1180,20 +1184,23 @@ int get_filenames_and_ADcoeffs(
 	
 	for (i=1; i<(*argc)-1; i+=2)
 	{
+#ifndef TOOLMODE
 		if (argcmp("filelist", argv[i], 'B'))
 			i+=mypars->filelist_files-1; // skip ahead in case there are multiple entries here
 		
 		if (argcmp("xml2dlg", argv[i], 'X'))
 			i+=mypars->xml_files-1; // skip ahead in case there are multiple entries here
 		
+#endif
 		if (!multiple_files){
+#ifndef TOOLMODE
 			// Argument: grid parameter file name.
 			if (argcmp("ffile", argv[i], 'M'))
 			{
 				ffile_given = 1;
 				mypars->fldfile = strdup(argv[i+1]);
 			}
-
+#endif
 			// Argument: ligand pdbqt file name
 			if (argcmp("lfile", argv[i], 'L'))
 			{
@@ -1202,14 +1209,14 @@ int get_filenames_and_ADcoeffs(
 				mypars->free_roaming_ligand = true;
 			}
 		}
-
+#ifndef TOOLMODE
 		// Argument: flexible residue pdbqt file name
 		if (argcmp("flexres", argv[i], 'F'))
 		{
 			flex_given = 1;
 			mypars->flexresfile = strdup(argv[i+1]);
 		}
-
+#endif
 		// Argument: unbound model to be used.
 		// 0 means the bound, 1 means the extended, 2 means the compact ...
 		// model's free energy coefficients will be used during docking.
@@ -1235,19 +1242,18 @@ int get_filenames_and_ADcoeffs(
 			}
 		}
 	}
-
+#ifndef TOOLMODE
 	if (ffile_given == 0 && !multiple_files && missing_error)
 	{
 		printf("Error: Grid fld file was not defined. Use --ffile (-M) argument.\n");
 		print_options(argv[0]);
 	}
-
 	if ((lfile_given == 0) && (flex_given == 0) && !multiple_files && missing_error)
 	{
 		printf("Error: Ligand or flexres pdbqt file was not defined. Use --lfile (-L) or --flexres (-F) argument for regular or covalent ligands, respectively.\n");
 		print_options(argv[0]);
 	}
-
+#endif
 	return 0;
 }
 
@@ -1261,10 +1267,14 @@ void print_options(
 #ifndef TOOLMODE
 	printf("\nINPUT\n");
 	printf("--lfile             -L | Ligand pdbqt file                                     | no default\n");
+#endif
 	printf("--ffile             -M | Grid map files descriptor fld file                    | no default\n");
+#ifndef TOOLMODE
 	printf("--flexres           -F | Flexible residue pdbqt file                           | no default\n");
 	printf("--filelist          -B | Batch file                                            | no default\n");
+#endif
 	printf("--import_dpf        -I | Import AD4-type dpf input file (only partial support) | no default\n");
+#ifndef TOOLMODE
 	printf("--xraylfile         -R | reference ligand file for RMSD analysis               | ligand file\n");
 	printf("\nCONVERSION\n");
 	printf("--xml2dlg           -X | One (or many) AD-GPU xml file(s) to convert to dlg(s) | no default\n");
