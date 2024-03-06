@@ -767,6 +767,7 @@ int initial_commandpars(
 		if (get_filenames_and_ADcoeffs(argc, argv, mypars, filelist.used, false) != 0){
 			return 1;
 		}
+		char* orig_fld = mypars->fldfile;
 		Dockpars orig_pars;
 		if(!specified_dpf) orig_pars = *mypars;
 		for(unsigned int i=0; i<xml_files.size(); i++){
@@ -780,6 +781,7 @@ int initial_commandpars(
 				*mypars = orig_pars;
 				mypars->dpffile=NULL;
 			}
+			if(orig_fld) mypars->fldfile = strdup(orig_fld);
 			mypars->ligandfile=NULL;
 			mypars->flexresfile=NULL;
 			mypars->free_roaming_ligand = false;
@@ -2398,7 +2400,7 @@ void read_xml_filenames(
 	}
 	if(!grid_found || !lig_or_flex_found) error |= 16;
 	if(error){
-		printf("Error: XML file is not in AutoDock-GPU format (error #%d in line %lu).\n",error,line_nr);
+		printf("\nError: XML file %s is not in AutoDock-GPU format (error #%d in line %lu).\n",xml_filename,error,line_nr);
 		exit(error);
 	}
 }
@@ -2532,7 +2534,7 @@ std::vector<float> read_xml_genomes(
 		}
 	}
 	if(error){
-		printf("Error: XML file is not in AutoDock-GPU format (error #%d in line %lu).\n",error,line_nr);
+		printf("\nError: XML file %s is not in AutoDock-GPU format (error #%d in line %lu).\n",xml_filename,error,line_nr);
 		exit(error);
 	}
 	return result;
