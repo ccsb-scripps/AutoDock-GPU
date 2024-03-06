@@ -583,6 +583,25 @@ parameters argc and argv:
 */
 	uint32_t kernel7_gxsize = 0;
 	uint32_t kernel7_lxsize = threadsPerBlock;
+
+	#ifdef USE_NVTENSOR
+	/* Begin: Reduction using tensor units */
+
+	// Implementation based on M.Sc. thesis by Gabin Schieffer at KTH:
+	// "Accelerating a Molecular Docking Application by Leveraging Modern Heterogeneous Computing Systemx"
+	// https://www.diva-portal.org/smash/get/diva2:1786161/FULLTEXT01.pdf
+
+	// threadsPerBlock should be at least 64 for the proposed matrix-based method to work.
+	// Reason:
+	//  "A 256-element matrix is used to store the values to be reduced,
+	//  and each thread holds exactly four values,
+	//  which results in a minimum of 64 threads to fill a single matrix."
+
+	assert(("Matrix-based reductions in ADADELTA: threadsPerBlock should be at least 64!", kernel7_lxsize >= 64));
+
+	/* End: Reduction using tensor units */
+	#endif
+
 	uint32_t kernel8_gxsize = 0;
 	uint32_t kernel8_lxsize = threadsPerBlock;
 	if (cData.dockpars.lsearch_rate != 0.0f) {

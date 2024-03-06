@@ -54,6 +54,13 @@ ifeq ($(OVERLAP), ON)
 	PIPELINE=-DUSE_PIPELINE -fopenmp
 endif
 
+ifeq ($(TENSOR), ON)
+	NVTENSOR=-DUSE_NVTENSOR
+
+	ifeq ($(TCEC), ON)
+		NVTENSOR+=-I./wmma_extension/include -DUSE_TCEC
+	endif
+endif
 
 BIN := $(wildcard $(TARGET)*)
 
@@ -184,7 +191,7 @@ unlink-code:
 	rm -f $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
 
 kernels: $(KERNEL_SRC)
-	$(NVCC) $(NWI) $(REP) $(CUDA_FLAGS) $(IFLAGS) $(CUDA_INCLUDES) -c $(KRNL_DIR)/kernels.cu
+	$(NVCC) $(NWI) $(REP) $(CUDA_FLAGS) $(IFLAGS) $(CUDA_INCLUDES) $(NVTENSOR) -c $(KRNL_DIR)/kernels.cu
 
 otool: unlink-code
 	@echo "Building" $(TOOL_TARGET) "..."
@@ -192,7 +199,7 @@ otool: unlink-code
 	$(shell ls $(HOST_SRC_DIR)/*.cpp) \
 	$(TOOL_CFLAGS) \
 	-o$(BIN_DIR)/$(TOOL_TARGET) \
-	$(PIPELINE) $(OPT) -DTOOLMODE $(REP)
+	$(PIPELINE) $(NVTENSOR) $(OPT) -DTOOLMODE $(REP)
 
 odock: check-env-all kernels link-code
 	@echo "Building" $(TARGET) "..."
@@ -201,7 +208,7 @@ odock: check-env-all kernels link-code
 	$(CFLAGS) \
 	$(LIB_CUDA) \
 	-o$(BIN_DIR)/$(TARGET) \
-	$(DEV) $(NWI) $(PIPELINE) $(OPT) $(DD) $(REP) $(KFLAGS)
+	$(DEV) $(NWI) $(PIPELINE) $(NVTENSOR) $(OPT) $(DD) $(REP) $(KFLAGS)
 
 # Example
 # 1ac8: for testing gradients of translation and rotation genes

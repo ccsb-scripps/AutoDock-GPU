@@ -93,6 +93,232 @@ __device__ inline int64_t ullitolli(uint64_t u)
 #define ATOMICADDF32(pAccumulator, value) atomicAdd(pAccumulator, (value))
 #define ATOMICSUBF32(pAccumulator, value) atomicAdd(pAccumulator, -(value))
 
+#ifdef USE_NVTENSOR
+/* Begin: Reduction using tensor units */
+
+// Implementation based on M.Sc. thesis by Gabin Schieffer at KTH:
+// "Accelerating a Molecular Docking Application by Leveraging Modern Heterogeneous Computing Systemx"
+// https://www.diva-portal.org/smash/get/diva2:1786161/FULLTEXT01.pdf
+
+/*
+ * Half-precision support
+ * https://docs.nvidia.com/cuda/cuda-math-api/group__CUDA__MATH____HALF__MISC.html
+ */
+#include <cuda_fp16.h>
+
+	#ifdef USE_TCEC
+	/*
+	* WMMA Extension for single precision matmul using Tensor Cores
+	* and error correction technique (TCEC)
+	* https://github.com/wmmae/wmma_extension/blob/main/docs/mma_f32.md
+	*/
+	#include <wmma_extension/tcec/tcec.hpp>
+
+	using tf32 = nvcuda::wmma::precision::tf32;
+	#endif
+
+/*
+ * Tensor Cores
+ * https://developer.nvidia.com/blog/programming-tensor-cores-cuda-9
+ *
+ * Don't forget to compile specifying the architecture, e.g., sm_86.
+ * For AutoDock-GPU, this can be done via the TARGETS option.
+ * make DEVICE=GPU TESTLS=ad NUMWI=64 TARGETS=86 test
+ * https://stackoverflow.com/a/53634598/1616865
+ */
+#include <mma.h>
+using namespace nvcuda;
+
+#define TILE_SIZE (16 * 16)
+
+constexpr int rowscols_M = 16;	// Number of rows (or cols) in the M dimension
+constexpr int rowscols_N = 16;	// Number of rows (or cols) in the N dimension
+constexpr int rowscols_K = 16;	// Number of rows (or cols) in the K dimension
+
+#ifndef USE_TCEC
+	// Half constants
+	// CUDART_ONE_FP16 was not recognized by the NVCC compiler
+	// So its value is indicated explicitly
+	// https://docs.nvidia.com/cuda/cuda-math-api/group__CUDA__MATH__INTRINSIC__HALF__CONSTANTS.html#group__CUDA__MATH__INTRINSIC__HALF__CONSTANTS
+	#define HALF_ONE __ushort_as_half((unsigned short)0x3C00U)
+	#define HALF_ZERO __ushort_as_half((unsigned short)0x0000U)
+#endif
+
+#ifdef USE_TCEC
+__device__ void fill_Q(float *Q_data) {
+#else
+__device__ void fill_Q(half *Q_data) {
+#endif
+
+	#ifdef USE_TCEC
+	float I4[16] = {
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+	#else
+	half I4[16] = {
+		HALF_ONE, HALF_ZERO, HALF_ZERO, HALF_ZERO,
+		HALF_ZERO, HALF_ONE, HALF_ZERO, HALF_ZERO,
+		HALF_ZERO, HALF_ZERO, HALF_ONE, HALF_ZERO,
+		HALF_ZERO, HALF_ZERO, HALF_ZERO, HALF_ONE
+	};
+	#endif
+
+	/*
+	// Naive implementation: a single thread fills data in
+	if (threadIdx.x == 0) {
+		for (uint i = 0; i < 4; i++) {	// How many rows (of 4x4 blocks) are there in matrix A?
+			for (uint j = 0; j < 4; j++) {	// How many cols (of 4x4 blocks) are there in matrix A?
+				for (uint ii = 0; ii < 4; ii++) {
+					for (uint jj = 0; jj < 4; jj++) {
+						Q_data[4*i + 64*j + ii + 16*jj] = I4 [4*ii + jj];
+					}
+				}
+			}
+		}
+	}
+	*/
+
+	// Slightly improved multi-threaded implementation
+	for (uint i = threadIdx.x; i < 4; i+=blockDim.x) {	// How many rows (of 4x4 blocks) are there in matrix A?
+		for (uint j = 0; j < 4; j++) {	// How many cols (of 4x4 blocks) are there in matrix A?
+			for (uint ii = 0; ii < 4; ii++) {
+				for (uint jj = 0; jj < 4; jj++) {
+					Q_data[4*i + 64*j + ii + 16*jj] = I4 [4*ii + jj];
+				}
+			}
+		}
+	}
+
+	/*
+	// Further improved multi-threaded implementation
+	// (It didn't provide significant performance improvements -> commented out)
+	// Fusing two outer loops into a single one
+	// To do that: coeffs = 4i + 64j
+	constexpr uint coeffs [16] = {0, 64, 128, 192, 4, 68, 132, 196, 8, 72, 136, 200, 12, 76, 140, 204};
+	for (uint k = threadIdx.x; k < 16; k+=blockDim.x) {
+		for (uint ii = 0; ii < 4; ii++) {
+			for (uint jj = 0; jj < 4; jj++) {
+				Q_data[coeffs[k] + ii + 16*jj] = I4 [4*ii + jj];
+			}
+		}	
+	}
+	*/
+
+	/*
+	// Enable this block to print matrix values
+	if (blockIdx.x == 0 && threadIdx.x == 0) {
+		printf("\nQ_data");
+		for (uint i = 0; i < 16 * 16; i++) {
+			if ((i % 16) == 0) {printf("\n[Row %u]: ", i/16);}
+			printf(" %2.2f ", __half2float(Q_data[i]));
+		}
+		printf("\n");
+    }
+	*/
+}
+
+#ifdef USE_TCEC
+__device__ void reduce_via_tensor_units(float *data_to_be_reduced) {
+#else
+__device__ void reduce_via_tensor_units(half *data_to_be_reduced) {
+#endif
+	__syncthreads();
+
+	if (threadIdx.x <= 31) { // Only one warp performs reduction
+		#ifdef USE_TCEC
+		__shared__ __align__ (256) float Q_data[TILE_SIZE];
+		#else
+		__shared__ __align__ (256) half Q_data[TILE_SIZE];
+		#endif
+
+		fill_Q(Q_data);
+
+		#ifdef USE_TCEC
+		__shared__ __align__ (256) float tmp[TILE_SIZE];
+		#else
+		__shared__ __align__ (256) half tmp[TILE_SIZE];
+		#endif
+
+		// Declaring and filling fragments - Those are *not* shared
+
+		#ifdef USE_TCEC
+		mtk::wmma::tcec::fragment<wmma::matrix_b, rowscols_M, rowscols_N, rowscols_K, tf32, wmma::col_major> frag_P;
+		mtk::wmma::tcec::fragment<wmma::accumulator, rowscols_M, rowscols_N, rowscols_K, tf32> frag_V;
+		#else
+		wmma::fragment<wmma::matrix_b, rowscols_M, rowscols_N, rowscols_K, half, wmma::col_major> frag_P;
+		wmma::fragment<wmma::accumulator, rowscols_M, rowscols_N, rowscols_K, half> frag_V;
+		#endif
+
+		#ifdef USE_TCEC
+		mtk::wmma::tcec::fragment<wmma::matrix_a, rowscols_M, rowscols_N, rowscols_K, tf32, wmma::col_major> frag_Q;
+		mtk::wmma::tcec::fragment<wmma::matrix_b, rowscols_M, rowscols_N, rowscols_K, tf32, wmma::col_major> frag_W;
+		mtk::wmma::tcec::fragment<wmma::accumulator, rowscols_M, rowscols_N, rowscols_K, tf32> frag_C;
+		#else
+		wmma::fragment<wmma::matrix_a, rowscols_M, rowscols_N, rowscols_K, half, wmma::col_major> frag_Q;
+		wmma::fragment<wmma::matrix_b, rowscols_M, rowscols_N, rowscols_K, half, wmma::col_major> frag_W;
+		wmma::fragment<wmma::accumulator, rowscols_M, rowscols_N, rowscols_K, half> frag_C;
+		#endif
+
+		#ifdef USE_TCEC
+		mtk::wmma::tcec::fill_fragment(frag_P, 1.0f); // P: only ones
+		mtk::wmma::tcec::fill_fragment(frag_V, 0.0f); // Output: initialize to zeros
+		mtk::wmma::tcec::fill_fragment(frag_C, 0.0f); // Final result
+		mtk::wmma::tcec::load_matrix_sync(frag_Q, Q_data, 16);
+		#else
+		wmma::fill_fragment(frag_P, HALF_ONE); // P: only ones
+		wmma::fill_fragment(frag_V, HALF_ZERO); // Output: initialize to zeros
+		wmma::fill_fragment(frag_C, HALF_ZERO); // Final result
+		wmma::load_matrix_sync(frag_Q, Q_data, 16);
+		#endif
+
+		// 1. Accumulate the values: V <- AP + V
+		for(uint i = 0; i < (4 * NUM_OF_THREADS_PER_BLOCK)/TILE_SIZE; i++){
+			const unsigned int offset = i * TILE_SIZE;
+
+			#ifdef USE_TCEC
+			mtk::wmma::tcec::fragment<wmma::matrix_a, rowscols_M, rowscols_N, rowscols_K, tf32, wmma::col_major> frag_A;
+			mtk::wmma::tcec::load_matrix_sync(frag_A, data_to_be_reduced + offset, 16);
+			mtk::wmma::tcec::mma_sync(frag_V, frag_A, frag_P, frag_V);
+			#else
+			wmma::fragment<wmma::matrix_a, rowscols_M, rowscols_N, rowscols_K, half, wmma::col_major> frag_A;
+			wmma::load_matrix_sync(frag_A, data_to_be_reduced + offset, 16);
+			wmma::mma_sync(frag_V, frag_A, frag_P, frag_V);
+			#endif
+		}
+
+		// W <- V (required since we need V as a "wmma::matrix_b")
+		#ifdef USE_TCEC
+		mtk::wmma::tcec::store_matrix_sync(tmp, frag_V, 16, wmma::mem_col_major);
+		mtk::wmma::tcec::load_matrix_sync(frag_W, tmp, 16);
+		#else
+		wmma::store_matrix_sync(tmp, frag_V, 16, wmma::mem_col_major);
+		wmma::load_matrix_sync(frag_W, tmp, 16);
+		#endif
+
+		// 2. Perform line sum: C <- QW + C (zero)
+		#ifdef USE_TCEC
+		mtk::wmma::tcec::mma_sync(frag_C, frag_Q, frag_W, frag_C);
+		#else
+		wmma::mma_sync(frag_C, frag_Q, frag_W, frag_C);
+		#endif
+
+		// 3. Store result in shared memory
+		#ifdef USE_TCEC
+		mtk::wmma::tcec::store_matrix_sync(data_to_be_reduced, frag_C, 16, wmma::mem_col_major);
+		#else
+		wmma::store_matrix_sync(data_to_be_reduced, frag_C, 16, wmma::mem_col_major);
+		#endif
+	}
+
+	__syncthreads();
+}
+
+/* End: Reduction using tensor units */
+#endif
+
 #define REDUCEFLOATSUM(value, pAccumulator) \
 	if (threadIdx.x == 0) \
 	{ \
