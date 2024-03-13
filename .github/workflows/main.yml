@@ -1,0 +1,21 @@
+name: CI
+
+on: push
+
+jobs:
+  main_job:
+    env:
+      GIT_BRANCH: 'githubactions'
+      GIT_SLUG: 'L30nardoSV/AutoDock-GPU'
+      NUMWI: 16
+    runs-on: ubuntu-latest
+    name: Running test using Docker
+    steps:
+      - name: Setting up repository
+        uses: actions/checkout@v2
+      - name: Printing folders contents
+        run: ls -asl ${HOME} && ls -asl ${HOME}/work && tree ${HOME}/work/AutoDock-GPU
+      - name: Building Docker image
+        run: docker build --build-arg git_branch=${GIT_BRANCH} --build-arg git_slug=${GIT_SLUG} -t adgpu . --file ${HOME}/work/AutoDock-GPU/AutoDock-GPU/Dockerfile
+      - name: Running test within Docker image
+        run: docker run -e ${NUMWI} adgpu

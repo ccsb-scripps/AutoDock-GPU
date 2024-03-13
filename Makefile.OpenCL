@@ -272,46 +272,28 @@ odock: check-env-all stringify link-code
 	-o$(BIN_DIR)/$(TARGET) \
 	$(DEV) $(NWI) $(PIPELINE) $(OPT) $(DD) $(REP) $(KFLAGS)
 
-# Example
-# 1ac8: for testing gradients of translation and rotation genes
-# 7cpa: for testing gradients of torsion genes (15 torsions) 
-# 3tmn: for testing gradients of torsion genes (1 torsion)
+# ------------------------------------------------------
 
 PDB      := 3ce3
 NRUN     := 100
 NGEN     := 27000
-POPSIZE  := 150
-TESTNAME := test
-TESTLS   := sw
+PSIZE    := 150
+RESNAM   := test
+LSMET    := sw
 
 test: odock
 	$(BIN_DIR)/$(TARGET) \
 	-ffile ./input/$(PDB)/derived/$(PDB)_protein.maps.fld \
 	-lfile ./input/$(PDB)/derived/$(PDB)_ligand.pdbqt \
+	-lsmet $(LSMET) \
 	-nrun $(NRUN) \
 	-ngen $(NGEN) \
-	-psize $(POPSIZE) \
-	-resnam $(TESTNAME) \
+	-psize $(PSIZE) \
+	-resnam $(RESNAM) \
 	-gfpop 0 \
-	-lsmet $(TESTLS)
+	-xmloutput 0
 
-ASTEX_PDB := 2bsm
-ASTEX_NRUN:= 10
-ASTEX_POPSIZE := 10
-ASTEX_TESTNAME := test_astex
-ASTEX_LS := sw
-
-astex: odock
-	$(BIN_DIR)/$(TARGET) \
-	-ffile ./input_tsri/search-set-astex/$(ASTEX_PDB)/protein.maps.fld \
-	-lfile ./input_tsri/search-set-astex/$(ASTEX_PDB)/flex-xray.pdbqt \
-	-nrun $(ASTEX_NRUN) \
-	-psize $(ASTEX_POPSIZE) \
-	-resnam $(ASTEX_TESTNAME) \
-	-gfpop 1 \
-	-lsmet $(ASTEX_LS)
-
-#	$(BIN_DIR)/$(TARGET) -ffile ./input_tsri/search-set-astex/$(ASTEX_PDB)/protein.maps.fld -lfile ./input_tsri/search-set-astex/$(ASTEX_PDB)/flex-xray.pdbqt -nrun $(ASTEX_NRUN) -psize $(ASTEX_POPSIZE) -resnam $(ASTEX_TESTNAME) -gfpop 1 | tee ./input_tsri/search-set-astex/intrapairs/$(ASTEX_PDB)_intrapair.txt
+# ------------------------------------------------------
 
 clean:
 	rm -f $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
