@@ -22,8 +22,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
 
+#ifndef TOOLMODE
 
-#ifndef _WIN32
+#ifdef USE_OPENCL
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s)	STRINGIZE2(s)
 #define KRNL_FILE STRINGIZE(KRNL_SOURCE)
@@ -36,19 +37,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define KRNL5 STRINGIZE(K5)
 #define KRNL6 STRINGIZE(K6)
 #define KRNL7 STRINGIZE(K7)
-
-#else
-#define KRNL_FILE KRNL_SOURCE
-#define KRNL_FOLDER KRNL_DIRECTORY
-#define KRNL_COMMON KCMN_DIRECTORY
-#define KRNL1 K1
-#define KRNL2 K2
-#define KRNL3 K3
-#define KRNL4 K4
-#define KRNL5 K5
-#define KRNL6 K6
-#define KRNL7 K7
-#endif
 
 #define INC " -I " KRNL_FOLDER " -I " KRNL_COMMON
 
@@ -102,11 +90,24 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define OPT_PROG INC KNWI REP KGDB
 
+#include "stringify.h"
+
+#endif // USE_OPENCL
+
 #include "autostop.hpp"
 #include "performdocking.h"
-#include "stringify.h"
+
+#ifdef USE_CUDA
+// If defined, will set the maximum Cuda printf FIFO buffer to 8 GB (default: commented out)
+// This is not needed unless debugging Cuda kernels via printf statements
+// #define SET_CUDA_PRINTF_BUFFER
+#include <chrono>
+#include <vector>
+#endif // USE_CUDA
+
 #include "correct_grad_axisangle.h"
 
+#ifdef USE_OPENCL
 std::vector<int> get_gpu_pool()
 {
 	cl_platform_id*  platform_id;
@@ -144,13 +145,8 @@ void setup_gpu_for_docking(
 	cl_device_id*    device_ids;
 	cl_device_id     device_id;
 
-#ifdef _WIN32
-	const char *filename = KRNL_FILE;
-	printf("%-40s %-40s\n", "Kernel source file: ", filename);  fflush(stdout);
-#else
 	printf("%-40s %-40s\n", "Kernel source used for development: ", "./device/calcenergy.cl");  fflush(stdout);
 	printf("%-40s %-40s\n", "Kernel string used for building: ",    "./host/inc/stringify.h");  fflush(stdout);
-#endif
 
 	const char* options_program = OPT_PROG;
 	printf("%-40s %-40s\n", "Kernel compilation flags: ", options_program); fflush(stdout);
@@ -250,17 +246,7 @@ void setup_gpu_for_docking(
 	if (createCommandQueue(tData.context,device_id,&tData.command_queue) != 0) exit(-1);
 
 	// Create program from source
-#ifdef _WIN32
-	if (ImportSource(filename, name_k1, &device_id, tData.context, options_program, &tData.kernel1) != 0) exit(-1);
-	if (ImportSource(filename, name_k2, &device_id, tData.context, options_program, &tData.kernel2) != 0) exit(-1);
-	if (ImportSource(filename, name_k3, &device_id, tData.context, options_program, &tData.kernel3) != 0) exit(-1);
-	if (ImportSource(filename, name_k4, &device_id, tData.context, options_program, &tData.kernel4) != 0) exit(-1);
-	if (ImportSource(filename, name_k5, &device_id, tData.context, options_program, &tData.kernel5) != 0) exit(-1);
-	if (ImportSource(filename, name_k6, &device_id, tData.context, options_program, &tData.kernel6) != 0) exit(-1);
-	if (ImportSource(filename, name_k7, &device_id, tData.context, options_program, &tData.kernel7) != 0) exit(-1);
-#else
 	if (ImportSourceToProgram(calcenergy_ocl, &device_id, tData.context, &tData.program, options_program) != 0) exit(-1);
-#endif
 
 	// Create kernels
 	if (createKernel(&device_id, &tData.program, name_k1, &tData.kernel1) != 0) exit(-1);
@@ -350,6 +336,197 @@ void finish_gpu_from_docking(
 	clReleaseContext(tData.context);
 	free(tData.device_name);
 }
+#endif // USE_OPENCL
+
+#ifdef USE_CUDA
+#include "GpuData.h"
+
+// CUDA kernels
+void SetKernelsGpuData(GpuData* pData);
+
+void GetKernelsGpuData(GpuData* pData);
+
+void gpu_calc_initpop(
+                      uint32_t blocks,
+                      uint32_t threadsPerBlock,
+                      float*   pConformations_current,
+                      float*   pEnergies_current
+                     );
+
+void gpu_sum_evals(
+                   uint32_t blocks,
+                   uint32_t threadsPerBlock
+                  );
+
+void gpu_gen_and_eval_newpops(
+                              uint32_t blocks,
+                              uint32_t threadsPerBlock,
+                              float*   pMem_conformations_current,
+                              float*   pMem_energies_current,
+                              float*   pMem_conformations_next,
+                              float*   pMem_energies_next
+                             );
+
+void gpu_gradient_minAD(
+                        uint32_t blocks,
+                        uint32_t threads,
+                        float*   pMem_conformations_next,
+                        float*   pMem_energies_next
+                       );
+
+void gpu_gradient_minAdam(
+                          uint32_t blocks,
+                          uint32_t threads,
+                          float*  pMem_conformations_next,
+                          float*  pMem_energies_next
+                         );
+
+void gpu_perform_LS(
+                    uint32_t blocks,
+                    uint32_t threads,
+                    float*   pMem_conformations_next,
+                    float*   pMem_energies_next
+                   );
+
+template <typename Clock, typename Duration1, typename Duration2>
+double elapsed_seconds(
+                       std::chrono::time_point<Clock, Duration1> start,
+                       std::chrono::time_point<Clock, Duration2> end
+                      )
+{
+	using FloatingPointSeconds = std::chrono::duration<double, std::ratio<1>>;
+	return std::chrono::duration_cast<FloatingPointSeconds>(end - start).count();
+}
+
+std::vector<int> get_gpu_pool()
+{
+	int gpuCount=0;
+	cudaError_t status;
+	status = cudaGetDeviceCount(&gpuCount);
+	RTERROR(status, "cudaGetDeviceCount failed");
+	std::vector<int> result;
+	cudaDeviceProp props;
+	for(unsigned int i=0; i<gpuCount; i++){
+		RTERROR(cudaGetDeviceProperties(&props,i),"cudaGetDeviceProperties failed");
+		if(props.major>=3) result.push_back(i);
+	}
+	if (result.size() == 0)
+	{
+		printf("No CUDA devices with compute capability >= 3.0 found, exiting.\n");
+		cudaDeviceReset();
+		exit(-1);
+	}
+	return result;
+}
+
+void setup_gpu_for_docking(
+                           GpuData& cData,
+                           GpuTempData& tData
+                          )
+{
+	if(cData.devnum<-1) return; // device already setup
+	auto const t0 = std::chrono::steady_clock::now();
+
+	// Initialize CUDA
+	int gpuCount=0;
+	cudaError_t status = cudaGetDeviceCount(&gpuCount);
+	RTERROR(status, "cudaGetDeviceCount failed");
+	if (gpuCount == 0)
+	{
+		printf("No CUDA-capable devices found, exiting.\n");
+		cudaDeviceReset();
+		exit(-1);
+	}
+	if (cData.devnum>=gpuCount){
+		printf("Error: Requested device %i does not exist (only %i devices available).\n",cData.devnum+1,gpuCount);
+		exit(-1);
+	}
+	if (cData.devnum<0)
+		status = cudaFree(NULL); // Trick driver into creating context on current device
+	else
+		status = cudaSetDevice(cData.devnum);
+	// Now that we have a device, gather some information
+	size_t freemem, totalmem;
+	cudaDeviceProp props;
+	RTERROR(cudaGetDevice(&(cData.devnum)),"cudaGetDevice failed");
+	RTERROR(cudaGetDeviceProperties(&props,cData.devnum),"cudaGetDeviceProperties failed");
+	tData.device_name = (char*) malloc(strlen(props.name)+32); // make sure array is large enough to hold device number text too
+	strcpy(tData.device_name, props.name);
+	if(gpuCount>1) snprintf(&tData.device_name[strlen(props.name)], strlen(props.name)+32, " (#%d / %d)",cData.devnum+1,gpuCount);
+	printf("Cuda device:                              %s\n",tData.device_name);
+	RTERROR(cudaMemGetInfo(&freemem,&totalmem), "cudaGetMemInfo failed");
+	printf("Available memory on device:               %lu MB (total: %lu MB)\n",(freemem>>20),(totalmem>>20));
+	cData.devid=cData.devnum;
+	cData.devnum=-2;
+#ifdef SET_CUDA_PRINTF_BUFFER
+	status = cudaDeviceSetLimit(cudaLimitPrintfFifoSize, 200000000ull);
+	RTERROR(status, "cudaDeviceSetLimit failed");
+#endif
+	auto const t1 = std::chrono::steady_clock::now();
+	printf("\nCUDA Setup time %fs\n", elapsed_seconds(t0 ,t1));
+
+	// Allocate kernel constant GPU memory
+	status = cudaMalloc((void**)&cData.pKerconst_interintra, sizeof(kernelconstant_interintra));
+	RTERROR(status, "cData.pKerconst_interintra: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&cData.pKerconst_intracontrib, sizeof(kernelconstant_intracontrib));
+	RTERROR(status, "cData.pKerconst_intracontrib: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&cData.pKerconst_intra, sizeof(kernelconstant_intra));
+	RTERROR(status, "cData.pKerconst_intra: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&cData.pKerconst_rotlist, sizeof(kernelconstant_rotlist));
+	RTERROR(status, "cData.pKerconst_rotlist: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&cData.pKerconst_conform, sizeof(kernelconstant_conform));
+	RTERROR(status, "cData.pKerconst_conform: failed to allocate GPU memory.\n");
+
+	// Allocate mem data
+	status = cudaMalloc((void**)&cData.pMem_rotbonds_const, 2*MAX_NUM_OF_ROTBONDS*sizeof(int));
+	RTERROR(status, "cData.pMem_rotbonds_const: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&cData.pMem_rotbonds_atoms_const, MAX_NUM_OF_ATOMS*MAX_NUM_OF_ROTBONDS*sizeof(int));
+	RTERROR(status, "cData.pMem_rotbonds_atoms_const: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&cData.pMem_num_rotating_atoms_per_rotbond_const, MAX_NUM_OF_ROTBONDS*sizeof(int));
+	RTERROR(status, "cData.pMem_num_rotiating_atoms_per_rotbond_const: failed to allocate GPU memory.\n");
+
+	// Allocate temporary data - JL TODO - Are these sizes correct?
+	if(cData.preallocated_gridsize>0){
+		status = cudaMalloc((void**)&(tData.pMem_fgrids), cData.preallocated_gridsize*sizeof(float));
+		RTERROR(status, "pMem_fgrids: failed to allocate GPU memory.\n");
+	}
+}
+void finish_gpu_from_docking(
+                             GpuData& cData,
+                             GpuTempData& tData
+                            )
+{
+	if(cData.devnum>-2) return; // device not set up
+	
+	cudaError_t status;
+	// Release all CUDA objects
+	// Constant objects
+	status = cudaFree(cData.pKerconst_interintra);
+	RTERROR(status, "cudaFree: error freeing cData.pKerconst_interintra\n");
+	status = cudaFree(cData.pKerconst_intracontrib);
+	RTERROR(status, "cudaFree: error freeing cData.pKerconst_intracontrib\n");
+	status = cudaFree(cData.pKerconst_intra);
+	RTERROR(status, "cudaFree: error freeing cData.pKerconst_intra\n");
+	status = cudaFree(cData.pKerconst_rotlist);
+	RTERROR(status, "cudaFree: error freeing cData.pKerconst_rotlist\n");
+	status = cudaFree(cData.pKerconst_conform);
+	RTERROR(status, "cudaFree: error freeing cData.pKerconst_conform\n");
+	status = cudaFree(cData.pMem_rotbonds_const);
+	RTERROR(status, "cudaFree: error freeing cData.pMem_rotbonds_const");
+	status = cudaFree(cData.pMem_rotbonds_atoms_const);
+	RTERROR(status, "cudaFree: error freeing cData.pMem_rotbonds_atoms_const");
+	status = cudaFree(cData.pMem_num_rotating_atoms_per_rotbond_const);
+	RTERROR(status, "cudaFree: error freeing cData.pMem_num_rotating_atoms_per_rotbond_const");
+
+	// Non-constant
+	if(tData.pMem_fgrids){
+		status = cudaFree(tData.pMem_fgrids);
+		RTERROR(status, "cudaFree: error freeing pMem_fgrids");
+	}
+	free(tData.device_name);
+}
+#endif // USE_CUDA
+
 
 int docking_with_gpu(
                      const Gridinfo*        mygrid,
@@ -383,11 +560,16 @@ parameters argc and argv:
 {
 	char* outbuf;
 	if(output!=NULL) outbuf = (char*)malloc(256*sizeof(char));
-
+	
+#ifdef USE_CUDA
+	auto const t1 = std::chrono::steady_clock::now();
+	cudaError_t status = cudaSetDevice(cData.devid); // make sure we're on the correct device
+#endif
+#ifdef USE_OPENCL
 	// Times
 	cl_ulong time_start_kernel;
 	cl_ulong time_end_kernel;
-
+#endif
 	size_t kernel1_gxsize, kernel1_lxsize;
 	size_t kernel2_gxsize, kernel2_lxsize;
 	size_t kernel3_gxsize = 0;
@@ -464,6 +646,28 @@ parameters argc and argv:
 	sim_state.cpu_evals_of_runs.resize(size_evals_of_runs);
 	memset(sim_state.cpu_evals_of_runs.data(), 0, size_evals_of_runs);
 
+#ifdef USE_CUDA
+	// allocating memory blocks for GPU
+	status = cudaMalloc((void**)&(tData.pMem_conformations1), size_populations);
+	RTERROR(status, "pMem_conformations1: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&(tData.pMem_conformations2), size_populations);
+	RTERROR(status, "pMem_conformations2: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&(tData.pMem_energies1), size_energies);
+	RTERROR(status, "pMem_energies1: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&(tData.pMem_energies2), size_energies);
+	RTERROR(status, "pMem_energies2: failed to allocate GPU memory.\n");  
+	status = cudaMalloc((void**)&(tData.pMem_evals_of_new_entities), MAX_POPSIZE*MAX_NUM_OF_RUNS*sizeof(int));
+	RTERROR(status, "pMem_evals_of_new_Entities: failed to allocate GPU memory.\n");
+#if defined (MAPPED_COPY)
+	status = cudaMallocManaged((void**)&(tData.pMem_gpu_evals_of_runs), size_evals_of_runs, cudaMemAttachGlobal);
+#else
+	status = cudaMalloc((void**)&(tData.pMem_gpu_evals_of_runs), size_evals_of_runs);
+#endif
+	RTERROR(status, "pMem_gpu_evals_of_runs: failed to allocate GPU memory.\n");
+	status = cudaMalloc((void**)&(tData.pMem_prng_states), size_prng_seeds);
+	RTERROR(status, "pMem_prng_states: failed to allocate GPU memory.\n");
+#endif
+
 	// preparing the constant data fields for the GPU
 	kernelconstant_interintra*	KerConst_interintra = new kernelconstant_interintra;
 	kernelconstant_intracontrib*	KerConst_intracontrib = new kernelconstant_intracontrib;
@@ -482,6 +686,7 @@ parameters argc and argv:
 		return 1;
 	}
 
+#ifdef USE_OPENCL
 	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_interintra_const,   false, KerConst_interintra,   sizeof(kernelconstant_interintra));
 	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intracontrib_const, false, KerConst_intracontrib, sizeof(kernelconstant_intracontrib));
 	memcopyBufferObjectToDevice(tData.command_queue,cData.mem_intra_const,        false, KerConst_intra,        sizeof(kernelconstant_intra));
@@ -528,6 +733,59 @@ parameters argc and argv:
 	memcopyBufferObjectToDevice(tData.command_queue, mem_dockpars_conformations_current, false, cpu_init_populations,               size_populations);
 	memcopyBufferObjectToDevice(tData.command_queue, mem_gpu_evals_of_runs,              false, sim_state.cpu_evals_of_runs.data(), size_evals_of_runs);
 	memcopyBufferObjectToDevice(tData.command_queue, mem_dockpars_prng_states,           false, cpu_prng_seeds,                     size_prng_seeds);
+#endif // USE_OPENCL
+
+#ifdef USE_CUDA
+	// Upload kernel constant data - JL FIXME - Can these be moved once?
+	status = cudaMemcpy(cData.pKerconst_interintra, KerConst_interintra, sizeof(kernelconstant_interintra), cudaMemcpyHostToDevice);
+	RTERROR(status, "cData.pKerconst_interintra: failed to upload to GPU memory.\n");
+	status = cudaMemcpy(cData.pKerconst_intracontrib, KerConst_intracontrib, sizeof(kernelconstant_intracontrib), cudaMemcpyHostToDevice);
+	RTERROR(status, "cData.pKerconst_intracontrib: failed to upload to GPU memory.\n");
+	status = cudaMemcpy(cData.pKerconst_intra, KerConst_intra, sizeof(kernelconstant_intra), cudaMemcpyHostToDevice);
+	RTERROR(status, "cData.pKerconst_intra: failed to upload to GPU memory.\n");
+	status = cudaMemcpy(cData.pKerconst_rotlist, KerConst_rotlist, sizeof(kernelconstant_rotlist), cudaMemcpyHostToDevice);
+	RTERROR(status, "cData.pKerconst_rotlist: failed to upload to GPU memory.\n");
+	status = cudaMemcpy(cData.pKerconst_conform, KerConst_conform, sizeof(kernelconstant_conform), cudaMemcpyHostToDevice);
+	RTERROR(status, "cData.pKerconst_conform: failed to upload to GPU memory.\n");
+	cudaMemcpy(cData.pMem_rotbonds_const, KerConst_grads->rotbonds, sizeof(KerConst_grads->rotbonds), cudaMemcpyHostToDevice);
+	RTERROR(status, "cData.pMem_rotbonds_const: failed to upload to GPU memory.\n");
+	cudaMemcpy(cData.pMem_rotbonds_atoms_const, KerConst_grads->rotbonds_atoms, sizeof(KerConst_grads->rotbonds_atoms), cudaMemcpyHostToDevice);
+	RTERROR(status, "cData.pMem_rotbonds_atoms_const: failed to upload to GPU memory.\n");
+	cudaMemcpy(cData.pMem_num_rotating_atoms_per_rotbond_const, KerConst_grads->num_rotating_atoms_per_rotbond, sizeof(KerConst_grads->num_rotating_atoms_per_rotbond), cudaMemcpyHostToDevice);
+	RTERROR(status, "cData.pMem_num_rotating_atoms_per_rotbond_const failed to upload to GPU memory.\n");
+
+	// allocating GPU memory for grids, populations, energies,
+	// evaluation counters and random number generator states
+	if(cData.preallocated_gridsize==0){
+		status = cudaMalloc((void**)&(tData.pMem_fgrids), mygrid->grids.size()*sizeof(float));
+		RTERROR(status, "pMem_fgrids: failed to allocate GPU memory.\n");
+	}
+	// Flippable pointers
+	float* pMem_conformations_current = tData.pMem_conformations1;
+	float* pMem_conformations_next = tData.pMem_conformations2;
+	float* pMem_energies_current = tData.pMem_energies1;
+	float* pMem_energies_next = tData.pMem_energies2;
+
+	// Set constant pointers
+	cData.pMem_fgrids = tData.pMem_fgrids;
+	cData.pMem_evals_of_new_entities = tData.pMem_evals_of_new_entities;
+	cData.pMem_gpu_evals_of_runs = tData.pMem_gpu_evals_of_runs;
+	cData.pMem_prng_states = tData.pMem_prng_states;
+
+	// Set CUDA constants
+	cData.warpmask = 31;
+	cData.warpbits = 5;
+
+	// Upload data
+	status = cudaMemcpy(tData.pMem_fgrids, mygrid->grids.data(), mygrid->grids.size()*sizeof(float), cudaMemcpyHostToDevice);
+	RTERROR(status, "pMem_fgrids: failed to upload to GPU memory.\n");
+	status = cudaMemcpy(pMem_conformations_current, cpu_init_populations, size_populations, cudaMemcpyHostToDevice);
+	RTERROR(status, "pMem_conformations_current: failed to upload to GPU memory.\n");
+	status = cudaMemcpy(tData.pMem_gpu_evals_of_runs, sim_state.cpu_evals_of_runs.data(), size_evals_of_runs, cudaMemcpyHostToDevice);
+	RTERROR(status, "pMem_gpu_evals_of_runs: failed to upload to GPU memory.\n");
+	status = cudaMemcpy(tData.pMem_prng_states, cpu_prng_seeds, size_prng_seeds, cudaMemcpyHostToDevice);
+	RTERROR(status, "pMem_prng_states: failed to upload to GPU memory.\n");
+#endif // USE_CUDA
 
 	// preparing parameter struct
 	dockpars.num_of_atoms      = ((int)  myligand_reference.num_of_atoms);
@@ -664,14 +922,16 @@ parameters argc and argv:
 	*/
 
 	clock_start_docking = clock();
-
+#ifdef USE_CUDA
+	SetKernelsGpuData(&cData);
+#endif
 #ifdef DOCK_DEBUG
 	para_printf("\n");
 	// Main while-loop iterarion counter
 	unsigned int ite_cnt = 0;
 #endif
-
 	// Kernel1
+#ifdef USE_OPENCL
 	setKernelArg(tData.kernel1,0, sizeof(dockpars.num_of_atoms),                  &dockpars.num_of_atoms);
 	setKernelArg(tData.kernel1,1, sizeof(dockpars.true_ligand_atoms),             &dockpars.true_ligand_atoms);
 	setKernelArg(tData.kernel1,2, sizeof(dockpars.num_of_atypes),                 &dockpars.num_of_atypes);
@@ -699,6 +959,7 @@ parameters argc and argv:
 	setKernelArg(tData.kernel1,24,sizeof(cData.mem_intra_const),                  &cData.mem_intra_const);
 	setKernelArg(tData.kernel1,25,sizeof(cData.mem_rotlist_const),                &cData.mem_rotlist_const);
 	setKernelArg(tData.kernel1,26,sizeof(cData.mem_conform_const),                &cData.mem_conform_const);
+#endif
 	kernel1_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
 	kernel1_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
@@ -707,9 +968,11 @@ parameters argc and argv:
 	// End of Kernel1
 
 	// Kernel2
+#ifdef USE_OPENCL
 	setKernelArg(tData.kernel2,0,sizeof(dockpars.pop_size),                       &dockpars.pop_size);
 	setKernelArg(tData.kernel2,1,sizeof(mem_dockpars_evals_of_new_entities),      &mem_dockpars_evals_of_new_entities);
 	setKernelArg(tData.kernel2,2,sizeof(mem_gpu_evals_of_runs),                   &mem_gpu_evals_of_runs);
+#endif
 	kernel2_gxsize = blocksPerGridForEachRun * threadsPerBlock;
 	kernel2_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
@@ -718,6 +981,7 @@ parameters argc and argv:
 	// End of Kernel2
 
 	// Kernel4
+#ifdef USE_OPENCL
 	setKernelArg(tData.kernel4,0, sizeof(dockpars.num_of_atoms),                  &dockpars.num_of_atoms);
 	setKernelArg(tData.kernel4,1, sizeof(dockpars.true_ligand_atoms),             &dockpars.true_ligand_atoms);
 	setKernelArg(tData.kernel4,2, sizeof(dockpars.num_of_atypes),                 &dockpars.num_of_atypes);
@@ -755,18 +1019,21 @@ parameters argc and argv:
 	setKernelArg(tData.kernel4,33,sizeof(cData.mem_intra_const),                  &cData.mem_intra_const);
 	setKernelArg(tData.kernel4,34,sizeof(cData.mem_rotlist_const),                &cData.mem_rotlist_const);
 	setKernelArg(tData.kernel4,35,sizeof(cData.mem_conform_const),                &cData.mem_conform_const);
+#endif
 	kernel4_gxsize = blocksPerGridForEachEntity * threadsPerBlock;
 	kernel4_lxsize = threadsPerBlock;
 #ifdef DOCK_DEBUG
 	para_printf("%-25s %10s %8u %10s %4u\n", "K_GA_GENERATION", "gSize: ",  kernel4_gxsize, "lSize: ", kernel4_lxsize); fflush(stdout);
 #endif
 	// End of Kernel4
-
-
+#ifdef USE_CUDA
+	unsigned int kernel8_gxsize = 0;
+	unsigned int kernel8_lxsize = threadsPerBlock;
+#endif
 	if (dockpars.lsearch_rate != 0.0f) {
-
 		if ((strcmp(mypars->ls_method, "sw") == 0) || (mypars->initial_sw_generations>0)) {
 			// Kernel3
+#ifdef USE_OPENCL
 			setKernelArg(tData.kernel3,0, sizeof(dockpars.num_of_atoms),                  &dockpars.num_of_atoms);
 			setKernelArg(tData.kernel3,1, sizeof(dockpars.true_ligand_atoms),             &dockpars.true_ligand_atoms);
 			setKernelArg(tData.kernel3,2, sizeof(dockpars.num_of_atypes),                 &dockpars.num_of_atypes);
@@ -804,6 +1071,7 @@ parameters argc and argv:
 			setKernelArg(tData.kernel3,33,sizeof(cData.mem_intra_const),                  &cData.mem_intra_const);
 			setKernelArg(tData.kernel3,34,sizeof(cData.mem_rotlist_const),                &cData.mem_rotlist_const);
 			setKernelArg(tData.kernel3,35,sizeof(cData.mem_conform_const),                &cData.mem_conform_const);
+#endif
 			kernel3_gxsize = blocksPerGridForEachLSEntity * threadsPerBlock;
 			kernel3_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
@@ -813,6 +1081,7 @@ parameters argc and argv:
 		}
 		if (strcmp(mypars->ls_method, "sd") == 0) {
 			// Kernel5
+#ifdef USE_OPENCL
 			setKernelArg(tData.kernel5,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
 			setKernelArg(tData.kernel5,1, sizeof(dockpars.true_ligand_atoms),              &dockpars.true_ligand_atoms);
 			setKernelArg(tData.kernel5,2, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
@@ -850,7 +1119,7 @@ parameters argc and argv:
 			setKernelArg(tData.kernel5,32,sizeof(cData.mem_rotbonds_const),                &cData.mem_rotbonds_const);
 			setKernelArg(tData.kernel5,33,sizeof(cData.mem_rotbonds_atoms_const),          &cData.mem_rotbonds_atoms_const);
 			setKernelArg(tData.kernel5,34,sizeof(cData.mem_num_rotating_atoms_per_rotbond_const), &cData.mem_num_rotating_atoms_per_rotbond_const);
-
+#endif
 			kernel5_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
 			kernel5_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
@@ -860,6 +1129,7 @@ parameters argc and argv:
 		}
 		if (strcmp(mypars->ls_method, "fire") == 0) {
 			// Kernel6
+#ifdef USE_OPENCL
 			setKernelArg(tData.kernel6,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
 			setKernelArg(tData.kernel6,1, sizeof(dockpars.true_ligand_atoms),              &dockpars.true_ligand_atoms);
 			setKernelArg(tData.kernel6,2, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
@@ -896,6 +1166,7 @@ parameters argc and argv:
 			setKernelArg(tData.kernel6,32,sizeof(cData.mem_rotbonds_const),                &cData.mem_rotbonds_const);
 			setKernelArg(tData.kernel6,33,sizeof(cData.mem_rotbonds_atoms_const),          &cData.mem_rotbonds_atoms_const);
 			setKernelArg(tData.kernel6,34,sizeof(cData.mem_num_rotating_atoms_per_rotbond_const), &cData.mem_num_rotating_atoms_per_rotbond_const);
+#endif
 			kernel6_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
 			kernel6_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
@@ -905,6 +1176,7 @@ parameters argc and argv:
 		}
 		if (strcmp(mypars->ls_method, "ad") == 0) {
 			// Kernel7
+#ifdef USE_OPENCL
 			setKernelArg(tData.kernel7,0, sizeof(dockpars.num_of_atoms),                   &dockpars.num_of_atoms);
 			setKernelArg(tData.kernel7,1, sizeof(dockpars.true_ligand_atoms),              &dockpars.true_ligand_atoms);
 			setKernelArg(tData.kernel7,2, sizeof(dockpars.num_of_atypes),                  &dockpars.num_of_atypes);
@@ -942,6 +1214,7 @@ parameters argc and argv:
 			setKernelArg(tData.kernel7,32,sizeof(cData.mem_rotbonds_const),                &cData.mem_rotbonds_const);
 			setKernelArg(tData.kernel7,33,sizeof(cData.mem_rotbonds_atoms_const),          &cData.mem_rotbonds_atoms_const);
 			setKernelArg(tData.kernel7,34,sizeof(cData.mem_num_rotating_atoms_per_rotbond_const), &cData.mem_num_rotating_atoms_per_rotbond_const);
+#endif
 			kernel7_gxsize = blocksPerGridForEachGradMinimizerEntity * threadsPerBlock;
 			kernel7_lxsize = threadsPerBlock;
 			#ifdef DOCK_DEBUG
@@ -949,16 +1222,37 @@ parameters argc and argv:
 			#endif
 			// End of Kernel7
 		}
+#ifdef USE_CUDA
+		if (strcmp(mypars->ls_method, "adam") == 0) {
+			// Kernel8
+			kernel8_gxsize = blocksPerGridForEachGradMinimizerEntity;
+			#ifdef DOCK_DEBUG
+			para_printf("%-25s %10s %8u %10s %4u\n", "K_LS_GRAD_ADADELTA", "gSize: ", kernel7_gxsize, "lSize: ", kernel7_lxsize); fflush(stdout);
+			#endif
+			// End of Kernel8
+		}
+#endif
 	} // End if (dockpars.lsearch_rate != 0.0f)
 
 	// Kernel1
 	#ifdef DOCK_DEBUG
 		para_printf("\nExecution starts:\n\n");
 		para_printf("%-25s", "\tK_INIT");fflush(stdout);
+#ifdef USE_CUDA
+		cudaDeviceSynchronize();
+#endif
 	#endif
+#ifdef USE_OPENCL
 	runKernel1D(tData.command_queue,tData.kernel1,kernel1_gxsize,kernel1_lxsize,&time_start_kernel,&time_end_kernel);
+#endif
+#ifdef USE_CUDA
+	gpu_calc_initpop(kernel1_gxsize, kernel1_lxsize, pMem_conformations_current, pMem_energies_current);
+#endif
 	#ifdef DOCK_DEBUG
 		para_printf("%15s" ," ... Finished\n");fflush(stdout);
+#ifdef USE_CUDA
+		cudaDeviceSynchronize();
+#endif
 	#endif
 	// End of Kernel1
 
@@ -966,26 +1260,40 @@ parameters argc and argv:
 	#ifdef DOCK_DEBUG
 		para_printf("%-25s", "\tK_EVAL");fflush(stdout);
 	#endif
+#ifdef USE_OPENCL
 	runKernel1D(tData.command_queue,tData.kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
+#endif
+#ifdef USE_CUDA
+	gpu_sum_evals(kernel2_gxsize, kernel2_lxsize);
+#endif
 	#ifdef DOCK_DEBUG
+#ifdef USE_CUDA
+		cudaDeviceSynchronize();
+#endif
 		para_printf("%15s" ," ... Finished\n");fflush(stdout);
 	#endif
 	// End of Kernel2
 	// ===============================================================================
 
 	// -------- Replacing with memory maps! ------------
+#ifdef USE_OPENCL
 #if defined (MAPPED_COPY)
 	int* map_cpu_evals_of_runs;
 	map_cpu_evals_of_runs = (int*) memMap(tData.command_queue, mem_gpu_evals_of_runs, CL_MAP_READ, size_evals_of_runs);
 #else
 	memcopyBufferObjectFromDevice(tData.command_queue,sim_state.cpu_evals_of_runs.data(),mem_gpu_evals_of_runs,size_evals_of_runs);
 #endif
+#endif // USE_OPENCL
 	// -------- Replacing with memory maps! ------------
 	#if 0
 	generation_cnt = 1;
 	#endif
 	generation_cnt = 0;
 	unsigned long total_evals;
+#ifdef USE_CUDA
+	auto const t2 = std::chrono::steady_clock::now();
+	para_printf("\nRest of Setup time %fs\n", elapsed_seconds(t1 ,t2));
+#endif
 	// print progress bar
 	AutoStop autostop(mypars->pop_size, mypars->num_of_runs, mypars->stopstd, mypars->as_frequency, output);
 #ifndef DOCK_DEBUG
@@ -1013,10 +1321,16 @@ parameters argc and argv:
 		if (mypars->autostop)
 		{
 			if (generation_cnt % mypars->as_frequency == 0) {
+#ifdef USE_OPENCL
 				if (generation_cnt % 2 == 0)
 					memcopyBufferObjectFromDevice(tData.command_queue,sim_state.cpu_energies.data(),mem_dockpars_energies_current,size_energies);
 				else
 					memcopyBufferObjectFromDevice(tData.command_queue,sim_state.cpu_energies.data(),mem_dockpars_energies_next,size_energies);
+#endif
+#ifdef USE_CUDA
+				status = cudaMemcpy(sim_state.cpu_energies.data(), pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
+				RTERROR(status, "cudaMemcpy: couldn't download pMem_energies_current");
+#endif
 				if (autostop.check_if_satisfactory(generation_cnt, sim_state.cpu_energies.data(), total_evals))
 					if (total_evals>min_as_evals)
 						break; // Exit loop when all conditions are satisfied
@@ -1045,7 +1359,12 @@ parameters argc and argv:
 		#ifdef DOCK_DEBUG
 			para_printf("%-25s", "\tK_GA_GENERATION");fflush(stdout);
 		#endif
+#ifdef USE_OPENCL
 		runKernel1D(tData.command_queue,tData.kernel4,kernel4_gxsize,kernel4_lxsize,&time_start_kernel,&time_end_kernel);
+#endif
+#ifdef USE_CUDA
+		gpu_gen_and_eval_newpops(kernel4_gxsize, kernel4_lxsize, pMem_conformations_current, pMem_energies_current, pMem_conformations_next, pMem_energies_next);
+#endif
 		#ifdef DOCK_DEBUG
 			para_printf("%15s", " ... Finished\n");fflush(stdout);
 		#endif
@@ -1056,7 +1375,12 @@ parameters argc and argv:
 				#ifdef DOCK_DEBUG
 					para_printf("%-25s", "\tK_LS_SOLISWETS");fflush(stdout);
 				#endif
+#ifdef USE_OPENCL
 				runKernel1D(tData.command_queue,tData.kernel3,kernel3_gxsize,kernel3_lxsize,&time_start_kernel,&time_end_kernel);
+#endif
+#ifdef USE_CUDA
+				gpu_perform_LS(kernel3_gxsize, kernel3_lxsize, pMem_conformations_next, pMem_energies_next);
+#endif
 				#ifdef DOCK_DEBUG
 					para_printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
@@ -1066,7 +1390,9 @@ parameters argc and argv:
 				#ifdef DOCK_DEBUG
 					para_printf("%-25s", "\tK_LS_GRAD_SDESCENT");fflush(stdout);
 				#endif
+#ifdef USE_OPENCL
 				runKernel1D(tData.command_queue,tData.kernel5,kernel5_gxsize,kernel5_lxsize,&time_start_kernel,&time_end_kernel);
+#endif
 				#ifdef DOCK_DEBUG
 					para_printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
@@ -1076,7 +1402,9 @@ parameters argc and argv:
 				#ifdef DOCK_DEBUG
 					para_printf("%-25s", "\tK_LS_GRAD_FIRE");fflush(stdout);
 				#endif
+#ifdef USE_OPENCL
 				runKernel1D(tData.command_queue,tData.kernel6,kernel6_gxsize,kernel6_lxsize,&time_start_kernel,&time_end_kernel);
+#endif
 				#ifdef DOCK_DEBUG
 					para_printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
@@ -1086,33 +1414,63 @@ parameters argc and argv:
 				#ifdef DOCK_DEBUG
 					para_printf("%-25s", "\tK_LS_GRAD_ADADELTA");fflush(stdout);
 				#endif
+#ifdef USE_OPENCL
 				runKernel1D(tData.command_queue,tData.kernel7,kernel7_gxsize,kernel7_lxsize,&time_start_kernel,&time_end_kernel);
+#endif
+#ifdef USE_CUDA
+				gpu_gradient_minAD(kernel7_gxsize, kernel7_lxsize, pMem_conformations_next, pMem_energies_next);
+#endif
 				#ifdef DOCK_DEBUG
 					para_printf("%15s" ," ... Finished\n");fflush(stdout);
 				#endif
 				// End of Kernel7
+#ifdef USE_CUDA
+			} else if (strcmp(mypars->ls_method, "adam") == 0) {
+				// Kernel8
+				#ifdef DOCK_DEBUG
+					para_printf("%-25s", "\tK_LS_GRAD_ADAM");fflush(stdout);
+				#endif
+				gpu_gradient_minAdam(kernel8_gxsize, kernel8_lxsize, pMem_conformations_next, pMem_energies_next);
+				#ifdef DOCK_DEBUG
+					para_printf("%15s" ," ... Finished\n");fflush(stdout);
+				#endif
+				// End of Kernel8
+#endif
 			}
 		} // End if (dockpars.lsearch_rate != 0.0f)
 		// -------- Replacing with memory maps! ------------
+#ifdef USE_OPENCL
 		#if defined (MAPPED_COPY)
 		unmemMap(tData.command_queue,mem_gpu_evals_of_runs,map_cpu_evals_of_runs);
 		#endif
-		// -------- Replacing with memory maps! ------------
+#endif
 		// Kernel2
 		#ifdef DOCK_DEBUG
 			para_printf("%-25s", "\tK_EVAL");fflush(stdout);
 		#endif
+#ifdef USE_OPENCL
 		runKernel1D(tData.command_queue,tData.kernel2,kernel2_gxsize,kernel2_lxsize,&time_start_kernel,&time_end_kernel);
+#endif
+#ifdef USE_CUDA
+		gpu_sum_evals(kernel2_gxsize, kernel2_lxsize);
+#endif
 		#ifdef DOCK_DEBUG
 			para_printf("%15s" ," ... Finished\n");fflush(stdout);
 		#endif
 		// End of Kernel2
 		// ===============================================================================
+#ifdef USE_OPENCL
 		// -------- Replacing with memory maps! ------------
 #if defined (MAPPED_COPY)
 		map_cpu_evals_of_runs = (int*) memMap(tData.command_queue, mem_gpu_evals_of_runs, CL_MAP_READ, size_evals_of_runs);
 #else
 		memcopyBufferObjectFromDevice(tData.command_queue,sim_state.cpu_evals_of_runs.data(),mem_gpu_evals_of_runs,size_evals_of_runs);
+#endif
+#endif
+#ifdef USE_CUDA
+#if not defined (MAPPED_COPY)
+		cudaMemcpy(sim_state.cpu_evals_of_runs.data(), tData.pMem_gpu_evals_of_runs, size_evals_of_runs, cudaMemcpyDeviceToHost);
+#endif
 #endif
 		// -------- Replacing with memory maps! ------------
 		generation_cnt++;
@@ -1125,7 +1483,7 @@ parameters argc and argv:
 		// Use generation_cnt as it evolves with the main loop
 		// No need to use tempfloat
 		// No performance improvement wrt to "CURRENT APPROACH"
-
+#ifdef USE_OPENCL
 		// Kernel args exchange regions they point to
 		// But never two args point to the same region of dev memory
 		// NO ALIASING -> use restrict in Kernel
@@ -1181,6 +1539,17 @@ parameters argc and argv:
 				}
 			} // End if (dockpars.lsearch_rate != 0.0f)
 		}
+#endif // USE_OPENCL
+#ifdef USE_CUDA
+		// Flip conformation and energy pointers
+		float* pTemp;
+		pTemp = pMem_conformations_current;
+		pMem_conformations_current = pMem_conformations_next;
+		pMem_conformations_next = pTemp;
+		pTemp = pMem_energies_current;
+		pMem_energies_current = pMem_energies_next;
+		pMem_energies_next = pTemp;
+#endif
 		// ----------------------------------------------------------------------
 		#ifdef DOCK_DEBUG
 			para_printf("\tProgress %.3f %%\n", progress);
@@ -1202,11 +1571,15 @@ parameters argc and argv:
 			fflush(stdout);
 		}
 	}
+#ifdef USE_CUDA
+	auto const t3 = std::chrono::steady_clock::now();
+#endif
 	// ===============================================================================
 	// Modification based on:
 	// http://www.cc.gatech.edu/~vetter/keeneland/tutorial-2012-02-20/08-opencl.pdf
 	// ===============================================================================
 	// processing results
+#ifdef USE_OPENCL
 	if (generation_cnt % 2 == 0) {
 		memcopyBufferObjectFromDevice(tData.command_queue,cpu_final_populations,mem_dockpars_conformations_current,size_populations);
 		memcopyBufferObjectFromDevice(tData.command_queue,sim_state.cpu_energies.data(),mem_dockpars_energies_current,size_energies);
@@ -1215,7 +1588,14 @@ parameters argc and argv:
 		memcopyBufferObjectFromDevice(tData.command_queue,cpu_final_populations,mem_dockpars_conformations_next,size_populations);
 		memcopyBufferObjectFromDevice(tData.command_queue,sim_state.cpu_energies.data(),mem_dockpars_energies_next,size_energies);
 	}
-
+#endif
+#ifdef USE_CUDA
+	//processing results
+	status = cudaMemcpy(cpu_final_populations, pMem_conformations_current, size_populations, cudaMemcpyDeviceToHost);
+	RTERROR(status, "cudaMemcpy: couldn't copy pMem_conformations_current to host.\n");
+	status = cudaMemcpy(sim_state.cpu_energies.data(), pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
+	RTERROR(status, "cudaMemcpy: couldn't copy pMem_energies_current to host.\n");
+#endif
 	// Final autostop statistics output
 	if (mypars->autostop) autostop.output_final_stddev(generation_cnt, sim_state.cpu_energies.data(), total_evals);
 
@@ -1233,6 +1613,7 @@ parameters argc and argv:
 	sim_state.sec_per_run = ELAPSEDSECS(clock_stop_docking, clock_start_docking)/mypars->num_of_runs;
 	sim_state.total_evals = total_evals;
 
+#ifdef USE_OPENCL
 #if defined (MAPPED_COPY)
 	unmemMap(tData.command_queue,mem_gpu_evals_of_runs,map_cpu_evals_of_runs);
 #endif
@@ -1245,7 +1626,23 @@ parameters argc and argv:
 	clReleaseMemObject(mem_dockpars_evals_of_new_entities);
 	clReleaseMemObject(mem_dockpars_prng_states);
 	clReleaseMemObject(mem_gpu_evals_of_runs);
-
+#endif
+#ifdef USE_CUDA
+	status = cudaFree(tData.pMem_conformations1);
+	RTERROR(status, "cudaFree: error freeing pMem_conformations1");
+	status = cudaFree(tData.pMem_conformations2);
+	RTERROR(status, "cudaFree: error freeing pMem_conformations2");
+	status = cudaFree(tData.pMem_energies1);
+	RTERROR(status, "cudaFree: error freeing pMem_energies1");
+	status = cudaFree(tData.pMem_energies2);
+	RTERROR(status, "cudaFree: error freeing pMem_energies2");
+	status = cudaFree(tData.pMem_evals_of_new_entities);
+	RTERROR(status, "cudaFree: error freeing pMem_evals_of_new_entities");
+	status = cudaFree(tData.pMem_gpu_evals_of_runs);
+	RTERROR(status, "cudaFree: error freeing pMem_gpu_evals_of_runs");
+	status = cudaFree(tData.pMem_prng_states);
+	RTERROR(status, "cudaFree: error freeing pMem_prng_states");
+#endif
 	delete KerConst_interintra;
 	delete KerConst_intracontrib;
 	delete KerConst_intra;
@@ -1254,6 +1651,12 @@ parameters argc and argv:
 	delete KerConst_grads;
 
 	free(cpu_prng_seeds);
+
+#ifdef USE_CUDA
+	auto const t4 = std::chrono::steady_clock::now();
+	para_printf("\nShutdown time %fs\n", elapsed_seconds(t3, t4));
+#endif
+
 	if(output!=NULL) free(outbuf);
 
 	return 0;
@@ -1294,3 +1697,6 @@ double check_progress(
 	else
 		return gens_progress;
 }
+
+#endif // !TOOLMODE
+

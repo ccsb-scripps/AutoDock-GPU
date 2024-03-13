@@ -30,6 +30,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stdlib.h>
 #include <time.h>
 
+#ifdef USE_CUDA
+#include <cuda.h>
+#include <curand.h>
+#include <cuda_runtime_api.h>
+#include <cassert>
+#endif
+
 #include "profile.hpp"
 #include "processgrid.h"
 #include "miscellaneous.h"
@@ -39,13 +46,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "processresult.h"
 #include "simulation_state.hpp"
 
+#ifdef USE_OPENCL
 #ifdef __APPLE__
 	#include "OpenCL/opencl.h"
 #else
 	#include "CL/opencl.h"
 #endif
+#endif
 
 #include "GpuData.h"
+
+#ifdef USE_OPENCL
 #include "commonMacros.h"
 #include "listAttributes.h"
 #include "Platforms.h"
@@ -57,22 +68,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "ImportBinary.h"
 #include "ImportSource.h"
 #include "BufferObjects.h"
+#endif
 
 #define ELAPSEDSECS(stop,start) ((float) stop-start)/((float) CLOCKS_PER_SEC)
-
-#if 0
-// Experimental TSRI gradient-based minimizer kernel argument
-// Setup here (temporarily?) the gradient-based minimizer and associated parameters.
-// This should be ultimately configurable by the user as program exec. flags.
-typedef struct {
-	unsigned int max_num_of_iters;
-	/*
-	unsigned int max_num_of_consec_fails;
-	float alpha;
-	float conformation_min_perturbation [ACTUAL_GENOTYPE_LENGTH];
-	*/
-} Gradientparameters;
-#endif
 
 std::vector<int> get_gpu_pool();
 

@@ -38,7 +38,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #ifdef _WIN32
 #include <processthreadsapi.h>
-inline unsigned int processid() { return GetProcessId(); }
+inline unsigned int processid() { return GetCurrentProcessId(); }
 #else
 // libgen.h contains basename() and dirname() from a fullpath name
 // Specific: to open correctly grid map field fiels and associated files
@@ -139,9 +139,21 @@ void print_binary_string(unsigned long long);
 
 #ifndef _WIN32
 int stricmp(const char*, const char*);
+#else
+inline char* strndup(const char* str, unsigned int n)
+{
+	char* result = (char*)malloc(n + 1);
+	if (result!=NULL){
+		for (unsigned int i=0; ((i < n) && (str[i] != '\0')); i++)
+			result[i] = str[i];
+		result[n] = '\0';
+	}
+	return result;
+}
+#endif
 
 int strincmp(const char*, const char*, int);
-#endif
+
 
 class LocalRNG
 {

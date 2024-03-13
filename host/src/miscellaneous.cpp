@@ -544,6 +544,7 @@ int stricmp(const char* str1, const char* str2)
 
 	return isdifferent;
 }
+#endif
 
 int strincmp(const char* str1, const char* str2, int num)
 // The function compares up to num characters of two input
@@ -580,5 +581,5 @@ int strincmp(const char* str1, const char* str2, int num)
 
 	return 0;
 }
-#endif
+
 

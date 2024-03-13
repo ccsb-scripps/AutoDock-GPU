@@ -33,7 +33,7 @@ HOST_SRC_DIR=./host/src
 KRNL_DIR=./cuda
 KCMN_DIR=$(COMMON_DIR)
 BIN_DIR=./bin
-LIB_CUDA = kernels.o -lcurand -lcudart 
+LIB_CUDA = kernels.o -lcurand -lcudart -DUSE_CUDA
 
 TARGET := autodock
 TOOL_TARGET := adgpu_analysis
@@ -176,17 +176,10 @@ TOOL_CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
 
 # ------------------------------------------------------
 
-link-code:
-	ln -sf performdocking.h.Cuda $(HOST_INC_DIR)/performdocking.h
-	ln -sf performdocking.cpp.Cuda $(HOST_SRC_DIR)/performdocking.cpp
-
-unlink-code:
-	rm -f $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
-
 kernels: $(KERNEL_SRC)
 	$(NVCC) $(NWI) $(REP) $(CUDA_FLAGS) $(IFLAGS) $(CUDA_INCLUDES) -c $(KRNL_DIR)/kernels.cu
 
-otool: unlink-code
+otool:
 	@echo "Building" $(TOOL_TARGET) "..."
 	$(CPP) \
 	$(shell ls $(HOST_SRC_DIR)/*.cpp) \
@@ -194,7 +187,7 @@ otool: unlink-code
 	-o$(BIN_DIR)/$(TOOL_TARGET) \
 	$(PIPELINE) $(OPT) -DTOOLMODE $(REP)
 
-odock: check-env-all kernels link-code
+odock: check-env-all kernels
 	@echo "Building" $(TARGET) "..."
 	$(CPP) \
 	$(shell ls $(HOST_SRC_DIR)/*.cpp) \
@@ -244,5 +237,4 @@ astex: odock
 
 #	$(BIN_DIR)/$(TARGET) -ffile ./input_tsri/search-set-astex/$(ASTEX_PDB)/protein.maps.fld -lfile ./input_tsri/search-set-astex/$(ASTEX_PDB)/flex-xray.pdbqt -nrun $(ASTEX_NRUN) -psize $(ASTEX_POPSIZE) -resnam $(ASTEX_TESTNAME) -gfpop 1 | tee ./input_tsri/search-set-astex/intrapairs/$(ASTEX_PDB)_intrapair.txt
 
-clean:
-	rm -f $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
+.PHONY: clean

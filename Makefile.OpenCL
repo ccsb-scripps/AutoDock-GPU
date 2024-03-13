@@ -43,6 +43,7 @@ else ifeq ($(DEVICE), GPU)
 	OCLA_INC_PATH=$(GPU_INCLUDE_PATH)
 	OCLA_LIB_PATH=$(GPU_LIBRARY_PATH)
 endif
+DEV += -DUSE_OPENCL
 
 # ------------------------------------------------------
 # Project directories
@@ -245,17 +246,10 @@ TOOL_CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
 
 # Host sources
 
-link-code:
-	ln -sf performdocking.h.OpenCL $(HOST_INC_DIR)/performdocking.h
-	ln -sf performdocking.cpp.OpenCL $(HOST_SRC_DIR)/performdocking.cpp
-
-unlink-code:
-	rm -f $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
-
 stringify:
 	./stringify_ocl_krnls.sh
 
-otool: unlink-code
+otool:
 	@echo "Building" $(TOOL_TARGET) "..."
 	$(CPP) \
 	$(shell ls $(HOST_SRC_DIR)/*.cpp) \
@@ -263,7 +257,7 @@ otool: unlink-code
 	-o$(BIN_DIR)/$(TOOL_TARGET) \
 	$(PIPELINE) $(OPT) -DTOOLMODE $(REP)
 
-odock: check-env-all stringify link-code
+odock: check-env-all stringify
 	@echo "Building" $(TARGET) "..."
 	$(CPP) \
 	$(OCL_SRC) $(shell ls $(HOST_SRC_DIR)/*.cpp) \
@@ -313,5 +307,4 @@ astex: odock
 
 #	$(BIN_DIR)/$(TARGET) -ffile ./input_tsri/search-set-astex/$(ASTEX_PDB)/protein.maps.fld -lfile ./input_tsri/search-set-astex/$(ASTEX_PDB)/flex-xray.pdbqt -nrun $(ASTEX_NRUN) -psize $(ASTEX_POPSIZE) -resnam $(ASTEX_TESTNAME) -gfpop 1 | tee ./input_tsri/search-set-astex/intrapairs/$(ASTEX_PDB)_intrapair.txt
 
-clean:
-	rm -f $(HOST_INC_DIR)/performdocking.h $(HOST_SRC_DIR)/performdocking.cpp
+.PHONY: clean
