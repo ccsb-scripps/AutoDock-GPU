@@ -8,6 +8,7 @@ from meeko import PDBQTMolecule
 from meeko import RDKitMolCreate
 from meeko import Polymer
 from meeko import gridbox
+from meeko import pdbutils
 try:
     from ringtail import RingtailCore
     _got_ringtail = True
@@ -59,15 +60,12 @@ def temporary_directory(suffix=None, prefix=None, dir=None, clean=True):
 def call(cmds, **kwargs):
     t0 = time()
     logger.info(f"subprocess run: {cmds}")
-    process = subprocess.Popen(
-        cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        text=True, **kwargs,
-    )
-    for line in process.stdout:
-        logger.info(line.rstrip("\n"))
-    for line in process.stderr:
-        logger.error(line.rstrip("\n"))
-    process.wait()
+    process = subprocess.run(cmds, capture_output=True, text=True, **kwargs)
+    for line in process.stdout.splitlines():
+        logger.info(line)
+    for line in process.stderr.splitlines():
+        logger.error(line)
+    logger.info(f"process completed with returncode: {process.returncode}")
     return time() - t0
 
 class MolSupplier:
@@ -189,7 +187,33 @@ def _get_types_from_pdbqt(fname):
             atypes.add(atype)
     return atypes
 
-def parse_vina_box(text):
+def get_positions_from_molecule_file(filename):
+    ext = filename.split('.')[-1]
+    suppliers = { 
+        "pdb": None,  # overriden below, needed here as valid type
+        "mol": Chem.MolFromMolFile,
+        "mol2": Chem.MolFromMol2File,
+        "sdf": Chem.SDMolSupplier,
+        "pdbqt": None,
+    }   
+    if ext not in suppliers.keys():
+        print(f"File type given to --box_enveloping must be [.pdb/.mol/.mol2/.sdf/.pdbqt]")
+        sys.exit(2)
+    elif ext == "pdb":
+        pdbstr = pdbutils.strip_altloc_from_pdb_file(filename)
+        mol = Chem.MolFromPDBBlock(pdbstr, removeHs=False, sanitize=False)
+    elif ext == "sdf":
+        mol = next(suppliers[ext](filename, removeHs=False, sanitize=False))
+    elif ext == "pdbqt":
+        pdbqtmol = PDBQTMolecule.from_file(filename)
+        mol = RDKitMolCreate.from_pdbqt_mol(pdbqtmol)
+    else:
+        mol = suppliers[ext](filename, removeHs=False, sanitize=False)
+    positions = mol.GetConformer().GetPositions() 
+    return positions
+
+
+def parse_box(text):
     center_x = None
     center_y = None
     center_z = None
@@ -213,7 +237,6 @@ def parse_vina_box(text):
             size_z = float(line.split("=")[1])
         elif line.startswith("spacing"):
             spacing = float(line.split("=")[1])
-        logger.info(line)
     center = (center_x, center_y, center_z)
     size = (size_x, size_y, size_z)
     return center, size, spacing
@@ -257,6 +280,7 @@ parser.add_argument("--center", help="center of search space (grid maps)", type=
 parser.add_argument("--spacing", help=f"distance between grid points (default: {DEFAULT_SPACING} Angstrom)", type=float)
 parser.add_argument('-b', '--box', help="filename of vina config with box size and center")
 parser.add_argument("--padding", help=f"space between reference ligand and box (default: {DEFAULT_PADDING})", default=DEFAULT_PADDING, type=float)
+parser.add_argument("--box_enveloping", help="Box will envelop atoms in this file [.sdf .mol .mol2 .pdb .pdbqt]")
 parser.add_argument('--ref_ligand', help="reference ligand to define box center [.sdf/.pdb]")
 parser.add_argument("--output_dir", help="directory to write output files in", required=True)
 parser.add_argument("--write_sdf", help="write docking results to SDF", action="store_true")
@@ -264,6 +288,13 @@ parser.add_argument("--name_from_prop", help="set input molecule name from RDKit
 parser.add_argument("--chunk_size", type=int, default=0)
 parser.add_argument("--executable", required=True)
 args = parser.parse_args()
+if not args.write_sdf:
+    logger.info(f"Setting args.write_sdf = True")
+    args.write_sdf = True
+
+if not pathlib.Path(args.executable).exists():
+    print(f"{args.executable} does not exist")
+    sys.exit(2)
 
 executable = str(pathlib.Path(args.executable).resolve())
 
@@ -278,51 +309,62 @@ formatter2 = logging.Formatter("%(asctime)s.%(msecs)03d [%(levelname)s] %(messag
 h.setFormatter(formatter2)
 logger.addHandler(h)
 logger.info(f"hostname: {gethostname()}")
-t0 = time()
 
 def grid_usage_error():
-    print("use both --center and --size, or --vina_box, or --maps")
+    print("use one of these combinations:")
+    print(f"    1) --box_enveloping                 (will pad with {DEFAULT_PADDING} Angstrom)")
+    print(f"    2) --box_enveloping and --padding")
+    print(f"    3) --box_enveloping and --size")
+    print(f"    4) --box")
+    print(f"    5) --box and --size            (to override size in --box)")
+    print(f"    6) --maps")
+    print(f"    7) --center and --size")
     sys.exit(2)
     return
 
-spacing=DEFAULT_SPACING
-if args.ref_ligand is not None:
-    center, size = get_box_info(args.ref_ligand, args.padding)
-else:
-    logger.info(f"getting box info from {args.box}")
+nr_box_options = 0
+nr_box_options += int(args.box_enveloping is not None)
+nr_box_options += int(args.box is not None)
+nr_box_options += int(args.center is not None)
+if nr_box_options != 1:
+    grid_usage_error()
+if args.padding is not None and args.box_enveloping is None:
+    print("--padding requires --box_enveloping")
+    grid_usage_error()
+if args.center is not None and args.size is None:
+    print("--center requires --size")
+    grid_usage_error()
+if args.size is not None and (args.box_envelopping is None and args.center is None):
+    print("--size requires either --center or --box_enveloping or --box")
+    grid_usage_error()
+if args.size is not None and args.padding is not None:
+    print("can't use both --size and --padding")
+    grid_usage_error()
+
+spacing = DEFAULT_SPACING
+if args.box is not None:
     with open(args.box) as f:
         txt = f.read()
-    center, size, spacing_from_vina_box = parse_vina_box(txt)
-    if spacing_from_vina_box is not None:
-        spacing = spacing_from_vina_box
-    
-logger.info(f"{spacing=} {center=} {size=}")
-#if (args.center is None) != (args.size is None):
-#    grid_usage_error()
-#if args.vina_box is not None and args.center is not None:
-#    grid_usage_error()
-#if args.vina_box is None and (args.center is None or args.size is None)
-#    grid_usage_error()
-#if args.maps is not None and (args.center is not None or args.vina_box is not None):
-#    grid_usage_error()
-#spacing = DEFAULT_SPACING
-#if args.vina_box is not None:
-#    with open(args.vina_box) as f:
-#        txt = f.read()
-#    center, size, spacing_from_vina_box = parse_vina_box(txt)
-#    if spacing_from_vina_box is not None:
-#        spacing = spacing_from_vina_box
-#    if args.spacing is not None:
-#        spacing = args.spacing
-#elif args.center is not None:
-#    center = args.center
-#    size = args.size
-##elif args.maps is not None:
-##    center = None
-##    size = None
-#else:
-#    print("logic error in determining where box size/center is coming from")
-#    sys.exit(1)
+    center, size, spacing_from_box = parse_box(txt)
+    if spacing_from_box is not None:
+        spacing = spacing_from_box
+    if args.spacing is not None:
+        spacing = args.spacing
+    if args.size is not None:
+        size = args.size
+elif args.center is not None:
+    center = args.center
+    size = args.size
+elif args.box_enveloping is not None:
+    padding = DEFAULT_PADDING if args.padding is None else args.padding
+    positions = get_positions_from_molecule_file(args.box_enveloping)
+    center, size = gridbox.calc_box(positions, padding)
+    if args.size is not None:
+        size = args.size
+else:
+    print("logic error in determining where box size/center is coming from, please report on github")
+    sys.exit(1)
+
 
 mol_supplier = Chem.SDMolSupplier(args.ligands, removeHs=False)
 if args.name_from_prop:
@@ -341,6 +383,7 @@ mk_prep = MoleculePreparation(flexible_amides=args.flexible_amides)
 
 def write_pdbqt(mol, mk_prep, fn):
     try:
+        t0 = time()
         molsetups = mk_prep.prepare(mol)
         if len(molsetups) != 1:
             return None
@@ -350,6 +393,7 @@ def write_pdbqt(mol, mk_prep, fn):
             logger.error(f'ligand not ok for PDBQT writing {mol.GetProp("_Name")=} {err=}')
         with open(fn, "w") as f:
             f.write(lig_pdbqt)
+        return time() - t0
     except Exception as error:
         return error
 
@@ -358,16 +402,22 @@ if args.write_sdf:
     w = Chem.SDWriter(str(output_sdf))
 
 total_dock_time = 0.0
+total_mk_lig_time = 0.0
+lig_counter = 0
+mol_none_counter = 0
 rec_fn = str(pathlib.Path(args.receptor).resolve())
 with temporary_directory() as tmpdir:
     logger.info(f"{tmpdir=}")
     ligtypes = ["HD", "C", "A", "N", "NA", "OA", "F", "P", "SA", "S", "Cl", "Br", "I", "Si"]
-    t0 = time()  # fallback if elifs are added but t0 isn't set
     if rec_fn.endswith(".json"):
+        tj = time()
         with open(rec_fn) as f:
             json_str = f.read()
         polymer = Polymer.from_json(json_str)
+        t_mk_rec = time()
+        logger.info(f"time(load polymer): loaded receptor ms={1000*(t_mk_rec-tj):.3f}")
         polymer.parameterize(mk_prep)
+        logger.info(f"time(mk_prep rec): ms={1000*(time()-t_mk_rec):.3f}")
         t0 = time()
         pdbqt_tuple = PDBQTWriterLegacy.write_from_polymer(polymer)
         rigid_pdbqt, flex_dict = pdbqt_tuple
@@ -390,7 +440,7 @@ with temporary_directory() as tmpdir:
         lig_types=ligtypes,
     ) 
     total_engine_time = time() - t0
-    logger.info(f"time(autogrid): ms={1000*(total_engine_time)}")
+    logger.info(f"time(autogrid): ms={1000*(total_engine_time):.3f}")
 
     counter = 0
     visited_names = set()
@@ -399,6 +449,9 @@ with temporary_directory() as tmpdir:
     outdir = pathlib.Path("output/")
     outdir.mkdir(exist_ok=True)
     for mol in mol_supplier:
+        if mol is None:
+            mol_none_counter += 1
+            continue
         name = mol.GetProp("_Name")
         if name in visited_names:
             repeat_id = 1
@@ -409,8 +462,10 @@ with temporary_directory() as tmpdir:
             name = newname
         visited_names.add(name)
         fn = ligsdir / f"{name}.pdbqt"
-        write_pdbqt(mol, mk_prep, fn)
+        t_mk_lig = write_pdbqt(mol, mk_prep, fn)
+        total_mk_lig_time += t_mk_lig
         counter += 1
+        lig_counter += 1
 
         if counter == args.chunk_size:
             cmds = [executable, "-B", "ligs/", "-N", "output/", "-M", "receptor.maps.fld", "-C", "1"]
@@ -453,8 +508,9 @@ with temporary_directory() as tmpdir:
 
 
     if args.write_sdf:
+        to = time()
+        out_mol_counter = 0
         for dlgfn in pathlib.Path("output/").glob("*.dlg"):
-            logger.info(f"adding {dlgfn} to results")
             with open(dlgfn) as f:
                 dlg_text = f.read()
             name = str(dlgfn.name).replace(".dlg", "")
@@ -463,10 +519,14 @@ with temporary_directory() as tmpdir:
             output_rdmol.SetDoubleProp("ADGPUScore", pdbqt_mol[0].score)
             output_rdmol.SetProp("_Name", name)
             w.write(output_rdmol)
+            out_mol_counter += 1
+        logger.info(f"time(output): nr={out_mol_counter} SDF write ms={1000*(time()-to):.3f}")
 
 if args.write_sdf:
     w.close()
 
+logger.info(f"{mol_none_counter=}")
+logger.info(f"time(mk_prep ligs): nr={lig_counter} ms={1000*total_mk_lig_time:.3f}")
 logger.info(f"time(engine): includes docking and map creation ms={1000*total_engine_time:.3f}")
 logger.info(f"time(dock): just AutoDock-GPU ms={1000*total_dock_time:.3f}")
 logger.info(f"time(total): total time in main script ms={1000*(time() - t_start):.3f}")
