@@ -294,7 +294,8 @@ def parse_and_validate_args():
     parser.add_argument("--name_from_prop", help="set input molecule name from RDKit/SDF property")
     parser.add_argument("--chunk_size", type=int, default=0)
     parser.add_argument("--executable", required=True)
-    parser.add_argument("--unidock", action="store_true")
+    parser.add_argument("--engine", choices=["adgpu", "vina", "unidock"], default="adgpu")
+    # parser.add_argument("--scoring", choices=["ad4", "vina"])
     args = parser.parse_args()
     if not args.write_sdf:
         logger.info(f"Setting args.write_sdf = True")
@@ -303,6 +304,14 @@ def parse_and_validate_args():
     if not pathlib.Path(args.executable).exists():
         print(f"{args.executable} does not exist")
         sys.exit(2)
+
+    #if args.engine == "adgpu" and args.scoring == "vina":
+    #    print("adgpu supports only ad4 scoring")
+    #    sys.exit(2)
+
+    #if args.engine == "unidock" and scoring == "ad4":
+    #    print("unidock supports ad4 scoring but we need to test that code path")
+    #    sys.exit(3)
     
     executable = str(pathlib.Path(args.executable).resolve())
     
@@ -419,6 +428,13 @@ class Info:
     total_mk_lig_time = 0.0
     mol_none_counter = 0
 
+def vina_wrap(executable):
+    lig_fns = [str(p) for p in pathlib.Path("ligs/").glob("*.pdbqt")]
+    cmds = [executable, "--receptor", "receptor.pdbqt", "--config", "box.txt", "--dir", "output/", "--batch"] 
+    for lig in lig_fns:
+        cmds.append(lig)
+    t = call(cmds)
+    return t
 
 def unidock_wrap(executable):
     lig_fns = [str(p) for p in pathlib.Path("ligs/").glob("*.pdbqt")]
@@ -474,7 +490,6 @@ def run(dock_func, executable, mol_supplier, mk_prep, process_output, score_key,
     ligsdir.mkdir(exist_ok=True)
     outdir = pathlib.Path("output/")
     outdir.mkdir(exist_ok=True)
-    info = Info()
     for mol in mol_supplier:
         if mol is None:
             info.mol_none_counter += 1
@@ -554,7 +569,7 @@ def main(args, executable, center, size, spacing, output_dir):
     info = Info()
     
     rec_fn = str(pathlib.Path(args.receptor).resolve())
-    with temporary_directory(clean=False) as tmpdir:
+    with temporary_directory(clean=True) as tmpdir:
         logger.info(f"{tmpdir=}")
         if rec_fn.endswith(".json"):
             rigid_pdbqt = polymer_to_pdbqt(rec_fn, mk_prep)
@@ -563,10 +578,14 @@ def main(args, executable, center, size, spacing, output_dir):
         else:
             shutil.copy(rec_fn, "receptor.pdbqt") 
     
-        if args.unidock:
+        if args.engine == "unidock":
             logger.info("Writing box.txt")
             write_box(center, size, "box.txt")
             run(unidock_wrap, executable, mol_supplier, mk_prep, process_output_pdbqt, "unidock_score", info, sdf_writer)
+        elif args.engine == "vina":
+            logger.info("Writing box.txt")
+            write_box(center, size, "box.txt")
+            run(vina_wrap, executable, mol_supplier, mk_prep, process_output_pdbqt, "VinaScore", info, sdf_writer)
         else:
             rectypes = _get_types_from_pdbqt("receptor.pdbqt")
             ligtypes = ["HD", "C", "A", "N", "NA", "OA", "F", "P", "SA", "S", "Cl", "Br", "I", "Si"]
@@ -581,14 +600,14 @@ def main(args, executable, center, size, spacing, output_dir):
                 rec_types=rectypes,
                 lig_types=ligtypes,
             ) 
-            total_engine_time = time() - t0
-            logger.info(f"time(autogrid): ms={1000*(total_engine_time):.3f}")
+            info.total_engine_time = time() - t0
+            logger.info(f"time(autogrid): ms={1000*(info.total_engine_time):.3f}")
             run(adgpu_wrap, executable, mol_supplier, mk_prep, process_output_dlg, "ADGPUScore", info, sdf_writer)
     
     logger.info(f"{info.mol_none_counter=}")
     logger.info(f"time(mk_prep ligs): nr={info.lig_counter} ms={1000*info.total_mk_lig_time:.3f}")
     logger.info(f"time(engine): includes docking and map creation ms={1000*info.total_engine_time:.3f}")
-    logger.info(f"time(dock): just AutoDock-GPU ms={1000*info.total_dock_time:.3f}")
+    logger.info(f"time(dock): ms={1000*info.total_dock_time:.3f}")
     logger.info(f"time(total): total time in main script ms={1000*(time() - t_start):.3f}")
     return 0
 
