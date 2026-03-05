@@ -20,6 +20,7 @@ import argparse
 import contextlib
 import json
 import logging
+from dataclasses import dataclass
 from socket import gethostname
 from os import linesep
 from os import getcwd
@@ -35,13 +36,6 @@ from rdkit import Chem
 from rdkit import RDLogger
 from rdkit.Chem import rdMolInterchange
 
-
-logger = logging.getLogger()
-logger.setLevel("INFO")
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-h = logging.StreamHandler()
-h.setFormatter(formatter)
-logger.addHandler(h)
 
 
 @contextlib.contextmanager
@@ -264,52 +258,6 @@ def get_box_info(ref_ligand, padding):
     print(f"computed {size=} from {padding=}, {center=}")
     return center, size
 
-
-DEFAULT_SPACING = 0.375
-DEFAULT_PADDING = 10
-
-parser = argparse.ArgumentParser(description="Run AutoDock-GPU from SDF to SQLite")
-
-parser.add_argument("-l", "--ligands", help="input filename (.sdf)", required=True)
-parser.add_argument("-r", "--receptor", help="filename of Meeko Polymer serialized to JSON")
-# parser.add_argument("-m", "--maps", help="base filename of grid maps")
-parser.add_argument("--flexible_amides", action="store_true")
-# parser.add_argument("--out_db", help="output sqlite3 filename (.sqlite3/.db)")
-parser.add_argument("--size", help="size of search space (grid maps)", type=float, nargs=3)
-parser.add_argument("--center", help="center of search space (grid maps)", type=float, nargs=3)
-parser.add_argument("--spacing", help=f"distance between grid points (default: {DEFAULT_SPACING} Angstrom)", type=float)
-parser.add_argument('-b', '--box', help="filename of vina config with box size and center")
-parser.add_argument("--padding", help=f"space between reference ligand and box (default: {DEFAULT_PADDING})", default=DEFAULT_PADDING, type=float)
-parser.add_argument("--box_enveloping", help="Box will envelop atoms in this file [.sdf .mol .mol2 .pdb .pdbqt]")
-parser.add_argument('--ref_ligand', help="reference ligand to define box center [.sdf/.pdb]")
-parser.add_argument("--output_dir", help="directory to write output files in", required=True)
-parser.add_argument("--write_sdf", help="write docking results to SDF", action="store_true")
-parser.add_argument("--name_from_prop", help="set input molecule name from RDKit/SDF property")
-parser.add_argument("--chunk_size", type=int, default=0)
-parser.add_argument("--executable", required=True)
-args = parser.parse_args()
-if not args.write_sdf:
-    logger.info(f"Setting args.write_sdf = True")
-    args.write_sdf = True
-
-if not pathlib.Path(args.executable).exists():
-    print(f"{args.executable} does not exist")
-    sys.exit(2)
-
-executable = str(pathlib.Path(args.executable).resolve())
-
-Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.MolProps |
-                                Chem.PropertyPickleOptions.PrivateProps)
-RDLogger.DisableLog("rdApp.*")
-
-output_dir = pathlib.Path(args.output_dir).resolve()
-output_dir.mkdir(exist_ok=True, parents=True)
-h = logging.FileHandler(output_dir / "log.txt", mode="w")
-formatter2 = logging.Formatter("%(asctime)s.%(msecs)03d [%(levelname)s] %(message)s [%(name)s@%(filename)s:%(lineno)d]", datefmt='%Y-%m-%d %H:%M:%S')
-h.setFormatter(formatter2)
-logger.addHandler(h)
-logger.info(f"hostname: {gethostname()}")
-
 def grid_usage_error():
     print("use one of these combinations:")
     print(f"    1) --box_enveloping                 (will pad with {DEFAULT_PADDING} Angstrom)")
@@ -322,64 +270,102 @@ def grid_usage_error():
     sys.exit(2)
     return
 
-nr_box_options = 0
-nr_box_options += int(args.box_enveloping is not None)
-nr_box_options += int(args.box is not None)
-nr_box_options += int(args.center is not None)
-if nr_box_options != 1:
-    grid_usage_error()
-if args.padding is not None and args.box_enveloping is None:
-    print("--padding requires --box_enveloping")
-    grid_usage_error()
-if args.center is not None and args.size is None:
-    print("--center requires --size")
-    grid_usage_error()
-if args.size is not None and (args.box_envelopping is None and args.center is None):
-    print("--size requires either --center or --box_enveloping or --box")
-    grid_usage_error()
-if args.size is not None and args.padding is not None:
-    print("can't use both --size and --padding")
-    grid_usage_error()
 
-spacing = DEFAULT_SPACING
-if args.box is not None:
-    with open(args.box) as f:
-        txt = f.read()
-    center, size, spacing_from_box = parse_box(txt)
-    if spacing_from_box is not None:
-        spacing = spacing_from_box
-    if args.spacing is not None:
-        spacing = args.spacing
-    if args.size is not None:
+def parse_and_validate_args():
+    DEFAULT_SPACING = 0.375
+    DEFAULT_PADDING = 10
+    
+    parser = argparse.ArgumentParser(description="Run AutoDock-GPU from SDF to SQLite")
+    
+    parser.add_argument("-l", "--ligands", help="input filename (.sdf)", required=True)
+    parser.add_argument("-r", "--receptor", help="filename of Meeko Polymer serialized to JSON")
+    # parser.add_argument("-m", "--maps", help="base filename of grid maps")
+    parser.add_argument("--flexible_amides", action="store_true")
+    # parser.add_argument("--out_db", help="output sqlite3 filename (.sqlite3/.db)")
+    parser.add_argument("--size", help="size of search space (grid maps)", type=float, nargs=3)
+    parser.add_argument("--center", help="center of search space (grid maps)", type=float, nargs=3)
+    parser.add_argument("--spacing", help=f"distance between grid points (default: {DEFAULT_SPACING} Angstrom)", type=float)
+    parser.add_argument('-b', '--box', help="filename of vina config with box size and center")
+    parser.add_argument("--padding", help=f"space between reference ligand and box (default: {DEFAULT_PADDING})", type=float)
+    parser.add_argument("--box_enveloping", help="Box will envelop atoms in this file [.sdf .mol .mol2 .pdb .pdbqt]")
+    parser.add_argument('--ref_ligand', help="reference ligand to define box center [.sdf/.pdb]")
+    parser.add_argument("--output_dir", help="directory to write output files in", required=True)
+    parser.add_argument("--write_sdf", help="write docking results to SDF", action="store_true")
+    parser.add_argument("--name_from_prop", help="set input molecule name from RDKit/SDF property")
+    parser.add_argument("--chunk_size", type=int, default=0)
+    parser.add_argument("--executable", required=True)
+    parser.add_argument("--unidock", action="store_true")
+    args = parser.parse_args()
+    if not args.write_sdf:
+        logger.info(f"Setting args.write_sdf = True")
+        args.write_sdf = True
+    
+    if not pathlib.Path(args.executable).exists():
+        print(f"{args.executable} does not exist")
+        sys.exit(2)
+    
+    executable = str(pathlib.Path(args.executable).resolve())
+    
+    Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.MolProps |
+                                    Chem.PropertyPickleOptions.PrivateProps)
+    RDLogger.DisableLog("rdApp.*")
+    
+    output_dir = pathlib.Path(args.output_dir).resolve()
+    output_dir.mkdir(exist_ok=True, parents=True)
+    
+    nr_box_options = 0
+    nr_box_options += int(args.box_enveloping is not None)
+    nr_box_options += int(args.box is not None)
+    nr_box_options += int(args.center is not None)
+    if nr_box_options != 1:
+        grid_usage_error()
+    if args.padding is not None and args.box_enveloping is None:
+        print("--padding requires --box_enveloping")
+        grid_usage_error()
+    if args.center is not None and args.size is None:
+        print("--center requires --size")
+        grid_usage_error()
+    if args.size is not None and (args.box_envelopping is None and args.center is None):
+        print("--size requires either --center or --box_enveloping or --box")
+        grid_usage_error()
+    if args.size is not None and args.padding is not None:
+        print("can't use both --size and --padding")
+        grid_usage_error()
+    
+    spacing = DEFAULT_SPACING
+    if args.box is not None:
+        with open(args.box) as f:
+            txt = f.read()
+        center, size, spacing_from_box = parse_box(txt)
+        if spacing_from_box is not None:
+            spacing = spacing_from_box
+        if args.spacing is not None:
+            spacing = args.spacing
+        if args.size is not None:
+            size = args.size
+    elif args.center is not None:
+        center = args.center
         size = args.size
-elif args.center is not None:
-    center = args.center
-    size = args.size
-elif args.box_enveloping is not None:
-    padding = DEFAULT_PADDING if args.padding is None else args.padding
-    positions = get_positions_from_molecule_file(args.box_enveloping)
-    center, size = gridbox.calc_box(positions, padding)
-    if args.size is not None:
-        size = args.size
-else:
-    print("logic error in determining where box size/center is coming from, please report on github")
-    sys.exit(1)
+    elif args.box_enveloping is not None:
+        padding = DEFAULT_PADDING if args.padding is None else args.padding
+        positions = get_positions_from_molecule_file(args.box_enveloping)
+        center, size = gridbox.calc_box(positions, padding)
+        if args.size is not None:
+            size = args.size
+    else:
+        print("logic error in determining where box size/center is coming from, please report on github")
+        sys.exit(1)
 
-
-mol_supplier = Chem.SDMolSupplier(args.ligands, removeHs=False)
-if args.name_from_prop:
-    mol_supplier = MolSupplier(mol_supplier, name_from_prop=args.name_from_prop)
-
-# prepare ligand pdbqt
-mk_prep = MoleculePreparation(flexible_amides=args.flexible_amides)
-
-# if args.out_db is not None:
-#     if not _got_ringtail:
-#         raise ImportError from _ringtail_import_err
-#     rtc = RingtailCore(args.out_db)
-#     rtc.save_receptor(args.receptor)  # TODO JSON?
-#     rt_logger = logging.getLogger("ringtail")
-#     rt_logger.setLevel("WARNING")
+    return args, executable, center, size, spacing, output_dir
+    
+    
+    # if args.out_db is not None:
+    #     if not _got_ringtail:
+    #         raise ImportError from _ringtail_import_err
+    #     rtc = RingtailCore(args.out_db)
+    #     rtc.save_receptor(args.receptor)  # TODO JSON?
+    #     rt_logger = logging.getLogger("ringtail")
+    #     rt_logger.setLevel("WARNING")
 
 def write_pdbqt(mol, mk_prep, fn):
     try:
@@ -397,60 +383,101 @@ def write_pdbqt(mol, mk_prep, fn):
     except Exception as error:
         return error
 
-if args.write_sdf:
-    output_sdf = output_dir / "docked_ligands.sdf"
-    w = Chem.SDWriter(str(output_sdf))
 
-total_dock_time = 0.0
-total_mk_lig_time = 0.0
-lig_counter = 0
-mol_none_counter = 0
-rec_fn = str(pathlib.Path(args.receptor).resolve())
-with temporary_directory() as tmpdir:
-    logger.info(f"{tmpdir=}")
-    ligtypes = ["HD", "C", "A", "N", "NA", "OA", "F", "P", "SA", "S", "Cl", "Br", "I", "Si"]
-    if rec_fn.endswith(".json"):
-        tj = time()
-        with open(rec_fn) as f:
-            json_str = f.read()
-        polymer = Polymer.from_json(json_str)
-        t_mk_rec = time()
-        logger.info(f"time(load polymer): loaded receptor ms={1000*(t_mk_rec-tj):.3f}")
-        polymer.parameterize(mk_prep)
-        logger.info(f"time(mk_prep rec): ms={1000*(time()-t_mk_rec):.3f}")
-        t0 = time()
-        pdbqt_tuple = PDBQTWriterLegacy.write_from_polymer(polymer)
-        rigid_pdbqt, flex_dict = pdbqt_tuple
-        if flex_dict:
-            raise NotImplementedError("receptor has flexres, which are not passed along yet")
-        with open("receptor.pdbqt", "w") as f:
-            f.write(rigid_pdbqt)
-    else:
-        t0 = time()
-        shutil.copy(rec_fn, "receptor.pdbqt") 
-    rectypes = _get_types_from_pdbqt("receptor.pdbqt")
-    maps_fn = wrap_autogrid(
-        "receptor.pdbqt",
-        center,
-        size,
-        tmpdir,
-        spacing,
-        "autogrid4",
-        rec_types=rectypes,
-        lig_types=ligtypes,
-    ) 
-    total_engine_time = time() - t0
-    logger.info(f"time(autogrid): ms={1000*(total_engine_time):.3f}")
+def polymer_to_pdbqt(polymer_filename, mk_prep):
+    tj = time()
+    with open(polymer_filename) as f:
+        json_str = f.read()
+    polymer = Polymer.from_json(json_str)
+    t_mk_rec = time()
+    logger.info(f"time(load polymer): loaded receptor ms={1000*(t_mk_rec-tj):.3f}")
+    polymer.parameterize(mk_prep)
+    logger.info(f"time(mk_prep rec): ms={1000*(time()-t_mk_rec):.3f}")
+    pdbqt_tuple = PDBQTWriterLegacy.write_from_polymer(polymer)
+    rigid_pdbqt, flex_dict = pdbqt_tuple
+    if flex_dict:
+        raise NotImplementedError("receptor has flexres, which are not passed along yet")
+    return rigid_pdbqt
 
+def write_box(center, size, fn):
+    with open(fn, "w") as f:
+        f.write(f"center_x = {center[0]}\n")
+        f.write(f"center_y = {center[1]}\n")
+        f.write(f"center_z = {center[2]}\n")
+        f.write(f"size_x = {size[0]}\n")
+        f.write(f"size_y = {size[1]}\n")
+        f.write(f"size_z = {size[2]}\n")
+    return
+
+@dataclass
+class Info:
+    lig_counter = 0
+    out_mol_counter = 0
+    output_time = 0.0
+    total_dock_time = 0.0
+    total_engine_time = 0.0
+    total_mk_lig_time = 0.0
+    mol_none_counter = 0
+
+
+def unidock_wrap(executable):
+    lig_fns = [str(p) for p in pathlib.Path("ligs/").glob("*.pdbqt")]
+    lig_fns_str = " ".join(lig_fns)
+    with open("ligand_filenames", "w") as f:
+        f.write(lig_fns_str + "\n")
+    cmds = [executable, "--receptor", "receptor.pdbqt", "--config", "box.txt", "--ligand_index", "ligand_filenames", "--dir", "output/"] 
+    t = call(cmds)
+    return t
+
+def adgpu_wrap(executable):
+    cmds = [executable, "-B", "ligs/", "-N", "output/", "-M", "receptor.maps.fld", "-C", "1"]
+    t = call(cmds)
+    return t
+
+def process_output_dlg(sdf_writer, key):
+    t0 = time()
+    out_mol_counter = 0
+    for dlgfn in pathlib.Path("output/").glob("*.dlg"):
+        logger.info(f"adding {dlgfn} to results")
+        with open(dlgfn) as f:
+            dlg_text = f.read()
+        name = str(dlgfn.name).replace(".dlg", "")
+        pdbqt_mol = PDBQTMolecule(dlg_text, name=name, is_dlg=True, skip_typing=True)
+        output_rdmol = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)[0] # ignore sidechains
+        output_rdmol.SetDoubleProp(key, pdbqt_mol[0].score)
+        output_rdmol.SetProp("_Name", name)
+        sdf_writer.write(output_rdmol)
+        out_mol_counter += 1
+    return time() - t0, out_mol_counter
+
+def process_output_pdbqt(sdf_writer, key):
+    t0 = time()
+    out_mol_counter = 0
+    for ofn in pathlib.Path("output/").glob("*.pdbqt"):
+        logger.info(f"adding {ofn} to results")
+        with open(ofn) as f:
+            text = f.read()
+        name = str(ofn.name).replace(".pdbqt", "")
+        pdbqt_mol = PDBQTMolecule(text, name=name, is_dlg=False, skip_typing=True)
+        output_rdmol = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)[0] # ignore sidechains
+        output_rdmol.SetDoubleProp(key, pdbqt_mol[0].score)
+        output_rdmol.SetProp("_Name", name)
+        sdf_writer.write(output_rdmol)
+        out_mol_counter += 1 
+    return time() - t0, out_mol_counter
+
+
+def run(dock_func, executable, mol_supplier, mk_prep, process_output, score_key, info, sdf_writer=None):
     counter = 0
     visited_names = set()
-    ligsdir = pathlib.Path("ligs")
+    ligsdir = pathlib.Path("ligs/")
     ligsdir.mkdir(exist_ok=True)
     outdir = pathlib.Path("output/")
     outdir.mkdir(exist_ok=True)
+    info = Info()
     for mol in mol_supplier:
         if mol is None:
-            mol_none_counter += 1
+            info.mol_none_counter += 1
             continue
         name = mol.GetProp("_Name")
         if name in visited_names:
@@ -463,27 +490,18 @@ with temporary_directory() as tmpdir:
         visited_names.add(name)
         fn = ligsdir / f"{name}.pdbqt"
         t_mk_lig = write_pdbqt(mol, mk_prep, fn)
-        total_mk_lig_time += t_mk_lig
+        info.total_mk_lig_time += t_mk_lig
         counter += 1
-        lig_counter += 1
+        info.lig_counter += 1
 
         if counter == args.chunk_size:
-            cmds = [executable, "-B", "ligs/", "-N", "output/", "-M", "receptor.maps.fld", "-C", "1"]
-            t = call(cmds)
-            total_engine_time += t
-            total_dock_time += t
-
-            if args.write_sdf:
-                for dlgfn in pathlib.Path("output/").glob("*.dlg"):
-                    logger.info(f"adding {dlgfn} to results")
-                    with open(dlgfn) as f:
-                        dlg_text = f.read()
-                    name = str(dlgfn.name).replace(".dlg", "")
-                    pdbqt_mol = PDBQTMolecule(dlg_text, name=name, is_dlg=True, skip_typing=True)
-                    output_rdmol = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)[0] # ignore sidechains
-                    output_rdmol.SetDoubleProp("ADGPUScore", pdbqt_mol[0].score)
-                    output_rdmol.SetProp("_Name", name)
-                    w.write(output_rdmol)
+            t = dock_func(executable)
+            info.total_engine_time += t
+            info.total_dock_time += t
+            if sdf_writer is not None:
+                t, c = process_output(sdf_writer, score_key)
+                info.output_time += t
+                info.out_mol_counter += c
 
             counter = 0
             visited_names = set()
@@ -492,41 +510,89 @@ with temporary_directory() as tmpdir:
             shutil.rmtree(str(outdir))
             outdir.mkdir(exist_ok=True)
 
-    # dock
-    cmds = [executable, "-B", "ligs/", "-N", "output/", "-M", "receptor.maps.fld", "-C", "1"]
-    t = call(cmds)
-    total_engine_time += t
-    total_dock_time += t
+    t = dock_func(executable)
+    info.total_engine_time += t
+    info.total_dock_time += t
             
-    
-        # if args.out_db is not None:
-        #     rtc.add_results_from_vina_string(
-        #         results_strings=vina_strings,
-        #         save_receptor=False,
-        #         add_interactions=True,
-        #     )
+    if sdf_writer is not None:
+        t, c = process_output(sdf_writer, score_key)
+        info.output_time += t
+        info.out_mol_counter += c
+        logger.info(f"time(output): nr={info.out_mol_counter} SDF write ms={1000*info.output_time:.3f}")
+        sdf_writer.close()
+    return
 
+
+def main(args, executable, center, size, spacing, output_dir):
+    global logger
+    logger = logging.getLogger()
+    logger.setLevel("INFO")
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    h = logging.StreamHandler()
+    h.setFormatter(formatter)
+    logger.addHandler(h)
+
+    h = logging.FileHandler(output_dir / "log.txt", mode="w")
+    formatter2 = logging.Formatter("%(asctime)s.%(msecs)03d [%(levelname)s] %(message)s [%(name)s@%(filename)s:%(lineno)d]", datefmt='%Y-%m-%d %H:%M:%S')
+    h.setFormatter(formatter2)
+    logger.addHandler(h)
+    logger.info(f"hostname: {gethostname()}")
 
     if args.write_sdf:
-        to = time()
-        out_mol_counter = 0
-        for dlgfn in pathlib.Path("output/").glob("*.dlg"):
-            with open(dlgfn) as f:
-                dlg_text = f.read()
-            name = str(dlgfn.name).replace(".dlg", "")
-            pdbqt_mol = PDBQTMolecule(dlg_text, name=name, is_dlg=True, skip_typing=True)
-            output_rdmol = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)[0] # ignore sidechains
-            output_rdmol.SetDoubleProp("ADGPUScore", pdbqt_mol[0].score)
-            output_rdmol.SetProp("_Name", name)
-            w.write(output_rdmol)
-            out_mol_counter += 1
-        logger.info(f"time(output): nr={out_mol_counter} SDF write ms={1000*(time()-to):.3f}")
+        output_sdf = output_dir / "docked_ligands.sdf"
+        sdf_writer = Chem.SDWriter(str(output_sdf))
+    else:
+        sdf_writer = None
 
-if args.write_sdf:
-    w.close()
+    mol_supplier = Chem.SDMolSupplier(args.ligands, removeHs=False)
+    if args.name_from_prop:
+        mol_supplier = MolSupplier(mol_supplier, name_from_prop=args.name_from_prop)
+    
+    # prepare ligand pdbqt
+    mk_prep = MoleculePreparation(flexible_amides=args.flexible_amides)
+    
+    info = Info()
+    
+    rec_fn = str(pathlib.Path(args.receptor).resolve())
+    with temporary_directory(clean=False) as tmpdir:
+        logger.info(f"{tmpdir=}")
+        if rec_fn.endswith(".json"):
+            rigid_pdbqt = polymer_to_pdbqt(rec_fn, mk_prep)
+            with open("receptor.pdbqt", "w") as f:
+                f.write(rigid_pdbqt)
+        else:
+            shutil.copy(rec_fn, "receptor.pdbqt") 
+    
+        if args.unidock:
+            logger.info("Writing box.txt")
+            write_box(center, size, "box.txt")
+            run(unidock_wrap, executable, mol_supplier, mk_prep, process_output_pdbqt, "unidock_score", info, sdf_writer)
+        else:
+            rectypes = _get_types_from_pdbqt("receptor.pdbqt")
+            ligtypes = ["HD", "C", "A", "N", "NA", "OA", "F", "P", "SA", "S", "Cl", "Br", "I", "Si"]
+            t0 = time()
+            maps_fn = wrap_autogrid(
+                "receptor.pdbqt",
+                center,
+                size,
+                tmpdir,
+                spacing,
+                "autogrid4",
+                rec_types=rectypes,
+                lig_types=ligtypes,
+            ) 
+            total_engine_time = time() - t0
+            logger.info(f"time(autogrid): ms={1000*(total_engine_time):.3f}")
+            run(adgpu_wrap, executable, mol_supplier, mk_prep, process_output_dlg, "ADGPUScore", info, sdf_writer)
+    
+    logger.info(f"{info.mol_none_counter=}")
+    logger.info(f"time(mk_prep ligs): nr={info.lig_counter} ms={1000*info.total_mk_lig_time:.3f}")
+    logger.info(f"time(engine): includes docking and map creation ms={1000*info.total_engine_time:.3f}")
+    logger.info(f"time(dock): just AutoDock-GPU ms={1000*info.total_dock_time:.3f}")
+    logger.info(f"time(total): total time in main script ms={1000*(time() - t_start):.3f}")
+    return 0
 
-logger.info(f"{mol_none_counter=}")
-logger.info(f"time(mk_prep ligs): nr={lig_counter} ms={1000*total_mk_lig_time:.3f}")
-logger.info(f"time(engine): includes docking and map creation ms={1000*total_engine_time:.3f}")
-logger.info(f"time(dock): just AutoDock-GPU ms={1000*total_dock_time:.3f}")
-logger.info(f"time(total): total time in main script ms={1000*(time() - t_start):.3f}")
+
+if __name__ == "__main__":
+    args, executable, center, size, spacing, output_dir = parse_and_validate_args()
+    main(args, executable, center, size, spacing, output_dir)
