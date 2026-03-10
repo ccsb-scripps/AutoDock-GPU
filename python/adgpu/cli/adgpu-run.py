@@ -383,9 +383,11 @@ def write_pdbqt(mol, mk_prep, fn):
         if len(molsetups) != 1:
             return None
         molsetup = molsetups[0]
-        lig_pdbqt, is_ok, err = PDBQTWriterLegacy.write_string(molsetup) #, add_index_map=True, remove_smiles=True)
+        lig_pdbqt, is_ok, err = PDBQTWriterLegacy.write_string(
+            molsetup) #, add_index_map=True, remove_smiles=True)
         if not is_ok:
             logger.error(f'ligand not ok for PDBQT writing {mol.GetProp("_Name")=} {err=}')
+            return time() - t0
         with open(fn, "w") as f:
             f.write(lig_pdbqt)
         return time() - t0
@@ -548,7 +550,7 @@ def main(args, executable, center, size, spacing, output_dir):
     logger.addHandler(h)
 
     h = logging.FileHandler(output_dir / "log.txt", mode="w")
-    formatter2 = logging.Formatter("%(asctime)s.%(msecs)03d [%(levelname)s] %(message)s [%(name)s@%(filename)s:%(lineno)d]", datefmt='%Y-%m-%d %H:%M:%S')
+    formatter2 = logging.Formatter("%(asctime)s.%(msecs)03d [%(levelname)s] %(message)s", datefmt='%Y-%m-%d %H:%M:%S')
     h.setFormatter(formatter2)
     logger.addHandler(h)
     logger.info(f"hostname: {gethostname()}")
@@ -581,8 +583,16 @@ def main(args, executable, center, size, spacing, output_dir):
         if args.engine == "unidock":
             logger.info("Writing box.txt")
             write_box(center, size, "box.txt")
+            mk_prep = MoleculePreparation(
+                flexible_amides=args.flexible_amides,
+                charge_model="zero",
+            )
             run(unidock_wrap, executable, mol_supplier, mk_prep, process_output_pdbqt, "unidock_score", info, sdf_writer)
         elif args.engine == "vina":
+            mk_prep = MoleculePreparation(
+                flexible_amides=args.flexible_amides,
+                charge_model="zero",
+            )
             logger.info("Writing box.txt")
             write_box(center, size, "box.txt")
             run(vina_wrap, executable, mol_supplier, mk_prep, process_output_pdbqt, "VinaScore", info, sdf_writer)
