@@ -226,6 +226,9 @@ gradient_minFire(
 	#endif
 
 	// Enable this for debugging FIRE from a defined initial genotype
+	// WARNING: hardcoded has priority over LGA genotype.
+	// That means, if DEBUG_INITIAL_2BRT is defined, then
+	// LGA genotype is not used (only for debugging purposes)
 	#if defined (DEBUG_FIRE_INITIAL_2BRT)
 	if (tidx == 0) {
 		// 2brt
@@ -251,79 +254,19 @@ gradient_minFire(
 		genotype[19] = 0.0f;
 		genotype[20] = 0.0f;
 	}
-	// Evaluating candidate
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	// =============================================================
-	gpu_calc_energy(dockpars_rotbondlist_length,
-	                dockpars_num_of_atoms,
-	                dockpars_true_ligand_atoms,
-	                dockpars_gridsize_x,
-	                dockpars_gridsize_y,
-	                dockpars_gridsize_z,
-	                                                     // g1 = gridsize_x
-	                dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
-	                dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
-	                dockpars_fgrids,
-	                dockpars_num_of_atypes,
-	                dockpars_num_of_map_atypes,
-	                dockpars_num_of_intraE_contributors,
-	                dockpars_grid_spacing,
-	                dockpars_coeff_elec,
-	                dockpars_elec_min_distance,
-	                dockpars_qasp,
-	                dockpars_coeff_desolv,
-	                dockpars_smooth,
-	
-	                genotype, /*WARNING: calculating the energy of the hardcoded genotype*/
-	                &energy,
-	                &run_id,
-	                // Some OpenCL compilers don't allow declaring
-	                // local variables within non-kernel functions.
-	                // These local variables must be declared in a kernel,
-	                // and then passed to non-kernel functions.
-	                calc_coords,
-	                partial_energies,
-	                #if defined (DEBUG_ENERGY_KERNEL)
-	                partial_interE,
-	                partial_intraE,
-	                #endif
-#if 0
-	                true,
-#endif
-	                kerconst_interintra,
-	                kerconst_intracontrib,
-	                kerconst_intra,
-	                kerconst_rotlist,
-	                kerconst_conform
-	               );
-	// =============================================================
-
-	// WARNING: hardcoded has priority over LGA genotype.
-	// That means, if DEBUG_INITIAL_2BRT is defined, then
-	// LGA genotype is not used (only for debugging purposes)
-	if (tidx == 0)
-	{
-		printf("\n");
-		printf("%20s \n", "hardcoded genotype: ");
-		printf("%20s %.6f\n", "initial energy: ", energy);
-	}
-	barrier(CLK_LOCAL_MEM_FENCE);
 	#endif
 
-	// Calculating gradient
 	barrier(CLK_LOCAL_MEM_FENCE);
-
 	// =============================================================
-	gpu_calc_gradient(dockpars_rotbondlist_length,
+	gpu_calc_energrad(dockpars_rotbondlist_length,
 	                  dockpars_num_of_atoms,
 	                  dockpars_true_ligand_atoms,
 	                  dockpars_gridsize_x,
 	                  dockpars_gridsize_y,
 	                  dockpars_gridsize_z,
-	                                                       // g1 = gridsize_x
-	                  dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
-	                  dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
+	                  // g1 = gridsize_x
+	                  dockpars_gridsize_x_times_y, 		// g2 = gridsize_x * gridsize_y
+	                  dockpars_gridsize_x_times_y_times_z,	// g3 = gridsize_x * gridsize_y * gridsize_z
 	                  dockpars_fgrids,
 	                  dockpars_num_of_atypes,
 	                  dockpars_num_of_map_atypes,
@@ -342,6 +285,11 @@ gradient_minFire(
 	                  &energy,
 	                  &run_id,
 	                  calc_coords,
+	                  partial_energies,
+	                  #if defined (DEBUG_ENERGY_KERNEL)
+	                  partial_interE,
+	                  partial_intraE,
+	                  #endif
 	                  kerconst_interintra,
 	                  kerconst_intracontrib,
 	                  kerconst_intra,
@@ -357,6 +305,16 @@ gradient_minFire(
 	                  gradient
 	                 );
 	// =============================================================
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	#if defined (DEBUG_FIRE_INITIAL_2BRT)
+	if (tidx == 0)
+	{
+		printf("\n");
+		printf("%20s \n", "hardcoded genotype: ");
+		printf("%20s %.6f\n", "initial energy: ", energy);
+	}
+	#endif
 
 	// FIRE counters
 	__local float velocity [ACTUAL_GENOTYPE_LENGTH]; // velocity
@@ -452,116 +410,9 @@ gradient_minFire(
 			candidate_genotype [gene_counter] = genotype [gene_counter] + dt * velocity [gene_counter];
 		}
 
-// Replacing separate gradient and energy 
-// calculations with a single & unified
-// gpu_calc_energrad() function
-// IMPORTANT: be careful with input/output (RE) assignment
-// of genotypes, energy, and gradients
-#if 0
-		// =============================================================
-		// Calculating (candidate) gradient
-		// from "candidate_genotype"
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-		gpu_calc_gradient(dockpars_rotbondlist_length,
-		                  dockpars_num_of_atoms,
-		                  dockpars_true_ligand_atoms,
-		                  dockpars_gridsize_x,
-		                  dockpars_gridsize_y,
-		                  dockpars_gridsize_z,
-		                                                       // g1 = gridsize_x
-		                  dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
-		                  dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
-		                  dockpars_fgrids,
-		                  dockpars_num_of_atypes,
-		                  dockpars_num_of_map_atypes,
-		                  dockpars_num_of_intraE_contributors,
-		                  dockpars_grid_spacing,
-		                  dockpars_coeff_elec,
-		                  dockpars_elec_min_distance,
-		                  dockpars_qasp,
-		                  dockpars_coeff_desolv,
-		                  dockpars_smooth,
-		                  // Some OpenCL compilers don't allow declaring
-		                  // local variables within non-kernel functions.
-		                  // These local variables must be declared in a kernel,
-		                  // and then passed to non-kernel functions.
-		                  candidate_genotype,
-		                  &candidate_energy,
-		                  &run_id,
-		                  calc_coords,
-		                  kerconst_interintra,
-		                  kerconst_intracontrib,
-		                  kerconst_intra,
-		                  kerconst_rotlist,
-		                  kerconst_conform,
-		                  rotbonds_const,
-		                  rotbonds_atoms_const,
-		                  num_rotating_atoms_per_rotbond_const,
-		                  // Gradient-related arguments
-		                  dockpars_num_of_genes,
-		                  gradient_x, gradient_y, gradient_z,
-		                  f_gradient_x, f_gradient_y, f_gradient_z,
-		                  candidate_gradient
-		                 );
-		// =============================================================
-
-		// Evaluating (candidate) genotype
-		// i.e. get (candidate) energy
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-		// =============================================================
-		gpu_calc_energy(dockpars_rotbondlist_length,
-		                dockpars_num_of_atoms,
-		                dockpars_true_ligand_atoms,
-		                dockpars_gridsize_x,
-		                dockpars_gridsize_y,
-		                dockpars_gridsize_z,
-		                                                     // g1 = gridsize_x
-		                dockpars_gridsize_x_times_y,         // g2 = gridsize_x * gridsize_y
-		                dockpars_gridsize_x_times_y_times_z, // g3 = gridsize_x * gridsize_y * gridsize_z
-		                dockpars_fgrids,
-		                dockpars_num_of_atypes,
-		                dockpars_num_of_map_atypes,
-		                dockpars_num_of_intraE_contributors,
-		                dockpars_grid_spacing,
-		                dockpars_coeff_elec,
-		                dockpars_elec_min_distance,
-		                dockpars_qasp,
-		                dockpars_coeff_desolv,
-		                dockpars_smooth,
-		
-		                candidate_genotype, /*WARNING: calculating the energy of the hardcoded genotype*/
-		                &candidate_energy,
-		                &run_id,
-		                // Some OpenCL compilers don't allow declaring
-		                // local variables within non-kernel functions.
-		                // These local variables must be declared in a kernel,
-		                // and then passed to non-kernel functions.
-		                calc_coords,
-		                partial_energies,
-		                #if defined (DEBUG_ENERGY_KERNEL)
-		                partial_interE,
-		                partial_intraE,
-		                #endif
-#if 0
-		                true,
-#endif
-		                kerconst_interintra,
-		                kerconst_intracontrib,
-		                kerconst_intra,
-		                kerconst_rotlist,
-		                kerconst_conform
-		               );
-		// =============================================================
-#endif
-
-		// =============================================================
-		// =============================================================
 		// =============================================================
 		// Calculating energy & gradient
 		barrier(CLK_LOCAL_MEM_FENCE);
-
 		gpu_calc_energrad(dockpars_rotbondlist_length,
 		                  dockpars_num_of_atoms,
 		                  dockpars_true_ligand_atoms,
@@ -608,8 +459,6 @@ gradient_minFire(
 		                  f_gradient_x, f_gradient_y, f_gradient_z,
 		                  candidate_gradient
 		                 );
-		// =============================================================
-		// =============================================================
 		// =============================================================
 
 		// Calculating power
