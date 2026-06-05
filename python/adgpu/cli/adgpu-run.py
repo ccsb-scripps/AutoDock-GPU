@@ -295,6 +295,8 @@ def parse_and_validate_args():
     parser.add_argument("--chunk_size", type=int, default=0)
     parser.add_argument("--executable", required=True)
     parser.add_argument("--engine", choices=["adgpu", "vina", "unidock"], default="adgpu")
+    parser.add_argument("--adgpu_runs", type=int)
+
     # parser.add_argument("--scoring", choices=["ad4", "vina"])
     args = parser.parse_args()
     if not args.write_sdf:
@@ -447,10 +449,15 @@ def unidock_wrap(executable):
     t = call(cmds)
     return t
 
-def adgpu_wrap(executable):
-    cmds = [executable, "-B", "ligs/", "-N", "output/", "-M", "receptor.maps.fld", "-C", "1"]
-    t = call(cmds)
-    return t
+class ADGPUWrap:
+    def __init__(self, nrun=None):
+        self.nrun = nrun
+    def __call__(self, executable):
+        cmds = [executable, "-B", "ligs/", "-N", "output/", "-M", "receptor.maps.fld", "-C", "1"]
+        if self.nrun is not None:
+            cmds += ["--nrun", str(int(self.nrun))]
+        t = call(cmds)
+        return t
 
 def process_output_dlg(sdf_writer, key):
     t0 = time()
@@ -597,6 +604,7 @@ def main(args, executable, center, size, spacing, output_dir):
             write_box(center, size, "box.txt")
             run(vina_wrap, executable, mol_supplier, mk_prep, process_output_pdbqt, "VinaScore", info, sdf_writer)
         else:
+            adgpu_wrap = ADGPUWrap(args.adgpu_runs)
             rectypes = _get_types_from_pdbqt("receptor.pdbqt")
             ligtypes = ["HD", "C", "A", "N", "NA", "OA", "F", "P", "SA", "S", "Cl", "Br", "I", "Si"]
             t0 = time()
