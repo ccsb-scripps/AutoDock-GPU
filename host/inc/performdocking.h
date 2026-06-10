@@ -30,7 +30,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stdlib.h>
 #include <time.h>
 
-#ifdef USE_CUDA
+// The HIP backend is the CUDA host path retargeted to the HIP runtime. Defining
+// USE_CUDA for the HIP build lets the shared `#ifdef USE_CUDA` GPU host logic
+// compile unchanged; cuda_to_hip.h aliases the cuda* runtime symbols to hip*,
+// so no NVIDIA headers are pulled in.
+#ifdef USE_HIP
+#include <cassert>
+#include "cuda_to_hip.h"
+#ifndef USE_CUDA
+#define USE_CUDA
+#endif
+#endif
+
+#if defined(USE_CUDA) && !defined(USE_HIP)
 #include <cuda.h>
 #include <curand.h>
 #include <cuda_runtime_api.h>

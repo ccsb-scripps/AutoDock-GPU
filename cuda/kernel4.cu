@@ -90,7 +90,7 @@ gpu_gen_and_eval_newpops_kernel(
 		// Perform final reduction in warp 0
 		if (warpID == 0)
 		{
-			int blocks = blockDim.x / 32;
+			int blocks = blockDim.x / WARP_SIZE;
 			if (tgx < blocks)
 			{
 				bestID = sBestID[tgx];
