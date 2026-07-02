@@ -49,7 +49,7 @@ make DEVICE=<TYPE> NUMWI=<NWI>
 | `<NWI>`    | work-group/thread block size | `1`, `2`, `4`, `8`, `16`, `32`, `64`, `128`, `256` |
 
 When `DEVICE=GPU` is chosen, the Makefile will automatically tests if it can compile Cuda succesfully. To override, use `DEVICE=CUDA` or `DEVICE=OCLGPU`. For AMD GPUs, use `DEVICE=HIP` with `HIP_ARCH=<gfx-target>` (for example `HIP_ARCH=gfx90a`), which builds the same CUDA kernels through ROCm/HIP. On AMD GPUs with matrix cores, adding `TENSOR=ON` (requires `NUMWI` of 64 or more) accelerates the energy/gradient sum-reduction through rocWMMA, mirroring the CUDA `TENSOR=ON` path. The cpu target is only supported using OpenCL. Furthermore, an OpenMP-enabled overlapped pipeline (for setup and processing) can be compiled with `OVERLAP=ON`.
-Hints: The best work-group size depends on the GPU and workload. Try `NUMWI=128` or `NUMWI=64` for modern cards with the example workloads. On macOS, use `NUMWI=1` for CPUs.
+Hints: The best work-group size depends on the GPU and workload. Try `NUMWI=128` or `NUMWI=64` for modern cards with the example workloads. On AMD GPUs, `NUMWI=64` was fastest in our tests on both consumer (RDNA) and datacenter cards. On macOS, use `NUMWI=1` for CPUs.
 
 After successful compilation, the host binary **autodock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
 
