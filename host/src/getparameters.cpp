@@ -2298,7 +2298,7 @@ std::vector<ReceptorAtom> read_receptor(
 	                      (mygrid->size_xyz[0])*
 	                      (mygrid->size_xyz[1])*
 	                      (mygrid->size_xyz[2]));
-	unsigned int current_gid=atom_and_grid_ids[0].grid_id;
+	unsigned int current_gid=atom_and_grid_ids.size()>0 ? atom_and_grid_ids[0].grid_id : 0;
 	unsigned count_idx=0;
 	in_reach_map[current_gid]=count_idx;
 	count = 0;
