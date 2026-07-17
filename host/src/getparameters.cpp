@@ -650,15 +650,15 @@ int initial_commandpars(
 		}
 		
 		// Argument: load initial data from xml file and reconstruct dlg, then finish
-		if (argcmp("xml2dlg", argv [i], 'X'))
+		if (argcmp("xml2dlg", argv [i], 'X') || argcmp("readxml", argv [i], 'c'))
 		{
 			if(mypars->xml_files>0){
-				printf("Error: Only one --xml2dlg (-X) argument is allowed.\n");
+				printf("Error: Only one --xml2dlg (-X) or --readxml (-c) argument is allowed.\n");
 				return 1;
 			}
 			mypars->load_xml = strdup(argv[i+1]);
 			read_more_xml_files = true;
-			mypars->xml2dlg = true;
+			mypars->xml2dlg = (argcmp("xml2dlg", argv [i], 'X'));
 			mypars->xml_files = 1;
 		}
 		
@@ -1751,11 +1751,11 @@ int get_commandpars(
 			}
 		}
 
-		// Argument: load initial population from xml file instead of generating one.
+		// Argument: load initial data from xml file to continue runs
 		if (argcmp("loadxml", argv [i], 'c'))
 		{
 			arg_recognized = 1;
-			mypars->load_xml = strdup(argv[i+1]);
+			i += mypars->xml_files-1; // skip ahead
 		}
 
 		// Argument: load initial data from xml file and reconstruct dlg, then finish
