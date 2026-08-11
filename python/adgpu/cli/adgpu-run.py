@@ -54,12 +54,26 @@ def temporary_directory(suffix=None, prefix=None, dir=None, clean=True):
 def call(cmds, **kwargs):
     t0 = time()
     logger.info(f"subprocess run: {cmds}")
-    process = subprocess.run(cmds, capture_output=True, text=True, **kwargs)
-    for line in process.stdout.splitlines():
-        logger.info(line)
-    for line in process.stderr.splitlines():
-        logger.error(line)
-    logger.info(f"process completed with returncode: {process.returncode}")
+    process = subprocess.Popen(
+                               cmds,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT,
+                               text=True,
+                               **kwargs
+                              )
+    for line in iter(process.stdout.readline, ""):
+        line = line.rstrip("\n")
+        if line.startswith("WARNING:"):
+            logger.warning(line)
+        elif line.startswith("ERROR:"):
+            logger.error(line)
+        else:
+            logger.info(line)
+    process.wait();
+    if process.returncode != 0:
+        raise RuntimeError(f"process returned with error code: {process.returncode}")
+    else:
+        logger.info("process completed successfully")
     return time() - t0
 
 class MolSupplier:
@@ -434,7 +448,7 @@ class Info:
 
 def vina_wrap(executable):
     lig_fns = [str(p) for p in pathlib.Path("ligs/").glob("*.pdbqt")]
-    cmds = [executable, "--receptor", "receptor.pdbqt", "--config", "box.txt", "--dir", "output/", "--batch"] 
+    cmds = [executable, "--receptor", "receptor.pdbqt", "--config", "box.txt", "--dir", "output/", "--batch"]
     for lig in lig_fns:
         cmds.append(lig)
     t = call(cmds)
@@ -624,7 +638,7 @@ def main(args, executable, center, size, spacing, output_dir):
     
     logger.info(f"{info.mol_none_counter=}")
     logger.info(f"time(mk_prep ligs): nr={info.lig_counter} ms={1000*info.total_mk_lig_time:.3f}")
-    logger.info(f"time(engine): includes docking and map creation ms={1000*info.total_engine_time:.3f}")
+    logger.info(f"time(engine): includes maps&docking ms={1000*info.total_engine_time:.3f}")
     logger.info(f"time(dock): ms={1000*info.total_dock_time:.3f}")
     logger.info(f"time(total): total time in main script ms={1000*(time() - t_start):.3f}")
     return 0
