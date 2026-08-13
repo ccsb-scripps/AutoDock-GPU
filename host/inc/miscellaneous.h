@@ -36,16 +36,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <cstdint>
 #include <string>
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__HIP_DEVICE_COMPILE__)
 #include <processthreadsapi.h>
 inline unsigned int processid() { return GetCurrentProcessId(); }
-#else
+#elif !defined(_WIN32)
 // libgen.h contains basename() and dirname() from a fullpath name
 // Specific: to open correctly grid map field fiels and associated files
 // http://ask.systutorials.com/681/get-the-directory-path-and-file-name-from-absolute-path-linux
 #include <libgen.h>
 #include <unistd.h>
 inline unsigned int processid() { return getpid(); }
+#else
+// Device compilation on Windows: processid() not needed in device code.
+inline unsigned int processid() { return 0; }
 #endif
 
 #define PI 3.14159265359

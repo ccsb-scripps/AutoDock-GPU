@@ -26,6 +26,16 @@
 
 OVERLAP = ON
 
+# HIP/ROCm backend: native AMD GPU path ported from the CUDA kernels. Selected
+# explicitly with DEVICE=HIP; bypasses the nvcc CUDA probe entirely.
+ifeq ($(DEVICE), HIP)
+override DEVICE:=GPU
+export
+$(info Using HIP)
+$(info )
+include Makefile.Hip
+else
+
 ifeq ($(DEVICE), $(filter $(DEVICE),GPU CUDA))
 MIN_COMPUTE:=50
 ifeq ($(TENSOR), ON)
@@ -64,3 +74,5 @@ $(info GPU_INCLUDE_PATH and GPU_LIBRARY_PATH)
 $(info )
 include Makefile.OpenCL
 endif
+
+endif # DEVICE=HIP

@@ -451,11 +451,19 @@ void setup_gpu_for_docking(
 	RTERROR(cudaGetDevice(&(cData.devnum)),"ERROR in cudaGetDevice:");
 	RTERROR(cudaGetDeviceProperties(&props,cData.devnum),"ERROR in cudaGetDeviceProperties:");
 #ifdef USE_NVTENSOR
+#if defined(__HIP_PLATFORM_AMD__)
+	if(props.warpSize < 32){
+		printf("Error: a wavefront of at least 32 lanes is needed for tensor core sum reductions.\n");
+		printf("       Available device %s has a wavefront of %d lanes.\n", props.name, props.warpSize);
+		exit(-1);
+	}
+#else
 	if(props.major < 8){
 		printf("Error: Compute capability 8.0 or higher is needed for tensor core sum reductions.\n");
 		printf("       Available device %s has compute capability %d.%d.\n", props.name, props.major, props.minor);
 		exit(-1);
 	}
+#endif
 #endif
 	tData.device_name = (char*) malloc(strlen(props.name)+33); // make sure array is large enough to hold device number text too
 	strcpy(tData.device_name, props.name);
@@ -781,9 +789,14 @@ parameters argc and argv:
 	cData.pMem_gpu_evals_of_runs = tData.pMem_gpu_evals_of_runs;
 	cData.pMem_prng_states = tData.pMem_prng_states;
 
-	// Set CUDA constants
-	cData.warpmask = 31;
-	cData.warpbits = 5;
+	// Set warp/wavefront constants from the device. NVIDIA warps are 32 lanes;
+	// AMD wavefronts are 64 on CDNA (gfx90a) and 32 on RDNA, so the warp
+	// reductions must use the device's actual warpSize, not a 32-lane literal.
+	cudaDeviceProp warp_props;
+	RTERROR(cudaGetDeviceProperties(&warp_props, cData.devid), "ERROR in cudaGetDeviceProperties (warpSize):");
+	cData.warpmask = warp_props.warpSize - 1;
+	cData.warpbits = 0;
+	for (int ws = warp_props.warpSize; ws > 1; ws >>= 1) cData.warpbits++;
 
 	// Upload data
 	status = cudaMemcpy(tData.pMem_fgrids, mygrid->grids.data(), mygrid->grids.size()*sizeof(float), cudaMemcpyHostToDevice);
