@@ -32,9 +32,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 // expand the allowed bond length ranges by the BOND_LENGTH_TOLERANCE
 #define BOND_LENGTH_TOLERANCE 0.1
+#define BOND_LENGTH_TOLERANCE_FACTOR 1.1
 #define set_minmax( a1, a2, min, max)  \
-    mindist[(a1)][(a2)] = (min)-BOND_LENGTH_TOLERANCE;\
-    maxdist[(a1)][(a2)] = (max)+BOND_LENGTH_TOLERANCE;\
+    mindist[(a1)][(a2)] = ((min)-BOND_LENGTH_TOLERANCE)/BOND_LENGTH_TOLERANCE_FACTOR;\
+    maxdist[(a1)][(a2)] = ((max)+BOND_LENGTH_TOLERANCE)*BOND_LENGTH_TOLERANCE_FACTOR;\
     if((a1) != (a2)){\
         mindist[(a2)][(a1)] = mindist[(a1)][(a2)];\
         maxdist[(a2)][(a1)] = maxdist[(a1)][(a2)];\
