@@ -1,0 +1,47 @@
+name: CMake
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+   
+    - uses: Jimver/cuda-toolkit@v0.2.5
+      id: cuda-toolkit
+      with:
+        cuda: '11.5.1'
+
+    - name: Configure CMake CUDA
+      run: cmake -DBUILD_CUDA=1 -B ${{github.workspace}}/build-cuda -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+    - name: Build CUDA
+      run: cmake --build ${{github.workspace}}/build-cuda --config ${{env.BUILD_TYPE}}
+      
+    - name: Configure CMake OpenCL
+      run: cmake -DBUILD_OPENCL=1 -B ${{github.workspace}}/build-opencl -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+    - name: Build OpenCL
+      run: cmake --build ${{github.workspace}}/build-opencl --config ${{env.BUILD_TYPE}}
+
+    - name: Archive CUDA build
+      uses: actions/upload-artifact@v2
+      with:
+        name: adgpu-cuda
+        path: ${{github.workspace}}/build-cuda/adgpu
+
+    - name: Archive OpenCL build
+      uses: actions/upload-artifact@v2
+      with:
+        name: adgpu-opencl
+        path: ${{github.workspace}}/build-opencl/adgpu
+
