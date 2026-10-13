@@ -153,6 +153,9 @@ int main(int argc, char* argv[])
 		if (argcmp("xml2dlg", argv[i], 'X'))
 			i+=initial_pars.xml_files-1; // skip ahead in case there are multiple entries here
 		
+		if (argcmp("readxml", argv[i], 'c'))
+			i+=initial_pars.xml_files-1; // skip ahead in case there are multiple entries here
+		
 		if (argcmp("devnum", argv [i], 'D'))
 		{
 			if(stricmp(argv[i+1],"all")==0){

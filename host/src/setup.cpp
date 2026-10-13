@@ -87,6 +87,9 @@ int setup(
 		if (argcmp("xml2dlg", argv[i], 'X'))
 			i+=mypars->xml_files-1; // skip ahead in case there are multiple entries here
 
+		if (argcmp("readxml", argv[i], 'c'))
+			i+=mypars->xml_files-1; // skip ahead in case there are multiple entries here
+
 		// Argument: derivate atom types
 		if (argcmp("derivtype", argv [i], 'T'))
 		{
